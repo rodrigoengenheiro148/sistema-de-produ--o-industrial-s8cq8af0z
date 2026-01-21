@@ -47,10 +47,12 @@ import {
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function Dashboard() {
   const { rawMaterials, production, shipping, dateRange, setDateRange } =
     useData()
+  const isMobile = useIsMobile()
 
   // Visual feedback state
   const [highlight, setHighlight] = useState(false)
@@ -527,7 +529,10 @@ export default function Dashboard() {
                 config={yieldChartConfig}
                 className="h-[350px] w-full"
               >
-                <LineChart data={yieldChartData}>
+                <LineChart
+                  data={yieldChartData}
+                  margin={{ top: 20, right: 20, left: 20, bottom: 10 }}
+                >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
@@ -547,22 +552,49 @@ export default function Dashboard() {
                     dataKey="sebo"
                     stroke="var(--color-sebo)"
                     strokeWidth={2}
-                    dot={false}
-                  />
+                    dot={{ r: 4, fill: 'var(--color-sebo)' }}
+                    activeDot={{ r: 6 }}
+                  >
+                    <LabelList
+                      position="top"
+                      offset={12}
+                      fill="var(--color-sebo)"
+                      fontSize={isMobile ? 9 : 12}
+                      formatter={(value: number) => `${value.toFixed(1)}%`}
+                    />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="fco"
                     stroke="var(--color-fco)"
                     strokeWidth={2}
-                    dot={false}
-                  />
+                    dot={{ r: 4, fill: 'var(--color-fco)' }}
+                    activeDot={{ r: 6 }}
+                  >
+                    <LabelList
+                      position="top"
+                      offset={12}
+                      fill="var(--color-fco)"
+                      fontSize={isMobile ? 9 : 12}
+                      formatter={(value: number) => `${value.toFixed(1)}%`}
+                    />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="farinheta"
                     stroke="var(--color-farinheta)"
                     strokeWidth={2}
-                    dot={false}
-                  />
+                    dot={{ r: 4, fill: 'var(--color-farinheta)' }}
+                    activeDot={{ r: 6 }}
+                  >
+                    <LabelList
+                      position="top"
+                      offset={12}
+                      fill="var(--color-farinheta)"
+                      fontSize={isMobile ? 9 : 12}
+                      formatter={(value: number) => `${value.toFixed(1)}%`}
+                    />
+                  </Line>
                 </LineChart>
               </ChartContainer>
             </CardContent>
