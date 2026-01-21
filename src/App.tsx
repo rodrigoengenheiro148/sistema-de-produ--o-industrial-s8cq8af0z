@@ -7,6 +7,7 @@ import RawMaterial from './pages/RawMaterial'
 import Production from './pages/Production'
 import Yields from './pages/Yields'
 import DailyAcidity from './pages/DailyAcidity'
+import Quality from './pages/Quality'
 import Inventory from './pages/Inventory'
 import Shipping from './pages/Shipping'
 import Settings from './pages/Settings'
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/producao" element={<Production />} />
             <Route path="/rendimentos" element={<Yields />} />
             <Route path="/acidez-diaria" element={<DailyAcidity />} />
+            <Route path="/qualidade" element={<Quality />} />
             <Route path="/estoque" element={<Inventory />} />
             <Route path="/expedicao" element={<Shipping />} />
             <Route path="/fabricas" element={<Factories />} />

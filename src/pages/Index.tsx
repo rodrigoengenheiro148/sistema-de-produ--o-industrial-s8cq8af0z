@@ -43,6 +43,7 @@ import {
   Bone,
   Wheat,
   FlaskConical,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -56,6 +57,7 @@ export default function Dashboard() {
     production,
     shipping,
     acidityRecords,
+    qualityRecords,
     dateRange,
     setDateRange,
     factories,
@@ -80,7 +82,7 @@ export default function Dashboard() {
     const timer = setTimeout(() => setHighlight(false), 2000)
 
     return () => clearTimeout(timer)
-  }, [rawMaterials, production, shipping, acidityRecords])
+  }, [rawMaterials, production, shipping, acidityRecords, qualityRecords])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {
@@ -100,6 +102,7 @@ export default function Dashboard() {
     .filter((s) => filterByDate(s.date))
     .sort((a, b) => a.date.getTime() - b.date.getTime())
   const filteredAcidity = acidityRecords.filter((a) => filterByDate(a.date))
+  const filteredQuality = qualityRecords.filter((q) => filterByDate(q.date))
 
   // KPIs General
   const totalEntradaMP = filteredRawMaterials.reduce(
@@ -128,6 +131,33 @@ export default function Dashboard() {
     (acc, curr) => acc + curr.volume,
     0,
   )
+
+  // Quality KPIs (Averages)
+  const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
+  const avgFarinhaAcidity =
+    farinhaQuality.length > 0
+      ? farinhaQuality.reduce((acc, curr) => acc + curr.acidity, 0) /
+        farinhaQuality.length
+      : 0
+  const avgFarinhaProtein =
+    farinhaQuality.length > 0
+      ? farinhaQuality.reduce((acc, curr) => acc + curr.protein, 0) /
+        farinhaQuality.length
+      : 0
+
+  const farinhetaQuality = filteredQuality.filter(
+    (q) => q.product === 'Farinheta',
+  )
+  const avgFarinhetaAcidity =
+    farinhetaQuality.length > 0
+      ? farinhetaQuality.reduce((acc, curr) => acc + curr.acidity, 0) /
+        farinhetaQuality.length
+      : 0
+  const avgFarinhetaProtein =
+    farinhetaQuality.length > 0
+      ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) /
+        farinhetaQuality.length
+      : 0
 
   // Individual Yields Totals
   const totalSebo = filteredProduction.reduce(
@@ -260,6 +290,12 @@ export default function Dashboard() {
               className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               Visão Geral
+            </TabsTrigger>
+            <TabsTrigger
+              value="quality"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Qualidade
             </TabsTrigger>
             <TabsTrigger
               value="yields"
@@ -515,6 +551,63 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="quality" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="border-t-4 border-t-blue-500 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-blue-700 flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4" /> Qualidade Farinha
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Acidez Média
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {avgFarinhaAcidity.toFixed(2)}%
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Proteína Média
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {avgFarinhaProtein.toFixed(2)}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-t-4 border-t-amber-500 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-amber-700 flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4" /> Qualidade Farinheta
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Acidez Média
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {avgFarinhetaAcidity.toFixed(2)}%
+                  </div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">
+                    Proteína Média
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {avgFarinhetaProtein.toFixed(2)}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="yields" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="shadow-sm border-primary/10">

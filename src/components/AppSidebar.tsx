@@ -8,6 +8,7 @@ import {
   Settings,
   FlaskConical,
   Building2,
+  ClipboardCheck,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -52,6 +53,11 @@ const items = [
     title: 'Acidez Diária',
     url: '/acidez-diaria',
     icon: FlaskConical,
+  },
+  {
+    title: 'Qualidade',
+    url: '/qualidade',
+    icon: ClipboardCheck,
   },
   {
     title: 'Estoque',

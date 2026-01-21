@@ -6,6 +6,7 @@ import {
   Truck,
   Send,
   Menu,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -32,6 +33,11 @@ export function MobileNav() {
       icon: Factory,
     },
     {
+      title: 'Qualidade',
+      url: '/qualidade',
+      icon: ClipboardCheck,
+    },
+    {
       title: 'Saída',
       url: '/expedicao',
       icon: Send,
@@ -44,8 +50,8 @@ export function MobileNav() {
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe">
-      <div className="flex items-center justify-between px-2 h-16">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe overflow-x-auto scrollbar-hide">
+      <div className="flex items-center justify-between px-2 h-16 min-w-max">
         {items.map((item) => {
           const isActive = location.pathname === item.url
           return (
@@ -53,7 +59,7 @@ export function MobileNav() {
               key={item.url}
               to={item.url}
               className={cn(
-                'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200 active:scale-95',
+                'flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-all duration-200 active:scale-95 px-1',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-primary/70',
@@ -81,7 +87,7 @@ export function MobileNav() {
         <Button
           variant="ghost"
           size="icon"
-          className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-muted-foreground hover:text-primary hover:bg-transparent rounded-none"
+          className="flex flex-col items-center justify-center min-w-[64px] h-full gap-1 text-muted-foreground hover:text-primary hover:bg-transparent rounded-none"
           onClick={toggleSidebar}
         >
           <Menu className="h-5 w-5" />

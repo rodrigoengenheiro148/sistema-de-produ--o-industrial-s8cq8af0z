@@ -40,6 +40,16 @@ export interface AcidityEntry {
   notes?: string
 }
 
+export interface QualityEntry {
+  id: string
+  date: Date
+  product: 'Farinha' | 'Farinheta'
+  acidity: number
+  protein: number
+  responsible: string
+  notes?: string
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined
@@ -92,6 +102,7 @@ export interface DataContextType {
   production: ProductionEntry[]
   shipping: ShippingEntry[]
   acidityRecords: AcidityEntry[]
+  qualityRecords: QualityEntry[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   updateRawMaterial: (entry: RawMaterialEntry) => void
@@ -108,6 +119,10 @@ export interface DataContextType {
   addAcidityRecord: (entry: Omit<AcidityEntry, 'id'>) => void
   updateAcidityRecord: (entry: AcidityEntry) => void
   deleteAcidityRecord: (id: string) => void
+
+  addQualityRecord: (entry: Omit<QualityEntry, 'id'>) => void
+  updateQualityRecord: (entry: QualityEntry) => void
+  deleteQualityRecord: (id: string) => void
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

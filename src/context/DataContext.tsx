@@ -11,6 +11,7 @@ import {
   ProductionEntry,
   ShippingEntry,
   AcidityEntry,
+  QualityEntry,
   DateRange,
   DataContextType,
   SystemSettings,
@@ -101,6 +102,27 @@ const MOCK_ACIDITY: AcidityEntry[] = [
   },
 ]
 
+const MOCK_QUALITY: QualityEntry[] = [
+  {
+    id: '1',
+    date: subDays(new Date(), 2),
+    product: 'Farinha',
+    acidity: 4.2,
+    protein: 45.5,
+    responsible: 'Maria Lab',
+    notes: 'Amostra lote 001',
+  },
+  {
+    id: '2',
+    date: subDays(new Date(), 1),
+    product: 'Farinheta',
+    acidity: 3.8,
+    protein: 38.0,
+    responsible: 'Carlos Lab',
+    notes: 'Amostra lote 002',
+  },
+]
+
 const MOCK_USER_ACCESS: UserAccessEntry[] = [
   {
     id: '1',
@@ -131,6 +153,7 @@ const STORAGE_KEYS = {
   PRODUCTION: 'spi_production',
   SHIPPING: 'spi_shipping',
   ACIDITY: 'spi_acidity',
+  QUALITY: 'spi_quality',
   DEV_MODE: 'spi_dev_mode',
   SETTINGS: 'spi_settings',
   USER_ACCESS: 'spi_user_access',
@@ -227,6 +250,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [acidityRecords, setAcidityRecords] = useState<AcidityEntry[]>(() =>
     getStorageData(STORAGE_KEYS.ACIDITY, MOCK_ACIDITY),
   )
+  const [qualityRecords, setQualityRecords] = useState<QualityEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.QUALITY, MOCK_QUALITY),
+  )
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>(() =>
     getStorageData(STORAGE_KEYS.USER_ACCESS, MOCK_USER_ACCESS),
   )
@@ -271,6 +297,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setProduction(getStorageData(STORAGE_KEYS.PRODUCTION, []))
         setShipping(getStorageData(STORAGE_KEYS.SHIPPING, []))
         setAcidityRecords(getStorageData(STORAGE_KEYS.ACIDITY, []))
+        setQualityRecords(getStorageData(STORAGE_KEYS.QUALITY, []))
         setFactories(getStorageData(STORAGE_KEYS.FACTORIES, []))
         setUserAccessList(getStorageData(STORAGE_KEYS.USER_ACCESS, []))
         setLastProtheusSync(getStorageData(STORAGE_KEYS.LAST_SYNC, null))
@@ -363,8 +390,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   )
   useChangeNotification(
     acidityRecords,
-    'Qualidade',
+    'Controle de Acidez',
     'Novas medições de acidez registradas.',
+    sendNotification,
+  )
+  useChangeNotification(
+    qualityRecords,
+    'Qualidade',
+    'Novas análises de qualidade registradas.',
     sendNotification,
   )
 
@@ -437,13 +470,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       // Parallel fetching for efficiency
-      const [rawRes, prodRes, shipRes, acidRes, factRes] = await Promise.all([
-        apiFetch('raw-materials'),
-        apiFetch('production'),
-        apiFetch('shipping'),
-        apiFetch('acidity'),
-        apiFetch('factories'),
-      ])
+      const [rawRes, prodRes, shipRes, acidRes, qualRes, factRes] =
+        await Promise.all([
+          apiFetch('raw-materials'),
+          apiFetch('production'),
+          apiFetch('shipping'),
+          apiFetch('acidity'),
+          apiFetch('quality'),
+          apiFetch('factories'),
+        ])
 
       let hasUpdates = false
 
@@ -469,6 +504,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         const data = parseDatesInArray(acidRes)
         setAcidityRecords(data)
         setStorageData(STORAGE_KEYS.ACIDITY, data)
+        hasUpdates = true
+      }
+      if (qualRes && Array.isArray(qualRes)) {
+        const data = parseDatesInArray(qualRes)
+        setQualityRecords(data)
+        setStorageData(STORAGE_KEYS.QUALITY, data)
         hasUpdates = true
       }
       if (factRes && Array.isArray(factRes)) {
@@ -515,10 +556,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setProduction([])
     setShipping([])
     setAcidityRecords([])
+    setQualityRecords([])
     setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
     setStorageData(STORAGE_KEYS.PRODUCTION, [])
     setStorageData(STORAGE_KEYS.SHIPPING, [])
     setStorageData(STORAGE_KEYS.ACIDITY, [])
+    setStorageData(STORAGE_KEYS.QUALITY, [])
     setLastProtheusSync(null)
     setStorageData(STORAGE_KEYS.LAST_SYNC, null)
     broadcastUpdate()
@@ -631,6 +674,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         production,
         shipping,
         acidityRecords,
+        qualityRecords,
         addRawMaterial: createAdd(
           STORAGE_KEYS.RAW_MATERIALS,
           'raw-materials',
@@ -689,6 +733,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           STORAGE_KEYS.ACIDITY,
           'acidity',
           setAcidityRecords,
+        ),
+
+        addQualityRecord: createAdd(
+          STORAGE_KEYS.QUALITY,
+          'quality',
+          setQualityRecords,
+        ),
+        updateQualityRecord: createUpdate(
+          STORAGE_KEYS.QUALITY,
+          'quality',
+          setQualityRecords,
+        ),
+        deleteQualityRecord: createDelete(
+          STORAGE_KEYS.QUALITY,
+          'quality',
+          setQualityRecords,
         ),
 
         userAccessList,

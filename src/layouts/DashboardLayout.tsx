@@ -43,6 +43,8 @@ export default function DashboardLayout() {
         return 'Análise de Rendimentos'
       case '/acidez-diaria':
         return 'Controle de Acidez'
+      case '/qualidade':
+        return 'Gestão de Qualidade'
       case '/estoque':
         return 'Gestão de Estoque'
       case '/expedicao':
