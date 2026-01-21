@@ -1,16 +1,33 @@
+import { useState } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
 import {
   Package,
   Truck,
   ArrowUpRight,
   ArrowDownRight,
   AlertTriangle,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { useToast } from '@/hooks/use-toast'
 
 export default function Inventory() {
-  const { rawMaterials, production, shipping } = useData()
+  const {
+    rawMaterials,
+    production,
+    shipping,
+    protheusConfig,
+    syncProtheusData,
+    lastProtheusSync,
+  } = useData()
+  const { toast } = useToast()
+  const [isSyncing, setIsSyncing] = useState(false)
 
   // Initial Stock is 0 for simulation or could be a parameter.
   // For this exercise, we assume starting from 0 and calculating current balance.
@@ -42,6 +59,25 @@ export default function Inventory() {
     .filter((s) => s.product === 'Farinheta')
     .reduce((acc, curr) => acc + curr.quantity, 0)
   const farinhetaStock = farinhetaIn - farinhetaOut
+
+  const handleSync = async () => {
+    setIsSyncing(true)
+    try {
+      await syncProtheusData()
+      toast({
+        title: 'Sincronização Concluída',
+        description: 'Dados de estoque atualizados com o Protheus.',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro na Sincronização',
+        description: 'Não foi possível comunicar com o ERP.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   const InventoryCard = ({
     title,
@@ -109,7 +145,32 @@ export default function Inventory() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
+        {protheusConfig.isActive && protheusConfig.syncInventory && (
+          <div className="flex items-center gap-3">
+            {lastProtheusSync && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Atualizado:{' '}
+                {format(lastProtheusSync, "dd/MM 'às' HH:mm", { locale: ptBR })}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`}
+              />
+              {isSyncing ? 'Sincronizando...' : 'Sync Protheus'}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <InventoryCard

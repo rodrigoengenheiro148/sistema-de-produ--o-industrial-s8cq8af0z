@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AccessControl } from '@/components/AccessControl'
+import { ProtheusConfig } from '@/components/ProtheusConfig'
 import {
   Dialog,
   DialogContent,
@@ -176,6 +177,8 @@ export default function Settings() {
 
       {isDeveloperMode && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <ProtheusConfig />
+
           <AccessControl />
 
           <Card className="border-primary/20 bg-secondary/10">

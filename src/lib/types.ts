@@ -65,6 +65,17 @@ export interface UserAccessEntry {
   createdAt: Date
 }
 
+export interface ProtheusConfig {
+  baseUrl: string
+  clientId: string
+  clientSecret: string
+  username: string
+  password: string
+  syncInventory: boolean
+  syncProduction: boolean
+  isActive: boolean
+}
+
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
@@ -100,6 +111,12 @@ export interface DataContextType {
 
   systemSettings: SystemSettings
   updateSystemSettings: (settings: SystemSettings) => void
+
+  protheusConfig: ProtheusConfig
+  updateProtheusConfig: (config: ProtheusConfig) => void
+  testProtheusConnection: () => Promise<{ success: boolean; message: string }>
+  lastProtheusSync: Date | null
+  syncProtheusData: () => Promise<void>
 
   clearAllData: () => void
 }

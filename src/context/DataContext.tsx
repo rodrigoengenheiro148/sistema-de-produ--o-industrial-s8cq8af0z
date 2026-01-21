@@ -14,6 +14,7 @@ import {
   DataContextType,
   SystemSettings,
   UserAccessEntry,
+  ProtheusConfig,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
@@ -23,6 +24,17 @@ const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
   refreshRate: 30,
+}
+
+const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
+  baseUrl: '',
+  clientId: '',
+  clientSecret: '',
+  username: '',
+  password: '',
+  syncInventory: false,
+  syncProduction: false,
+  isActive: false,
 }
 
 const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
@@ -105,6 +117,8 @@ const STORAGE_KEYS = {
   DEV_MODE: 'spi_dev_mode',
   SETTINGS: 'spi_settings',
   USER_ACCESS: 'spi_user_access',
+  PROTHEUS_CONFIG: 'spi_protheus_config',
+  LAST_SYNC: 'spi_last_sync',
 }
 
 const dateTimeReviver = (key: string, value: any) => {
@@ -165,6 +179,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
     getStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
   )
+  const [protheusConfig, setProtheusConfig] = useState<ProtheusConfig>(() =>
+    getStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG),
+  )
+  const [lastProtheusSync, setLastProtheusSync] = useState<Date | null>(() =>
+    getStorageData(STORAGE_KEYS.LAST_SYNC, null),
+  )
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -179,6 +199,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setSystemSettings(JSON.parse(e.newValue))
         } else if (e.key === STORAGE_KEYS.USER_ACCESS && e.newValue) {
           setUserAccessList(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.PROTHEUS_CONFIG && e.newValue) {
+          setProtheusConfig(JSON.parse(e.newValue))
+        } else if (e.key === STORAGE_KEYS.LAST_SYNC && e.newValue) {
+          setLastProtheusSync(JSON.parse(e.newValue, dateTimeReviver))
         }
       } catch (error) {
         console.error('Error handling storage change', error)
@@ -201,17 +225,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setStorageData(STORAGE_KEYS.SETTINGS, settings)
   }, [])
 
+  const updateProtheusConfig = useCallback((config: ProtheusConfig) => {
+    setProtheusConfig(config)
+    setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, config)
+  }, [])
+
+  const testProtheusConnection = useCallback(async () => {
+    // Simulated connection test
+    return new Promise<{ success: boolean; message: string }>((resolve) => {
+      setTimeout(() => {
+        if (
+          protheusConfig.baseUrl &&
+          protheusConfig.clientId &&
+          protheusConfig.clientSecret &&
+          protheusConfig.username &&
+          protheusConfig.password
+        ) {
+          resolve({
+            success: true,
+            message: 'Conexão estabelecida com sucesso.',
+          })
+        } else {
+          resolve({
+            success: false,
+            message:
+              'Falha na conexão: Credenciais incompletas ou endpoint inválido.',
+          })
+        }
+      }, 1500)
+    })
+  }, [protheusConfig])
+
+  const syncProtheusData = useCallback(async () => {
+    // Simulated data sync
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        const now = new Date()
+        setLastProtheusSync(now)
+        setStorageData(STORAGE_KEYS.LAST_SYNC, now)
+        resolve()
+      }, 2000)
+    })
+  }, [])
+
   const clearAllData = useCallback(() => {
     setRawMaterials([])
     setProduction([])
     setShipping([])
     setAcidityRecords([])
-    // We intentionally do not clear userAccessList on data reset to prevent lockout,
-    // unless explicitly desired. For safety, we keep users.
+    // We intentionally do not clear userAccessList on data reset to prevent lockout
     setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
     setStorageData(STORAGE_KEYS.PRODUCTION, [])
     setStorageData(STORAGE_KEYS.SHIPPING, [])
     setStorageData(STORAGE_KEYS.ACIDITY, [])
+    // Reset sync data but keep config
+    setLastProtheusSync(null)
+    setStorageData(STORAGE_KEYS.LAST_SYNC, null)
   }, [])
 
   // CRUD Factories
@@ -222,7 +291,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         const newEntry = {
           ...entry,
           id: Math.random().toString(36).substring(7),
-          createdAt: new Date(), // Adding default createdAt if missing
+          createdAt: new Date(),
         } as unknown as T
         const newData = [newEntry, ...prev]
         setStorageData(key, newData)
@@ -305,6 +374,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         toggleDeveloperMode,
         systemSettings,
         updateSystemSettings,
+        protheusConfig,
+        updateProtheusConfig,
+        testProtheusConnection,
+        lastProtheusSync,
+        syncProtheusData,
         clearAllData,
       }}
     >
