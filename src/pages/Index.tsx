@@ -65,7 +65,14 @@ export default function Dashboard() {
     const timer = setTimeout(() => setHighlight(false), 2000)
 
     return () => clearTimeout(timer)
-  }, [rawMaterials, production, shipping, acidityRecords, qualityRecords])
+  }, [
+    rawMaterials,
+    production,
+    shipping,
+    acidityRecords,
+    qualityRecords,
+    yieldTargets,
+  ])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {

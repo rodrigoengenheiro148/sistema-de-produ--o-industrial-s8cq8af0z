@@ -181,7 +181,7 @@ export function YieldGaugeChart({
 
         {/* Target Indicator (Dashed Line & Triangle) */}
         <div
-          className="absolute bottom-0 left-1/2 w-0.5 h-[105%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start"
+          className="absolute bottom-0 left-1/2 w-0.5 h-[105%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out"
           style={{ transform: `rotate(${targetAngle}deg)` }}
         >
           <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-foreground/80 translate-y-[-2px]" />

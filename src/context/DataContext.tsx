@@ -211,6 +211,61 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     navigator.onLine ? 'online' : 'offline',
   )
 
+  // Real-time synchronization across tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!e.newValue) return
+
+      switch (e.key) {
+        case STORAGE_KEYS.RAW_MATERIALS:
+          setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.PRODUCTION:
+          setProduction(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.SHIPPING:
+          setShipping(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.ACIDITY:
+          setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.QUALITY:
+          setQualityRecords(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.YIELD_TARGETS:
+          setYieldTargets(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.SETTINGS:
+          setSystemSettings(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.FACTORIES:
+          setFactories(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.CURRENT_FACTORY:
+          setCurrentFactoryId(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.DEV_MODE:
+          setIsDeveloperMode(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.VIEWER_MODE:
+          setIsViewerMode(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.PROTHEUS_CONFIG:
+          setProtheusConfig(JSON.parse(e.newValue))
+          break
+        case STORAGE_KEYS.USER_ACCESS:
+          setUserAccessList(JSON.parse(e.newValue, dateTimeReviver))
+          break
+        case STORAGE_KEYS.LAST_SYNC:
+          setLastProtheusSync(new Date(JSON.parse(e.newValue)))
+          break
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
   // API Interaction with robust validation
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
