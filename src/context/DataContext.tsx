@@ -21,7 +21,6 @@ import {
   SyncOperation,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
-import { useToast } from '@/hooks/use-toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -143,8 +142,6 @@ function setStorageData<T>(key: string, data: T) {
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { toast } = useToast()
-
   // State Initialization
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
     getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
