@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   Lock,
   Unlock,
+  RefreshCw,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -188,7 +189,7 @@ export default function Settings() {
                 Parâmetros do Sistema
               </CardTitle>
               <CardDescription>
-                Constantes utilizadas para cálculos de KPI e alertas.
+                Constantes utilizadas para cálculos de KPI e sincronização.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -222,10 +223,14 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="refresh">Taxa de Atualização (seg)</Label>
+                  <Label htmlFor="refresh" className="flex items-center gap-2">
+                    <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                    Taxa de Atualização (seg)
+                  </Label>
                   <Input
                     id="refresh"
                     type="number"
+                    min={1}
                     value={settingsForm.refreshRate}
                     onChange={(e) =>
                       setSettingsForm({
@@ -234,6 +239,9 @@ export default function Settings() {
                       })
                     }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Intervalo para sincronização automática de dados.
+                  </p>
                 </div>
               </div>
             </CardContent>

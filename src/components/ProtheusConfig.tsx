@@ -31,6 +31,7 @@ import {
   XCircle,
   Loader2,
   AlertCircle,
+  Link,
 } from 'lucide-react'
 import { useData } from '@/context/DataContext'
 import { useToast } from '@/hooks/use-toast'
@@ -68,7 +69,6 @@ export function ProtheusConfig() {
       title: 'Configurações Salvas',
       description: 'As credenciais do Protheus foram atualizadas.',
     })
-    // Reset connection status on save to force re-test if needed
     setConnectionStatus('idle')
   }
 
@@ -76,7 +76,6 @@ export function ProtheusConfig() {
     setIsTesting(true)
     setConnectionStatus('idle')
 
-    // Save current form values to context before testing to ensure latest data is used
     const currentValues = form.getValues()
     updateProtheusConfig(currentValues)
 
@@ -116,10 +115,11 @@ export function ProtheusConfig() {
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
               <Server className="h-5 w-5" />
-              Integração Protheus ERP
+              Integração Cloud & Protheus
             </CardTitle>
             <CardDescription>
-              Configure a conexão API para sincronização de dados corporativos.
+              Configure a API para sincronização em tempo real entre
+              dispositivos.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -156,10 +156,11 @@ export function ProtheusConfig() {
             <div className="flex items-center justify-between rounded-lg border p-4 bg-background">
               <div className="space-y-0.5">
                 <FormLabel className="text-base">
-                  Habilitar Integração
+                  Habilitar Sincronização Remota
                 </FormLabel>
                 <FormDescription>
-                  Ativa a comunicação com o servidor Protheus.
+                  Ativa a comunicação com o servidor para sync entre Mobile e
+                  Desktop.
                 </FormDescription>
               </div>
               <FormField
@@ -189,10 +190,14 @@ export function ProtheusConfig() {
                         <FormLabel>API Base URL</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="https://api.protheus.empresa.com.br/v1"
+                            placeholder="https://api.empresa.com.br/v1"
                             {...field}
                           />
                         </FormControl>
+                        <FormDescription>
+                          Endpoints esperados: /production, /raw-materials,
+                          /shipping
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -264,7 +269,7 @@ export function ProtheusConfig() {
 
                 <div className="space-y-4 border-t pt-4">
                   <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Activity className="h-4 w-4" /> Mapeamento de Entidades
+                    <Link className="h-4 w-4" /> Opções de Sincronização
                   </h4>
                   <div className="grid gap-4 md:grid-cols-2">
                     <FormField
@@ -290,7 +295,7 @@ export function ProtheusConfig() {
                       render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
                           <div className="space-y-0.5">
-                            <FormLabel>Ordens de Produção</FormLabel>
+                            <FormLabel>Dados de Produção</FormLabel>
                           </div>
                           <FormControl>
                             <Switch
