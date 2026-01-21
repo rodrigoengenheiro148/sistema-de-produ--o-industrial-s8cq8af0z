@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -16,21 +17,33 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
+import { AlertTriangle, CheckCircle2, Target, Info } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+// Acceptance Criteria Targets
+const TARGETS = {
+  SEBO: 28, // Min 28%
+  FCO: 26, // Min 26%
+  FARINHETA: 3.5, // Min 3.5%
+  TOTAL: 58, // Min 58%
+}
 
 export default function Yields() {
   const { production, dateRange } = useData()
+  const { toast } = useToast()
+  // Ref to track the last alerted state to prevent duplicate toasts
+  const lastAlertedRef = useRef<string | null>(null)
 
   const calculateYield = (output: number, input: number) => {
     if (input === 0) return 0
     return (output / input) * 100
-  }
-
-  const getYieldColor = (percentage: number) => {
-    if (percentage > 45)
-      return 'bg-primary/15 text-primary hover:bg-primary/25 border-primary/20' // High yield total (Green)
-    if (percentage > 35)
-      return 'bg-[hsl(var(--chart-2))]/20 text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--chart-2))]/30 border-[hsl(var(--chart-2))]/30' // Medium yield (Yellow)
-    return 'bg-destructive/15 text-destructive hover:bg-destructive/25 border-destructive/20' // Low yield (Red)
   }
 
   const filteredProduction = production
@@ -43,6 +56,87 @@ export default function Yields() {
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
+  // Real-time Alert Monitoring
+  useEffect(() => {
+    if (filteredProduction.length === 0) return
+
+    // Monitor the most recent entry (Real-time trigger)
+    const latest = filteredProduction[0]
+
+    const yieldSebo = calculateYield(latest.seboProduced, latest.mpUsed)
+    const yieldFCO = calculateYield(latest.fcoProduced, latest.mpUsed)
+    const yieldFarinheta = calculateYield(
+      latest.farinhetaProduced,
+      latest.mpUsed,
+    )
+    const yieldTotal = calculateYield(
+      latest.seboProduced + latest.fcoProduced + latest.farinhetaProduced,
+      latest.mpUsed,
+    )
+
+    const issues: string[] = []
+
+    if (yieldFarinheta < TARGETS.FARINHETA) {
+      issues.push(
+        `Farinheta: ${yieldFarinheta.toFixed(2)}% (Meta: ${TARGETS.FARINHETA}%)`,
+      )
+    }
+    if (yieldFCO < TARGETS.FCO) {
+      issues.push(
+        `Farinha (FCO): ${yieldFCO.toFixed(2)}% (Meta: ${TARGETS.FCO}%)`,
+      )
+    }
+    if (yieldSebo < TARGETS.SEBO) {
+      issues.push(`Sebo: ${yieldSebo.toFixed(2)}% (Meta: ${TARGETS.SEBO}%)`)
+    }
+    if (yieldTotal < TARGETS.TOTAL) {
+      issues.push(
+        `Total Fábrica: ${yieldTotal.toFixed(2)}% (Meta: ${TARGETS.TOTAL}%)`,
+      )
+    }
+
+    // Generate unique key for this alert state
+    const alertKey = `${latest.id}-${issues.join('|')}`
+
+    if (issues.length > 0) {
+      // Only alert if this specific set of issues for this ID hasn't been alerted yet
+      if (lastAlertedRef.current !== alertKey) {
+        toast({
+          variant: 'destructive',
+          title: 'Alerta de Desvio de Meta',
+          description: (
+            <div className="mt-2 flex flex-col gap-2">
+              <p className="font-medium text-xs">
+                A produção de {format(latest.date, 'dd/MM')} apresenta desvios:
+              </p>
+              <ul className="list-disc pl-4 text-xs space-y-1">
+                {issues.map((issue, idx) => (
+                  <li key={idx}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          ),
+          duration: 8000,
+        })
+        lastAlertedRef.current = alertKey
+      }
+    } else {
+      // Reset if resolved, so we can alert again if it regresses
+      lastAlertedRef.current = `${latest.id}-OK`
+    }
+  }, [filteredProduction, toast])
+
+  const getStatusIcon = (value: number, target: number) => {
+    if (value >= target)
+      return <CheckCircle2 className="h-3 w-3 text-green-500" />
+    return <AlertTriangle className="h-3 w-3 text-red-500" />
+  }
+
+  const getTextColor = (value: number, target: number) => {
+    if (value >= target) return 'text-green-600 dark:text-green-500'
+    return 'text-red-600 dark:text-red-400 font-bold'
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -50,16 +144,90 @@ export default function Yields() {
           Análise de Rendimentos
         </h2>
         <p className="text-muted-foreground">
-          Eficiência de processamento calculada automaticamente.
+          Monitoramento de eficiência e cumprimento de metas operacionais.
         </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-secondary/20 border-primary/10">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Target className="h-4 w-4" /> Meta Sebo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold text-primary">
+              {TARGETS.SEBO}%
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-secondary/20 border-primary/10">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Target className="h-4 w-4" /> Meta FCO
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold text-primary">
+              {TARGETS.FCO}%
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-secondary/20 border-primary/10">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Target className="h-4 w-4" /> Meta Farinheta
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold text-primary">
+              {TARGETS.FARINHETA}%
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" /> Meta Fábrica
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold text-primary">
+              {TARGETS.TOTAL}%
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="border-t-4 border-t-primary shadow-sm">
         <CardHeader>
-          <CardTitle>Tabela de Rendimentos (%)</CardTitle>
-          <CardDescription>
-            Percentual de recuperação de massa sobre MP processada.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Tabela de Rendimentos (%)</CardTitle>
+              <CardDescription>
+                Percentual de recuperação de massa sobre MP processada.
+              </CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs text-xs">
+                    Valores em{' '}
+                    <span className="text-green-500 font-bold">verde</span>{' '}
+                    atingiram a meta. <br />
+                    Valores em{' '}
+                    <span className="text-red-500 font-bold">
+                      vermelho
+                    </span>{' '}
+                    estão abaixo do esperado e geram alertas.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -104,25 +272,62 @@ export default function Yields() {
                     entry.mpUsed,
                   )
 
+                  const isTotalLow = yieldTotal < TARGETS.TOTAL
+
                   return (
                     <TableRow key={entry.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         {format(entry.date, 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell>{entry.shift}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {yieldSebo.toFixed(2)}%
+
+                      {/* Sebo Cell */}
+                      <TableCell className="text-right">
+                        <div
+                          className={cn(
+                            'flex items-center justify-end gap-1.5',
+                            getTextColor(yieldSebo, TARGETS.SEBO),
+                          )}
+                        >
+                          {yieldSebo.toFixed(2)}%
+                          {getStatusIcon(yieldSebo, TARGETS.SEBO)}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {yieldFCO.toFixed(2)}%
+
+                      {/* FCO Cell */}
+                      <TableCell className="text-right">
+                        <div
+                          className={cn(
+                            'flex items-center justify-end gap-1.5',
+                            getTextColor(yieldFCO, TARGETS.FCO),
+                          )}
+                        >
+                          {yieldFCO.toFixed(2)}%
+                          {getStatusIcon(yieldFCO, TARGETS.FCO)}
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {yieldFarinheta.toFixed(2)}%
+
+                      {/* Farinheta Cell */}
+                      <TableCell className="text-right">
+                        <div
+                          className={cn(
+                            'flex items-center justify-end gap-1.5',
+                            getTextColor(yieldFarinheta, TARGETS.FARINHETA),
+                          )}
+                        >
+                          {yieldFarinheta.toFixed(2)}%
+                          {getStatusIcon(yieldFarinheta, TARGETS.FARINHETA)}
+                        </div>
                       </TableCell>
+
+                      {/* Total Cell */}
                       <TableCell className="text-right">
                         <Badge
-                          variant="outline"
-                          className={getYieldColor(yieldTotal)}
+                          variant={isTotalLow ? 'destructive' : 'default'}
+                          className={cn(
+                            'ml-auto w-fit',
+                            !isTotalLow && 'bg-green-600 hover:bg-green-700',
+                          )}
                         >
                           {yieldTotal.toFixed(2)}%
                         </Badge>
