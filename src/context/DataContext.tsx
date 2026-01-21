@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react'
 import {
   RawMaterialEntry,
@@ -18,6 +19,8 @@ import {
   Factory,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -169,9 +172,28 @@ function setStorageData<T>(key: string, data: T) {
   }
 }
 
+// Hook to monitor data changes and trigger notifications
+function useChangeNotification(
+  data: any,
+  title: string,
+  message: string,
+  sendNotification: (t: string, b: string) => void,
+) {
+  const isFirst = useRef(true)
+  useEffect(() => {
+    if (isFirst.current) {
+      isFirst.current = false
+      return
+    }
+    sendNotification(title, message)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, title, message])
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { toast } = useToast()
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
     getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
   )
@@ -211,6 +233,85 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     to: endOfMonth(new Date()),
   })
 
+  // Notification System
+  const [permission, setPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default',
+  )
+
+  const requestPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') return
+    const result = await Notification.requestPermission()
+    setPermission(result)
+    if (result === 'granted') {
+      new Notification('Notificações Ativadas', {
+        body: 'Você receberá alertas em tempo real sobre a produção.',
+        icon: '/favicon.ico',
+      })
+    }
+  }, [])
+
+  const sendNotification = useCallback(
+    (title: string, body: string) => {
+      // Browser notification
+      if (permission === 'granted' && document.hidden) {
+        new Notification(title, { body, icon: '/favicon.ico' })
+      }
+    },
+    [permission],
+  )
+
+  // Trigger permission request on first load if default, via Toast
+  useEffect(() => {
+    if (
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'default'
+    ) {
+      const timer = setTimeout(() => {
+        toast({
+          title: 'Ativar Notificações?',
+          description:
+            'Receba alertas em tempo real sobre produção, rendimentos e perdas.',
+          action: (
+            <ToastAction altText="Ativar" onClick={requestPermission}>
+              Ativar
+            </ToastAction>
+          ),
+          duration: 10000,
+        })
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [requestPermission, toast])
+
+  // Real-time Monitoring Hooks
+  useChangeNotification(
+    production,
+    'Atualização de Produção',
+    'Novos dados de rendimento, perdas ou desempenho registrados.',
+    sendNotification,
+  )
+
+  useChangeNotification(
+    rawMaterials,
+    'Entrada de MP',
+    'Nova movimentação de matéria-prima detectada.',
+    sendNotification,
+  )
+
+  useChangeNotification(
+    shipping,
+    'Faturamento Atualizado',
+    'Novos registros de expedição e receita financeira.',
+    sendNotification,
+  )
+
+  useChangeNotification(
+    acidityRecords,
+    'Alerta de Qualidade',
+    'Novas medições de acidez registradas no sistema.',
+    sendNotification,
+  )
+
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       try {
@@ -226,6 +327,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setLastProtheusSync(JSON.parse(e.newValue, dateTimeReviver))
         } else if (e.key === STORAGE_KEYS.FACTORIES && e.newValue) {
           setFactories(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.PRODUCTION && e.newValue) {
+          setProduction(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.RAW_MATERIALS && e.newValue) {
+          setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.SHIPPING && e.newValue) {
+          setShipping(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.ACIDITY && e.newValue) {
+          setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
         }
       } catch (error) {
         console.error('Error handling storage change', error)

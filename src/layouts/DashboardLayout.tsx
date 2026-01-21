@@ -5,6 +5,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
+import { MobileNav } from '@/components/MobileNav'
 import { Button } from '@/components/ui/button'
 import { Bell, User, Terminal } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
@@ -58,8 +59,8 @@ export default function DashboardLayout() {
             isDeveloperMode && 'border-b-amber-400/50 bg-amber-50/10',
           )}
         >
-          <SidebarTrigger className="-ml-1 hover:bg-secondary text-primary" />
-          <div className="h-4 w-px bg-border mx-2" />
+          <SidebarTrigger className="-ml-1 hover:bg-secondary text-primary hidden md:flex" />
+          <div className="h-4 w-px bg-border mx-2 hidden md:block" />
           <div className="flex-1 flex items-center justify-between">
             <div className="flex items-center gap-2">
               {isDeveloperMode && (
@@ -98,16 +99,17 @@ export default function DashboardLayout() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="hover:bg-secondary text-muted-foreground hover:text-primary"
+                className="hover:bg-secondary text-muted-foreground hover:text-primary hidden md:inline-flex"
               >
                 <User className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6 bg-secondary/30">
+        <main className="flex-1 overflow-auto p-4 md:p-6 bg-secondary/30 pb-20 md:pb-6">
           <Outlet />
         </main>
+        <MobileNav />
       </SidebarInset>
     </SidebarProvider>
   )
