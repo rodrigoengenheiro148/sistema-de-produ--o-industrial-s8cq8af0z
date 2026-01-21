@@ -8,6 +8,7 @@ import {
   Menu,
   ClipboardCheck,
   LineChart,
+  FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -32,6 +33,11 @@ export function MobileNav() {
       title: 'Produção',
       url: '/producao',
       icon: Factory,
+    },
+    {
+      title: 'Acidez',
+      url: '/acidez-diaria',
+      icon: FlaskConical,
     },
     {
       title: 'Qualidade',

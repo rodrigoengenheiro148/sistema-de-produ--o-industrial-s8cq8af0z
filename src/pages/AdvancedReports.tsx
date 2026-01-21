@@ -15,13 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  format,
-  subDays,
-  differenceInDays,
-  isWithinInterval,
-  isSameDay,
-} from 'date-fns'
+import { format, subDays, differenceInDays, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   CalendarIcon,
@@ -34,15 +28,12 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  LineChart,
   Line,
   CartesianGrid,
   XAxis,
   YAxis,
   ReferenceLine,
   ComposedChart,
-  Area,
-  ResponsiveContainer,
 } from 'recharts'
 import {
   ChartContainer,
@@ -111,13 +102,13 @@ const StatCard = ({
 
   return (
     <Card className="shadow-sm border-l-4 border-l-primary">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
         <Icon className="h-4 w-4 text-primary" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         <div className="text-2xl font-bold">
           {value.toFixed(2)}
           {unit}
@@ -127,10 +118,6 @@ const StatCard = ({
             <span
               className={cn(
                 'flex items-center font-medium mr-2',
-                isPositive ? 'text-red-500' : 'text-green-500', // Typically lower acidity/deviation is better, so red if positive for these metrics?
-                // Context: For Acidity, higher is usually bad. For Protein, higher is good.
-                // Let's stick to generic color logic: Green = Up, Red = Down, unless specified.
-                // Assuming standard financial logic: Up = Green.
                 isPositive ? 'text-green-600' : 'text-red-600',
               )}
             >
@@ -146,7 +133,7 @@ const StatCard = ({
               <Minus className="h-3 w-3 mr-1" /> 0%
             </span>
           )}
-          vs. período anterior
+          vs. anterior
         </div>
         {details && (
           <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
@@ -234,7 +221,6 @@ export default function AdvancedReports() {
 
   // 3. Chart Data Preparation
   const prepareChartData = (records: any[], metric: 'acidity' | 'protein') => {
-    // Group by date to handle multiple samples per day (average them)
     const dailyMap = new Map<
       string,
       { date: Date; val: number; count: number }
@@ -259,7 +245,6 @@ export default function AdvancedReports() {
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime())
 
-    // Add Moving Average (3 periods)
     return calculateMovingAverage(chartData, 'value', 3)
   }
 
@@ -281,9 +266,9 @@ export default function AdvancedReports() {
   )
 
   const chartConfig: ChartConfig = {
-    value: { label: 'Valor Medido', color: 'hsl(var(--primary))' },
-    valueMA: { label: 'Média Móvel (3d)', color: 'hsl(var(--chart-2))' },
-    mean: { label: 'Média do Período', color: 'hsl(var(--muted-foreground))' },
+    value: { label: 'Valor', color: 'hsl(var(--primary))' },
+    valueMA: { label: 'Média Móvel', color: 'hsl(var(--chart-2))' },
+    mean: { label: 'Média Período', color: 'hsl(var(--muted-foreground))' },
   }
 
   const ChartSection = ({
@@ -301,8 +286,8 @@ export default function AdvancedReports() {
   }) => {
     if (data.length === 0) {
       return (
-        <div className="h-[350px] flex items-center justify-center border rounded-lg bg-muted/10 text-muted-foreground">
-          Sem dados suficientes para gerar o gráfico.
+        <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10 text-muted-foreground text-sm p-4 text-center">
+          Sem dados suficientes.
         </div>
       )
     }
@@ -312,17 +297,17 @@ export default function AdvancedReports() {
 
     return (
       <Card className="shadow-sm">
-        <CardHeader>
+        <CardHeader className="p-4 sm:p-6">
           <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription>
-            Tendência com Média Móvel e Desvio Padrão (σ = {stdDev.toFixed(2)})
+          <CardDescription className="text-xs sm:text-sm">
+            Tendência e Desvio Padrão (σ = {stdDev.toFixed(2)})
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2 sm:p-6 pt-0">
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <ComposedChart
               data={data}
-              margin={{ top: 20, right: 20, bottom: 20, left: 10 }}
+              margin={{ top: 20, right: 10, bottom: 20, left: 0 }}
             >
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
@@ -330,27 +315,24 @@ export default function AdvancedReports() {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
+                fontSize={isMobile ? 10 : 12}
+                interval="preserveStartEnd"
               />
               <YAxis
                 domain={['auto', 'auto']}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(val) => `${val.toFixed(1)}${unit}`}
+                width={isMobile ? 30 : 40}
+                fontSize={isMobile ? 10 : 12}
+                tickFormatter={(val) => `${val.toFixed(1)}`}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <ChartLegend content={<ChartLegendContent />} />
 
-              {/* Statistical Reference Lines */}
               <ReferenceLine
                 y={mean}
                 stroke="hsl(var(--muted-foreground))"
                 strokeDasharray="3 3"
-                label={{
-                  value: 'Média',
-                  position: 'insideRight',
-                  fill: 'hsl(var(--muted-foreground))',
-                  fontSize: 10,
-                }}
               />
               <ReferenceLine
                 y={upperBound}
@@ -365,7 +347,6 @@ export default function AdvancedReports() {
                 strokeDasharray="3 3"
               />
 
-              {/* Data Lines */}
               <Line
                 type="monotone"
                 dataKey="value"
@@ -395,11 +376,11 @@ export default function AdvancedReports() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <FileBarChart className="h-8 w-8 text-primary" />
-            Relatórios Avançados
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <FileBarChart className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            Relatórios
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             Análise estatística e tendências de qualidade.
           </p>
         </div>
@@ -446,10 +427,14 @@ export default function AdvancedReports() {
       </div>
 
       <Tabs defaultValue="farinha" className="space-y-4">
-        <div className="flex items-center justify-between overflow-x-auto pb-2">
-          <TabsList>
-            <TabsTrigger value="farinha">Farinha Carne/Osso</TabsTrigger>
-            <TabsTrigger value="farinheta">Farinheta</TabsTrigger>
+        <div className="flex items-center justify-between overflow-x-auto pb-2 scrollbar-hide">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="farinha" className="flex-1 sm:flex-none">
+              Farinha Carne/Osso
+            </TabsTrigger>
+            <TabsTrigger value="farinheta" className="flex-1 sm:flex-none">
+              Farinheta
+            </TabsTrigger>
           </TabsList>
           {dateRange.from && dateRange.to && (
             <Badge
@@ -457,7 +442,6 @@ export default function AdvancedReports() {
               className="hidden sm:flex ml-2 whitespace-nowrap"
             >
               {differenceInDays(dateRange.to, dateRange.from) + 1} dias
-              analisados
             </Badge>
           )}
         </div>
@@ -466,7 +450,7 @@ export default function AdvancedReports() {
           value="farinha"
           className="space-y-4 animate-in fade-in slide-in-from-bottom-2"
         >
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Acidez Média"
               value={farinhaCurrent.meanAcidity}
@@ -479,7 +463,7 @@ export default function AdvancedReports() {
               value={farinhaCurrent.stdDevAcidity}
               prevValue={farinhaPrev.stdDevAcidity}
               icon={Sigma}
-              details="Dispersão dos dados em relação à média"
+              details="Dispersão"
             />
             <StatCard
               title="Proteína Média"
@@ -519,7 +503,7 @@ export default function AdvancedReports() {
           value="farinheta"
           className="space-y-4 animate-in fade-in slide-in-from-bottom-2"
         >
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Acidez Média"
               value={farinhetaCurrent.meanAcidity}
@@ -532,7 +516,7 @@ export default function AdvancedReports() {
               value={farinhetaCurrent.stdDevAcidity}
               prevValue={farinhetaPrev.stdDevAcidity}
               icon={Sigma}
-              details="Dispersão dos dados em relação à média"
+              details="Dispersão"
             />
             <StatCard
               title="Proteína Média"

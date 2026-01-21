@@ -25,12 +25,15 @@ import {
 } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface QualityChartProps {
   data: QualityEntry[]
 }
 
 export function QualityChart({ data }: QualityChartProps) {
+  const isMobile = useIsMobile()
+
   const { chartData, chartConfig } = useMemo(() => {
     // Sort chronologically
     const sortedData = [...data].sort(
@@ -80,7 +83,7 @@ export function QualityChart({ data }: QualityChartProps) {
             Tendências de Acidez e Proteína (Farinha vs. Farinheta)
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground">
+        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
           Nenhum dado disponível para análise de qualidade.
         </CardContent>
       </Card>
@@ -98,12 +101,17 @@ export function QualityChart({ data }: QualityChartProps) {
       <CardContent>
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[400px] w-full"
+          className="aspect-auto h-[350px] w-full"
         >
           <LineChart
             accessibilityLayer
             data={chartData}
-            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+            margin={{
+              top: 20,
+              right: isMobile ? 0 : 20,
+              bottom: 20,
+              left: isMobile ? 0 : 20,
+            }}
           >
             <CartesianGrid vertical={false} />
             <XAxis
@@ -111,6 +119,7 @@ export function QualityChart({ data }: QualityChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              fontSize={isMobile ? 10 : 12}
             />
             {/* Left Axis for Acidity */}
             <YAxis
@@ -118,11 +127,14 @@ export function QualityChart({ data }: QualityChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              width={isMobile ? 30 : 40}
+              fontSize={isMobile ? 10 : 12}
               label={{
-                value: 'Acidez (%)',
+                value: isMobile ? '' : 'Acidez (%)',
                 angle: -90,
                 position: 'insideLeft',
                 offset: 10,
+                fontSize: 10,
               }}
             />
             {/* Right Axis for Protein */}
@@ -132,11 +144,14 @@ export function QualityChart({ data }: QualityChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              width={isMobile ? 30 : 40}
+              fontSize={isMobile ? 10 : 12}
               label={{
-                value: 'Proteína (%)',
+                value: isMobile ? '' : 'Proteína (%)',
                 angle: 90,
                 position: 'insideRight',
                 offset: 10,
+                fontSize: 10,
               }}
             />
             <ChartTooltip content={<ChartTooltipContent />} />

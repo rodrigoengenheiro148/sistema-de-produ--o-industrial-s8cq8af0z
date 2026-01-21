@@ -25,12 +25,15 @@ import {
 } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface AcidityChartProps {
   data: AcidityEntry[]
 }
 
 export function AcidityChart({ data }: AcidityChartProps) {
+  const isMobile = useIsMobile()
+
   const { chartData, chartConfig } = useMemo(() => {
     // Sort data chronologically (oldest to newest)
     const sortedData = [...data]
@@ -79,7 +82,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
             Tendência dos valores de Peso e Volume ao longo do tempo
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
+        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
           Nenhum dado de acidez disponível.
         </CardContent>
       </Card>
@@ -97,14 +100,14 @@ export function AcidityChart({ data }: AcidityChartProps) {
       <CardContent>
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[350px] w-full"
+          className="aspect-auto h-[300px] w-full"
         >
           <LineChart
             accessibilityLayer
             data={chartData}
             margin={{
               top: 24,
-              left: 12,
+              left: isMobile ? 0 : 12,
               right: 12,
               bottom: 12,
             }}
@@ -115,12 +118,14 @@ export function AcidityChart({ data }: AcidityChartProps) {
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              fontSize={isMobile ? 10 : 12}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               tickMargin={8}
-              width={40}
+              width={isMobile ? 30 : 40}
+              fontSize={isMobile ? 10 : 12}
             />
             <ChartTooltip
               cursor={false}
@@ -144,7 +149,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
                 position="top"
                 offset={12}
                 className="fill-foreground font-medium"
-                fontSize={12}
+                fontSize={isMobile ? 9 : 12}
               />
             </Line>
             <Line
@@ -164,7 +169,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
                 position="top"
                 offset={12}
                 className="fill-foreground font-medium"
-                fontSize={12}
+                fontSize={isMobile ? 9 : 12}
               />
             </Line>
           </LineChart>

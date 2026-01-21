@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { useData } from '@/context/DataContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -11,7 +17,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Plus, Search, FlaskConical, Pencil, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  FlaskConical,
+  Pencil,
+  Trash2,
+  CalendarIcon,
+  Clock,
+  User,
+  MoreVertical,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { AcidityChart } from '@/components/dashboard/AcidityChart'
 import { AcidityForm } from '@/components/dashboard/AcidityForm'
@@ -35,6 +51,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export default function DailyAcidity() {
   const {
@@ -47,6 +70,8 @@ export default function DailyAcidity() {
     isViewerMode,
   } = useData()
   const { toast } = useToast()
+  const isMobile = useIsMobile()
+
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingRecord, setEditingRecord] = useState<AcidityEntry | undefined>(
@@ -114,8 +139,10 @@ export default function DailyAcidity() {
         {!isViewerMode && (
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" /> Novo Registro
+              <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
+                <Plus className="h-4 w-4" />{' '}
+                <span className="hidden sm:inline">Novo Registro</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
@@ -138,9 +165,9 @@ export default function DailyAcidity() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle>Histórico de Medições</CardTitle>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar responsável ou tanque..."
@@ -151,88 +178,179 @@ export default function DailyAcidity() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Hora</TableHead>
-                <TableHead>Tanque</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead className="text-right">Peso (kg)</TableHead>
-                <TableHead className="text-right">Volume (L)</TableHead>
-                <TableHead>Horários Real.</TableHead>
-                <TableHead>Observações</TableHead>
-                {!isViewerMode && (
-                  <TableHead className="w-[80px]">Ações</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <CardContent className={isMobile ? 'p-4 pt-0' : 'p-6 pt-0'}>
+          {isMobile ? (
+            <div className="space-y-4">
               {filteredRecords.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={!isViewerMode ? 9 : 8}
-                    className="text-center h-24 text-muted-foreground"
-                  >
-                    Nenhum registro encontrado no período.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum registro encontrado no período.
+                </div>
               ) : (
                 filteredRecords.map((entry) => (
-                  <TableRow
-                    key={entry.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                  >
-                    <TableCell className="font-medium">
-                      {format(entry.date, 'dd/MM/yyyy')}
+                  <Card key={entry.id} className="shadow-sm border">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-lg text-primary">
+                              {entry.tank}
+                            </span>
+                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                              {entry.performedTimes}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <CalendarIcon className="h-3 w-3" />
+                            {format(entry.date, 'dd/MM/yyyy')}
+                            <Clock className="h-3 w-3 ml-1" />
+                            {entry.time}
+                          </div>
+                        </div>
+                        {!isViewerMode && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleEditClick(entry)}
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              {isDeveloperMode && (
+                                <DropdownMenuItem
+                                  onClick={() => setDeleteId(entry.id)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 py-2 border-t border-b mb-3">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Peso</p>
+                          <p className="font-semibold text-lg">
+                            {entry.weight.toLocaleString('pt-BR')} kg
+                          </p>
+                        </div>
+                        <div className="text-center border-l">
+                          <p className="text-xs text-muted-foreground">
+                            Volume
+                          </p>
+                          <p className="font-semibold text-lg">
+                            {entry.volume.toLocaleString('pt-BR')} L
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <User className="h-3.5 w-3.5" />
+                        {entry.responsible}
+                      </div>
+
+                      {entry.notes && (
+                        <p className="text-xs text-muted-foreground italic mt-2 bg-secondary/50 p-2 rounded">
+                          "{entry.notes}"
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Hora</TableHead>
+                  <TableHead>Tanque</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead className="text-right">Peso (kg)</TableHead>
+                  <TableHead className="text-right">Volume (L)</TableHead>
+                  <TableHead>Horários Real.</TableHead>
+                  <TableHead>Observações</TableHead>
+                  {!isViewerMode && (
+                    <TableHead className="w-[80px]">Ações</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={!isViewerMode ? 9 : 8}
+                      className="text-center h-24 text-muted-foreground"
+                    >
+                      Nenhum registro encontrado no período.
                     </TableCell>
-                    <TableCell>{entry.time}</TableCell>
-                    <TableCell>
-                      <span className="font-medium text-primary">
-                        {entry.tank}
-                      </span>
-                    </TableCell>
-                    <TableCell>{entry.responsible}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {entry.weight.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {entry.volume.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {entry.performedTimes}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                      {entry.notes || '-'}
-                    </TableCell>
-                    {!isViewerMode && (
-                      <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(entry)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        {isDeveloperMode && (
+                  </TableRow>
+                ) : (
+                  filteredRecords.map((entry) => (
+                    <TableRow
+                      key={entry.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                    >
+                      <TableCell className="font-medium">
+                        {format(entry.date, 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell>{entry.time}</TableCell>
+                      <TableCell>
+                        <span className="font-medium text-primary">
+                          {entry.tank}
+                        </span>
+                      </TableCell>
+                      <TableCell>{entry.responsible}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {entry.weight.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {entry.volume.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {entry.performedTimes}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                        {entry.notes || '-'}
+                      </TableCell>
+                      {!isViewerMode && (
+                        <TableCell className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => setDeleteId(entry.id)}
+                            onClick={() => handleEditClick(entry)}
+                            title="Editar"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                          {isDeveloperMode && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                              onClick={() => setDeleteId(entry.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
