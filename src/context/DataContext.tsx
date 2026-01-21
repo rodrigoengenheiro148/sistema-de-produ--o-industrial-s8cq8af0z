@@ -3,6 +3,7 @@ import {
   RawMaterialEntry,
   ProductionEntry,
   ShippingEntry,
+  AcidityEntry,
   DateRange,
   DataContextType,
 } from '@/lib/types'
@@ -126,6 +127,31 @@ const MOCK_SHIPPING: ShippingEntry[] = [
   },
 ]
 
+const MOCK_ACIDITY: AcidityEntry[] = [
+  {
+    id: '1',
+    date: subDays(new Date(), 1),
+    time: '08:30',
+    responsible: 'João Silva',
+    weight: 1200,
+    volume: 1500,
+    tank: 'Tanque A',
+    performedTimes: '08:00, 08:30',
+    notes: 'Acidez dentro do padrão',
+  },
+  {
+    id: '2',
+    date: subDays(new Date(), 2),
+    time: '14:15',
+    responsible: 'Maria Santos',
+    weight: 1150,
+    volume: 1480,
+    tank: 'Tanque B',
+    performedTimes: '14:00, 14:15',
+    notes: 'Leve alteração corrigida',
+  },
+]
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -134,6 +160,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [production, setProduction] =
     useState<ProductionEntry[]>(MOCK_PRODUCTION)
   const [shipping, setShipping] = useState<ShippingEntry[]>(MOCK_SHIPPING)
+  const [acidityRecords, setAcidityRecords] =
+    useState<AcidityEntry[]>(MOCK_ACIDITY)
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
@@ -154,15 +182,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setShipping((prev) => [newEntry, ...prev])
   }
 
+  const addAcidityRecord = (entry: Omit<AcidityEntry, 'id'>) => {
+    const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
+    setAcidityRecords((prev) => [newEntry, ...prev])
+  }
+
   return (
     <DataContext.Provider
       value={{
         rawMaterials,
         production,
         shipping,
+        acidityRecords,
         addRawMaterial,
         addProduction,
         addShipping,
+        addAcidityRecord,
         dateRange,
         setDateRange,
       }}

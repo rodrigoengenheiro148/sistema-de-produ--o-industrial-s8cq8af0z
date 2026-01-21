@@ -28,6 +28,18 @@ export interface ShippingEntry {
   docRef: string
 }
 
+export interface AcidityEntry {
+  id: string
+  date: Date
+  time: string
+  responsible: string
+  weight: number
+  volume: number
+  tank: string
+  performedTimes: string
+  notes?: string
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined
@@ -37,9 +49,11 @@ export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
   shipping: ShippingEntry[]
+  acidityRecords: AcidityEntry[]
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   addProduction: (entry: Omit<ProductionEntry, 'id'>) => void
   addShipping: (entry: Omit<ShippingEntry, 'id'>) => void
+  addAcidityRecord: (entry: Omit<AcidityEntry, 'id'>) => void
   dateRange: DateRange
   setDateRange: (range: DateRange) => void
 }

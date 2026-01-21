@@ -6,6 +6,7 @@ import {
   Package,
   Send,
   Settings,
+  FlaskConical,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -43,6 +44,11 @@ const items = [
     title: 'Rendimentos',
     url: '/rendimentos',
     icon: PieChart,
+  },
+  {
+    title: 'Acidez Diária',
+    url: '/acidez-diaria',
+    icon: FlaskConical,
   },
   {
     title: 'Estoque',
