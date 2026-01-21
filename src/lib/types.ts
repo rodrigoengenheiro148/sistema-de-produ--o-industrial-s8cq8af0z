@@ -24,6 +24,7 @@ export interface ShippingEntry {
   client: string
   product: 'Sebo' | 'FCO' | 'Farinheta' | 'Matéria-Prima'
   quantity: number
+  unitPrice: number
   docRef: string
 }
 

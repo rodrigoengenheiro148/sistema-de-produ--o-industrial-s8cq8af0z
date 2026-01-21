@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import {
   RawMaterialEntry,
   ProductionEntry,
@@ -103,6 +103,7 @@ const MOCK_SHIPPING: ShippingEntry[] = [
     client: 'Sabão & Cia',
     product: 'Sebo',
     quantity: 5000,
+    unitPrice: 4.5,
     docRef: 'NF-1001',
   },
   {
@@ -111,7 +112,17 @@ const MOCK_SHIPPING: ShippingEntry[] = [
     client: 'Rações Pet',
     product: 'FCO',
     quantity: 10000,
+    unitPrice: 2.8,
     docRef: 'NF-1002',
+  },
+  {
+    id: '3',
+    date: subDays(new Date(), 3),
+    client: 'NutriAnimais',
+    product: 'Farinheta',
+    quantity: 2000,
+    unitPrice: 1.2,
+    docRef: 'NF-1003',
   },
 ]
 

@@ -40,31 +40,32 @@ import {
   Droplets,
   Bone,
   Wheat,
+  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function Dashboard() {
-  const { rawMaterials, production, dateRange, setDateRange } = useData()
+  const { rawMaterials, production, shipping, dateRange, setDateRange } =
+    useData()
 
   // Filter data based on date range
-  const filteredProduction = production
-    .filter((p) => {
-      if (!dateRange.from || !dateRange.to) return true
-      return isWithinInterval(p.date, {
-        start: dateRange.from,
-        end: dateRange.to,
-      })
-    })
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-
-  const filteredRawMaterials = rawMaterials.filter((r) => {
+  const filterByDate = (date: Date) => {
     if (!dateRange.from || !dateRange.to) return true
-    return isWithinInterval(r.date, {
+    return isWithinInterval(date, {
       start: dateRange.from,
       end: dateRange.to,
     })
-  })
+  }
+
+  const filteredProduction = production
+    .filter((p) => filterByDate(p.date))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+
+  const filteredRawMaterials = rawMaterials.filter((r) => filterByDate(r.date))
+  const filteredShipping = shipping
+    .filter((s) => filterByDate(s.date))
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
 
   // KPIs General
   const totalEntradaMP = filteredRawMaterials.reduce(
@@ -82,6 +83,11 @@ export default function Dashboard() {
   )
   const rendimentoGeral =
     totalMPUsada > 0 ? (totalProducao / totalMPUsada) * 100 : 0
+
+  const totalRevenue = filteredShipping.reduce(
+    (acc, curr) => acc + curr.quantity * curr.unitPrice,
+    0,
+  )
 
   // Individual Yields Totals
   const totalSebo = filteredProduction.reduce(
@@ -114,6 +120,23 @@ export default function Dashboard() {
     perdas: p.losses,
   }))
 
+  // Chart Data Preparation - Revenue
+  // Aggregate revenue by date
+  const revenueMap = new Map<string, number>()
+  filteredShipping.forEach((s) => {
+    const key = format(s.date, 'dd/MM')
+    revenueMap.set(key, (revenueMap.get(key) || 0) + s.quantity * s.unitPrice)
+  })
+  const revenueChartData = Array.from(revenueMap.entries())
+    .map(([date, value]) => ({ date, revenue: value }))
+    // Sort by date string is tricky for dd/MM, but assuming order from shipping filter
+    .sort((a, b) => {
+      // Basic approximation for sorting chart display
+      const [da, ma] = a.date.split('/').map(Number)
+      const [db, mb] = b.date.split('/').map(Number)
+      return ma - mb || da - db
+    })
+
   // Chart Data Preparation - Yields
   const yieldChartData = filteredProduction.map((p) => ({
     date: format(p.date, 'dd/MM'),
@@ -123,33 +146,16 @@ export default function Dashboard() {
   }))
 
   const chartConfig = {
-    producao: {
-      label: 'Produção Total',
-      color: 'hsl(var(--chart-1))',
-    },
-    mp: {
-      label: 'Matéria Prima Processada',
-      color: 'hsl(var(--chart-2))',
-    },
-    perdas: {
-      label: 'Perdas',
-      color: 'hsl(var(--chart-3))',
-    },
+    producao: { label: 'Produção Total', color: 'hsl(var(--chart-1))' },
+    mp: { label: 'MP Processada', color: 'hsl(var(--chart-2))' },
+    perdas: { label: 'Perdas', color: 'hsl(var(--chart-3))' },
+    revenue: { label: 'Faturamento', color: 'hsl(var(--primary))' },
   }
 
   const yieldChartConfig = {
-    sebo: {
-      label: 'Sebo',
-      color: 'hsl(var(--chart-1))',
-    },
-    fco: {
-      label: 'FCO',
-      color: 'hsl(var(--chart-2))',
-    },
-    farinheta: {
-      label: 'Farinheta',
-      color: 'hsl(var(--chart-3))',
-    },
+    sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
+    fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
+    farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
   }
 
   return (
@@ -204,11 +210,11 @@ export default function Dashboard() {
           <TabsTrigger value="yields">Rendimentos Individuais</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card className="border-l-4 border-l-blue-500 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Entrada MP Total
+                  Entrada MP
                 </CardTitle>
                 <Factory className="h-4 w-4 text-blue-500" />
               </CardHeader>
@@ -216,15 +222,12 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">
                   {totalEntradaMP.toLocaleString('pt-BR')} kg
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  No período selecionado
-                </p>
               </CardContent>
             </Card>
             <Card className="border-l-4 border-l-green-500 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Produção Total
+                  Produção
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-green-500" />
               </CardHeader>
@@ -232,15 +235,12 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">
                   {totalProducao.toLocaleString('pt-BR')} kg
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Produtos acabados
-                </p>
               </CardContent>
             </Card>
             <Card className="border-l-4 border-l-amber-500 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento Geral
+                  Rendimento
                 </CardTitle>
                 <PieChart className="h-4 w-4 text-amber-500" />
               </CardHeader>
@@ -248,9 +248,22 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">
                   {rendimentoGeral.toFixed(2)}%
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Eficiência média
-                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-emerald-600 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Faturamento Total
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(totalRevenue)}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -259,9 +272,6 @@ export default function Dashboard() {
             <Card className="col-span-4 shadow-sm">
               <CardHeader>
                 <CardTitle>Desempenho de Produção</CardTitle>
-                <CardDescription>
-                  Comparativo entre MP Processada e Produção Final
-                </CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
                 <ChartContainer
@@ -304,9 +314,6 @@ export default function Dashboard() {
             <Card className="col-span-3 shadow-sm">
               <CardHeader>
                 <CardTitle>Análise de Perdas</CardTitle>
-                <CardDescription>
-                  Volume de perdas diárias em kg
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -332,6 +339,50 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Faturamento Diário</CardTitle>
+              <CardDescription>
+                Receita consolidada por dia de expedição
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <BarChart data={revenueChartData}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `R$${value / 1000}k`}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) =>
+                          new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(Number(value))
+                        }
+                      />
+                    }
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="var(--color-revenue)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
         <TabsContent value="yields" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
@@ -349,9 +400,6 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">
                   {yieldSebo.toFixed(2)}%
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Eficiência Sebo
-                </p>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -366,9 +414,6 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{yieldFCO.toFixed(2)}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Eficiência FCO
-                </p>
               </CardContent>
             </Card>
             <Card className="shadow-sm">
@@ -385,18 +430,12 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">
                   {yieldFarinheta.toFixed(2)}%
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Eficiência Farinheta
-                </p>
               </CardContent>
             </Card>
           </div>
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Histórico de Rendimentos Individuais</CardTitle>
-              <CardDescription>
-                Acompanhamento da eficiência por produto (%)
-              </CardDescription>
+              <CardTitle>Histórico de Rendimentos</CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer
