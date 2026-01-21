@@ -4,7 +4,6 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  useRef,
 } from 'react'
 import {
   RawMaterialEntry,
@@ -29,7 +28,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 10, // Increased default to avoid spamming
+  refreshRate: 10,
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -115,13 +114,15 @@ const dateTimeReviver = (key: string, value: any) => {
   return value
 }
 
-const parseDatesInArray = (arr: any[]) =>
-  arr.map((item) => {
+const parseDatesInArray = (arr: any[]) => {
+  if (!Array.isArray(arr)) return []
+  return arr.map((item) => {
     const newItem = { ...item }
     if (newItem.date) newItem.date = new Date(newItem.date)
     if (newItem.createdAt) newItem.createdAt = new Date(newItem.createdAt)
     return newItem
   })
+}
 
 function getStorageData<T>(key: string, defaultData: T): T {
   if (typeof window === 'undefined') return defaultData
@@ -194,7 +195,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     navigator.onLine ? 'online' : 'offline',
   )
 
-  // API Interaction
+  // API Interaction with robust validation
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
       // Validate configuration before attempting fetch
@@ -216,11 +217,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const response = await fetch(url, { ...options, headers })
 
+        // Check for JSON content type
+        const contentType = response.headers.get('content-type')
+        const isJson = contentType && contentType.includes('application/json')
+
         if (response.status === 405) {
           throw new Error('Method Not Allowed (405). Verifique a URL da API.')
         }
 
         if (!response.ok) {
+          // If response is JSON, try to extract meaningful error message
+          if (isJson) {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(
+              `API Error: ${response.status} ${errorData.message || response.statusText}`,
+            )
+          }
+          // Otherwise standard error
           throw new Error(
             `API Error: ${response.status} ${response.statusText}`,
           )
@@ -228,6 +241,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Handle 204 No Content
         if (response.status === 204) return null
+
+        // If response is OK but not JSON (e.g. HTML 404/500 masked as 200), throw error
+        if (!isJson) {
+          const text = await response.text()
+          console.error(
+            'Invalid API Response (HTML/Text):',
+            text.substring(0, 100),
+          )
+          throw new Error(
+            `Invalid response format. Expected JSON, got ${contentType || 'unknown'}`,
+          )
+        }
 
         return await response.json()
       } catch (error) {
@@ -240,19 +265,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Queue Processing - Improved Reliability
   const processSyncQueue = useCallback(async () => {
-    // If not active, or queue empty, considered "success" (idle)
     if (!protheusConfig.isActive) {
       if (pendingOperations.length > 0) setConnectionStatus('pending')
       return true
     }
 
-    // If active but offline, set pending
     if (!navigator.onLine) {
       setConnectionStatus('pending')
       return false
     }
 
-    // If active but no URL, set error (don't clear queue)
     if (!protheusConfig.baseUrl) {
       setConnectionStatus('error')
       return false
@@ -266,11 +288,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setConnectionStatus('syncing')
     let success = true
     const remainingOps = [...pendingOperations]
-    const maxRetries = 3
 
-    // Process one by one to ensure order
-    // We only remove from queue if successful
-    // We break loop on first error to maintain sequence integrity
     const op = remainingOps[0] // Peek first
 
     try {
@@ -278,17 +296,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         const method =
           op.type === 'ADD' ? 'POST' : op.type === 'UPDATE' ? 'PUT' : 'DELETE'
 
-        // Construct entity specific URL
         const endpointUrl =
           op.type === 'ADD' ? op.endpoint : `${op.endpoint}/${op.entityId}`
 
-        const res = await apiFetch(endpointUrl, {
+        await apiFetch(endpointUrl, {
           method,
           body: op.type !== 'DELETE' ? JSON.stringify(op.data) : undefined,
         })
-
-        // On successful ADD, we might get a real ID from backend
-        // In a real app, we would update local ID, but for this simulation we just proceed
       }
 
       // Remove successful operation
@@ -296,7 +310,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setPendingOperations(remainingOps)
       setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
 
-      // Recursively process next if any (with small delay to not choke JS event loop)
       if (remainingOps.length > 0) {
         setTimeout(() => processSyncQueue(), 50)
       } else {
@@ -306,7 +319,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Sync failed for op:', op.id, e)
       success = false
       setConnectionStatus('error')
-      // We do NOT remove the op, so it retries later
     }
 
     return success
@@ -320,8 +332,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    // Process queue first (Push)
-    // We only fetch if queue is empty to avoid overwriting local changes that haven't been pushed
     if (pendingOperations.length > 0) {
       const queueProcessed = await processSyncQueue()
       if (!queueProcessed) return
@@ -390,7 +400,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (document.visibilityState === 'visible') syncProtheusData()
     }
     const handleOnline = () => {
-      // Trigger sync when coming back online
       processSyncQueue().then(() => syncProtheusData())
     }
     const handleOffline = () => setConnectionStatus('offline')
@@ -399,7 +408,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Initial Sync
     if (protheusConfig.isActive && navigator.onLine) {
       syncProtheusData()
     } else if (!navigator.onLine) {
@@ -488,20 +496,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return newData
       })
 
-      // Queue Management logic
       if (endpoint) {
         setPendingOperations((prev) => {
           const updated = [...prev, newOp!]
           setStorageData(STORAGE_KEYS.PENDING_SYNC, updated)
           return updated
         })
-
-        // Optimistically set status, actual processing happens via side effect or immediate call
         setConnectionStatus('pending')
-
-        // Try to process immediately if online and active
         if (navigator.onLine && protheusConfig.isActive) {
-          // Use setTimeout to allow state update to settle
           setTimeout(() => processSyncQueue(), 0)
         }
       }
@@ -510,7 +512,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const testProtheusConnection = async () => {
     try {
       if (!protheusConfig.baseUrl) throw new Error('URL base não configurada')
-      await apiFetch('factories') // Simple fetch to test auth
+      await apiFetch('factories')
       return { success: true, message: 'Conexão OK' }
     } catch (e: any) {
       return { success: false, message: e.message || 'Falha na conexão' }
@@ -603,7 +605,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         qualityRecords,
         addQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
-          'quality', // Added endpoint for syncing quality
+          'quality',
           setQualityRecords,
           'ADD',
         ),
