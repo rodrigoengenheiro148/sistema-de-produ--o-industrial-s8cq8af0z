@@ -38,6 +38,7 @@ import {
   TrendingUp,
   TrendingDown,
   Factory,
+  PieChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
