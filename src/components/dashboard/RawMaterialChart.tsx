@@ -15,9 +15,8 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface RawMaterialChartProps {
   data: RawMaterialEntry[]
@@ -83,7 +82,7 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[350px] w-full">
-          <BarChart data={chartData}>
+          <BarChart data={chartData} margin={{ top: 10 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -119,7 +118,20 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
                 fill={chartConfig[supplier].color}
                 radius={[4, 4, 0, 0]}
                 stackId="a"
-              />
+              >
+                <LabelList
+                  dataKey={supplier}
+                  position="inside"
+                  className="fill-white font-bold"
+                  style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
+                  fontSize={11}
+                  formatter={(value: any) =>
+                    value > 0
+                      ? `${Number(value).toLocaleString('pt-BR')} kg`
+                      : ''
+                  }
+                />
+              </Bar>
             ))}
           </BarChart>
         </ChartContainer>

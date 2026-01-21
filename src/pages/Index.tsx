@@ -21,6 +21,7 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  LabelList,
 } from 'recharts'
 import { format, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -365,7 +366,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart data={revenueChartData}>
+                <BarChart data={revenueChartData} margin={{ top: 20 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
@@ -394,7 +395,21 @@ export default function Dashboard() {
                     dataKey="revenue"
                     fill="var(--color-revenue)"
                     radius={[4, 4, 0, 0]}
-                  />
+                  >
+                    <LabelList
+                      dataKey="revenue"
+                      position="top"
+                      offset={12}
+                      className="fill-foreground"
+                      fontSize={12}
+                      formatter={(value: any) =>
+                        new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(Number(value))
+                      }
+                    />
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>
