@@ -5,6 +5,7 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle2,
+  CloudUpload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectionStatus as StatusType } from '@/lib/types'
@@ -44,6 +45,13 @@ export function ConnectionStatus({
           color: 'bg-blue-100 text-blue-700 border-blue-200',
           animate: true,
           desc: 'Atualizando dados em tempo real.',
+        }
+      case 'pending':
+        return {
+          icon: CloudUpload,
+          label: 'Pendente',
+          color: 'bg-amber-100 text-amber-700 border-amber-200',
+          desc: 'Dados salvos localmente. Aguardando conexão.',
         }
       case 'error':
         return {

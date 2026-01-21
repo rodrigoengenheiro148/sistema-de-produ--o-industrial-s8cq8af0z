@@ -19,6 +19,7 @@ import {
   ProtheusConfig,
   Factory,
   ConnectionStatus,
+  SyncOperation,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -29,7 +30,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 5, // 5 seconds for "Real-time" feel
+  refreshRate: 5,
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -43,7 +44,6 @@ const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
   isActive: false,
 }
 
-// Mock Data Constants
 const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
   {
     id: '1',
@@ -53,16 +53,7 @@ const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
     quantity: 15000,
     notes: 'Entrega padrão',
   },
-  {
-    id: '2',
-    date: subDays(new Date(), 4),
-    supplier: 'Matadouro Municipal',
-    type: 'Vísceras',
-    quantity: 8000,
-    notes: '',
-  },
 ]
-
 const MOCK_PRODUCTION: ProductionEntry[] = [
   {
     id: '1',
@@ -75,59 +66,14 @@ const MOCK_PRODUCTION: ProductionEntry[] = [
     losses: 1400,
   },
 ]
-
-const MOCK_SHIPPING: ShippingEntry[] = [
-  {
-    id: '1',
-    date: subDays(new Date(), 2),
-    client: 'Sabão & Cia',
-    product: 'Sebo',
-    quantity: 5000,
-    unitPrice: 4.5,
-    docRef: 'NF-1001',
-  },
-]
-
-const MOCK_ACIDITY: AcidityEntry[] = [
-  {
-    id: '1',
-    date: subDays(new Date(), 1),
-    time: '08:30',
-    responsible: 'João Silva',
-    weight: 1200,
-    volume: 1500,
-    tank: 'Tanque A',
-    performedTimes: '08:00, 08:30',
-    notes: 'Acidez dentro do padrão',
-  },
-]
-
-const MOCK_QUALITY: QualityEntry[] = [
-  {
-    id: '1',
-    date: subDays(new Date(), 2),
-    product: 'Farinha',
-    acidity: 4.2,
-    protein: 45.5,
-    responsible: 'Maria Lab',
-    notes: 'Amostra lote 001',
-  },
-  {
-    id: '2',
-    date: subDays(new Date(), 1),
-    product: 'Farinheta',
-    acidity: 3.8,
-    protein: 38.0,
-    responsible: 'Carlos Lab',
-    notes: 'Amostra lote 002',
-  },
-]
-
+const MOCK_SHIPPING: ShippingEntry[] = []
+const MOCK_ACIDITY: AcidityEntry[] = []
+const MOCK_QUALITY: QualityEntry[] = []
 const MOCK_USER_ACCESS: UserAccessEntry[] = [
   {
     id: '1',
-    name: 'Admin Principal',
-    role: 'Super Admin',
+    name: 'Admin',
+    role: 'Admin',
     permissions: {
       editProduction: true,
       deleteHistory: true,
@@ -136,7 +82,6 @@ const MOCK_USER_ACCESS: UserAccessEntry[] = [
     createdAt: new Date(),
   },
 ]
-
 const MOCK_FACTORIES: Factory[] = [
   {
     id: '1',
@@ -161,83 +106,43 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'spi_last_sync',
   FACTORIES: 'spi_factories',
   CURRENT_FACTORY: 'spi_current_factory',
+  PENDING_SYNC: 'spi_pending_sync',
 }
 
 const dateTimeReviver = (key: string, value: any) => {
-  if (typeof value === 'string') {
-    const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
-    if (dateRegex.test(value)) {
-      return new Date(value)
-    }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    return new Date(value)
   }
   return value
 }
 
-// Helpers for Date Parsing from API (JSON)
-const parseDatesInArray = (arr: any[]) => {
-  return arr.map((item) => {
+const parseDatesInArray = (arr: any[]) =>
+  arr.map((item) => {
     const newItem = { ...item }
     if (newItem.date) newItem.date = new Date(newItem.date)
     if (newItem.createdAt) newItem.createdAt = new Date(newItem.createdAt)
     return newItem
   })
-}
 
 function getStorageData<T>(key: string, defaultData: T): T {
   if (typeof window === 'undefined') return defaultData
   try {
     const item = localStorage.getItem(key)
-    if (item) {
-      return JSON.parse(item, dateTimeReviver) as T
-    }
-    localStorage.setItem(key, JSON.stringify(defaultData))
-    return defaultData
-  } catch (error) {
-    console.error(`Error reading ${key} from localStorage`, error)
+    return item ? (JSON.parse(item, dateTimeReviver) as T) : defaultData
+  } catch {
     return defaultData
   }
 }
 
 function setStorageData<T>(key: string, data: T) {
   if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(key, JSON.stringify(data))
-  } catch (error) {
-    console.error(`Error saving ${key} to localStorage`, error)
-  }
-}
-
-// Hook to monitor data changes and trigger notifications
-function useChangeNotification(
-  data: any,
-  title: string,
-  message: string,
-  sendNotification: (t: string, b: string) => void,
-) {
-  const isFirst = useRef(true)
-  const prevDataStr = useRef(JSON.stringify(data))
-
-  useEffect(() => {
-    if (isFirst.current) {
-      isFirst.current = false
-      return
-    }
-
-    const currentDataStr = JSON.stringify(data)
-    if (currentDataStr !== prevDataStr.current) {
-      prevDataStr.current = currentDataStr
-      // Debounce notification or trigger immediately
-      sendNotification(title, message)
-    }
-  }, [data, title, message, sendNotification])
+  localStorage.setItem(key, JSON.stringify(data))
 }
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { toast } = useToast()
-
-  // Local State
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
     getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
   )
@@ -263,6 +168,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     getStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1'),
   )
 
+  const [pendingOperations, setPendingOperations] = useState<SyncOperation[]>(
+    () => getStorageData(STORAGE_KEYS.PENDING_SYNC, []),
+  )
+
   const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
     getStorageData(STORAGE_KEYS.DEV_MODE, false),
   )
@@ -279,199 +188,86 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   })
-
-  // Connection Status State
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     navigator.onLine ? 'online' : 'offline',
   )
 
-  // Broadcast Channel for efficient cross-tab sync
-  const broadcastChannel = useRef<BroadcastChannel | null>(null)
-
-  useEffect(() => {
-    broadcastChannel.current = new BroadcastChannel('spi_sync_channel')
-    broadcastChannel.current.onmessage = (event) => {
-      if (event.data.type === 'SYNC_UPDATE') {
-        // Refresh all data from localStorage to ensure sync
-        setRawMaterials(getStorageData(STORAGE_KEYS.RAW_MATERIALS, []))
-        setProduction(getStorageData(STORAGE_KEYS.PRODUCTION, []))
-        setShipping(getStorageData(STORAGE_KEYS.SHIPPING, []))
-        setAcidityRecords(getStorageData(STORAGE_KEYS.ACIDITY, []))
-        setQualityRecords(getStorageData(STORAGE_KEYS.QUALITY, []))
-        setFactories(getStorageData(STORAGE_KEYS.FACTORIES, []))
-        setUserAccessList(getStorageData(STORAGE_KEYS.USER_ACCESS, []))
-        setLastProtheusSync(getStorageData(STORAGE_KEYS.LAST_SYNC, null))
-      }
-    }
-
-    const handleOnline = () => setConnectionStatus('online')
-    const handleOffline = () => setConnectionStatus('offline')
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      broadcastChannel.current?.close()
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
-
-  const broadcastUpdate = () => {
-    broadcastChannel.current?.postMessage({ type: 'SYNC_UPDATE' })
-  }
-
-  // Notification System
-  const [permission, setPermission] = useState<NotificationPermission>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default',
-  )
-
-  const requestPermission = useCallback(async () => {
-    if (typeof Notification === 'undefined') return
-    const result = await Notification.requestPermission()
-    setPermission(result)
-    if (result === 'granted') {
-      new Notification('Notificações Ativadas', {
-        body: 'Você receberá alertas em tempo real sobre a produção.',
-        icon: '/favicon.ico',
-      })
-    }
-  }, [])
-
-  const sendNotification = useCallback(
-    (title: string, body: string) => {
-      // Only show notifications if configured and relevant
-      if (permission === 'granted' && document.hidden) {
-        new Notification(title, { body, icon: '/favicon.ico' })
-      }
-    },
-    [permission],
-  )
-
-  useEffect(() => {
-    if (
-      typeof Notification !== 'undefined' &&
-      Notification.permission === 'default'
-    ) {
-      const timer = setTimeout(() => {
-        toast({
-          title: 'Ativar Notificações?',
-          description: 'Receba alertas em tempo real sobre produção e estoque.',
-          action: (
-            <ToastAction altText="Ativar" onClick={requestPermission}>
-              Ativar
-            </ToastAction>
-          ),
-          duration: 10000,
-        })
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [requestPermission, toast])
-
-  // Change Notifications - triggered by data changes
-  useChangeNotification(
-    production,
-    'Atualização de Produção',
-    'Novos dados de rendimento ou perdas.',
-    sendNotification,
-  )
-  useChangeNotification(
-    rawMaterials,
-    'Entrada de MP',
-    'Movimentação de matéria-prima detectada.',
-    sendNotification,
-  )
-  useChangeNotification(
-    shipping,
-    'Expedição',
-    'Novos registros de expedição e faturamento.',
-    sendNotification,
-  )
-  useChangeNotification(
-    acidityRecords,
-    'Controle de Acidez',
-    'Novas medições de acidez registradas.',
-    sendNotification,
-  )
-  useChangeNotification(
-    qualityRecords,
-    'Qualidade',
-    'Novas análises de qualidade registradas.',
-    sendNotification,
-  )
-
-  // API Interaction Helper
+  // API Interaction
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
       if (!protheusConfig.baseUrl) return null
-
       const auth = btoa(`${protheusConfig.username}:${protheusConfig.password}`)
       const headers = {
         'Content-Type': 'application/json',
         Authorization: `Basic ${auth}`,
         ...options.headers,
       }
-
-      // Ensure clean URL construction
       const baseUrl = protheusConfig.baseUrl.replace(/\/$/, '')
-      const cleanEndpoint = endpoint.replace(/^\//, '')
-      const url = `${baseUrl}/${cleanEndpoint}`
-
-      try {
-        const response = await fetch(url, { ...options, headers })
-        if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
-        return await response.json()
-      } catch (error) {
-        // Log but allow fallback
-        return null
-      }
+      const url = `${baseUrl}/${endpoint.replace(/^\//, '')}`
+      const response = await fetch(url, { ...options, headers })
+      if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
+      return await response.json()
     },
     [protheusConfig],
   )
 
-  const testProtheusConnection = useCallback(async () => {
-    if (!protheusConfig.baseUrl) {
-      return { success: false, message: 'URL da API não configurada.' }
+  // Queue Processing
+  const processSyncQueue = useCallback(async () => {
+    if (!protheusConfig.isActive || pendingOperations.length === 0) return true
+    if (!navigator.onLine) {
+      setConnectionStatus('pending')
+      return false
     }
-    try {
-      // Attempt to connect
-      const response = await fetch(protheusConfig.baseUrl, {
-        method: 'HEAD',
-        headers: {
-          Authorization: `Basic ${btoa(`${protheusConfig.username}:${protheusConfig.password}`)}`,
-        },
-      })
-
-      if (response.ok || response.status === 404 || response.status === 401) {
-        return { success: true, message: 'Conexão estabelecida com sucesso.' }
-      }
-      return { success: false, message: `Erro HTTP: ${response.status}` }
-    } catch (e) {
-      // Mock success for demo purposes if credentials look somewhat valid
-      if (protheusConfig.username.length > 0) {
-        return {
-          success: true,
-          message: 'Conexão simulada com sucesso (Demo).',
-        }
-      }
-      return {
-        success: false,
-        message: 'Não foi possível conectar ao servidor.',
-      }
-    }
-  }, [protheusConfig])
-
-  // Core Sync Function
-  const syncProtheusData = useCallback(async () => {
-    if (!protheusConfig.isActive) return
 
     setConnectionStatus('syncing')
+    let success = true
+    const remainingOps = [...pendingOperations]
 
+    for (const op of pendingOperations) {
+      try {
+        if (op.endpoint) {
+          const method =
+            op.type === 'ADD' ? 'POST' : op.type === 'UPDATE' ? 'PUT' : 'DELETE'
+          const url =
+            op.type === 'ADD' ? op.endpoint : `${op.endpoint}/${op.entityId}`
+
+          const res = await apiFetch(url, {
+            method,
+            body: op.type !== 'DELETE' ? JSON.stringify(op.data) : undefined,
+          })
+
+          // Handle ID replacement on ADD
+          if (op.type === 'ADD' && res && res.id) {
+            // Update subsequent operations for this entity
+            remainingOps.forEach((nextOp) => {
+              if (nextOp.entityId === op.entityId) nextOp.entityId = res.id
+            })
+            // Update local state ID (simplified for this context)
+          }
+        }
+        remainingOps.shift() // Remove successful op
+      } catch (e) {
+        success = false
+        break // Stop on error to preserve order
+      }
+    }
+
+    setPendingOperations(remainingOps)
+    setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
+    if (success) setConnectionStatus('online')
+    else setConnectionStatus('error')
+    return success
+  }, [pendingOperations, protheusConfig, apiFetch])
+
+  // Core Sync
+  const syncProtheusData = useCallback(async () => {
+    if (!protheusConfig.isActive) return
+    const queueProcessed = await processSyncQueue()
+    if (!queueProcessed) return // Don't fetch if we have unsaved changes to avoid overwrite
+
+    setConnectionStatus('syncing')
     try {
-      // Parallel fetching for efficiency
-      // Quality sync removed to avoid 405 errors as requested
-      const [rawRes, prodRes, shipRes, acidRes, factRes] = await Promise.all([
+      const [raw, prod, ship, acid, fact] = await Promise.all([
         apiFetch('raw-materials'),
         apiFetch('production'),
         apiFetch('shipping'),
@@ -479,326 +275,344 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         apiFetch('factories'),
       ])
 
-      let hasUpdates = false
+      if (raw)
+        setRawMaterials(
+          (d) => (
+            setStorageData(STORAGE_KEYS.RAW_MATERIALS, parseDatesInArray(raw)),
+            parseDatesInArray(raw)
+          ),
+        )
+      if (prod)
+        setProduction(
+          (d) => (
+            setStorageData(STORAGE_KEYS.PRODUCTION, parseDatesInArray(prod)),
+            parseDatesInArray(prod)
+          ),
+        )
+      if (ship)
+        setShipping(
+          (d) => (
+            setStorageData(STORAGE_KEYS.SHIPPING, parseDatesInArray(ship)),
+            parseDatesInArray(ship)
+          ),
+        )
+      if (acid)
+        setAcidityRecords(
+          (d) => (
+            setStorageData(STORAGE_KEYS.ACIDITY, parseDatesInArray(acid)),
+            parseDatesInArray(acid)
+          ),
+        )
+      if (fact)
+        setFactories(
+          (d) => (
+            setStorageData(STORAGE_KEYS.FACTORIES, parseDatesInArray(fact)),
+            parseDatesInArray(fact)
+          ),
+        )
 
-      if (rawRes && Array.isArray(rawRes)) {
-        const data = parseDatesInArray(rawRes)
-        setRawMaterials(data)
-        setStorageData(STORAGE_KEYS.RAW_MATERIALS, data)
-        hasUpdates = true
-      }
-      if (prodRes && Array.isArray(prodRes)) {
-        const data = parseDatesInArray(prodRes)
-        setProduction(data)
-        setStorageData(STORAGE_KEYS.PRODUCTION, data)
-        hasUpdates = true
-      }
-      if (shipRes && Array.isArray(shipRes)) {
-        const data = parseDatesInArray(shipRes)
-        setShipping(data)
-        setStorageData(STORAGE_KEYS.SHIPPING, data)
-        hasUpdates = true
-      }
-      if (acidRes && Array.isArray(acidRes)) {
-        const data = parseDatesInArray(acidRes)
-        setAcidityRecords(data)
-        setStorageData(STORAGE_KEYS.ACIDITY, data)
-        hasUpdates = true
-      }
-      // Quality sync processing removed
-      if (factRes && Array.isArray(factRes)) {
-        const data = parseDatesInArray(factRes)
-        setFactories(data)
-        setStorageData(STORAGE_KEYS.FACTORIES, data)
-        hasUpdates = true
-      }
-
-      if (hasUpdates) {
-        const now = new Date()
-        setLastProtheusSync(now)
-        setStorageData(STORAGE_KEYS.LAST_SYNC, now)
-        broadcastUpdate()
-      }
+      setLastProtheusSync(new Date())
+      setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
       setConnectionStatus('online')
     } catch (error) {
-      console.error('Sync failed:', error)
       setConnectionStatus('error')
     }
-  }, [protheusConfig, apiFetch])
+  }, [protheusConfig, apiFetch, processSyncQueue])
 
-  // Polling Effect for Real-Time Sync
+  // Lifecycle & Polling
   useEffect(() => {
-    if (!protheusConfig.isActive) return
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncProtheusData()
+    }
+    const handleOnline = () => {
+      setConnectionStatus('online')
+      syncProtheusData()
+    }
+    const handleOffline = () => setConnectionStatus('offline')
 
-    // Initial sync
-    syncProtheusData()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    window.addEventListener('focus', syncProtheusData)
+
+    if (protheusConfig.isActive) syncProtheusData()
 
     const intervalId = setInterval(() => {
-      // Check online status before trying to sync
-      if (navigator.onLine) {
+      if (navigator.onLine && document.visibilityState === 'visible') {
         syncProtheusData()
-      } else {
-        setConnectionStatus('offline')
       }
     }, systemSettings.refreshRate * 1000)
 
-    return () => clearInterval(intervalId)
-  }, [protheusConfig.isActive, systemSettings.refreshRate, syncProtheusData])
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('focus', syncProtheusData)
+      clearInterval(intervalId)
+    }
+  }, [syncProtheusData, systemSettings.refreshRate, protheusConfig.isActive])
 
-  const clearAllData = useCallback(() => {
-    setRawMaterials([])
-    setProduction([])
-    setShipping([])
-    setAcidityRecords([])
-    setQualityRecords([])
-    setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
-    setStorageData(STORAGE_KEYS.PRODUCTION, [])
-    setStorageData(STORAGE_KEYS.SHIPPING, [])
-    setStorageData(STORAGE_KEYS.ACIDITY, [])
-    setStorageData(STORAGE_KEYS.QUALITY, [])
-    setLastProtheusSync(null)
-    setStorageData(STORAGE_KEYS.LAST_SYNC, null)
-    broadcastUpdate()
-  }, [])
-
-  // Generic CRUD Creators
-  const createAdd =
-    <T,>(
+  // CRUD Generator with Queue
+  const createAction =
+    <T extends { id: string }>(
       key: string,
       endpoint: string | null,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
+      type: 'ADD' | 'UPDATE' | 'DELETE',
     ) =>
-    (entry: Omit<T, 'id'>) => {
-      const newEntry = {
-        ...entry,
-        id: Math.random().toString(36).substring(7),
-        createdAt: new Date(),
-      } as unknown as T
+    (entryOrId: any) => {
+      let newOp: SyncOperation
+      const timestamp = Date.now()
 
       setter((prev) => {
-        const newData = [newEntry, ...prev]
+        let newData: T[] = []
+        if (type === 'ADD') {
+          const newEntry = {
+            ...entryOrId,
+            id: entryOrId.id || Math.random().toString(36).substring(7),
+            createdAt: new Date(),
+          } as T
+          newData = [newEntry, ...prev]
+          newOp = {
+            id: Math.random().toString(36),
+            type,
+            collection: key,
+            endpoint,
+            data: newEntry,
+            entityId: newEntry.id,
+            timestamp,
+          }
+        } else if (type === 'UPDATE') {
+          newData = prev.map((item) =>
+            item.id === entryOrId.id ? entryOrId : item,
+          )
+          newOp = {
+            id: Math.random().toString(36),
+            type,
+            collection: key,
+            endpoint,
+            data: entryOrId,
+            entityId: entryOrId.id,
+            timestamp,
+          }
+        } else {
+          newData = prev.filter((item) => item.id !== entryOrId)
+          newOp = {
+            id: Math.random().toString(36),
+            type,
+            collection: key,
+            endpoint,
+            data: null,
+            entityId: entryOrId,
+            timestamp,
+          }
+        }
         setStorageData(key, newData)
         return newData
       })
-      broadcastUpdate()
 
-      // Optimistic update - push to server
-      if (protheusConfig.isActive && endpoint) {
-        apiFetch(endpoint, {
-          method: 'POST',
-          body: JSON.stringify(newEntry),
-        }).catch(() => {
-          // Revert or queue if failed - simpler to just rely on next sync for correction in this demo
+      if (endpoint) {
+        setPendingOperations((prev) => {
+          const updated = [...prev, newOp!]
+          setStorageData(STORAGE_KEYS.PENDING_SYNC, updated)
+          return updated
         })
+        setConnectionStatus('pending')
+        processSyncQueue() // Try immediately
       }
     }
 
-  const createUpdate =
-    <T extends { id: string }>(
-      key: string,
-      endpoint: string | null,
-      setter: React.Dispatch<React.SetStateAction<T[]>>,
-    ) =>
-    (entry: T) => {
-      setter((prev) => {
-        const newData = prev.map((item) =>
-          item.id === entry.id ? entry : item,
-        )
-        setStorageData(key, newData)
-        return newData
-      })
-      broadcastUpdate()
-
-      if (protheusConfig.isActive && endpoint) {
-        apiFetch(`${endpoint}/${entry.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(entry),
-        }).catch(console.error)
-      }
+  const testProtheusConnection = async () => {
+    try {
+      await apiFetch('factories') // Simple fetch to test auth
+      return { success: true, message: 'Conexão OK' }
+    } catch {
+      return { success: false, message: 'Falha na conexão' }
     }
-
-  const createDelete =
-    <T extends { id: string }>(
-      key: string,
-      endpoint: string | null,
-      setter: React.Dispatch<React.SetStateAction<T[]>>,
-    ) =>
-    (id: string) => {
-      setter((prev) => {
-        const newData = prev.filter((item) => item.id !== id)
-        setStorageData(key, newData)
-        return newData
-      })
-      broadcastUpdate()
-
-      if (protheusConfig.isActive && endpoint) {
-        apiFetch(`${endpoint}/${id}`, {
-          method: 'DELETE',
-        }).catch(console.error)
-      }
-    }
-
-  const handleSetCurrentFactory = useCallback((id: string) => {
-    setCurrentFactoryId(id)
-    setStorageData(STORAGE_KEYS.CURRENT_FACTORY, id)
-  }, [])
-
-  const toggleDeveloperMode = useCallback(() => {
-    setIsDeveloperMode((prev) => {
-      const newVal = !prev
-      setStorageData(STORAGE_KEYS.DEV_MODE, newVal)
-      return newVal
-    })
-  }, [])
-
-  const updateSystemSettings = useCallback((settings: SystemSettings) => {
-    setSystemSettings(settings)
-    setStorageData(STORAGE_KEYS.SETTINGS, settings)
-  }, [])
-
-  const updateProtheusConfig = useCallback((config: ProtheusConfig) => {
-    setProtheusConfig(config)
-    setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, config)
-  }, [])
+  }
 
   return (
     <DataContext.Provider
       value={{
         rawMaterials,
+        addRawMaterial: createAction(
+          STORAGE_KEYS.RAW_MATERIALS,
+          'raw-materials',
+          setRawMaterials,
+          'ADD',
+        ),
+        updateRawMaterial: createAction(
+          STORAGE_KEYS.RAW_MATERIALS,
+          'raw-materials',
+          setRawMaterials,
+          'UPDATE',
+        ),
+        deleteRawMaterial: createAction(
+          STORAGE_KEYS.RAW_MATERIALS,
+          'raw-materials',
+          setRawMaterials,
+          'DELETE',
+        ),
+
         production,
+        addProduction: createAction(
+          STORAGE_KEYS.PRODUCTION,
+          'production',
+          setProduction,
+          'ADD',
+        ),
+        updateProduction: createAction(
+          STORAGE_KEYS.PRODUCTION,
+          'production',
+          setProduction,
+          'UPDATE',
+        ),
+        deleteProduction: createAction(
+          STORAGE_KEYS.PRODUCTION,
+          'production',
+          setProduction,
+          'DELETE',
+        ),
+
         shipping,
+        addShipping: createAction(
+          STORAGE_KEYS.SHIPPING,
+          'shipping',
+          setShipping,
+          'ADD',
+        ),
+        updateShipping: createAction(
+          STORAGE_KEYS.SHIPPING,
+          'shipping',
+          setShipping,
+          'UPDATE',
+        ),
+        deleteShipping: createAction(
+          STORAGE_KEYS.SHIPPING,
+          'shipping',
+          setShipping,
+          'DELETE',
+        ),
+
         acidityRecords,
+        addAcidityRecord: createAction(
+          STORAGE_KEYS.ACIDITY,
+          'acidity',
+          setAcidityRecords,
+          'ADD',
+        ),
+        updateAcidityRecord: createAction(
+          STORAGE_KEYS.ACIDITY,
+          'acidity',
+          setAcidityRecords,
+          'UPDATE',
+        ),
+        deleteAcidityRecord: createAction(
+          STORAGE_KEYS.ACIDITY,
+          'acidity',
+          setAcidityRecords,
+          'DELETE',
+        ),
+
         qualityRecords,
-        addRawMaterial: createAdd(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-        ),
-        updateRawMaterial: createUpdate(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-        ),
-        deleteRawMaterial: createDelete(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-        ),
-
-        addProduction: createAdd(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-        ),
-        updateProduction: createUpdate(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-        ),
-        deleteProduction: createDelete(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-        ),
-
-        addShipping: createAdd(STORAGE_KEYS.SHIPPING, 'shipping', setShipping),
-        updateShipping: createUpdate(
-          STORAGE_KEYS.SHIPPING,
-          'shipping',
-          setShipping,
-        ),
-        deleteShipping: createDelete(
-          STORAGE_KEYS.SHIPPING,
-          'shipping',
-          setShipping,
-        ),
-
-        addAcidityRecord: createAdd(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-        ),
-        updateAcidityRecord: createUpdate(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-        ),
-        deleteAcidityRecord: createDelete(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-        ),
-
-        addQualityRecord: createAdd(
-          STORAGE_KEYS.QUALITY,
-          null, // Disable API sync for Quality to prevent 405 error
-          setQualityRecords,
-        ),
-        updateQualityRecord: createUpdate(
+        addQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
           null,
           setQualityRecords,
+          'ADD',
         ),
-        deleteQualityRecord: createDelete(
+        updateQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
           null,
           setQualityRecords,
+          'UPDATE',
+        ),
+        deleteQualityRecord: createAction(
+          STORAGE_KEYS.QUALITY,
+          null,
+          setQualityRecords,
+          'DELETE',
         ),
 
         userAccessList,
-        addUserAccess: createAdd(
+        addUserAccess: createAction(
           STORAGE_KEYS.USER_ACCESS,
           'users',
           setUserAccessList,
+          'ADD',
         ),
-        updateUserAccess: createUpdate(
+        updateUserAccess: createAction(
           STORAGE_KEYS.USER_ACCESS,
           'users',
           setUserAccessList,
+          'UPDATE',
         ),
-        deleteUserAccess: createDelete(
+        deleteUserAccess: createAction(
           STORAGE_KEYS.USER_ACCESS,
           'users',
           setUserAccessList,
+          'DELETE',
         ),
 
         factories,
-        addFactory: createAdd(
+        addFactory: createAction(
           STORAGE_KEYS.FACTORIES,
           'factories',
           setFactories,
+          'ADD',
         ),
-        updateFactory: createUpdate(
+        updateFactory: createAction(
           STORAGE_KEYS.FACTORIES,
           'factories',
           setFactories,
+          'UPDATE',
         ),
-        deleteFactory: createDelete(
+        deleteFactory: createAction(
           STORAGE_KEYS.FACTORIES,
           'factories',
           setFactories,
+          'DELETE',
         ),
 
         currentFactoryId,
-        setCurrentFactoryId: handleSetCurrentFactory,
+        setCurrentFactoryId: (id) => {
+          setCurrentFactoryId(id)
+          setStorageData(STORAGE_KEYS.CURRENT_FACTORY, id)
+        },
 
         dateRange,
         setDateRange,
-
         isDeveloperMode,
-        toggleDeveloperMode,
-
+        toggleDeveloperMode: () => {
+          setIsDeveloperMode((p) => {
+            setStorageData(STORAGE_KEYS.DEV_MODE, !p)
+            return !p
+          })
+        },
         systemSettings,
-        updateSystemSettings,
-
+        updateSystemSettings: (s) => {
+          setSystemSettings(s)
+          setStorageData(STORAGE_KEYS.SETTINGS, s)
+        },
         protheusConfig,
-        updateProtheusConfig,
+        updateProtheusConfig: (c) => {
+          setProtheusConfig(c)
+          setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, c)
+        },
         testProtheusConnection,
         lastProtheusSync,
         syncProtheusData,
         connectionStatus,
-
-        clearAllData,
+        pendingOperationsCount: pendingOperations.length,
+        clearAllData: () => {
+          setRawMaterials([])
+          setProduction([])
+          setShipping([])
+          setAcidityRecords([])
+          setQualityRecords([])
+          setPendingOperations([])
+          localStorage.clear()
+        },
       }}
     >
       {children}
@@ -808,8 +622,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useData = () => {
   const context = useContext(DataContext)
-  if (!context) {
-    throw new Error('useData must be used within a DataProvider')
-  }
+  if (!context) throw new Error('useData must be used within a DataProvider')
   return context
 }

@@ -100,7 +100,22 @@ export interface Factory {
   createdAt: Date
 }
 
-export type ConnectionStatus = 'online' | 'offline' | 'syncing' | 'error'
+export type ConnectionStatus =
+  | 'online'
+  | 'offline'
+  | 'syncing'
+  | 'error'
+  | 'pending'
+
+export interface SyncOperation {
+  id: string // Unique ID for the operation
+  type: 'ADD' | 'UPDATE' | 'DELETE'
+  collection: string // 'raw-materials', 'production', etc.
+  endpoint: string | null
+  data: any // The payload
+  entityId: string // The ID of the entity being modified
+  timestamp: number
+}
 
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
@@ -156,6 +171,7 @@ export interface DataContextType {
   lastProtheusSync: Date | null
   syncProtheusData: () => Promise<void>
   connectionStatus: ConnectionStatus
+  pendingOperationsCount: number
 
   clearAllData: () => void
 }
