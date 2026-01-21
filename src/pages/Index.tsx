@@ -1,29 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useData } from '@/context/DataContext'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  LabelList,
-} from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
@@ -48,6 +25,10 @@ import {
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
+import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
+import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
+import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 
@@ -177,53 +158,6 @@ export default function Dashboard() {
   const yieldFCO = totalMPUsada > 0 ? (totalFCO / totalMPUsada) * 100 : 0
   const yieldFarinheta =
     totalMPUsada > 0 ? (totalFarinheta / totalMPUsada) * 100 : 0
-
-  // Chart Data Preparation - General
-  const productionChartData = filteredProduction.map((p) => ({
-    date: format(p.date, 'dd/MM'),
-    producao: p.seboProduced + p.fcoProduced + p.farinhetaProduced,
-    mp: p.mpUsed,
-  }))
-
-  const lossesChartData = filteredProduction.map((p) => ({
-    date: format(p.date, 'dd/MM'),
-    perdas: p.losses,
-  }))
-
-  // Chart Data Preparation - Revenue
-  const revenueMap = new Map<string, number>()
-  filteredShipping.forEach((s) => {
-    const key = format(s.date, 'dd/MM')
-    revenueMap.set(key, (revenueMap.get(key) || 0) + s.quantity * s.unitPrice)
-  })
-  const revenueChartData = Array.from(revenueMap.entries())
-    .map(([date, value]) => ({ date, revenue: value }))
-    .sort((a, b) => {
-      const [da, ma] = a.date.split('/').map(Number)
-      const [db, mb] = b.date.split('/').map(Number)
-      return ma - mb || da - db
-    })
-
-  // Chart Data Preparation - Yields
-  const yieldChartData = filteredProduction.map((p) => ({
-    date: format(p.date, 'dd/MM'),
-    sebo: p.mpUsed > 0 ? (p.seboProduced / p.mpUsed) * 100 : 0,
-    fco: p.mpUsed > 0 ? (p.fcoProduced / p.mpUsed) * 100 : 0,
-    farinheta: p.mpUsed > 0 ? (p.farinhetaProduced / p.mpUsed) * 100 : 0,
-  }))
-
-  const chartConfig = {
-    producao: { label: 'Produção Total', color: 'hsl(var(--chart-1))' },
-    mp: { label: 'MP Processada', color: 'hsl(var(--chart-2))' },
-    perdas: { label: 'Perdas', color: 'hsl(var(--destructive))' },
-    revenue: { label: 'Faturamento', color: 'hsl(var(--primary))' },
-  }
-
-  const yieldChartConfig = {
-    sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
-    fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
-    farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
-  }
 
   // Dynamic classes for visual feedback
   const highlightClass = highlight
@@ -408,171 +342,18 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm border-primary/10">
-              <CardHeader>
-                <CardTitle>Desempenho de Produção</CardTitle>
-              </CardHeader>
-              <CardContent className="pl-0 sm:pl-2">
-                {productionChartData.length > 0 ? (
-                  <ChartContainer
-                    config={chartConfig}
-                    className="h-[300px] w-full"
-                  >
-                    <LineChart data={productionChartData}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        width={isMobile ? 30 : 60}
-                        tickFormatter={(value) => `${value / 1000}k`}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <ChartLegend content={<ChartLegendContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="producao"
-                        stroke="var(--color-producao)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="mp"
-                        stroke="var(--color-mp)"
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    </LineChart>
-                  </ChartContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    Nenhum dado disponível.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm border-primary/10">
-              <CardHeader>
-                <CardTitle>Análise de Perdas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {lossesChartData.length > 0 ? (
-                  <ChartContainer
-                    config={chartConfig}
-                    className="h-[300px] w-full"
-                  >
-                    <BarChart data={lossesChartData} margin={{ top: 20 }}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="date"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar
-                        dataKey="perdas"
-                        fill="var(--color-perdas)"
-                        radius={[4, 4, 0, 0]}
-                      >
-                        <LabelList
-                          dataKey="perdas"
-                          position="top"
-                          offset={12}
-                          className="fill-foreground"
-                          fontSize={12}
-                          formatter={(value: any) =>
-                            value > 0
-                              ? `${value.toLocaleString('pt-BR')} kg`
-                              : ''
-                          }
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    Nenhum dado disponível.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ProductionPerformanceChart
+              data={filteredProduction}
+              isMobile={isMobile}
+              className="col-span-1 md:col-span-2 lg:col-span-4"
+            />
+            <LossAnalysisChart
+              data={filteredProduction}
+              className="col-span-1 md:col-span-2 lg:col-span-3"
+            />
           </div>
 
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader>
-              <CardTitle>Faturamento Diário</CardTitle>
-              <CardDescription>
-                Receita consolidada por dia de expedição
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {revenueChartData.length > 0 ? (
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[250px] w-full"
-                >
-                  <BarChart data={revenueChartData} margin={{ top: 20 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={isMobile ? 35 : 60}
-                      tickFormatter={(value) => `R$${value / 1000}k`}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value) =>
-                            new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(Number(value))
-                          }
-                        />
-                      }
-                    />
-                    <Bar
-                      dataKey="revenue"
-                      fill="var(--color-revenue)"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      <LabelList
-                        dataKey="revenue"
-                        position="top"
-                        offset={12}
-                        className="fill-foreground"
-                        fontSize={isMobile ? 10 : 12}
-                        formatter={(value: any) =>
-                          new Intl.NumberFormat('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                            notation: isMobile ? 'compact' : 'standard',
-                          }).format(Number(value))
-                        }
-                      />
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                  Nenhum dado de faturamento disponível.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <RevenueChart data={filteredShipping} isMobile={isMobile} />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">
@@ -680,92 +461,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-          <Card className="shadow-sm border-primary/10">
-            <CardHeader>
-              <CardTitle>Histórico de Rendimentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {yieldChartData.length > 0 ? (
-                <ChartContainer
-                  config={yieldChartConfig}
-                  className="h-[350px] w-full"
-                >
-                  <LineChart
-                    data={yieldChartData}
-                    margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={40}
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="sebo"
-                      stroke="var(--color-sebo)"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: 'var(--color-sebo)' }}
-                      activeDot={{ r: 6 }}
-                    >
-                      <LabelList
-                        position="top"
-                        offset={12}
-                        fill="var(--color-sebo)"
-                        fontSize={isMobile ? 9 : 12}
-                        formatter={(value: number) => `${value.toFixed(1)}%`}
-                      />
-                    </Line>
-                    <Line
-                      type="monotone"
-                      dataKey="fco"
-                      stroke="var(--color-fco)"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: 'var(--color-fco)' }}
-                      activeDot={{ r: 6 }}
-                    >
-                      <LabelList
-                        position="top"
-                        offset={12}
-                        fill="var(--color-fco)"
-                        fontSize={isMobile ? 9 : 12}
-                        formatter={(value: number) => `${value.toFixed(1)}%`}
-                      />
-                    </Line>
-                    <Line
-                      type="monotone"
-                      dataKey="farinheta"
-                      stroke="var(--color-farinheta)"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: 'var(--color-farinheta)' }}
-                      activeDot={{ r: 6 }}
-                    >
-                      <LabelList
-                        position="top"
-                        offset={12}
-                        fill="var(--color-farinheta)"
-                        fontSize={isMobile ? 9 : 12}
-                        formatter={(value: number) => `${value.toFixed(1)}%`}
-                      />
-                    </Line>
-                  </LineChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
-                  Nenhum dado de rendimento disponível.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
         </TabsContent>
       </Tabs>
     </div>

@@ -17,6 +17,16 @@ import {
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
 import { format } from 'date-fns'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Maximize2 } from 'lucide-react'
 
 interface RawMaterialChartProps {
   data: RawMaterialEntry[]
@@ -42,10 +52,8 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
     )
 
     // Generate config with Green/Yellow theme colors
-    // We cycle through chart-1 to chart-5 variables which are theme-aware
     const config: ChartConfig = {}
     suppliers.forEach((supplier, index) => {
-      // Logic to assign specific colors if needed, but using theme vars for consistency
       const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`
       config[supplier] = {
         label: supplier,
@@ -72,69 +80,92 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
     )
   }
 
-  return (
-    <Card className="col-span-full shadow-sm border-primary/10">
-      <CardHeader>
-        <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>
-        <CardDescription>
-          Volume recebido por dia detalhado por fornecedor
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-          <BarChart data={chartData} margin={{ top: 10 }}>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
+  const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
+    <ChartContainer config={chartConfig} className={`${height} w-full`}>
+      <BarChart data={chartData} margin={{ top: 10 }}>
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="date"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(value) => `${value / 1000}k`}
+        />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              className="w-48"
+              formatter={(value, name) => (
+                <div className="flex w-full justify-between gap-2">
+                  <span className="text-muted-foreground">{name}</span>
+                  <span className="font-mono font-medium">
+                    {Number(value).toLocaleString('pt-BR')} kg
+                  </span>
+                </div>
+              )}
             />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => `${value / 1000}k`}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  className="w-48"
-                  formatter={(value, name) => (
-                    <div className="flex w-full justify-between gap-2">
-                      <span className="text-muted-foreground">{name}</span>
-                      <span className="font-mono font-medium">
-                        {Number(value).toLocaleString('pt-BR')} kg
-                      </span>
-                    </div>
-                  )}
-                />
+          }
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        {Object.keys(chartConfig).map((supplier) => (
+          <Bar
+            key={supplier}
+            dataKey={supplier}
+            fill={chartConfig[supplier].color}
+            radius={[4, 4, 0, 0]}
+            stackId="a"
+          >
+            <LabelList
+              dataKey={supplier}
+              position="inside"
+              className="fill-white font-bold"
+              style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
+              fontSize={11}
+              formatter={(value: any) =>
+                value > 0 ? `${Number(value).toLocaleString('pt-BR')} kg` : ''
               }
             />
-            <ChartLegend content={<ChartLegendContent />} />
-            {Object.keys(chartConfig).map((supplier) => (
-              <Bar
-                key={supplier}
-                dataKey={supplier}
-                fill={chartConfig[supplier].color}
-                radius={[4, 4, 0, 0]}
-                stackId="a"
-              >
-                <LabelList
-                  dataKey={supplier}
-                  position="inside"
-                  className="fill-white font-bold"
-                  style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
-                  fontSize={11}
-                  formatter={(value: any) =>
-                    value > 0
-                      ? `${Number(value).toLocaleString('pt-BR')} kg`
-                      : ''
-                  }
-                />
-              </Bar>
-            ))}
-          </BarChart>
-        </ChartContainer>
+          </Bar>
+        ))}
+      </BarChart>
+    </ChartContainer>
+  )
+
+  return (
+    <Card className="col-span-full shadow-sm border-primary/10">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>
+          <CardDescription>
+            Volume recebido por dia detalhado por fornecedor
+          </CardDescription>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Maximize2 className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">Expandir</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Entrada Diária de MP por Fornecedor</DialogTitle>
+              <DialogDescription>
+                Detalhamento do volume recebido por fornecedor.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 w-full min-h-0 py-4">
+              <ChartContent height="h-full" />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <ChartContent />
       </CardContent>
     </Card>
   )

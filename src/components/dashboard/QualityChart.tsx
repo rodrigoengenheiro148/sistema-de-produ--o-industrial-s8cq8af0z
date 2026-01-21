@@ -26,6 +26,16 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Maximize2 } from 'lucide-react'
 
 interface QualityChartProps {
   data: QualityEntry[]
@@ -90,150 +100,175 @@ export function QualityChart({ data }: QualityChartProps) {
     )
   }
 
+  const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
+    <ChartContainer
+      config={chartConfig}
+      className={`aspect-auto ${height} w-full`}
+    >
+      <LineChart
+        accessibilityLayer
+        data={chartData}
+        margin={{
+          top: 20,
+          right: isMobile ? 0 : 20,
+          bottom: 20,
+          left: isMobile ? 0 : 20,
+        }}
+      >
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="formattedDate"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          fontSize={isMobile ? 10 : 12}
+        />
+        {/* Left Axis for Acidity */}
+        <YAxis
+          yAxisId="left"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={isMobile ? 30 : 40}
+          fontSize={isMobile ? 10 : 12}
+          label={{
+            value: isMobile ? '' : 'Acidez (%)',
+            angle: -90,
+            position: 'insideLeft',
+            offset: 10,
+            fontSize: 10,
+          }}
+        />
+        {/* Right Axis for Protein */}
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={isMobile ? 30 : 40}
+          fontSize={isMobile ? 10 : 12}
+          label={{
+            value: isMobile ? '' : 'Proteína (%)',
+            angle: 90,
+            position: 'insideRight',
+            offset: 10,
+            fontSize: 10,
+          }}
+        />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartLegend content={<ChartLegendContent />} />
+
+        {/* Lines - Acidity (Left Axis) */}
+        <Line
+          yAxisId="left"
+          dataKey="acidity_Farinha"
+          type="monotone"
+          stroke="var(--color-acidity_Farinha)"
+          strokeWidth={2}
+          dot={{ r: 4, fill: 'var(--color-acidity_Farinha)' }}
+          activeDot={{ r: 6 }}
+          connectNulls
+        >
+          <LabelList
+            position="top"
+            offset={10}
+            className="fill-foreground text-[10px]"
+            formatter={(val: number) => val?.toFixed(1)}
+          />
+        </Line>
+
+        <Line
+          yAxisId="left"
+          dataKey="acidity_Farinheta"
+          type="monotone"
+          stroke="var(--color-acidity_Farinheta)"
+          strokeWidth={2}
+          strokeDasharray="5 5"
+          dot={{ r: 4, fill: 'var(--color-acidity_Farinheta)' }}
+          activeDot={{ r: 6 }}
+          connectNulls
+        >
+          <LabelList
+            position="top"
+            offset={10}
+            className="fill-foreground text-[10px]"
+            formatter={(val: number) => val?.toFixed(1)}
+          />
+        </Line>
+
+        {/* Lines - Protein (Right Axis) */}
+        <Line
+          yAxisId="right"
+          dataKey="protein_Farinha"
+          type="monotone"
+          stroke="var(--color-protein_Farinha)"
+          strokeWidth={2}
+          dot={{ r: 4, fill: 'var(--color-protein_Farinha)' }}
+          activeDot={{ r: 6 }}
+          connectNulls
+        >
+          <LabelList
+            position="bottom"
+            offset={10}
+            className="fill-foreground text-[10px]"
+            formatter={(val: number) => val?.toFixed(1)}
+          />
+        </Line>
+
+        <Line
+          yAxisId="right"
+          dataKey="protein_Farinheta"
+          type="monotone"
+          stroke="var(--color-protein_Farinheta)"
+          strokeWidth={2}
+          strokeDasharray="5 5"
+          dot={{ r: 4, fill: 'var(--color-protein_Farinheta)' }}
+          activeDot={{ r: 6 }}
+          connectNulls
+        >
+          <LabelList
+            position="bottom"
+            offset={10}
+            className="fill-foreground text-[10px]"
+            formatter={(val: number) => val?.toFixed(1)}
+          />
+        </Line>
+      </LineChart>
+    </ChartContainer>
+  )
+
   return (
     <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle>Evolução da Qualidade</CardTitle>
-        <CardDescription>
-          Tendências de Acidez e Proteína (Farinha vs. Farinheta)
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle>Evolução da Qualidade</CardTitle>
+          <CardDescription>
+            Tendências de Acidez e Proteína (Farinha vs. Farinheta)
+          </CardDescription>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Maximize2 className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">Expandir</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Evolução da Qualidade</DialogTitle>
+              <DialogDescription>
+                Análise detalhada das tendências de qualidade.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 w-full min-h-0 py-4">
+              <ChartContent height="h-full" />
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
-      <CardContent>
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[350px] w-full"
-        >
-          <LineChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              top: 20,
-              right: isMobile ? 0 : 20,
-              bottom: 20,
-              left: isMobile ? 0 : 20,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="formattedDate"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={isMobile ? 10 : 12}
-            />
-            {/* Left Axis for Acidity */}
-            <YAxis
-              yAxisId="left"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={isMobile ? 30 : 40}
-              fontSize={isMobile ? 10 : 12}
-              label={{
-                value: isMobile ? '' : 'Acidez (%)',
-                angle: -90,
-                position: 'insideLeft',
-                offset: 10,
-                fontSize: 10,
-              }}
-            />
-            {/* Right Axis for Protein */}
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={isMobile ? 30 : 40}
-              fontSize={isMobile ? 10 : 12}
-              label={{
-                value: isMobile ? '' : 'Proteína (%)',
-                angle: 90,
-                position: 'insideRight',
-                offset: 10,
-                fontSize: 10,
-              }}
-            />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <ChartLegend content={<ChartLegendContent />} />
-
-            {/* Lines - Acidity (Left Axis) */}
-            <Line
-              yAxisId="left"
-              dataKey="acidity_Farinha"
-              type="monotone"
-              stroke="var(--color-acidity_Farinha)"
-              strokeWidth={2}
-              dot={{ r: 4, fill: 'var(--color-acidity_Farinha)' }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            >
-              <LabelList
-                position="top"
-                offset={10}
-                className="fill-foreground text-[10px]"
-                formatter={(val: number) => val?.toFixed(1)}
-              />
-            </Line>
-
-            <Line
-              yAxisId="left"
-              dataKey="acidity_Farinheta"
-              type="monotone"
-              stroke="var(--color-acidity_Farinheta)"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 4, fill: 'var(--color-acidity_Farinheta)' }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            >
-              <LabelList
-                position="top"
-                offset={10}
-                className="fill-foreground text-[10px]"
-                formatter={(val: number) => val?.toFixed(1)}
-              />
-            </Line>
-
-            {/* Lines - Protein (Right Axis) */}
-            <Line
-              yAxisId="right"
-              dataKey="protein_Farinha"
-              type="monotone"
-              stroke="var(--color-protein_Farinha)"
-              strokeWidth={2}
-              dot={{ r: 4, fill: 'var(--color-protein_Farinha)' }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            >
-              <LabelList
-                position="bottom"
-                offset={10}
-                className="fill-foreground text-[10px]"
-                formatter={(val: number) => val?.toFixed(1)}
-              />
-            </Line>
-
-            <Line
-              yAxisId="right"
-              dataKey="protein_Farinheta"
-              type="monotone"
-              stroke="var(--color-protein_Farinheta)"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 4, fill: 'var(--color-protein_Farinheta)' }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            >
-              <LabelList
-                position="bottom"
-                offset={10}
-                className="fill-foreground text-[10px]"
-                formatter={(val: number) => val?.toFixed(1)}
-              />
-            </Line>
-          </LineChart>
-        </ChartContainer>
+      <CardContent className="pt-4">
+        <ChartContent />
       </CardContent>
     </Card>
   )

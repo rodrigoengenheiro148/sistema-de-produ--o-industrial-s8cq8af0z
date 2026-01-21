@@ -26,6 +26,16 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Maximize2 } from 'lucide-react'
 
 interface AcidityChartProps {
   data: AcidityEntry[]
@@ -89,91 +99,116 @@ export function AcidityChart({ data }: AcidityChartProps) {
     )
   }
 
+  const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
+    <ChartContainer
+      config={chartConfig}
+      className={`aspect-auto ${height} w-full`}
+    >
+      <LineChart
+        accessibilityLayer
+        data={chartData}
+        margin={{
+          top: 24,
+          left: isMobile ? 0 : 12,
+          right: 12,
+          bottom: 12,
+        }}
+      >
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="formattedDate"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          fontSize={isMobile ? 10 : 12}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={isMobile ? 30 : 40}
+          fontSize={isMobile ? 10 : 12}
+        />
+        <ChartTooltip
+          cursor={false}
+          content={<ChartTooltipContent indicator="line" />}
+        />
+        <ChartLegend content={<ChartLegendContent />} />
+        <Line
+          dataKey="weight"
+          type="monotone"
+          stroke="var(--color-weight)"
+          strokeWidth={2}
+          dot={{
+            fill: 'var(--color-weight)',
+            r: 4,
+          }}
+          activeDot={{
+            r: 6,
+          }}
+        >
+          <LabelList
+            position="top"
+            offset={12}
+            className="fill-foreground font-medium"
+            fontSize={isMobile ? 9 : 12}
+          />
+        </Line>
+        <Line
+          dataKey="volume"
+          type="monotone"
+          stroke="var(--color-volume)"
+          strokeWidth={2}
+          dot={{
+            fill: 'var(--color-volume)',
+            r: 4,
+          }}
+          activeDot={{
+            r: 6,
+          }}
+        >
+          <LabelList
+            position="top"
+            offset={12}
+            className="fill-foreground font-medium"
+            fontSize={isMobile ? 9 : 12}
+          />
+        </Line>
+      </LineChart>
+    </ChartContainer>
+  )
+
   return (
     <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle>Evolução das Medições</CardTitle>
-        <CardDescription>
-          Tendência dos valores de Peso e Volume ao longo do tempo
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div>
+          <CardTitle>Evolução das Medições</CardTitle>
+          <CardDescription>
+            Tendência dos valores de Peso e Volume ao longo do tempo
+          </CardDescription>
+        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Maximize2 className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">Expandir</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Evolução das Medições</DialogTitle>
+              <DialogDescription>
+                Visualização detalhada da tendência de peso e volume.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 w-full min-h-0 py-4">
+              <ChartContent height="h-full" />
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
-      <CardContent>
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[300px] w-full"
-        >
-          <LineChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              top: 24,
-              left: isMobile ? 0 : 12,
-              right: 12,
-              bottom: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="formattedDate"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              fontSize={isMobile ? 10 : 12}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              width={isMobile ? 30 : 40}
-              fontSize={isMobile ? 10 : 12}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="line" />}
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Line
-              dataKey="weight"
-              type="monotone"
-              stroke="var(--color-weight)"
-              strokeWidth={2}
-              dot={{
-                fill: 'var(--color-weight)',
-                r: 4,
-              }}
-              activeDot={{
-                r: 6,
-              }}
-            >
-              <LabelList
-                position="top"
-                offset={12}
-                className="fill-foreground font-medium"
-                fontSize={isMobile ? 9 : 12}
-              />
-            </Line>
-            <Line
-              dataKey="volume"
-              type="monotone"
-              stroke="var(--color-volume)"
-              strokeWidth={2}
-              dot={{
-                fill: 'var(--color-volume)',
-                r: 4,
-              }}
-              activeDot={{
-                r: 6,
-              }}
-            >
-              <LabelList
-                position="top"
-                offset={12}
-                className="fill-foreground font-medium"
-                fontSize={isMobile ? 9 : 12}
-              />
-            </Line>
-          </LineChart>
-        </ChartContainer>
+      <CardContent className="pt-4">
+        <ChartContent />
       </CardContent>
     </Card>
   )
