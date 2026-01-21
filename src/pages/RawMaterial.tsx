@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { useData } from '@/context/DataContext'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -18,85 +12,63 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { RawMaterialForm } from '@/components/RawMaterialForm'
+import { RawMaterialEntry } from '@/lib/types'
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-
-const formSchema = z.object({
-  date: z.string().min(1, 'Data é obrigatória'),
-  supplier: z.string().min(2, 'Fornecedor deve ter pelo menos 2 caracteres'),
-  type: z.string().min(1, 'Tipo é obrigatório'),
-  quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'Quantidade deve ser um número positivo',
-  }),
-  notes: z.string().optional(),
-})
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function RawMaterial() {
-  const { rawMaterials, addRawMaterial, dateRange } = useData()
+  const { rawMaterials, deleteRawMaterial, dateRange, isDeveloperMode } =
+    useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [editingItem, setEditingItem] = useState<RawMaterialEntry | undefined>(
+    undefined,
+  )
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      supplier: '',
-      type: '',
-      quantity: '',
-      notes: '',
-    },
-  })
+  const handleEdit = (item: RawMaterialEntry) => {
+    setEditingItem(item)
+    setIsOpen(true)
+  }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    addRawMaterial({
-      date: new Date(values.date),
-      supplier: values.supplier,
-      type: values.type,
-      quantity: Number(values.quantity),
-      notes: values.notes,
-    })
-    toast({
-      title: 'Sucesso',
-      description: 'Entrada registrada com sucesso!',
-    })
-    setIsOpen(false)
-    form.reset()
+  const handleDelete = () => {
+    if (deleteId) {
+      deleteRawMaterial(deleteId)
+      toast({
+        title: 'Registro excluído',
+        description: 'A entrada foi removida com sucesso.',
+      })
+      setDeleteId(null)
+    }
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) setEditingItem(undefined)
   }
 
   const filteredMaterials = rawMaterials
     .filter((item) => {
-      // Apply global date filter if exists, else show all
       if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false
       }
@@ -113,110 +85,27 @@ export default function RawMaterial() {
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
               <Plus className="h-4 w-4" /> Nova Entrada
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Registrar Entrada</DialogTitle>
+              <DialogTitle>
+                {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
+              </DialogTitle>
               <DialogDescription>
-                Insira os detalhes do recebimento de matéria-prima.
+                {editingItem
+                  ? 'Atualize os detalhes do registro selecionado.'
+                  : 'Insira os detalhes do recebimento de matéria-prima.'}
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="supplier"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fornecedor</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do fornecedor" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Matéria-Prima</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Ossos">Ossos</SelectItem>
-                          <SelectItem value="Vísceras">Vísceras</SelectItem>
-                          <SelectItem value="Sangue">Sangue</SelectItem>
-                          <SelectItem value="Misto">Misto</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="quantity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Quantidade (kg)</FormLabel>
-                      <FormControl>
-                        <Input type="number" placeholder="0.00" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observações</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Detalhes adicionais..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="submit">Salvar Registro</Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            <RawMaterialForm
+              initialData={editingItem}
+              onSuccess={() => setIsOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -245,13 +134,16 @@ export default function RawMaterial() {
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Quantidade (kg)</TableHead>
                 <TableHead>Observações</TableHead>
+                {isDeveloperMode && (
+                  <TableHead className="w-[80px]">Ações</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMaterials.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={isDeveloperMode ? 6 : 5}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -268,7 +160,7 @@ export default function RawMaterial() {
                     </TableCell>
                     <TableCell>{entry.supplier}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
                         {entry.type}
                       </span>
                     </TableCell>
@@ -278,6 +170,26 @@ export default function RawMaterial() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
+                    {isDeveloperMode && (
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleEdit(entry)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setDeleteId(entry.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -285,6 +197,27 @@ export default function RawMaterial() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Registro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover esta entrada? Esta ação não pode
+              ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

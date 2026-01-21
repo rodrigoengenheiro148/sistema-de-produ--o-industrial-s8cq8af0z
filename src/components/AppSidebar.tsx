@@ -23,6 +23,8 @@ import {
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import logoBrRender from '@/assets/logotipo-br-render.png'
+import { Badge } from '@/components/ui/badge'
+import { useData } from '@/context/DataContext'
 
 const items = [
   {
@@ -64,16 +66,25 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { isDeveloperMode } = useData()
 
   return (
     <Sidebar className="border-r border-border bg-sidebar">
       <SidebarHeader className="p-4 border-b border-sidebar-border bg-white dark:bg-sidebar-background">
-        <div className="flex items-center gap-2 justify-center py-2">
+        <div className="flex flex-col items-center gap-2 justify-center py-2">
           <img
             src={logoBrRender}
             alt="Grupo BR Render"
             className="h-14 w-auto object-contain"
           />
+          {isDeveloperMode && (
+            <Badge
+              variant="outline"
+              className="text-[10px] h-5 border-amber-500 text-amber-600 bg-amber-50"
+            >
+              DEV MODE
+            </Badge>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -114,10 +125,19 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-          <Settings className="h-4 w-4" />
-          <span>Configurações</span>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === '/settings'}
+            >
+              <Link to="/settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span>Configurações</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   )

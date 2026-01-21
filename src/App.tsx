@@ -9,6 +9,7 @@ import Yields from './pages/Yields'
 import DailyAcidity from './pages/DailyAcidity'
 import Inventory from './pages/Inventory'
 import Shipping from './pages/Shipping'
+import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/acidez-diaria" element={<DailyAcidity />} />
             <Route path="/estoque" element={<Inventory />} />
             <Route path="/expedicao" element={<Shipping />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

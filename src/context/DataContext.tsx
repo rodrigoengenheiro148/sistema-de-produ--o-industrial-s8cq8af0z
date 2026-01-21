@@ -12,11 +12,18 @@ import {
   AcidityEntry,
   DateRange,
   DataContextType,
+  SystemSettings,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { toast } from '@/hooks/use-toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
+
+const DEFAULT_SETTINGS: SystemSettings = {
+  productionGoal: 50000,
+  maxLossThreshold: 1500,
+  refreshRate: 30,
+}
 
 const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
   {
@@ -35,30 +42,6 @@ const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
     quantity: 8000,
     notes: '',
   },
-  {
-    id: '3',
-    date: subDays(new Date(), 3),
-    supplier: 'Agropecuária Silva',
-    type: 'Misto',
-    quantity: 12000,
-    notes: '',
-  },
-  {
-    id: '4',
-    date: subDays(new Date(), 2),
-    supplier: 'Frigorífico Boi Gordo',
-    type: 'Ossos',
-    quantity: 10000,
-    notes: '',
-  },
-  {
-    id: '5',
-    date: subDays(new Date(), 1),
-    supplier: 'Matadouro Municipal',
-    type: 'Sangue',
-    quantity: 5000,
-    notes: '',
-  },
 ]
 
 const MOCK_PRODUCTION: ProductionEntry[] = [
@@ -72,36 +55,6 @@ const MOCK_PRODUCTION: ProductionEntry[] = [
     farinhetaProduced: 1400,
     losses: 1400,
   },
-  {
-    id: '2',
-    date: subDays(new Date(), 4),
-    shift: 'Tarde',
-    mpUsed: 7500,
-    seboProduced: 2200,
-    fcoProduced: 3800,
-    farinhetaProduced: 750,
-    losses: 750,
-  },
-  {
-    id: '3',
-    date: subDays(new Date(), 3),
-    shift: 'Manhã',
-    mpUsed: 11500,
-    seboProduced: 3500,
-    fcoProduced: 5800,
-    farinhetaProduced: 1100,
-    losses: 1100,
-  },
-  {
-    id: '4',
-    date: subDays(new Date(), 2),
-    shift: 'Noite',
-    mpUsed: 9800,
-    seboProduced: 2900,
-    fcoProduced: 4900,
-    farinhetaProduced: 900,
-    losses: 1100,
-  },
 ]
 
 const MOCK_SHIPPING: ShippingEntry[] = [
@@ -113,24 +66,6 @@ const MOCK_SHIPPING: ShippingEntry[] = [
     quantity: 5000,
     unitPrice: 4.5,
     docRef: 'NF-1001',
-  },
-  {
-    id: '2',
-    date: subDays(new Date(), 1),
-    client: 'Rações Pet',
-    product: 'FCO',
-    quantity: 10000,
-    unitPrice: 2.8,
-    docRef: 'NF-1002',
-  },
-  {
-    id: '3',
-    date: subDays(new Date(), 3),
-    client: 'NutriAnimais',
-    product: 'Farinheta',
-    quantity: 2000,
-    unitPrice: 1.2,
-    docRef: 'NF-1003',
   },
 ]
 
@@ -146,17 +81,6 @@ const MOCK_ACIDITY: AcidityEntry[] = [
     performedTimes: '08:00, 08:30',
     notes: 'Acidez dentro do padrão',
   },
-  {
-    id: '2',
-    date: subDays(new Date(), 2),
-    time: '14:15',
-    responsible: 'Maria Santos',
-    weight: 1150,
-    volume: 1480,
-    tank: 'Tanque B',
-    performedTimes: '14:00, 14:15',
-    notes: 'Leve alteração corrigida',
-  },
 ]
 
 const STORAGE_KEYS = {
@@ -164,6 +88,8 @@ const STORAGE_KEYS = {
   PRODUCTION: 'spi_production',
   SHIPPING: 'spi_shipping',
   ACIDITY: 'spi_acidity',
+  DEV_MODE: 'spi_dev_mode',
+  SETTINGS: 'spi_settings',
 }
 
 const dateTimeReviver = (key: string, value: any) => {
@@ -215,103 +141,99 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [acidityRecords, setAcidityRecords] = useState<AcidityEntry[]>(() =>
     getStorageData(STORAGE_KEYS.ACIDITY, MOCK_ACIDITY),
   )
+  const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
+    getStorageData(STORAGE_KEYS.DEV_MODE, false),
+  )
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
+    getStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
+  )
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   })
 
-  // Listen for storage events to sync across tabs/windows
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       try {
-        if (e.newValue) {
-          let updated = false
-          let title = ''
-          let description = ''
-
-          if (e.key === STORAGE_KEYS.RAW_MATERIALS) {
-            setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
-            title = 'Matéria-Prima'
-            description = 'Novos dados de entrada sincronizados.'
-            updated = true
-          } else if (e.key === STORAGE_KEYS.PRODUCTION) {
-            setProduction(JSON.parse(e.newValue, dateTimeReviver))
-            title = 'Produção'
-            description = 'Dados de produção atualizados em tempo real.'
-            updated = true
-          } else if (e.key === STORAGE_KEYS.SHIPPING) {
-            setShipping(JSON.parse(e.newValue, dateTimeReviver))
-            title = 'Expedição'
-            description = 'Registros de faturamento atualizados.'
-            updated = true
-          } else if (e.key === STORAGE_KEYS.ACIDITY) {
-            setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
-            title = 'Qualidade'
-            description = 'Novas medições de acidez detectadas.'
-            updated = true
-          }
-
-          if (updated) {
-            toast({
-              title: `${title} Atualizada`,
-              description: description,
-              variant: 'default',
-              className: 'border-l-4 border-l-primary',
-            })
-          }
+        if (e.key === STORAGE_KEYS.DEV_MODE && e.newValue) {
+          setIsDeveloperMode(JSON.parse(e.newValue))
+        } else if (e.key === STORAGE_KEYS.SETTINGS && e.newValue) {
+          setSystemSettings(JSON.parse(e.newValue))
         }
       } catch (error) {
         console.error('Error handling storage change', error)
       }
     }
-
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  const addRawMaterial = useCallback((entry: Omit<RawMaterialEntry, 'id'>) => {
-    setRawMaterials((prev) => {
-      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-      const newData = [newEntry, ...prev]
-      setStorageData(STORAGE_KEYS.RAW_MATERIALS, newData)
-      return newData
+  const toggleDeveloperMode = useCallback(() => {
+    setIsDeveloperMode((prev) => {
+      const newVal = !prev
+      setStorageData(STORAGE_KEYS.DEV_MODE, newVal)
+      return newVal
     })
   }, [])
 
-  const addProduction = useCallback((entry: Omit<ProductionEntry, 'id'>) => {
-    setProduction((prev) => {
-      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-      const newData = [newEntry, ...prev]
-      setStorageData(STORAGE_KEYS.PRODUCTION, newData)
-      return newData
-    })
+  const updateSystemSettings = useCallback((settings: SystemSettings) => {
+    setSystemSettings(settings)
+    setStorageData(STORAGE_KEYS.SETTINGS, settings)
   }, [])
 
-  const addShipping = useCallback((entry: Omit<ShippingEntry, 'id'>) => {
-    setShipping((prev) => {
-      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-      const newData = [newEntry, ...prev]
-      setStorageData(STORAGE_KEYS.SHIPPING, newData)
-      return newData
-    })
+  const clearAllData = useCallback(() => {
+    setRawMaterials([])
+    setProduction([])
+    setShipping([])
+    setAcidityRecords([])
+    setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
+    setStorageData(STORAGE_KEYS.PRODUCTION, [])
+    setStorageData(STORAGE_KEYS.SHIPPING, [])
+    setStorageData(STORAGE_KEYS.ACIDITY, [])
   }, [])
 
-  const addAcidityRecord = useCallback((entry: Omit<AcidityEntry, 'id'>) => {
-    setAcidityRecords((prev) => {
-      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-      const newData = [newEntry, ...prev]
-      setStorageData(STORAGE_KEYS.ACIDITY, newData)
-      return newData
-    })
-  }, [])
+  // CRUD Factories
+  const createAdd =
+    <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>) =>
+    (entry: Omit<T, 'id'>) => {
+      setter((prev) => {
+        const newEntry = {
+          ...entry,
+          id: Math.random().toString(36).substring(7),
+        } as T
+        const newData = [newEntry, ...prev]
+        setStorageData(key, newData)
+        return newData
+      })
+    }
 
-  const updateAcidityRecord = useCallback((entry: AcidityEntry) => {
-    setAcidityRecords((prev) => {
-      const newData = prev.map((item) => (item.id === entry.id ? entry : item))
-      setStorageData(STORAGE_KEYS.ACIDITY, newData)
-      return newData
-    })
-  }, [])
+  const createUpdate =
+    <T extends { id: string }>(
+      key: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) =>
+    (entry: T) => {
+      setter((prev) => {
+        const newData = prev.map((item) =>
+          item.id === entry.id ? entry : item,
+        )
+        setStorageData(key, newData)
+        return newData
+      })
+    }
+
+  const createDelete =
+    <T extends { id: string }>(
+      key: string,
+      setter: React.Dispatch<React.SetStateAction<T[]>>,
+    ) =>
+    (id: string) => {
+      setter((prev) => {
+        const newData = prev.filter((item) => item.id !== id)
+        setStorageData(key, newData)
+        return newData
+      })
+    }
 
   return (
     <DataContext.Provider
@@ -320,13 +242,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         production,
         shipping,
         acidityRecords,
-        addRawMaterial,
-        addProduction,
-        addShipping,
-        addAcidityRecord,
-        updateAcidityRecord,
+        addRawMaterial: createAdd(STORAGE_KEYS.RAW_MATERIALS, setRawMaterials),
+        updateRawMaterial: createUpdate(
+          STORAGE_KEYS.RAW_MATERIALS,
+          setRawMaterials,
+        ),
+        deleteRawMaterial: createDelete(
+          STORAGE_KEYS.RAW_MATERIALS,
+          setRawMaterials,
+        ),
+        addProduction: createAdd(STORAGE_KEYS.PRODUCTION, setProduction),
+        updateProduction: createUpdate(STORAGE_KEYS.PRODUCTION, setProduction),
+        deleteProduction: createDelete(STORAGE_KEYS.PRODUCTION, setProduction),
+        addShipping: createAdd(STORAGE_KEYS.SHIPPING, setShipping),
+        updateShipping: createUpdate(STORAGE_KEYS.SHIPPING, setShipping),
+        deleteShipping: createDelete(STORAGE_KEYS.SHIPPING, setShipping),
+        addAcidityRecord: createAdd(STORAGE_KEYS.ACIDITY, setAcidityRecords),
+        updateAcidityRecord: createUpdate(
+          STORAGE_KEYS.ACIDITY,
+          setAcidityRecords,
+        ),
+        deleteAcidityRecord: createDelete(
+          STORAGE_KEYS.ACIDITY,
+          setAcidityRecords,
+        ),
         dateRange,
         setDateRange,
+        isDeveloperMode,
+        toggleDeveloperMode,
+        systemSettings,
+        updateSystemSettings,
+        clearAllData,
       }}
     >
       {children}

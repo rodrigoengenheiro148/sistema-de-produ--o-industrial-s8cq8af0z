@@ -6,13 +6,21 @@ import {
 } from '@/components/ui/sidebar'
 import { AppSidebar } from '@/components/AppSidebar'
 import { Button } from '@/components/ui/button'
-import { Bell, User } from 'lucide-react'
+import { Bell, User, Terminal } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useData } from '@/context/DataContext'
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function DashboardLayout() {
   const location = useLocation()
+  const { isDeveloperMode } = useData()
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -30,6 +38,8 @@ export default function DashboardLayout() {
         return 'Gestão de Estoque'
       case '/expedicao':
         return 'Expedição de Produtos'
+      case '/settings':
+        return 'Configurações do Sistema'
       default:
         return 'Grupo BR Render'
     }
@@ -39,13 +49,30 @@ export default function DashboardLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="bg-background flex flex-col min-h-screen">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background sticky top-0 z-10 shadow-sm/50">
+        <header
+          className={cn(
+            'flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background sticky top-0 z-10 shadow-sm/50 transition-colors',
+            isDeveloperMode && 'border-b-amber-400/50 bg-amber-50/10',
+          )}
+        >
           <SidebarTrigger className="-ml-1 hover:bg-secondary text-primary" />
           <div className="h-4 w-px bg-border mx-2" />
           <div className="flex-1 flex items-center justify-between">
-            <h1 className="text-lg font-bold text-primary tracking-tight">
-              {getTitle()}
-            </h1>
+            <div className="flex items-center gap-2">
+              {isDeveloperMode && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Terminal className="h-4 w-4 text-amber-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Modo Desenvolvedor Ativo</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <h1 className="text-lg font-bold text-primary tracking-tight">
+                {getTitle()}
+              </h1>
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden md:inline-block font-medium">
                 {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}

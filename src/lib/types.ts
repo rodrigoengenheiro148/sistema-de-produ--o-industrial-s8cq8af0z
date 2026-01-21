@@ -45,16 +45,42 @@ export interface DateRange {
   to: Date | undefined
 }
 
+export interface SystemSettings {
+  productionGoal: number
+  maxLossThreshold: number
+  refreshRate: number
+}
+
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
   shipping: ShippingEntry[]
   acidityRecords: AcidityEntry[]
+
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
+  updateRawMaterial: (entry: RawMaterialEntry) => void
+  deleteRawMaterial: (id: string) => void
+
   addProduction: (entry: Omit<ProductionEntry, 'id'>) => void
+  updateProduction: (entry: ProductionEntry) => void
+  deleteProduction: (id: string) => void
+
   addShipping: (entry: Omit<ShippingEntry, 'id'>) => void
+  updateShipping: (entry: ShippingEntry) => void
+  deleteShipping: (id: string) => void
+
   addAcidityRecord: (entry: Omit<AcidityEntry, 'id'>) => void
   updateAcidityRecord: (entry: AcidityEntry) => void
+  deleteAcidityRecord: (id: string) => void
+
   dateRange: DateRange
   setDateRange: (range: DateRange) => void
+
+  isDeveloperMode: boolean
+  toggleDeveloperMode: () => void
+
+  systemSettings: SystemSettings
+  updateSystemSettings: (settings: SystemSettings) => void
+
+  clearAllData: () => void
 }

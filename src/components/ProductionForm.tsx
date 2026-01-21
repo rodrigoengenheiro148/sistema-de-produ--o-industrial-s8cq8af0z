@@ -23,6 +23,7 @@ import {
 import { SheetFooter } from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
+import { ProductionEntry } from '@/lib/types'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -35,23 +36,29 @@ const formSchema = z.object({
 })
 
 interface ProductionFormProps {
+  initialData?: ProductionEntry
   onSuccess: () => void
 }
 
-export function ProductionForm({ onSuccess }: ProductionFormProps) {
-  const { addProduction } = useData()
+export function ProductionForm({
+  initialData,
+  onSuccess,
+}: ProductionFormProps) {
+  const { addProduction, updateProduction } = useData()
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      shift: 'Manhã',
-      mpUsed: 0,
-      sebo: 0,
-      fco: 0,
-      farinheta: 0,
-      losses: 0,
+      date: initialData
+        ? format(initialData.date, 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd'),
+      shift: initialData?.shift || 'Manhã',
+      mpUsed: initialData?.mpUsed || 0,
+      sebo: initialData?.seboProduced || 0,
+      fco: initialData?.fcoProduced || 0,
+      farinheta: initialData?.farinhetaProduced || 0,
+      losses: initialData?.losses || 0,
     },
   })
 
@@ -60,15 +67,12 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
   const fco = form.watch('fco')
   const farinheta = form.watch('farinheta')
 
-  // Automatic calculation of losses based on inputs and outputs
   useEffect(() => {
     const input = Number(mpUsed) || 0
     const output =
       (Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0)
     const calculatedLosses = input - output
 
-    // Update losses field. Clamp to 0 if negative to avoid confusion, or display real diff.
-    // Based on "Perdas" (Losses), usually >= 0.
     form.setValue('losses', Math.max(0, calculatedLosses), {
       shouldValidate: true,
       shouldDirty: true,
@@ -77,7 +81,7 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
   }, [mpUsed, sebo, fco, farinheta, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    addProduction({
+    const entryData = {
       date: new Date(values.date),
       shift: values.shift,
       mpUsed: values.mpUsed,
@@ -85,11 +89,22 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
       fcoProduced: values.fco,
       farinhetaProduced: values.farinheta,
       losses: values.losses,
-    })
-    toast({
-      title: 'Sucesso',
-      description: 'Produção registrada com sucesso!',
-    })
+    }
+
+    if (initialData) {
+      updateProduction({ ...entryData, id: initialData.id })
+      toast({
+        title: 'Sucesso',
+        description: 'Produção atualizada com sucesso!',
+      })
+    } else {
+      addProduction(entryData)
+      toast({
+        title: 'Sucesso',
+        description: 'Produção registrada com sucesso!',
+      })
+    }
+
     form.reset()
     onSuccess()
   }
@@ -156,9 +171,7 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
         </div>
 
         <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800">
-          <h3 className="font-medium text-sm text-slate-500">
-            Saídas (Produtos)
-          </h3>
+          <h3 className="font-medium text-sm text-slate-500">Saídas</h3>
           <FormField
             control={form.control}
             name="sebo"
@@ -212,7 +225,7 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
                   {...field}
                   readOnly
                   tabIndex={-1}
-                  className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
                 />
               </FormControl>
               <FormMessage />
@@ -222,7 +235,7 @@ export function ProductionForm({ onSuccess }: ProductionFormProps) {
 
         <SheetFooter>
           <Button type="submit" className="w-full">
-            Salvar Produção
+            {initialData ? 'Atualizar Produção' : 'Salvar Produção'}
           </Button>
         </SheetFooter>
       </form>

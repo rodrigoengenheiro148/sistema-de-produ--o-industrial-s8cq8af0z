@@ -12,84 +12,58 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Send, Search } from 'lucide-react'
+import { Send, Search, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
+import { ShippingForm } from '@/components/ShippingForm'
+import { ShippingEntry } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-
-const formSchema = z.object({
-  date: z.string().min(1, 'Data é obrigatória'),
-  client: z.string().min(2, 'Cliente é obrigatório'),
-  product: z.enum(['Sebo', 'FCO', 'Farinheta', 'Matéria-Prima']),
-  quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'Quantidade inválida',
-  }),
-  unitPrice: z
-    .string()
-    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-      message: 'Preço unitário deve ser um número positivo',
-    }),
-  docRef: z.string().min(1, 'Documento é obrigatório'),
-})
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 export default function Shipping() {
-  const { shipping, addShipping, dateRange } = useData()
+  const { shipping, deleteShipping, dateRange, isDeveloperMode } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [editingItem, setEditingItem] = useState<ShippingEntry | undefined>(
+    undefined,
+  )
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      client: '',
-      product: 'Sebo',
-      quantity: '',
-      unitPrice: '',
-      docRef: '',
-    },
-  })
+  const handleEdit = (item: ShippingEntry) => {
+    setEditingItem(item)
+    setIsOpen(true)
+  }
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    addShipping({
-      date: new Date(values.date),
-      client: values.client,
-      product: values.product,
-      quantity: Number(values.quantity),
-      unitPrice: Number(values.unitPrice),
-      docRef: values.docRef,
-    })
-    toast({
-      title: 'Expedição Realizada',
-      description: 'Saída de estoque e faturamento confirmados.',
-    })
-    setIsOpen(false)
-    form.reset()
+  const handleDelete = () => {
+    if (deleteId) {
+      deleteShipping(deleteId)
+      toast({
+        title: 'Registro excluído',
+        description: 'A expedição foi removida com sucesso.',
+      })
+      setDeleteId(null)
+    }
+  }
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) setEditingItem(undefined)
   }
 
   const filteredShipping = shipping
@@ -114,128 +88,27 @@ export default function Shipping() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Expedição</h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
               <Send className="h-4 w-4" /> Nova Expedição
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Registrar Saída</DialogTitle>
+              <DialogTitle>
+                {editingItem ? 'Editar Saída' : 'Registrar Saída'}
+              </DialogTitle>
               <DialogDescription>
-                Informe os dados da carga e valores para faturamento.
+                {editingItem
+                  ? 'Atualize os dados da carga e valores.'
+                  : 'Informe os dados da carga e valores para faturamento.'}
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="docRef"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Documento</FormLabel>
-                        <FormControl>
-                          <Input placeholder="NF ou Pedido" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="client"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cliente / Destino</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do cliente" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="product"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Produto</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o produto" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Sebo">Sebo</SelectItem>
-                          <SelectItem value="FCO">
-                            Farinha Carne/Osso
-                          </SelectItem>
-                          <SelectItem value="Farinheta">Farinheta</SelectItem>
-                          <SelectItem value="Matéria-Prima">
-                            Matéria-Prima (Devolução)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantidade (kg)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="unitPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor Unit. (R$)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="0.00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit">Confirmar Saída</Button>
-                </DialogFooter>
-              </form>
-            </Form>
+            <ShippingForm
+              initialData={editingItem}
+              onSuccess={() => setIsOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -266,13 +139,16 @@ export default function Shipping() {
                 <TableHead className="text-right">Qtd (kg)</TableHead>
                 <TableHead className="text-right">Valor Unit.</TableHead>
                 <TableHead className="text-right">Total (R$)</TableHead>
+                {isDeveloperMode && (
+                  <TableHead className="w-[80px]">Ações</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredShipping.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={isDeveloperMode ? 8 : 7}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -305,6 +181,26 @@ export default function Shipping() {
                     <TableCell className="text-right font-mono font-medium text-green-600">
                       {formatCurrency(entry.quantity * entry.unitPrice)}
                     </TableCell>
+                    {isDeveloperMode && (
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleEdit(entry)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setDeleteId(entry.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
@@ -312,6 +208,26 @@ export default function Shipping() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Registro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover esta expedição?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
