@@ -187,6 +187,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setAcidityRecords((prev) => [newEntry, ...prev])
   }
 
+  const updateAcidityRecord = (entry: AcidityEntry) => {
+    setAcidityRecords((prev) =>
+      prev.map((item) => (item.id === entry.id ? entry : item)),
+    )
+  }
+
   return (
     <DataContext.Provider
       value={{
@@ -198,6 +204,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addProduction,
         addShipping,
         addAcidityRecord,
+        updateAcidityRecord,
         dateRange,
         setDateRange,
       }}

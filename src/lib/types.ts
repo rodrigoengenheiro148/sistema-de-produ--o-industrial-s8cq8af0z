@@ -54,6 +54,7 @@ export interface DataContextType {
   addProduction: (entry: Omit<ProductionEntry, 'id'>) => void
   addShipping: (entry: Omit<ShippingEntry, 'id'>) => void
   addAcidityRecord: (entry: Omit<AcidityEntry, 'id'>) => void
+  updateAcidityRecord: (entry: AcidityEntry) => void
   dateRange: DateRange
   setDateRange: (range: DateRange) => void
 }
