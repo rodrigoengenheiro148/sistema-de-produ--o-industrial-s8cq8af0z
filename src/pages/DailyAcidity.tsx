@@ -35,6 +35,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { AcidityChart } from '@/components/dashboard/AcidityChart'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -264,6 +265,8 @@ export default function DailyAcidity() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <AcidityChart data={filteredRecords} />
 
       <Card>
         <CardHeader>
