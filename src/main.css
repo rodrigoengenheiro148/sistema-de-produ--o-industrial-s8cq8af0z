@@ -286,3 +286,20 @@
     animation: spotlight 2s ease forwards;
   }
 }
+
+/* Hide Skip Branding/Badge */
+#skip-badge,
+.skip-badge,
+a[href*='skip.new'],
+a[href*='goskip.app'],
+img[src*='skip.png'],
+img[src*='skip.svg'] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}
