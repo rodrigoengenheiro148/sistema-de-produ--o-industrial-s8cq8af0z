@@ -220,19 +220,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         // Handle 204 No Content
         if (response.status === 204) return null
 
+        // Check Content-Type for HTML (common in 404/500 error pages from web servers)
+        const contentType = response.headers.get('content-type')
+        if (
+          contentType &&
+          (contentType.includes('text/html') ||
+            contentType.includes('application/xhtml+xml'))
+        ) {
+          console.warn(
+            `API returned HTML Content-Type from ${url}. This usually indicates a 404 or server error page.`,
+          )
+          throw new Error('Invalid API Response: Server returned HTML')
+        }
+
         // Get text response first to safely inspect content
         // This avoids calling response.json() on HTML error pages
         const text = await response.text()
 
-        // Check for HTML response (SPA fallback scenario)
-        // This resolves the "Invalid API Response" runtime error by catching it early
+        // Check for HTML response content (SPA fallback or error template scenario)
+        // We check for Doctype, html tag, and comments which often start HTML templates
         const trimmedText = text.trim().toLowerCase()
         if (
           trimmedText.startsWith('<!doctype') ||
-          trimmedText.startsWith('<html')
+          trimmedText.startsWith('<html') ||
+          trimmedText.startsWith('<!--')
         ) {
           console.warn(
-            `API returned HTML instead of JSON from ${url}. This usually indicates a 404 handled by the SPA.`,
+            `API returned HTML body from ${url}. This usually indicates a 404 handled by the SPA.`,
           )
           throw new Error('Invalid API Response: Server returned HTML')
         }
