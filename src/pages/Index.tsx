@@ -413,42 +413,48 @@ export default function Dashboard() {
                 <CardTitle>Desempenho de Produção</CardTitle>
               </CardHeader>
               <CardContent className="pl-0 sm:pl-2">
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[300px] w-full"
-                >
-                  <LineChart data={productionChartData}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={isMobile ? 30 : 60}
-                      tickFormatter={(value) => `${value / 1000}k`}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="producao"
-                      stroke="var(--color-producao)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="mp"
-                      stroke="var(--color-mp)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ChartContainer>
+                {productionChartData.length > 0 ? (
+                  <ChartContainer
+                    config={chartConfig}
+                    className="h-[300px] w-full"
+                  >
+                    <LineChart data={productionChartData}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        width={isMobile ? 30 : 60}
+                        tickFormatter={(value) => `${value / 1000}k`}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="producao"
+                        stroke="var(--color-producao)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="mp"
+                        stroke="var(--color-mp)"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    Nenhum dado disponível.
+                  </div>
+                )}
               </CardContent>
             </Card>
             <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm border-primary/10">
@@ -456,37 +462,45 @@ export default function Dashboard() {
                 <CardTitle>Análise de Perdas</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[300px] w-full"
-                >
-                  <BarChart data={lossesChartData} margin={{ top: 20 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="perdas"
-                      fill="var(--color-perdas)"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      <LabelList
-                        dataKey="perdas"
-                        position="top"
-                        offset={12}
-                        className="fill-foreground"
-                        fontSize={12}
-                        formatter={(value: any) =>
-                          value > 0 ? `${value.toLocaleString('pt-BR')} kg` : ''
-                        }
+                {lossesChartData.length > 0 ? (
+                  <ChartContainer
+                    config={chartConfig}
+                    className="h-[300px] w-full"
+                  >
+                    <BarChart data={lossesChartData} margin={{ top: 20 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
                       />
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar
+                        dataKey="perdas"
+                        fill="var(--color-perdas)"
+                        radius={[4, 4, 0, 0]}
+                      >
+                        <LabelList
+                          dataKey="perdas"
+                          position="top"
+                          offset={12}
+                          className="fill-foreground"
+                          fontSize={12}
+                          formatter={(value: any) =>
+                            value > 0
+                              ? `${value.toLocaleString('pt-BR')} kg`
+                              : ''
+                          }
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    Nenhum dado disponível.
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -499,55 +513,64 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart data={revenueChartData} margin={{ top: 20 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={isMobile ? 35 : 60}
-                    tickFormatter={(value) => `R$${value / 1000}k`}
-                  />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        formatter={(value) =>
+              {revenueChartData.length > 0 ? (
+                <ChartContainer
+                  config={chartConfig}
+                  className="h-[250px] w-full"
+                >
+                  <BarChart data={revenueChartData} margin={{ top: 20 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      width={isMobile ? 35 : 60}
+                      tickFormatter={(value) => `R$${value / 1000}k`}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value) =>
+                            new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            }).format(Number(value))
+                          }
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill="var(--color-revenue)"
+                      radius={[4, 4, 0, 0]}
+                    >
+                      <LabelList
+                        dataKey="revenue"
+                        position="top"
+                        offset={12}
+                        className="fill-foreground"
+                        fontSize={isMobile ? 10 : 12}
+                        formatter={(value: any) =>
                           new Intl.NumberFormat('pt-BR', {
                             style: 'currency',
                             currency: 'BRL',
+                            notation: isMobile ? 'compact' : 'standard',
                           }).format(Number(value))
                         }
                       />
-                    }
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="var(--color-revenue)"
-                    radius={[4, 4, 0, 0]}
-                  >
-                    <LabelList
-                      dataKey="revenue"
-                      position="top"
-                      offset={12}
-                      className="fill-foreground"
-                      fontSize={isMobile ? 10 : 12}
-                      formatter={(value: any) =>
-                        new Intl.NumberFormat('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                          notation: isMobile ? 'compact' : 'standard',
-                        }).format(Number(value))
-                      }
-                    />
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  Nenhum dado de faturamento disponível.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -662,79 +685,85 @@ export default function Dashboard() {
               <CardTitle>Histórico de Rendimentos</CardTitle>
             </CardHeader>
             <CardContent>
-              <ChartContainer
-                config={yieldChartConfig}
-                className="h-[350px] w-full"
-              >
-                <LineChart
-                  data={yieldChartData}
-                  margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+              {yieldChartData.length > 0 ? (
+                <ChartContainer
+                  config={yieldChartConfig}
+                  className="h-[350px] w-full"
                 >
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={40}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Line
-                    type="monotone"
-                    dataKey="sebo"
-                    stroke="var(--color-sebo)"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: 'var(--color-sebo)' }}
-                    activeDot={{ r: 6 }}
+                  <LineChart
+                    data={yieldChartData}
+                    margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
                   >
-                    <LabelList
-                      position="top"
-                      offset={12}
-                      fill="var(--color-sebo)"
-                      fontSize={isMobile ? 9 : 12}
-                      formatter={(value: number) => `${value.toFixed(1)}%`}
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
                     />
-                  </Line>
-                  <Line
-                    type="monotone"
-                    dataKey="fco"
-                    stroke="var(--color-fco)"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: 'var(--color-fco)' }}
-                    activeDot={{ r: 6 }}
-                  >
-                    <LabelList
-                      position="top"
-                      offset={12}
-                      fill="var(--color-fco)"
-                      fontSize={isMobile ? 9 : 12}
-                      formatter={(value: number) => `${value.toFixed(1)}%`}
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      width={40}
+                      tickFormatter={(value) => `${value}%`}
                     />
-                  </Line>
-                  <Line
-                    type="monotone"
-                    dataKey="farinheta"
-                    stroke="var(--color-farinheta)"
-                    strokeWidth={2}
-                    dot={{ r: 4, fill: 'var(--color-farinheta)' }}
-                    activeDot={{ r: 6 }}
-                  >
-                    <LabelList
-                      position="top"
-                      offset={12}
-                      fill="var(--color-farinheta)"
-                      fontSize={isMobile ? 9 : 12}
-                      formatter={(value: number) => `${value.toFixed(1)}%`}
-                    />
-                  </Line>
-                </LineChart>
-              </ChartContainer>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                    <Line
+                      type="monotone"
+                      dataKey="sebo"
+                      stroke="var(--color-sebo)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: 'var(--color-sebo)' }}
+                      activeDot={{ r: 6 }}
+                    >
+                      <LabelList
+                        position="top"
+                        offset={12}
+                        fill="var(--color-sebo)"
+                        fontSize={isMobile ? 9 : 12}
+                        formatter={(value: number) => `${value.toFixed(1)}%`}
+                      />
+                    </Line>
+                    <Line
+                      type="monotone"
+                      dataKey="fco"
+                      stroke="var(--color-fco)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: 'var(--color-fco)' }}
+                      activeDot={{ r: 6 }}
+                    >
+                      <LabelList
+                        position="top"
+                        offset={12}
+                        fill="var(--color-fco)"
+                        fontSize={isMobile ? 9 : 12}
+                        formatter={(value: number) => `${value.toFixed(1)}%`}
+                      />
+                    </Line>
+                    <Line
+                      type="monotone"
+                      dataKey="farinheta"
+                      stroke="var(--color-farinheta)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: 'var(--color-farinheta)' }}
+                      activeDot={{ r: 6 }}
+                    >
+                      <LabelList
+                        position="top"
+                        offset={12}
+                        fill="var(--color-farinheta)"
+                        fontSize={isMobile ? 9 : 12}
+                        formatter={(value: number) => `${value.toFixed(1)}%`}
+                      />
+                    </Line>
+                  </LineChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+                  Nenhum dado de rendimento disponível.
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

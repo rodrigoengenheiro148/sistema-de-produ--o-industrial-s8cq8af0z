@@ -71,7 +71,21 @@ export function QualityChart({ data }: QualityChartProps) {
     return { chartData: processedData, chartConfig: config }
   }, [data])
 
-  if (!data || data.length === 0) return null
+  if (!data || data.length === 0) {
+    return (
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Evolução da Qualidade</CardTitle>
+          <CardDescription>
+            Tendências de Acidez e Proteína (Farinha vs. Farinheta)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground">
+          Nenhum dado disponível para análise de qualidade.
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="shadow-sm">

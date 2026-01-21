@@ -222,6 +222,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         // Handle 204 No Content
         if (response.status === 204) return null
 
+        // STRICT RESPONSE VALIDATION
         // Check Content-Type for HTML (common in 404/500 error pages from web servers)
         const contentType = response.headers.get('content-type') || ''
         const isJson = contentType.includes('application/json')
@@ -244,7 +245,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         // Get text response first to safely inspect content
-        // This avoids calling response.json() on HTML error pages
+        // This avoids calling response.json() on HTML error pages which causes crashes
         const text = await response.text()
 
         // Check for HTML response content (SPA fallback or error template scenario)
@@ -291,6 +292,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return data
       } catch (error) {
+        // Log the error but don't crash the application
         console.error('API Fetch Error:', error)
         throw error
       }
@@ -374,13 +376,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setConnectionStatus('syncing')
 
-    // Use a safe fetch wrapper to allow partial data loading
-    // This ensures one failed endpoint (e.g. HTML response) doesn't crash the whole sync
-    // Explicitly handle exceptions to prevent Promise.all from rejecting entirely
+    // Safe fetch wrapper to prevent one failure from crashing the entire batch
     const safeFetch = async <T,>(promise: Promise<T>): Promise<T | null> => {
       try {
         return await promise
       } catch (err) {
+        // Log the error but return null to allow other requests to proceed
         console.warn('Individual sync endpoint failed safely:', err)
         return null
       }
@@ -388,6 +389,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       // Execute all fetches in parallel, each protected by safeFetch
+      // This ensures that if 'acidity' fails, 'production' can still succeed
       const results = await Promise.all([
         safeFetch(apiFetch('raw-materials')),
         safeFetch(apiFetch('production')),
@@ -399,15 +401,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       const [raw, prod, ship, acid, fact] = results
 
       // Check if at least one request succeeded (not null)
+      // We only switch to error state if EVERYTHING failed
       const hasSuccess = results.some((r) => r !== null)
 
       if (!hasSuccess && results.length > 0) {
-        // If all failed, we consider it a sync error to notify user
         setConnectionStatus('error')
         return
       }
 
-      // Update state with valid results
+      // Update state only with valid results
       if (raw && Array.isArray(raw)) {
         const parsed = parseDatesInArray(raw)
         setRawMaterials(parsed)
@@ -442,7 +444,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
       setConnectionStatus('online')
     } catch (error) {
-      console.error('Sync Pull Error:', error)
+      // Catch any unexpected errors in the synchronization process
+      console.error('Sync Pull Critical Error:', error)
       setConnectionStatus('error')
     }
   }, [protheusConfig, apiFetch, pendingOperations.length, processSyncQueue])

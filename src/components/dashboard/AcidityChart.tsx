@@ -70,8 +70,20 @@ export function AcidityChart({ data }: AcidityChartProps) {
     return { chartData: sortedData, chartConfig: config }
   }, [data])
 
-  if (data.length === 0) {
-    return null
+  if (!data || data.length === 0) {
+    return (
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Evolução das Medições</CardTitle>
+          <CardDescription>
+            Tendência dos valores de Peso e Volume ao longo do tempo
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
+          Nenhum dado de acidez disponível.
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

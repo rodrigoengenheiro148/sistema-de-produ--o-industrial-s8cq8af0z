@@ -56,7 +56,7 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
     return { chartData: sortedData, chartConfig: config }
   }, [data])
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <Card className="col-span-full shadow-sm border-primary/10">
         <CardHeader>
