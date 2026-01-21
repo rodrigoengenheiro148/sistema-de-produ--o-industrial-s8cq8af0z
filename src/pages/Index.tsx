@@ -35,9 +35,8 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   CalendarIcon,
-  Download,
   TrendingUp,
-  Factory,
+  Factory as FactoryIcon,
   PieChart,
   Droplets,
   Bone,
@@ -48,11 +47,21 @@ import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { ExportOptions } from '@/components/dashboard/ExportOptions'
 
 export default function Dashboard() {
-  const { rawMaterials, production, shipping, dateRange, setDateRange } =
-    useData()
+  const {
+    rawMaterials,
+    production,
+    shipping,
+    dateRange,
+    setDateRange,
+    factories,
+    currentFactoryId,
+  } = useData()
   const isMobile = useIsMobile()
+
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   // Visual feedback state
   const [highlight, setHighlight] = useState(false)
@@ -183,16 +192,23 @@ export default function Dashboard() {
     : 'transition-all duration-700'
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+    <div id="dashboard-content" className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-muted-foreground">
+            {currentFactory?.name || 'Visão Geral da Produção'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 no-print">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 id="date"
                 variant={'outline'}
                 className={cn(
-                  'w-[300px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
+                  'w-[240px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
                   !dateRange && 'text-muted-foreground',
                 )}
               >
@@ -200,18 +216,18 @@ export default function Dashboard() {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, 'LLL dd, y', { locale: ptBR })} -{' '}
-                      {format(dateRange.to, 'LLL dd, y', { locale: ptBR })}
+                      {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} -{' '}
+                      {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
                     </>
                   ) : (
-                    format(dateRange.from, 'LLL dd, y', { locale: ptBR })
+                    format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })
                   )
                 ) : (
                   <span>Selecione um período</span>
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0" align="end">
               <Calendar
                 initialFocus
                 mode="range"
@@ -223,30 +239,27 @@ export default function Dashboard() {
               />
             </PopoverContent>
           </Popover>
+          <ExportOptions />
         </div>
-        <Button
-          variant="outline"
-          className="gap-2 border-primary/20 text-primary hover:bg-primary/5"
-        >
-          <Download className="h-4 w-4" /> Exportar Dados
-        </Button>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger
-            value="overview"
-            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-          >
-            Visão Geral
-          </TabsTrigger>
-          <TabsTrigger
-            value="yields"
-            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-          >
-            Rendimentos Individuais
-          </TabsTrigger>
-        </TabsList>
+        <div className="no-print">
+          <TabsList className="bg-muted/50">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger
+              value="yields"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Rendimentos Individuais
+            </TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card
@@ -259,7 +272,7 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Entrada MP
                 </CardTitle>
-                <Factory className="h-4 w-4 text-chart-2" />
+                <FactoryIcon className="h-4 w-4 text-chart-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
