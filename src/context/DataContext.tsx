@@ -15,6 +15,7 @@ import {
   SystemSettings,
   UserAccessEntry,
   ProtheusConfig,
+  Factory,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
@@ -109,6 +110,17 @@ const MOCK_USER_ACCESS: UserAccessEntry[] = [
   },
 ]
 
+const MOCK_FACTORIES: Factory[] = [
+  {
+    id: '1',
+    name: 'Matriz - São Paulo',
+    location: 'São Paulo, SP',
+    manager: 'Diretoria',
+    status: 'active',
+    createdAt: new Date(),
+  },
+]
+
 const STORAGE_KEYS = {
   RAW_MATERIALS: 'spi_raw_materials',
   PRODUCTION: 'spi_production',
@@ -119,6 +131,8 @@ const STORAGE_KEYS = {
   USER_ACCESS: 'spi_user_access',
   PROTHEUS_CONFIG: 'spi_protheus_config',
   LAST_SYNC: 'spi_last_sync',
+  FACTORIES: 'spi_factories',
+  CURRENT_FACTORY: 'spi_current_factory',
 }
 
 const dateTimeReviver = (key: string, value: any) => {
@@ -173,6 +187,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>(() =>
     getStorageData(STORAGE_KEYS.USER_ACCESS, MOCK_USER_ACCESS),
   )
+  const [factories, setFactories] = useState<Factory[]>(() =>
+    getStorageData(STORAGE_KEYS.FACTORIES, MOCK_FACTORIES),
+  )
+  const [currentFactoryId, setCurrentFactoryId] = useState<string>(() =>
+    getStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1'),
+  )
+
   const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
     getStorageData(STORAGE_KEYS.DEV_MODE, false),
   )
@@ -203,6 +224,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setProtheusConfig(JSON.parse(e.newValue))
         } else if (e.key === STORAGE_KEYS.LAST_SYNC && e.newValue) {
           setLastProtheusSync(JSON.parse(e.newValue, dateTimeReviver))
+        } else if (e.key === STORAGE_KEYS.FACTORIES && e.newValue) {
+          setFactories(JSON.parse(e.newValue, dateTimeReviver))
         }
       } catch (error) {
         console.error('Error handling storage change', error)
@@ -327,6 +350,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
     }
 
+  const handleSetCurrentFactory = useCallback((id: string) => {
+    setCurrentFactoryId(id)
+    setStorageData(STORAGE_KEYS.CURRENT_FACTORY, id)
+  }, [])
+
   return (
     <DataContext.Provider
       value={{
@@ -368,6 +396,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           STORAGE_KEYS.USER_ACCESS,
           setUserAccessList,
         ),
+        factories,
+        addFactory: createAdd(STORAGE_KEYS.FACTORIES, setFactories),
+        updateFactory: createUpdate(STORAGE_KEYS.FACTORIES, setFactories),
+        deleteFactory: createDelete(STORAGE_KEYS.FACTORIES, setFactories),
+        currentFactoryId,
+        setCurrentFactoryId: handleSetCurrentFactory,
         dateRange,
         setDateRange,
         isDeveloperMode,

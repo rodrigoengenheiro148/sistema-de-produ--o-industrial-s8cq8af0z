@@ -76,6 +76,15 @@ export interface ProtheusConfig {
   isActive: boolean
 }
 
+export interface Factory {
+  id: string
+  name: string
+  location: string
+  manager: string
+  status: 'active' | 'inactive'
+  createdAt: Date
+}
+
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
@@ -102,6 +111,13 @@ export interface DataContextType {
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void
   updateUserAccess: (entry: UserAccessEntry) => void
   deleteUserAccess: (id: string) => void
+
+  factories: Factory[]
+  addFactory: (entry: Omit<Factory, 'id' | 'createdAt'>) => void
+  updateFactory: (entry: Factory) => void
+  deleteFactory: (id: string) => void
+  currentFactoryId: string
+  setCurrentFactoryId: (id: string) => void
 
   dateRange: DateRange
   setDateRange: (range: DateRange) => void

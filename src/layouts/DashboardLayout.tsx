@@ -20,7 +20,8 @@ import {
 
 export default function DashboardLayout() {
   const location = useLocation()
-  const { isDeveloperMode } = useData()
+  const { isDeveloperMode, factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -38,6 +39,8 @@ export default function DashboardLayout() {
         return 'Gestão de Estoque'
       case '/expedicao':
         return 'Expedição de Produtos'
+      case '/fabricas':
+        return 'Unidades Fabris'
       case '/settings':
         return 'Configurações do Sistema'
       default:
@@ -69,9 +72,16 @@ export default function DashboardLayout() {
                   </TooltipContent>
                 </Tooltip>
               )}
-              <h1 className="text-lg font-bold text-primary tracking-tight">
-                {getTitle()}
-              </h1>
+              <div>
+                <h1 className="text-lg font-bold text-primary tracking-tight leading-tight">
+                  {getTitle()}
+                </h1>
+                {currentFactory && location.pathname !== '/fabricas' && (
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    {currentFactory.name}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground hidden md:inline-block font-medium">

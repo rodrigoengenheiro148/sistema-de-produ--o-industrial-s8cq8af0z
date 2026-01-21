@@ -7,6 +7,7 @@ import {
   Send,
   Settings,
   FlaskConical,
+  Building2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -62,11 +63,17 @@ const items = [
     url: '/expedicao',
     icon: Send,
   },
+  {
+    title: 'Fábricas',
+    url: '/fabricas',
+    icon: Building2,
+  },
 ]
 
 export function AppSidebar() {
   const location = useLocation()
-  const { isDeveloperMode } = useData()
+  const { isDeveloperMode, factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   return (
     <Sidebar className="border-r border-border bg-sidebar">
@@ -77,6 +84,11 @@ export function AppSidebar() {
             alt="Grupo BR Render"
             className="h-14 w-auto object-contain"
           />
+          {currentFactory && (
+            <Badge variant="secondary" className="text-[10px] h-5">
+              {currentFactory.name}
+            </Badge>
+          )}
           {isDeveloperMode && (
             <Badge
               variant="outline"
