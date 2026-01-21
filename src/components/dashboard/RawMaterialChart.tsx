@@ -27,12 +27,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface RawMaterialChartProps {
   data: RawMaterialEntry[]
+  className?: string
 }
 
-export function RawMaterialChart({ data }: RawMaterialChartProps) {
+export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
   // Process data for the chart
   const { chartData, chartConfig } = useMemo(() => {
     const suppliers = Array.from(new Set(data.map((item) => item.supplier)))
@@ -66,7 +68,9 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card className="col-span-full shadow-sm border-primary/10">
+      <Card
+        className={cn('col-span-full shadow-sm border-primary/10', className)}
+      >
         <CardHeader>
           <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>
           <CardDescription>
@@ -136,7 +140,9 @@ export function RawMaterialChart({ data }: RawMaterialChartProps) {
   )
 
   return (
-    <Card className="col-span-full shadow-sm border-primary/10">
+    <Card
+      className={cn('col-span-full shadow-sm border-primary/10', className)}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
           <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>

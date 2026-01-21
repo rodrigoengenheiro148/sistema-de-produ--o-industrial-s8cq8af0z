@@ -29,6 +29,7 @@ import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPer
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
+import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 
@@ -43,6 +44,7 @@ export default function Dashboard() {
     setDateRange,
     factories,
     currentFactoryId,
+    yieldTargets,
   } = useData()
   const isMobile = useIsMobile()
 
@@ -337,8 +339,17 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <div className="grid gap-4">
-            <RawMaterialChart data={filteredRawMaterials} />
+          {/* Combined Row: Gauge + Raw Material */}
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-7">
+            <YieldGaugeChart
+              value={rendimentoGeral}
+              target={yieldTargets.total}
+              className="col-span-1 md:col-span-1 lg:col-span-2"
+            />
+            <RawMaterialChart
+              data={filteredRawMaterials}
+              className="col-span-1 md:col-span-2 lg:col-span-5"
+            />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
