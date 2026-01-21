@@ -44,6 +44,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
 
 export default function Dashboard() {
   const { rawMaterials, production, shipping, dateRange, setDateRange } =
@@ -277,6 +278,10 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="grid gap-4">
+            <RawMaterialChart data={filteredRawMaterials} />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
