@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { useData } from '@/context/DataContext'
 
 interface AcidityTableProps {
   data: AcidityEntry[]
@@ -17,6 +18,8 @@ interface AcidityTableProps {
 }
 
 export function AcidityTable({ data, onEdit }: AcidityTableProps) {
+  const { isViewerMode } = useData()
+
   return (
     <Table>
       <TableHeader>
@@ -29,14 +32,14 @@ export function AcidityTable({ data, onEdit }: AcidityTableProps) {
           <TableHead className="text-right">Volume (L)</TableHead>
           <TableHead>Horários Real.</TableHead>
           <TableHead>Observações</TableHead>
-          <TableHead className="w-[80px]">Ações</TableHead>
+          {!isViewerMode && <TableHead className="w-[80px]">Ações</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
         {data.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={9}
+              colSpan={!isViewerMode ? 9 : 8}
               className="text-center h-24 text-muted-foreground"
             >
               Nenhum registro encontrado no período.
@@ -68,16 +71,18 @@ export function AcidityTable({ data, onEdit }: AcidityTableProps) {
               <TableCell className="max-w-[200px] truncate text-muted-foreground">
                 {entry.notes || '-'}
               </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit(entry)}
-                  title="Editar"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </TableCell>
+              {!isViewerMode && (
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(entry)}
+                    title="Editar"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))
         )}

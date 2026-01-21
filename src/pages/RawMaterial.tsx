@@ -36,8 +36,13 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function RawMaterial() {
-  const { rawMaterials, deleteRawMaterial, dateRange, isDeveloperMode } =
-    useData()
+  const {
+    rawMaterials,
+    deleteRawMaterial,
+    dateRange,
+    isDeveloperMode,
+    isViewerMode,
+  } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -85,29 +90,34 @@ export default function RawMaterial() {
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
-              <Plus className="h-4 w-4" /> Nova Entrada
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem
-                  ? 'Atualize os detalhes do registro selecionado.'
-                  : 'Insira os detalhes do recebimento de matéria-prima.'}
-              </DialogDescription>
-            </DialogHeader>
-            <RawMaterialForm
-              initialData={editingItem}
-              onSuccess={() => setIsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {!isViewerMode && (
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                className="gap-2"
+                onClick={() => setEditingItem(undefined)}
+              >
+                <Plus className="h-4 w-4" /> Nova Entrada
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingItem
+                    ? 'Atualize os detalhes do registro selecionado.'
+                    : 'Insira os detalhes do recebimento de matéria-prima.'}
+                </DialogDescription>
+              </DialogHeader>
+              <RawMaterialForm
+                initialData={editingItem}
+                onSuccess={() => setIsOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card>
@@ -134,7 +144,7 @@ export default function RawMaterial() {
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Quantidade (kg)</TableHead>
                 <TableHead>Observações</TableHead>
-                {isDeveloperMode && (
+                {isDeveloperMode && !isViewerMode && (
                   <TableHead className="w-[80px]">Ações</TableHead>
                 )}
               </TableRow>
@@ -143,7 +153,7 @@ export default function RawMaterial() {
               {filteredMaterials.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={isDeveloperMode ? 6 : 5}
+                    colSpan={isDeveloperMode && !isViewerMode ? 6 : 5}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -170,7 +180,7 @@ export default function RawMaterial() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    {isDeveloperMode && (
+                    {isDeveloperMode && !isViewerMode && (
                       <TableCell className="flex items-center gap-1">
                         <Button
                           variant="ghost"

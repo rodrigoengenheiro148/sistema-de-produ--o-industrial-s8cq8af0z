@@ -36,7 +36,8 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function Shipping() {
-  const { shipping, deleteShipping, dateRange, isDeveloperMode } = useData()
+  const { shipping, deleteShipping, dateRange, isDeveloperMode, isViewerMode } =
+    useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -88,29 +89,34 @@ export default function Shipping() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Expedição</h2>
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
-              <Send className="h-4 w-4" /> Nova Expedição
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Editar Saída' : 'Registrar Saída'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem
-                  ? 'Atualize os dados da carga e valores.'
-                  : 'Informe os dados da carga e valores para faturamento.'}
-              </DialogDescription>
-            </DialogHeader>
-            <ShippingForm
-              initialData={editingItem}
-              onSuccess={() => setIsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {!isViewerMode && (
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                className="gap-2"
+                onClick={() => setEditingItem(undefined)}
+              >
+                <Send className="h-4 w-4" /> Nova Expedição
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingItem ? 'Editar Saída' : 'Registrar Saída'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingItem
+                    ? 'Atualize os dados da carga e valores.'
+                    : 'Informe os dados da carga e valores para faturamento.'}
+                </DialogDescription>
+              </DialogHeader>
+              <ShippingForm
+                initialData={editingItem}
+                onSuccess={() => setIsOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card>
@@ -139,7 +145,7 @@ export default function Shipping() {
                 <TableHead className="text-right">Qtd (kg)</TableHead>
                 <TableHead className="text-right">Valor Unit.</TableHead>
                 <TableHead className="text-right">Total (R$)</TableHead>
-                {isDeveloperMode && (
+                {isDeveloperMode && !isViewerMode && (
                   <TableHead className="w-[80px]">Ações</TableHead>
                 )}
               </TableRow>
@@ -148,7 +154,7 @@ export default function Shipping() {
               {filteredShipping.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={isDeveloperMode ? 8 : 7}
+                    colSpan={isDeveloperMode && !isViewerMode ? 8 : 7}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -181,7 +187,7 @@ export default function Shipping() {
                     <TableCell className="text-right font-mono font-medium text-green-600">
                       {formatCurrency(entry.quantity * entry.unitPrice)}
                     </TableCell>
-                    {isDeveloperMode && (
+                    {isDeveloperMode && !isViewerMode && (
                       <TableCell className="flex items-center gap-1">
                         <Button
                           variant="ghost"

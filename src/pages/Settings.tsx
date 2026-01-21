@@ -20,6 +20,7 @@ import {
   Lock,
   Unlock,
   RefreshCw,
+  Eye,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -49,6 +50,8 @@ export default function Settings() {
   const {
     isDeveloperMode,
     toggleDeveloperMode,
+    isViewerMode,
+    setViewerMode,
     systemSettings,
     updateSystemSettings,
     clearAllData,
@@ -86,6 +89,19 @@ export default function Settings() {
     }
   }
 
+  const handleViewerModeToggle = (checked: boolean) => {
+    setViewerMode(checked)
+    if (checked) {
+      toast({
+        title: 'Modo Visualizador Ativado',
+        description:
+          'O sistema agora está em modo somente leitura. As configurações ficarão ocultas.',
+        variant: 'default',
+        className: 'bg-blue-50 border-blue-200 text-blue-800',
+      })
+    }
+  }
+
   const confirmPassword = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
@@ -117,30 +133,54 @@ export default function Settings() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2">
-                {isDeveloperMode ? (
-                  <Unlock className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <Lock className="h-5 w-5 text-muted-foreground" />
-                )}
-                Modo Desenvolvedor
-              </CardTitle>
-              <CardDescription>
-                Habilita funções avançadas de edição, remoção e configuração de
-                parâmetros.
-              </CardDescription>
+      <div className="grid gap-6">
+        <Card className="border-blue-100 bg-blue-50/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-blue-700">
+                  <Eye className="h-5 w-5" />
+                  Modo Visualizador
+                </CardTitle>
+                <CardDescription>
+                  Ativa o modo somente leitura para exibição segura em telas
+                  públicas ou para stakeholders. Oculta botões de ação e páginas
+                  de configuração.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={isViewerMode}
+                onCheckedChange={handleViewerModeToggle}
+              />
             </div>
-            <Switch
-              checked={isDeveloperMode}
-              onCheckedChange={handleModeToggle}
-            />
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2">
+                  {isDeveloperMode ? (
+                    <Unlock className="h-5 w-5 text-amber-500" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  Modo Desenvolvedor
+                </CardTitle>
+                <CardDescription>
+                  Habilita funções avançadas de edição, remoção e configuração
+                  de parâmetros.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={isDeveloperMode}
+                onCheckedChange={handleModeToggle}
+              />
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
 
       {/* Password Dialog */}
       <Dialog

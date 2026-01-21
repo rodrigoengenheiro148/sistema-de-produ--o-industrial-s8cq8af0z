@@ -97,6 +97,7 @@ const STORAGE_KEYS = {
   ACIDITY: 'spi_acidity',
   QUALITY: 'spi_quality',
   DEV_MODE: 'spi_dev_mode',
+  VIEWER_MODE: 'spi_viewer_mode',
   SETTINGS: 'spi_settings',
   USER_ACCESS: 'spi_user_access',
   PROTHEUS_CONFIG: 'spi_protheus_config',
@@ -175,6 +176,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
     getStorageData(STORAGE_KEYS.DEV_MODE, false),
   )
+
+  const [isViewerMode, setIsViewerMode] = useState<boolean>(() =>
+    getStorageData(STORAGE_KEYS.VIEWER_MODE, false),
+  )
+
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
     getStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
   )
@@ -223,7 +229,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (response.status === 204) return null
 
         // STRICT RESPONSE VALIDATION
-        // Check Content-Type for HTML (common in 404/500 error pages from web servers)
         const contentType = response.headers.get('content-type') || ''
         const isJson = contentType.includes('application/json')
         const isHtml =
@@ -244,12 +249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           )
         }
 
-        // Get text response first to safely inspect content
-        // This avoids calling response.json() on HTML error pages which causes crashes
         const text = await response.text()
-
-        // Check for HTML response content (SPA fallback or error template scenario)
-        // We check for Doctype, html tag, and comments which often start HTML templates
         const trimmedText = text.trim().toLowerCase()
         if (
           trimmedText.startsWith('<!doctype') ||
@@ -263,7 +263,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           throw new Error('Invalid API Response: Server returned HTML')
         }
 
-        // Try parsing JSON safely
         let data
         if (text) {
           try {
@@ -273,7 +272,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
               `JSON Parse Error from ${url}:`,
               text.substring(0, 100),
             )
-            // If we have an error status, prefer that message
             if (!response.ok) {
               throw new Error(
                 `API Error: ${response.status} ${response.statusText}`,
@@ -292,7 +290,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return data
       } catch (error) {
-        // Log the error but don't crash the application
         console.error('API Fetch Error:', error)
         throw error
       }
@@ -302,6 +299,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Queue Processing - Improved Reliability
   const processSyncQueue = useCallback(async () => {
+    // If in viewer mode, we don't process mutations from this client, but we should sync reading
+    if (isViewerMode) return true
+
     if (!protheusConfig.isActive) {
       if (pendingOperations.length > 0) setConnectionStatus('pending')
       return true
@@ -359,7 +359,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     return success
-  }, [pendingOperations, protheusConfig, apiFetch])
+  }, [pendingOperations, protheusConfig, apiFetch, isViewerMode])
 
   // Core Sync (Pull Data)
   const syncProtheusData = useCallback(async () => {
@@ -369,27 +369,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    if (pendingOperations.length > 0) {
+    if (pendingOperations.length > 0 && !isViewerMode) {
       const queueProcessed = await processSyncQueue()
       if (!queueProcessed) return
     }
 
     setConnectionStatus('syncing')
 
-    // Safe fetch wrapper to prevent one failure from crashing the entire batch
     const safeFetch = async <T,>(promise: Promise<T>): Promise<T | null> => {
       try {
         return await promise
       } catch (err) {
-        // Log the error but return null to allow other requests to proceed
         console.warn('Individual sync endpoint failed safely:', err)
         return null
       }
     }
 
     try {
-      // Execute all fetches in parallel, each protected by safeFetch
-      // This ensures that if 'acidity' fails, 'production' can still succeed
       const results = await Promise.all([
         safeFetch(apiFetch('raw-materials')),
         safeFetch(apiFetch('production')),
@@ -399,9 +395,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ])
 
       const [raw, prod, ship, acid, fact] = results
-
-      // Check if at least one request succeeded (not null)
-      // We only switch to error state if EVERYTHING failed
       const hasSuccess = results.some((r) => r !== null)
 
       if (!hasSuccess && results.length > 0) {
@@ -409,7 +402,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return
       }
 
-      // Update state only with valid results
       if (raw && Array.isArray(raw)) {
         const parsed = parseDatesInArray(raw)
         setRawMaterials(parsed)
@@ -444,11 +436,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
       setConnectionStatus('online')
     } catch (error) {
-      // Catch any unexpected errors in the synchronization process
       console.error('Sync Pull Critical Error:', error)
       setConnectionStatus('error')
     }
-  }, [protheusConfig, apiFetch, pendingOperations.length, processSyncQueue])
+  }, [
+    protheusConfig,
+    apiFetch,
+    pendingOperations.length,
+    processSyncQueue,
+    isViewerMode,
+  ])
 
   // Lifecycle & Polling
   useEffect(() => {
@@ -502,6 +499,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       type: 'ADD' | 'UPDATE' | 'DELETE',
     ) =>
     (entryOrId: any) => {
+      // Prevent mutations in viewer mode
+      if (isViewerMode) {
+        console.warn('Action blocked: Viewer Mode Active')
+        return
+      }
+
       let newOp: SyncOperation
       const timestamp = Date.now()
 
@@ -732,6 +735,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             setStorageData(STORAGE_KEYS.DEV_MODE, !p)
             return !p
           })
+        },
+        isViewerMode,
+        setViewerMode: (value: boolean) => {
+          setIsViewerMode(value)
+          setStorageData(STORAGE_KEYS.VIEWER_MODE, value)
+          // Ensure dev mode is off if viewer mode is on
+          if (value && isDeveloperMode) {
+            setIsDeveloperMode(false)
+            setStorageData(STORAGE_KEYS.DEV_MODE, false)
+          }
         },
         systemSettings,
         updateSystemSettings: (s) => {

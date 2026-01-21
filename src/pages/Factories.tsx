@@ -47,8 +47,13 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Factories() {
-  const { factories, deleteFactory, currentFactoryId, setCurrentFactoryId } =
-    useData()
+  const {
+    factories,
+    deleteFactory,
+    currentFactoryId,
+    setCurrentFactoryId,
+    isViewerMode,
+  } = useData()
   const { toast } = useToast()
 
   // State for the Factory Form (Create/Edit)
@@ -141,29 +146,31 @@ export default function Factories() {
             Gerencie as unidades fabris integradas ao sistema.
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleCreate} className="gap-2">
-              <Plus className="h-4 w-4" /> Nova Fábrica
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingFactory ? 'Editar Fábrica' : 'Adicionar Nova Fábrica'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingFactory
-                  ? 'Atualize os dados da unidade selecionada.'
-                  : 'Preencha as informações para registrar uma nova planta fabril.'}
-              </DialogDescription>
-            </DialogHeader>
-            <FactoryForm
-              initialData={editingFactory}
-              onSuccess={() => setIsDialogOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {!isViewerMode && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleCreate} className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Fábrica
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingFactory ? 'Editar Fábrica' : 'Adicionar Nova Fábrica'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingFactory
+                    ? 'Atualize os dados da unidade selecionada.'
+                    : 'Preencha as informações para registrar uma nova planta fabril.'}
+                </DialogDescription>
+              </DialogHeader>
+              <FactoryForm
+                initialData={editingFactory}
+                onSuccess={() => setIsDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Password Verification Dialog */}
@@ -257,48 +264,50 @@ export default function Factories() {
                     </span>
                   )}
                 </div>
-                <div
-                  className="flex gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => handleEditClick(factory)}
+                {!isViewerMode && (
+                  <div
+                    className="flex gap-1"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir Fábrica</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja remover a unidade{' '}
-                          <strong>{factory.name}</strong>?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(factory.id)}
-                          className="bg-destructive hover:bg-destructive/90"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleEditClick(factory)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
                         >
-                          Remover
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir Fábrica</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover a unidade{' '}
+                            <strong>{factory.name}</strong>?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(factory.id)}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

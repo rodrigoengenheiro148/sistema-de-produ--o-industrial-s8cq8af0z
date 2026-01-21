@@ -35,7 +35,13 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function Production() {
-  const { production, deleteProduction, dateRange, isDeveloperMode } = useData()
+  const {
+    production,
+    deleteProduction,
+    dateRange,
+    isDeveloperMode,
+    isViewerMode,
+  } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductionEntry | undefined>(
@@ -77,29 +83,34 @@ export default function Production() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Produção Diária</h2>
-        <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-          <SheetTrigger asChild>
-            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
-              <Plus className="h-4 w-4" /> Novo Registro
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="overflow-y-auto sm:max-w-md">
-            <SheetHeader>
-              <SheetTitle>
-                {editingItem ? 'Editar Produção' : 'Registrar Produção'}
-              </SheetTitle>
-              <SheetDescription>
-                {editingItem
-                  ? 'Atualize os dados de processamento.'
-                  : 'Informe os dados de processamento do turno. O cálculo de perdas será automático.'}
-              </SheetDescription>
-            </SheetHeader>
-            <ProductionForm
-              initialData={editingItem}
-              onSuccess={() => setIsOpen(false)}
-            />
-          </SheetContent>
-        </Sheet>
+        {!isViewerMode && (
+          <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+            <SheetTrigger asChild>
+              <Button
+                className="gap-2"
+                onClick={() => setEditingItem(undefined)}
+              >
+                <Plus className="h-4 w-4" /> Novo Registro
+              </Button>
+            </SheetTrigger>
+            <SheetContent className="overflow-y-auto sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>
+                  {editingItem ? 'Editar Produção' : 'Registrar Produção'}
+                </SheetTitle>
+                <SheetDescription>
+                  {editingItem
+                    ? 'Atualize os dados de processamento.'
+                    : 'Informe os dados de processamento do turno. O cálculo de perdas será automático.'}
+                </SheetDescription>
+              </SheetHeader>
+              <ProductionForm
+                initialData={editingItem}
+                onSuccess={() => setIsOpen(false)}
+              />
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
 
       <Card>
@@ -119,7 +130,7 @@ export default function Production() {
                 <TableHead className="text-right text-red-500">
                   Perdas (kg)
                 </TableHead>
-                {isDeveloperMode && (
+                {isDeveloperMode && !isViewerMode && (
                   <TableHead className="w-[80px]">Ações</TableHead>
                 )}
               </TableRow>
@@ -128,7 +139,7 @@ export default function Production() {
               {filteredProduction.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={isDeveloperMode ? 8 : 7}
+                    colSpan={isDeveloperMode && !isViewerMode ? 8 : 7}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -159,7 +170,7 @@ export default function Production() {
                     <TableCell className="text-right font-mono text-red-500 font-medium">
                       {entry.losses.toLocaleString('pt-BR')}
                     </TableCell>
-                    {isDeveloperMode && (
+                    {isDeveloperMode && !isViewerMode && (
                       <TableCell className="flex items-center gap-1">
                         <Button
                           variant="ghost"

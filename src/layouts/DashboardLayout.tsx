@@ -7,7 +7,7 @@ import {
 import { AppSidebar } from '@/components/AppSidebar'
 import { MobileNav } from '@/components/MobileNav'
 import { Button } from '@/components/ui/button'
-import { Bell, User, Terminal } from 'lucide-react'
+import { Bell, User, Terminal, Eye, Lock, Unlock } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -19,17 +19,54 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ConnectionStatus } from '@/components/ConnectionStatus'
+import { useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
 
 export default function DashboardLayout() {
   const location = useLocation()
   const {
     isDeveloperMode,
+    isViewerMode,
+    setViewerMode,
     factories,
     currentFactoryId,
     connectionStatus,
     lastProtheusSync,
   } = useData()
+  const { toast } = useToast()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
+
+  const [isUnlockDialogOpen, setIsUnlockDialogOpen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+
+  const handleUnlockSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passwordInput === '16071997') {
+      setViewerMode(false)
+      setIsUnlockDialogOpen(false)
+      setPasswordInput('')
+      toast({
+        title: 'Modo Operacional Restaurado',
+        description: 'As funções de edição foram reabilitadas.',
+      })
+    } else {
+      toast({
+        title: 'Senha Incorreta',
+        description: 'Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const getTitle = () => {
     switch (location.pathname) {
@@ -66,6 +103,7 @@ export default function DashboardLayout() {
           className={cn(
             'flex h-16 shrink-0 items-center gap-2 border-b px-3 md:px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20 transition-colors',
             isDeveloperMode && 'border-b-amber-400/50 bg-amber-50/10',
+            isViewerMode && 'border-b-blue-400/50 bg-blue-50/10',
           )}
         >
           <SidebarTrigger className="-ml-2 hover:bg-secondary text-primary hidden md:flex" />
@@ -79,6 +117,16 @@ export default function DashboardLayout() {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Modo Desenvolvedor Ativo</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {isViewerMode && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Eye className="h-4 w-4 text-blue-500 shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Modo Visualizador (Leitura)</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -98,6 +146,18 @@ export default function DashboardLayout() {
                 status={connectionStatus}
                 lastSync={lastProtheusSync}
               />
+
+              {isViewerMode && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsUnlockDialogOpen(true)}
+                  className="hidden md:flex gap-2 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                >
+                  <Lock className="h-3 w-3" />
+                  Sair do Modo Leitura
+                </Button>
+              )}
 
               <span className="text-sm text-muted-foreground hidden lg:inline-block font-medium border-l pl-4 ml-2">
                 {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
@@ -124,6 +184,39 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
         <MobileNav />
+
+        <Dialog open={isUnlockDialogOpen} onOpenChange={setIsUnlockDialogOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Unlock className="h-5 w-5 text-primary" />
+                Desativar Modo Visualizador
+              </DialogTitle>
+              <DialogDescription>
+                Digite a senha de administrador para habilitar as funções de
+                edição.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUnlockSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="unlock-password">Senha</Label>
+                  <Input
+                    id="unlock-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Confirmar</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </SidebarInset>
     </SidebarProvider>
   )

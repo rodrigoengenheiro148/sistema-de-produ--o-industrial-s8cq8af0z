@@ -162,6 +162,9 @@ export interface DataContextType {
   isDeveloperMode: boolean
   toggleDeveloperMode: () => void
 
+  isViewerMode: boolean
+  setViewerMode: (value: boolean) => void
+
   systemSettings: SystemSettings
   updateSystemSettings: (settings: SystemSettings) => void
 

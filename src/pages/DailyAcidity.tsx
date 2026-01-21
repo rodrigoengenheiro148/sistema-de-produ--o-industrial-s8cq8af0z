@@ -44,6 +44,7 @@ export default function DailyAcidity() {
     deleteAcidityRecord,
     dateRange,
     isDeveloperMode,
+    isViewerMode,
   } = useData()
   const { toast } = useToast()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -110,25 +111,27 @@ export default function DailyAcidity() {
           <FlaskConical className="h-6 w-6 text-primary" />
           Acidez Diária
         </h2>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Novo Registro
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Registrar Medição de Acidez</DialogTitle>
-              <DialogDescription>
-                Preencha os dados da análise de acidez do tanque.
-              </DialogDescription>
-            </DialogHeader>
-            <AcidityForm
-              onSubmit={handleCreate}
-              onCancel={() => setIsCreateOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {!isViewerMode && (
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" /> Novo Registro
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Registrar Medição de Acidez</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados da análise de acidez do tanque.
+                </DialogDescription>
+              </DialogHeader>
+              <AcidityForm
+                onSubmit={handleCreate}
+                onCancel={() => setIsCreateOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <AcidityChart data={filteredRecords} />
@@ -160,14 +163,16 @@ export default function DailyAcidity() {
                 <TableHead className="text-right">Volume (L)</TableHead>
                 <TableHead>Horários Real.</TableHead>
                 <TableHead>Observações</TableHead>
-                <TableHead className="w-[80px]">Ações</TableHead>
+                {!isViewerMode && (
+                  <TableHead className="w-[80px]">Ações</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
+                    colSpan={!isViewerMode ? 9 : 8}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -201,26 +206,28 @@ export default function DailyAcidity() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    <TableCell className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClick(entry)}
-                        title="Editar"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {isDeveloperMode && (
+                    {!isViewerMode && (
+                      <TableCell className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
+                          onClick={() => handleEditClick(entry)}
+                          title="Editar"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
-                    </TableCell>
+                        {isDeveloperMode && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setDeleteId(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

@@ -38,8 +38,13 @@ import { QualityChart } from '@/components/dashboard/QualityChart'
 import { QualityEntry } from '@/lib/types'
 
 export default function Quality() {
-  const { qualityRecords, deleteQualityRecord, dateRange, isDeveloperMode } =
-    useData()
+  const {
+    qualityRecords,
+    deleteQualityRecord,
+    dateRange,
+    isDeveloperMode,
+    isViewerMode,
+  } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -93,29 +98,34 @@ export default function Quality() {
             Monitoramento de Acidez e Proteína (Farinha/Farinheta).
           </p>
         </div>
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
-              <Plus className="h-4 w-4" /> Nova Análise
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Editar Análise' : 'Registrar Análise'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem
-                  ? 'Atualize os dados da amostra selecionada.'
-                  : 'Insira os resultados dos testes de qualidade.'}
-              </DialogDescription>
-            </DialogHeader>
-            <QualityForm
-              initialData={editingItem}
-              onSuccess={() => setIsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        {!isViewerMode && (
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                className="gap-2"
+                onClick={() => setEditingItem(undefined)}
+              >
+                <Plus className="h-4 w-4" /> Nova Análise
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingItem ? 'Editar Análise' : 'Registrar Análise'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingItem
+                    ? 'Atualize os dados da amostra selecionada.'
+                    : 'Insira os resultados dos testes de qualidade.'}
+                </DialogDescription>
+              </DialogHeader>
+              <QualityForm
+                initialData={editingItem}
+                onSuccess={() => setIsOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <QualityChart data={filteredRecords} />
@@ -145,14 +155,16 @@ export default function Quality() {
                 <TableHead className="text-right">Proteína (%)</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Observações</TableHead>
-                <TableHead className="w-[80px]">Ações</TableHead>
+                {isDeveloperMode && !isViewerMode && (
+                  <TableHead className="w-[80px]">Ações</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={isDeveloperMode && !isViewerMode ? 7 : 6}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhuma análise encontrada no período.
@@ -189,16 +201,16 @@ export default function Quality() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    <TableCell className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                        onClick={() => handleEdit(entry)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {isDeveloperMode && (
+                    {isDeveloperMode && !isViewerMode && (
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleEdit(entry)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -207,8 +219,8 @@ export default function Quality() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                    </TableCell>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

@@ -78,7 +78,8 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { isDeveloperMode, factories, currentFactoryId } = useData()
+  const { isDeveloperMode, isViewerMode, factories, currentFactoryId } =
+    useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   return (
@@ -101,6 +102,14 @@ export function AppSidebar() {
               className="text-[10px] h-5 border-amber-500 text-amber-600 bg-amber-50"
             >
               DEV MODE
+            </Badge>
+          )}
+          {isViewerMode && (
+            <Badge
+              variant="outline"
+              className="text-[10px] h-5 border-blue-500 text-blue-600 bg-blue-50"
+            >
+              VISUALIZADOR
             </Badge>
           )}
         </div>
@@ -142,21 +151,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={location.pathname === '/settings'}
-            >
-              <Link to="/settings" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>Configurações</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+      {!isViewerMode && (
+        <SidebarFooter className="p-4 border-t border-sidebar-border">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={location.pathname === '/settings'}
+              >
+                <Link to="/settings" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span>Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }
