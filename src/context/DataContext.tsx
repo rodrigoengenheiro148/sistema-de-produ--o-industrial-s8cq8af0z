@@ -176,7 +176,7 @@ const dateTimeReviver = (key: string, value: any) => {
   return value
 }
 
-const getStorageData = <T>(key: string, defaultData: T): T => {
+function getStorageData<T>(key: string, defaultData: T): T {
   if (typeof window === 'undefined') return defaultData
   try {
     const item = localStorage.getItem(key)
@@ -191,7 +191,7 @@ const getStorageData = <T>(key: string, defaultData: T): T => {
   }
 }
 
-const setStorageData = <T>(key: string, data: T) => {
+function setStorageData<T>(key: string, data: T) {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(data))
