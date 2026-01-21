@@ -27,16 +27,11 @@ export default function Yields() {
 
   const getYieldColor = (percentage: number) => {
     if (percentage > 45)
-      return 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200' // High yield total
+      return 'bg-primary/15 text-primary hover:bg-primary/25 border-primary/20' // High yield total (Green)
     if (percentage > 35)
-      return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200'
-    return 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200'
+      return 'bg-[hsl(var(--chart-2))]/20 text-[hsl(var(--accent-foreground))] hover:bg-[hsl(var(--chart-2))]/30 border-[hsl(var(--chart-2))]/30' // Medium yield (Yellow)
+    return 'bg-destructive/15 text-destructive hover:bg-destructive/25 border-destructive/20' // Low yield (Red)
   }
-
-  // Note: Thresholds above are arbitrary for "Total Yield".
-  // Real world: Sebo ~10-15%, FCO ~25-30%, Water ~50-60% (Losses)
-  // Let's adjust color logic for "Total Yield" (Solid Mass Recovery)
-  // Typically 40-50% solid recovery is good.
 
   const filteredProduction = production
     .filter((item) => {
@@ -51,7 +46,7 @@ export default function Yields() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">
+        <h2 className="text-2xl font-bold tracking-tight text-primary">
           Análise de Rendimentos
         </h2>
         <p className="text-muted-foreground">
@@ -59,7 +54,7 @@ export default function Yields() {
         </p>
       </div>
 
-      <Card>
+      <Card className="border-t-4 border-t-primary shadow-sm">
         <CardHeader>
           <CardTitle>Tabela de Rendimentos (%)</CardTitle>
           <CardDescription>
@@ -110,21 +105,18 @@ export default function Yields() {
                   )
 
                   return (
-                    <TableRow
-                      key={entry.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                    >
+                    <TableRow key={entry.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         {format(entry.date, 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell>{entry.shift}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-muted-foreground">
                         {yieldSebo.toFixed(2)}%
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-muted-foreground">
                         {yieldFCO.toFixed(2)}%
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right text-muted-foreground">
                         {yieldFarinheta.toFixed(2)}%
                       </TableCell>
                       <TableCell className="text-right">

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import logoBrRender from '@/assets/logotipo-br-render.png'
 
 const items = [
   {
@@ -60,11 +61,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <h2 className="text-xl font-bold text-sidebar-foreground flex items-center gap-2">
-          <Factory className="h-6 w-6 text-primary" />
-          <span>IndústriaSys</span>
-        </h2>
+      <SidebarHeader className="p-4 border-b border-sidebar-border bg-white dark:bg-sidebar-background">
+        <div className="flex items-center gap-2 justify-center py-2">
+          <img
+            src={logoBrRender}
+            alt="Grupo BR Render"
+            className="h-14 w-auto object-contain"
+          />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -81,13 +85,20 @@ export function AppSidebar() {
                     <Link to={item.url} className="flex items-center gap-3">
                       <item.icon
                         className={cn(
-                          'h-4 w-4',
+                          'h-4 w-4 transition-colors',
                           location.pathname === item.url
-                            ? 'text-primary'
+                            ? 'text-sidebar-primary'
                             : 'text-muted-foreground',
                         )}
                       />
-                      <span>{item.title}</span>
+                      <span
+                        className={cn(
+                          location.pathname === item.url &&
+                            'font-semibold text-sidebar-primary',
+                        )}
+                      >
+                        {item.title}
+                      </span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -97,7 +108,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
           <Settings className="h-4 w-4" />
           <span>Configurações</span>
         </div>

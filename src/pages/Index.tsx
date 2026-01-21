@@ -121,7 +121,6 @@ export default function Dashboard() {
   }))
 
   // Chart Data Preparation - Revenue
-  // Aggregate revenue by date
   const revenueMap = new Map<string, number>()
   filteredShipping.forEach((s) => {
     const key = format(s.date, 'dd/MM')
@@ -129,9 +128,7 @@ export default function Dashboard() {
   })
   const revenueChartData = Array.from(revenueMap.entries())
     .map(([date, value]) => ({ date, revenue: value }))
-    // Sort by date string is tricky for dd/MM, but assuming order from shipping filter
     .sort((a, b) => {
-      // Basic approximation for sorting chart display
       const [da, ma] = a.date.split('/').map(Number)
       const [db, mb] = b.date.split('/').map(Number)
       return ma - mb || da - db
@@ -148,7 +145,7 @@ export default function Dashboard() {
   const chartConfig = {
     producao: { label: 'Produção Total', color: 'hsl(var(--chart-1))' },
     mp: { label: 'MP Processada', color: 'hsl(var(--chart-2))' },
-    perdas: { label: 'Perdas', color: 'hsl(var(--chart-3))' },
+    perdas: { label: 'Perdas', color: 'hsl(var(--destructive))' },
     revenue: { label: 'Faturamento', color: 'hsl(var(--primary))' },
   }
 
@@ -168,11 +165,11 @@ export default function Dashboard() {
                 id="date"
                 variant={'outline'}
                 className={cn(
-                  'w-[300px] justify-start text-left font-normal',
+                  'w-[300px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
                   !dateRange && 'text-muted-foreground',
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
@@ -195,28 +192,42 @@ export default function Dashboard() {
                 selected={dateRange}
                 onSelect={(range: any) => setDateRange(range)}
                 numberOfMonths={2}
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button
+          variant="outline"
+          className="gap-2 border-primary/20 text-primary hover:bg-primary/5"
+        >
           <Download className="h-4 w-4" /> Exportar Dados
         </Button>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="yields">Rendimentos Individuais</TabsTrigger>
+        <TabsList className="bg-muted/50">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            Visão Geral
+          </TabsTrigger>
+          <TabsTrigger
+            value="yields"
+            className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+          >
+            Rendimentos Individuais
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+            <Card className="border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Entrada MP
                 </CardTitle>
-                <Factory className="h-4 w-4 text-blue-500" />
+                <Factory className="h-4 w-4 text-chart-2" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -224,12 +235,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-green-500 shadow-sm">
+            <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Produção
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -237,12 +248,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-amber-500 shadow-sm">
+            <Card className="border-l-4 border-l-chart-3 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Rendimento
                 </CardTitle>
-                <PieChart className="h-4 w-4 text-amber-500" />
+                <PieChart className="h-4 w-4 text-chart-3" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -250,12 +261,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-emerald-600 shadow-sm">
+            <Card className="border-l-4 border-l-green-600 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Faturamento Total
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+                <DollarSign className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -269,7 +280,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4 shadow-sm">
+            <Card className="col-span-4 shadow-sm border-primary/10">
               <CardHeader>
                 <CardTitle>Desempenho de Produção</CardTitle>
               </CardHeader>
@@ -311,7 +322,7 @@ export default function Dashboard() {
                 </ChartContainer>
               </CardContent>
             </Card>
-            <Card className="col-span-3 shadow-sm">
+            <Card className="col-span-3 shadow-sm border-primary/10">
               <CardHeader>
                 <CardTitle>Análise de Perdas</CardTitle>
               </CardHeader>
@@ -340,7 +351,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-primary/10">
             <CardHeader>
               <CardTitle>Faturamento Diário</CardTitle>
               <CardDescription>
@@ -386,7 +397,7 @@ export default function Dashboard() {
         </TabsContent>
         <TabsContent value="yields" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-primary/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Rendimento Sebo
@@ -402,7 +413,7 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-primary/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Rendimento FCO
@@ -416,7 +427,7 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold">{yieldFCO.toFixed(2)}%</div>
               </CardContent>
             </Card>
-            <Card className="shadow-sm">
+            <Card className="shadow-sm border-primary/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Rendimento Farinheta
@@ -433,7 +444,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-          <Card className="shadow-sm">
+          <Card className="shadow-sm border-primary/10">
             <CardHeader>
               <CardTitle>Histórico de Rendimentos</CardTitle>
             </CardHeader>
