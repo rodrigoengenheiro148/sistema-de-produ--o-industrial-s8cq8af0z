@@ -19,6 +19,7 @@ import {
   Factory,
   ConnectionStatus,
   SyncOperation,
+  YieldTargets,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
@@ -28,6 +29,13 @@ const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
   refreshRate: 10,
+}
+
+const DEFAULT_YIELD_TARGETS: YieldTargets = {
+  sebo: 28, // Min 28%
+  fco: 26, // Min 26%
+  farinheta: 3.5, // Min 3.5%
+  total: 58, // Min 58%
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -99,6 +107,7 @@ const STORAGE_KEYS = {
   DEV_MODE: 'spi_dev_mode',
   VIEWER_MODE: 'spi_viewer_mode',
   SETTINGS: 'spi_settings',
+  YIELD_TARGETS: 'spi_yield_targets',
   USER_ACCESS: 'spi_user_access',
   PROTHEUS_CONFIG: 'spi_protheus_config',
   LAST_SYNC: 'spi_last_sync',
@@ -183,6 +192,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
     getStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS),
+  )
+  const [yieldTargets, setYieldTargets] = useState<YieldTargets>(() =>
+    getStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS),
   )
   const [protheusConfig, setProtheusConfig] = useState<ProtheusConfig>(() =>
     getStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG),
@@ -750,6 +762,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         updateSystemSettings: (s) => {
           setSystemSettings(s)
           setStorageData(STORAGE_KEYS.SETTINGS, s)
+        },
+        yieldTargets,
+        updateYieldTargets: (t) => {
+          setYieldTargets(t)
+          setStorageData(STORAGE_KEYS.YIELD_TARGETS, t)
         },
         protheusConfig,
         updateProtheusConfig: (c) => {

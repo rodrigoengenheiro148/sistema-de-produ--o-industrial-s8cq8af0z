@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -18,7 +18,15 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import { AlertTriangle, CheckCircle2, Target, Info } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Target,
+  Info,
+  Settings,
+  Lock,
+  Unlock,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -26,20 +34,64 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-
-// Acceptance Criteria Targets
-const TARGETS = {
-  SEBO: 28, // Min 28%
-  FCO: 26, // Min 26%
-  FARINHETA: 3.5, // Min 3.5%
-  TOTAL: 58, // Min 58%
-}
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function Yields() {
-  const { production, dateRange } = useData()
+  const { production, dateRange, yieldTargets, updateYieldTargets } = useData()
   const { toast } = useToast()
   // Ref to track the last alerted state to prevent duplicate toasts
   const lastAlertedRef = useRef<string | null>(null)
+
+  // Dialog & Auth State
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState(false)
+  const [editTargets, setEditTargets] = useState(yieldTargets)
+
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open)
+    if (!open) {
+      // Reset state on close
+      setIsAuthenticated(false)
+      setPassword('')
+      setAuthError(false)
+    } else {
+      // Init temp state on open
+      setEditTargets(yieldTargets)
+    }
+  }
+
+  const handlePasswordSubmit = () => {
+    if (password === '16071997') {
+      setIsAuthenticated(true)
+      setAuthError(false)
+    } else {
+      setAuthError(true)
+    }
+  }
+
+  const handleSaveTargets = () => {
+    updateYieldTargets(editTargets)
+    setIsDialogOpen(false)
+    toast({
+      title: 'Metas Atualizadas',
+      description:
+        'Os novos valores de referência foram aplicados e os alertas recalculados.',
+      duration: 4000,
+    })
+  }
 
   const calculateYield = (output: number, input: number) => {
     if (input === 0) return 0
@@ -63,6 +115,14 @@ export default function Yields() {
     // Monitor the most recent entry (Real-time trigger)
     const latest = filteredProduction[0]
 
+    // Destructure current targets
+    const {
+      sebo: TARGET_SEBO,
+      fco: TARGET_FCO,
+      farinheta: TARGET_FARINHETA,
+      total: TARGET_TOTAL,
+    } = yieldTargets
+
     const yieldSebo = calculateYield(latest.seboProduced, latest.mpUsed)
     const yieldFCO = calculateYield(latest.fcoProduced, latest.mpUsed)
     const yieldFarinheta = calculateYield(
@@ -76,26 +136,26 @@ export default function Yields() {
 
     const issues: string[] = []
 
-    if (yieldFarinheta < TARGETS.FARINHETA) {
+    if (yieldFarinheta < TARGET_FARINHETA) {
       issues.push(
-        `Farinheta: ${yieldFarinheta.toFixed(2)}% (Meta: ${TARGETS.FARINHETA}%)`,
+        `Farinheta: ${yieldFarinheta.toFixed(2)}% (Meta: ${TARGET_FARINHETA}%)`,
       )
     }
-    if (yieldFCO < TARGETS.FCO) {
+    if (yieldFCO < TARGET_FCO) {
       issues.push(
-        `Farinha (FCO): ${yieldFCO.toFixed(2)}% (Meta: ${TARGETS.FCO}%)`,
+        `Farinha (FCO): ${yieldFCO.toFixed(2)}% (Meta: ${TARGET_FCO}%)`,
       )
     }
-    if (yieldSebo < TARGETS.SEBO) {
-      issues.push(`Sebo: ${yieldSebo.toFixed(2)}% (Meta: ${TARGETS.SEBO}%)`)
+    if (yieldSebo < TARGET_SEBO) {
+      issues.push(`Sebo: ${yieldSebo.toFixed(2)}% (Meta: ${TARGET_SEBO}%)`)
     }
-    if (yieldTotal < TARGETS.TOTAL) {
+    if (yieldTotal < TARGET_TOTAL) {
       issues.push(
-        `Total Fábrica: ${yieldTotal.toFixed(2)}% (Meta: ${TARGETS.TOTAL}%)`,
+        `Total Fábrica: ${yieldTotal.toFixed(2)}% (Meta: ${TARGET_TOTAL}%)`,
       )
     }
 
-    // Generate unique key for this alert state
+    // Generate unique key for this alert state, including targets to re-trigger if targets change
     const alertKey = `${latest.id}-${issues.join('|')}`
 
     if (issues.length > 0) {
@@ -124,7 +184,7 @@ export default function Yields() {
       // Reset if resolved, so we can alert again if it regresses
       lastAlertedRef.current = `${latest.id}-OK`
     }
-  }, [filteredProduction, toast])
+  }, [filteredProduction, toast, yieldTargets])
 
   const getStatusIcon = (value: number, target: number) => {
     if (value >= target)
@@ -139,13 +199,128 @@ export default function Yields() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-2xl font-bold tracking-tight text-primary">
-          Análise de Rendimentos
-        </h2>
-        <p className="text-muted-foreground">
-          Monitoramento de eficiência e cumprimento de metas operacionais.
-        </p>
+      <div className="flex flex-row items-center justify-between">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-primary">
+            Análise de Rendimentos
+          </h2>
+          <p className="text-muted-foreground">
+            Monitoramento de eficiência e cumprimento de metas operacionais.
+          </p>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Configurar Metas
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Configuração de Metas</DialogTitle>
+              <DialogDescription>
+                Ajuste os percentuais mínimos de rendimento esperados.
+              </DialogDescription>
+            </DialogHeader>
+
+            {!isAuthenticated ? (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha de Administrador</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Digite a senha para desbloquear"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) =>
+                      e.key === 'Enter' && handlePasswordSubmit()
+                    }
+                  />
+                  {authError && (
+                    <p className="text-sm text-destructive font-medium">
+                      Senha incorreta.
+                    </p>
+                  )}
+                </div>
+                <Button className="w-full gap-2" onClick={handlePasswordSubmit}>
+                  <Unlock className="h-4 w-4" /> Desbloquear
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Meta Sebo (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={editTargets.sebo}
+                      onChange={(e) =>
+                        setEditTargets({
+                          ...editTargets,
+                          sebo: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Meta FCO (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={editTargets.fco}
+                      onChange={(e) =>
+                        setEditTargets({
+                          ...editTargets,
+                          fco: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Meta Farinheta (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={editTargets.farinheta}
+                      onChange={(e) =>
+                        setEditTargets({
+                          ...editTargets,
+                          farinheta: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Meta Fábrica (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={editTargets.total}
+                      onChange={(e) =>
+                        setEditTargets({
+                          ...editTargets,
+                          total: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSaveTargets}>Salvar Alterações</Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -157,7 +332,7 @@ export default function Yields() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-primary">
-              {TARGETS.SEBO}%
+              {yieldTargets.sebo}%
             </div>
           </CardContent>
         </Card>
@@ -169,7 +344,7 @@ export default function Yields() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-primary">
-              {TARGETS.FCO}%
+              {yieldTargets.fco}%
             </div>
           </CardContent>
         </Card>
@@ -181,7 +356,7 @@ export default function Yields() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-primary">
-              {TARGETS.FARINHETA}%
+              {yieldTargets.farinheta}%
             </div>
           </CardContent>
         </Card>
@@ -193,7 +368,7 @@ export default function Yields() {
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold text-primary">
-              {TARGETS.TOTAL}%
+              {yieldTargets.total}%
             </div>
           </CardContent>
         </Card>
@@ -272,7 +447,7 @@ export default function Yields() {
                     entry.mpUsed,
                   )
 
-                  const isTotalLow = yieldTotal < TARGETS.TOTAL
+                  const isTotalLow = yieldTotal < yieldTargets.total
 
                   return (
                     <TableRow key={entry.id} className="hover:bg-muted/50">
@@ -286,11 +461,11 @@ export default function Yields() {
                         <div
                           className={cn(
                             'flex items-center justify-end gap-1.5',
-                            getTextColor(yieldSebo, TARGETS.SEBO),
+                            getTextColor(yieldSebo, yieldTargets.sebo),
                           )}
                         >
                           {yieldSebo.toFixed(2)}%
-                          {getStatusIcon(yieldSebo, TARGETS.SEBO)}
+                          {getStatusIcon(yieldSebo, yieldTargets.sebo)}
                         </div>
                       </TableCell>
 
@@ -299,11 +474,11 @@ export default function Yields() {
                         <div
                           className={cn(
                             'flex items-center justify-end gap-1.5',
-                            getTextColor(yieldFCO, TARGETS.FCO),
+                            getTextColor(yieldFCO, yieldTargets.fco),
                           )}
                         >
                           {yieldFCO.toFixed(2)}%
-                          {getStatusIcon(yieldFCO, TARGETS.FCO)}
+                          {getStatusIcon(yieldFCO, yieldTargets.fco)}
                         </div>
                       </TableCell>
 
@@ -312,11 +487,17 @@ export default function Yields() {
                         <div
                           className={cn(
                             'flex items-center justify-end gap-1.5',
-                            getTextColor(yieldFarinheta, TARGETS.FARINHETA),
+                            getTextColor(
+                              yieldFarinheta,
+                              yieldTargets.farinheta,
+                            ),
                           )}
                         >
                           {yieldFarinheta.toFixed(2)}%
-                          {getStatusIcon(yieldFarinheta, TARGETS.FARINHETA)}
+                          {getStatusIcon(
+                            yieldFarinheta,
+                            yieldTargets.farinheta,
+                          )}
                         </div>
                       </TableCell>
 

@@ -66,6 +66,13 @@ export interface SystemSettings {
   refreshRate: number
 }
 
+export interface YieldTargets {
+  sebo: number
+  fco: number
+  farinheta: number
+  total: number
+}
+
 export interface AccessPermissions {
   editProduction: boolean
   deleteHistory: boolean
@@ -167,6 +174,9 @@ export interface DataContextType {
 
   systemSettings: SystemSettings
   updateSystemSettings: (settings: SystemSettings) => void
+
+  yieldTargets: YieldTargets
+  updateYieldTargets: (targets: YieldTargets) => void
 
   protheusConfig: ProtheusConfig
   updateProtheusConfig: (config: ProtheusConfig) => void
