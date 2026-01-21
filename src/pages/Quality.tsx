@@ -34,6 +34,7 @@ import { Plus, Search, Pencil, Trash2, ClipboardCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 import { QualityForm } from '@/components/QualityForm'
+import { QualityChart } from '@/components/dashboard/QualityChart'
 import { QualityEntry } from '@/lib/types'
 
 export default function Quality() {
@@ -116,6 +117,8 @@ export default function Quality() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <QualityChart data={filteredRecords} />
 
       <Card>
         <CardHeader>
