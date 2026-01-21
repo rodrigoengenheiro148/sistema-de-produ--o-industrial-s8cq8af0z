@@ -344,7 +344,7 @@ export default function Dashboard() {
             <YieldGaugeChart
               value={rendimentoGeral}
               target={yieldTargets.total}
-              className="col-span-1 md:col-span-1 lg:col-span-2"
+              className="col-span-1 md:col-span-1 lg:col-span-2 min-h-[400px]"
             />
             <RawMaterialChart
               data={filteredRawMaterials}
