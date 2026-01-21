@@ -5,6 +5,7 @@ export interface RawMaterialEntry {
   type: string
   quantity: number
   notes?: string
+  createdAt?: Date
 }
 
 export interface ProductionEntry {
@@ -16,6 +17,7 @@ export interface ProductionEntry {
   fcoProduced: number
   farinhetaProduced: number
   losses: number
+  createdAt?: Date
 }
 
 export interface ShippingEntry {
@@ -26,6 +28,7 @@ export interface ShippingEntry {
   quantity: number
   unitPrice: number
   docRef: string
+  createdAt?: Date
 }
 
 export interface AcidityEntry {
@@ -38,6 +41,7 @@ export interface AcidityEntry {
   tank: string
   performedTimes: string
   notes?: string
+  createdAt?: Date
 }
 
 export interface QualityEntry {
@@ -48,6 +52,7 @@ export interface QualityEntry {
   protein: number
   responsible: string
   notes?: string
+  createdAt?: Date
 }
 
 export interface DateRange {

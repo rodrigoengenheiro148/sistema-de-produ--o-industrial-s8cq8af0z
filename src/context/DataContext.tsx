@@ -470,15 +470,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       // Parallel fetching for efficiency
-      const [rawRes, prodRes, shipRes, acidRes, qualRes, factRes] =
-        await Promise.all([
-          apiFetch('raw-materials'),
-          apiFetch('production'),
-          apiFetch('shipping'),
-          apiFetch('acidity'),
-          apiFetch('quality'),
-          apiFetch('factories'),
-        ])
+      // Quality sync removed to avoid 405 errors as requested
+      const [rawRes, prodRes, shipRes, acidRes, factRes] = await Promise.all([
+        apiFetch('raw-materials'),
+        apiFetch('production'),
+        apiFetch('shipping'),
+        apiFetch('acidity'),
+        apiFetch('factories'),
+      ])
 
       let hasUpdates = false
 
@@ -506,12 +505,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setStorageData(STORAGE_KEYS.ACIDITY, data)
         hasUpdates = true
       }
-      if (qualRes && Array.isArray(qualRes)) {
-        const data = parseDatesInArray(qualRes)
-        setQualityRecords(data)
-        setStorageData(STORAGE_KEYS.QUALITY, data)
-        hasUpdates = true
-      }
+      // Quality sync processing removed
       if (factRes && Array.isArray(factRes)) {
         const data = parseDatesInArray(factRes)
         setFactories(data)
@@ -571,7 +565,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const createAdd =
     <T,>(
       key: string,
-      endpoint: string,
+      endpoint: string | null,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
     ) =>
     (entry: Omit<T, 'id'>) => {
@@ -589,7 +583,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       broadcastUpdate()
 
       // Optimistic update - push to server
-      if (protheusConfig.isActive) {
+      if (protheusConfig.isActive && endpoint) {
         apiFetch(endpoint, {
           method: 'POST',
           body: JSON.stringify(newEntry),
@@ -602,7 +596,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const createUpdate =
     <T extends { id: string }>(
       key: string,
-      endpoint: string,
+      endpoint: string | null,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
     ) =>
     (entry: T) => {
@@ -615,7 +609,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       broadcastUpdate()
 
-      if (protheusConfig.isActive) {
+      if (protheusConfig.isActive && endpoint) {
         apiFetch(`${endpoint}/${entry.id}`, {
           method: 'PUT',
           body: JSON.stringify(entry),
@@ -626,7 +620,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const createDelete =
     <T extends { id: string }>(
       key: string,
-      endpoint: string,
+      endpoint: string | null,
       setter: React.Dispatch<React.SetStateAction<T[]>>,
     ) =>
     (id: string) => {
@@ -637,7 +631,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       broadcastUpdate()
 
-      if (protheusConfig.isActive) {
+      if (protheusConfig.isActive && endpoint) {
         apiFetch(`${endpoint}/${id}`, {
           method: 'DELETE',
         }).catch(console.error)
@@ -737,17 +731,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         addQualityRecord: createAdd(
           STORAGE_KEYS.QUALITY,
-          'quality',
+          null, // Disable API sync for Quality to prevent 405 error
           setQualityRecords,
         ),
         updateQualityRecord: createUpdate(
           STORAGE_KEYS.QUALITY,
-          'quality',
+          null,
           setQualityRecords,
         ),
         deleteQualityRecord: createDelete(
           STORAGE_KEYS.QUALITY,
-          'quality',
+          null,
           setQualityRecords,
         ),
 

@@ -76,7 +76,8 @@ export function QualityForm({ initialData, onSuccess }: QualityFormProps) {
     }
 
     if (initialData) {
-      updateQualityRecord({ ...entryData, id: initialData.id })
+      // We spread initialData first to preserve fields like createdAt and id
+      updateQualityRecord({ ...initialData, ...entryData })
       toast({
         title: 'Registro Atualizado',
         description: 'Dados de qualidade atualizados com sucesso.',
