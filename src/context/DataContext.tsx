@@ -217,44 +217,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const response = await fetch(url, { ...options, headers })
 
-        // Check for JSON content type
-        const contentType = response.headers.get('content-type')
-        const isJson = contentType && contentType.includes('application/json')
-
-        if (response.status === 405) {
-          throw new Error('Method Not Allowed (405). Verifique a URL da API.')
-        }
-
-        if (!response.ok) {
-          // If response is JSON, try to extract meaningful error message
-          if (isJson) {
-            const errorData = await response.json().catch(() => ({}))
-            throw new Error(
-              `API Error: ${response.status} ${errorData.message || response.statusText}`,
-            )
-          }
-          // Otherwise standard error
-          throw new Error(
-            `API Error: ${response.status} ${response.statusText}`,
-          )
-        }
-
         // Handle 204 No Content
         if (response.status === 204) return null
 
-        // If response is OK but not JSON (e.g. HTML 404/500 masked as 200), throw error
-        if (!isJson) {
-          const text = await response.text()
-          console.error(
-            'Invalid API Response (HTML/Text):',
-            text.substring(0, 100),
+        // Get text response first to safely inspect content
+        // This avoids calling response.json() on HTML error pages
+        const text = await response.text()
+
+        // Check for HTML response (SPA fallback scenario)
+        // This resolves the "Invalid API Response" runtime error by catching it early
+        const trimmedText = text.trim().toLowerCase()
+        if (
+          trimmedText.startsWith('<!doctype') ||
+          trimmedText.startsWith('<html')
+        ) {
+          console.warn(
+            `API returned HTML instead of JSON from ${url}. This usually indicates a 404 handled by the SPA.`,
           )
-          throw new Error(
-            `Invalid response format. Expected JSON, got ${contentType || 'unknown'}`,
-          )
+          throw new Error('Invalid API Response: Server returned HTML')
         }
 
-        return await response.json()
+        // Try parsing JSON safely
+        let data
+        try {
+          data = text ? JSON.parse(text) : null
+        } catch (e) {
+          console.error(`JSON Parse Error from ${url}:`, text.substring(0, 100))
+          throw new Error('Invalid API Response: Malformed JSON')
+        }
+
+        if (!response.ok) {
+          const errorMessage = data?.message || response.statusText
+          throw new Error(`API Error: ${response.status} ${errorMessage}`)
+        }
+
+        return data
       } catch (error) {
         console.error('API Fetch Error:', error)
         throw error
@@ -339,45 +336,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setConnectionStatus('syncing')
     try {
+      // Use a safe fetch wrapper to allow partial data loading
+      // This ensures one failed endpoint (e.g. HTML response) doesn't crash the whole sync
+      const safeFetch = (p: Promise<any>) =>
+        p.catch((err) => {
+          console.warn('Individual sync endpoint failed:', err)
+          return null
+        })
+
       const endpoints = [
-        apiFetch('raw-materials'),
-        apiFetch('production'),
-        apiFetch('shipping'),
-        apiFetch('acidity'),
-        apiFetch('factories'),
+        safeFetch(apiFetch('raw-materials')),
+        safeFetch(apiFetch('production')),
+        safeFetch(apiFetch('shipping')),
+        safeFetch(apiFetch('acidity')),
+        safeFetch(apiFetch('factories')),
       ]
 
-      const [raw, prod, ship, acid, fact] = await Promise.all(endpoints)
+      const results = await Promise.all(endpoints)
+      const [raw, prod, ship, acid, fact] = results
 
-      if (raw)
+      // Check if at least one request succeeded (not null)
+      const hasSuccess = results.some((r) => r !== null)
+
+      if (!hasSuccess && results.length > 0) {
+        // If all failed, we consider it a sync error to notify user
+        setConnectionStatus('error')
+        return
+      }
+
+      // Verify data format before updating state to maintain stability
+      if (raw && Array.isArray(raw))
         setRawMaterials(
           (d) => (
             setStorageData(STORAGE_KEYS.RAW_MATERIALS, parseDatesInArray(raw)),
             parseDatesInArray(raw)
           ),
         )
-      if (prod)
+
+      if (prod && Array.isArray(prod))
         setProduction(
           (d) => (
             setStorageData(STORAGE_KEYS.PRODUCTION, parseDatesInArray(prod)),
             parseDatesInArray(prod)
           ),
         )
-      if (ship)
+
+      if (ship && Array.isArray(ship))
         setShipping(
           (d) => (
             setStorageData(STORAGE_KEYS.SHIPPING, parseDatesInArray(ship)),
             parseDatesInArray(ship)
           ),
         )
-      if (acid)
+
+      if (acid && Array.isArray(acid))
         setAcidityRecords(
           (d) => (
             setStorageData(STORAGE_KEYS.ACIDITY, parseDatesInArray(acid)),
             parseDatesInArray(acid)
           ),
         )
-      if (fact)
+
+      if (fact && Array.isArray(fact))
         setFactories(
           (d) => (
             setStorageData(STORAGE_KEYS.FACTORIES, parseDatesInArray(fact)),
