@@ -117,6 +117,7 @@ const dateTimeReviver = (key: string, value: any) => {
 const parseDatesInArray = (arr: any[]) => {
   if (!Array.isArray(arr)) return []
   return arr.map((item) => {
+    if (!item) return item
     const newItem = { ...item }
     if (newItem.date) newItem.date = new Date(newItem.date)
     if (newItem.createdAt) newItem.createdAt = new Date(newItem.createdAt)
@@ -215,22 +216,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       const url = `${baseUrl}/${cleanEndpoint}`
 
       try {
-        const response = await fetch(url, { ...options, headers })
+        const response = await fetch(url, { ...options, headers }).catch(
+          (err) => {
+            throw new Error(`Network Error: ${err.message}`)
+          },
+        )
 
         // Handle 204 No Content
         if (response.status === 204) return null
 
         // Check Content-Type for HTML (common in 404/500 error pages from web servers)
-        const contentType = response.headers.get('content-type')
-        if (
-          contentType &&
-          (contentType.includes('text/html') ||
-            contentType.includes('application/xhtml+xml'))
-        ) {
+        const contentType = response.headers.get('content-type') || ''
+        const isJson = contentType.includes('application/json')
+        const isHtml =
+          contentType.includes('text/html') ||
+          contentType.includes('application/xhtml+xml')
+
+        if (isHtml) {
           console.warn(
-            `API returned HTML Content-Type from ${url}. This usually indicates a 404 or server error page.`,
+            `API returned HTML Content-Type from ${url} (Status: ${response.status}). This usually indicates a 404 or server error page.`,
           )
           throw new Error('Invalid API Response: Server returned HTML')
+        }
+
+        // Check if response is NOT OK and NOT JSON - fail fast
+        if (!response.ok && !isJson) {
+          throw new Error(
+            `API Error: ${response.status} ${response.statusText} (Non-JSON response)`,
+          )
         }
 
         // Get text response first to safely inspect content
@@ -243,7 +256,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (
           trimmedText.startsWith('<!doctype') ||
           trimmedText.startsWith('<html') ||
-          trimmedText.startsWith('<!--')
+          trimmedText.startsWith('<!--') ||
+          (trimmedText.startsWith('<') && trimmedText.includes('body'))
         ) {
           console.warn(
             `API returned HTML body from ${url}. This usually indicates a 404 handled by the SPA.`,
@@ -253,11 +267,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Try parsing JSON safely
         let data
-        try {
-          data = text ? JSON.parse(text) : null
-        } catch (e) {
-          console.error(`JSON Parse Error from ${url}:`, text.substring(0, 100))
-          throw new Error('Invalid API Response: Malformed JSON')
+        if (text) {
+          try {
+            data = JSON.parse(text)
+          } catch (e) {
+            console.error(
+              `JSON Parse Error from ${url}:`,
+              text.substring(0, 100),
+            )
+            // If we have an error status, prefer that message
+            if (!response.ok) {
+              throw new Error(
+                `API Error: ${response.status} ${response.statusText}`,
+              )
+            }
+            throw new Error('Invalid API Response: Malformed JSON')
+          }
+        } else {
+          data = null
         }
 
         if (!response.ok) {
@@ -349,24 +376,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     setConnectionStatus('syncing')
-    try {
-      // Use a safe fetch wrapper to allow partial data loading
-      // This ensures one failed endpoint (e.g. HTML response) doesn't crash the whole sync
-      const safeFetch = (p: Promise<any>) =>
-        p.catch((err) => {
-          console.warn('Individual sync endpoint failed:', err)
-          return null
-        })
 
-      const endpoints = [
+    // Use a safe fetch wrapper to allow partial data loading
+    // This ensures one failed endpoint (e.g. HTML response) doesn't crash the whole sync
+    // Explicitly handle exceptions to prevent Promise.all from rejecting entirely
+    const safeFetch = async <T,>(promise: Promise<T>): Promise<T | null> => {
+      try {
+        return await promise
+      } catch (err) {
+        console.warn('Individual sync endpoint failed safely:', err)
+        return null
+      }
+    }
+
+    try {
+      // Execute all fetches in parallel, each protected by safeFetch
+      const results = await Promise.all([
         safeFetch(apiFetch('raw-materials')),
         safeFetch(apiFetch('production')),
         safeFetch(apiFetch('shipping')),
         safeFetch(apiFetch('acidity')),
         safeFetch(apiFetch('factories')),
-      ]
+      ])
 
-      const results = await Promise.all(endpoints)
       const [raw, prod, ship, acid, fact] = results
 
       // Check if at least one request succeeded (not null)
@@ -378,46 +410,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return
       }
 
-      // Verify data format before updating state to maintain stability
-      if (raw && Array.isArray(raw))
-        setRawMaterials(
-          (d) => (
-            setStorageData(STORAGE_KEYS.RAW_MATERIALS, parseDatesInArray(raw)),
-            parseDatesInArray(raw)
-          ),
-        )
+      // Update state with valid results
+      if (raw && Array.isArray(raw)) {
+        const parsed = parseDatesInArray(raw)
+        setRawMaterials(parsed)
+        setStorageData(STORAGE_KEYS.RAW_MATERIALS, parsed)
+      }
 
-      if (prod && Array.isArray(prod))
-        setProduction(
-          (d) => (
-            setStorageData(STORAGE_KEYS.PRODUCTION, parseDatesInArray(prod)),
-            parseDatesInArray(prod)
-          ),
-        )
+      if (prod && Array.isArray(prod)) {
+        const parsed = parseDatesInArray(prod)
+        setProduction(parsed)
+        setStorageData(STORAGE_KEYS.PRODUCTION, parsed)
+      }
 
-      if (ship && Array.isArray(ship))
-        setShipping(
-          (d) => (
-            setStorageData(STORAGE_KEYS.SHIPPING, parseDatesInArray(ship)),
-            parseDatesInArray(ship)
-          ),
-        )
+      if (ship && Array.isArray(ship)) {
+        const parsed = parseDatesInArray(ship)
+        setShipping(parsed)
+        setStorageData(STORAGE_KEYS.SHIPPING, parsed)
+      }
 
-      if (acid && Array.isArray(acid))
-        setAcidityRecords(
-          (d) => (
-            setStorageData(STORAGE_KEYS.ACIDITY, parseDatesInArray(acid)),
-            parseDatesInArray(acid)
-          ),
-        )
+      if (acid && Array.isArray(acid)) {
+        const parsed = parseDatesInArray(acid)
+        setAcidityRecords(parsed)
+        setStorageData(STORAGE_KEYS.ACIDITY, parsed)
+      }
 
-      if (fact && Array.isArray(fact))
-        setFactories(
-          (d) => (
-            setStorageData(STORAGE_KEYS.FACTORIES, parseDatesInArray(fact)),
-            parseDatesInArray(fact)
-          ),
-        )
+      if (fact && Array.isArray(fact)) {
+        const parsed = parseDatesInArray(fact)
+        setFactories(parsed)
+        setStorageData(STORAGE_KEYS.FACTORIES, parsed)
+      }
 
       setLastProtheusSync(new Date())
       setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
