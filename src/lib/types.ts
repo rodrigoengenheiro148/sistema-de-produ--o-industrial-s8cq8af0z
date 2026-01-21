@@ -51,6 +51,20 @@ export interface SystemSettings {
   refreshRate: number
 }
 
+export interface AccessPermissions {
+  editProduction: boolean
+  deleteHistory: boolean
+  modifyConstants: boolean
+}
+
+export interface UserAccessEntry {
+  id: string
+  name: string
+  role: string
+  permissions: AccessPermissions
+  createdAt: Date
+}
+
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
@@ -72,6 +86,11 @@ export interface DataContextType {
   addAcidityRecord: (entry: Omit<AcidityEntry, 'id'>) => void
   updateAcidityRecord: (entry: AcidityEntry) => void
   deleteAcidityRecord: (id: string) => void
+
+  userAccessList: UserAccessEntry[]
+  addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void
+  updateUserAccess: (entry: UserAccessEntry) => void
+  deleteUserAccess: (id: string) => void
 
   dateRange: DateRange
   setDateRange: (range: DateRange) => void

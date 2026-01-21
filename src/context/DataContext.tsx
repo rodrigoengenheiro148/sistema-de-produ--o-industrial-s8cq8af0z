@@ -13,9 +13,9 @@ import {
   DateRange,
   DataContextType,
   SystemSettings,
+  UserAccessEntry,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
-import { toast } from '@/hooks/use-toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -83,6 +83,20 @@ const MOCK_ACIDITY: AcidityEntry[] = [
   },
 ]
 
+const MOCK_USER_ACCESS: UserAccessEntry[] = [
+  {
+    id: '1',
+    name: 'Admin Principal',
+    role: 'Super Admin',
+    permissions: {
+      editProduction: true,
+      deleteHistory: true,
+      modifyConstants: true,
+    },
+    createdAt: new Date(),
+  },
+]
+
 const STORAGE_KEYS = {
   RAW_MATERIALS: 'spi_raw_materials',
   PRODUCTION: 'spi_production',
@@ -90,6 +104,7 @@ const STORAGE_KEYS = {
   ACIDITY: 'spi_acidity',
   DEV_MODE: 'spi_dev_mode',
   SETTINGS: 'spi_settings',
+  USER_ACCESS: 'spi_user_access',
 }
 
 const dateTimeReviver = (key: string, value: any) => {
@@ -141,6 +156,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [acidityRecords, setAcidityRecords] = useState<AcidityEntry[]>(() =>
     getStorageData(STORAGE_KEYS.ACIDITY, MOCK_ACIDITY),
   )
+  const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.USER_ACCESS, MOCK_USER_ACCESS),
+  )
   const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
     getStorageData(STORAGE_KEYS.DEV_MODE, false),
   )
@@ -159,6 +177,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsDeveloperMode(JSON.parse(e.newValue))
         } else if (e.key === STORAGE_KEYS.SETTINGS && e.newValue) {
           setSystemSettings(JSON.parse(e.newValue))
+        } else if (e.key === STORAGE_KEYS.USER_ACCESS && e.newValue) {
+          setUserAccessList(JSON.parse(e.newValue, dateTimeReviver))
         }
       } catch (error) {
         console.error('Error handling storage change', error)
@@ -186,6 +206,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setProduction([])
     setShipping([])
     setAcidityRecords([])
+    // We intentionally do not clear userAccessList on data reset to prevent lockout,
+    // unless explicitly desired. For safety, we keep users.
     setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
     setStorageData(STORAGE_KEYS.PRODUCTION, [])
     setStorageData(STORAGE_KEYS.SHIPPING, [])
@@ -200,7 +222,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         const newEntry = {
           ...entry,
           id: Math.random().toString(36).substring(7),
-        } as T
+          createdAt: new Date(), // Adding default createdAt if missing
+        } as unknown as T
         const newData = [newEntry, ...prev]
         setStorageData(key, newData)
         return newData
@@ -265,6 +288,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteAcidityRecord: createDelete(
           STORAGE_KEYS.ACIDITY,
           setAcidityRecords,
+        ),
+        userAccessList,
+        addUserAccess: createAdd(STORAGE_KEYS.USER_ACCESS, setUserAccessList),
+        updateUserAccess: createUpdate(
+          STORAGE_KEYS.USER_ACCESS,
+          setUserAccessList,
+        ),
+        deleteUserAccess: createDelete(
+          STORAGE_KEYS.USER_ACCESS,
+          setUserAccessList,
         ),
         dateRange,
         setDateRange,

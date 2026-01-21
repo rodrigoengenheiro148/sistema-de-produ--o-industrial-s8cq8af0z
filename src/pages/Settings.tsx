@@ -12,8 +12,14 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { AlertTriangle, Database, Save, ShieldAlert } from 'lucide-react'
+import {
+  AlertTriangle,
+  Database,
+  Save,
+  ShieldAlert,
+  Lock,
+  Unlock,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
@@ -27,6 +33,15 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AccessControl } from '@/components/AccessControl'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 export default function Settings() {
   const {
@@ -39,6 +54,8 @@ export default function Settings() {
   const { toast } = useToast()
 
   const [settingsForm, setSettingsForm] = useState(systemSettings)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
 
   const handleSaveSettings = () => {
     updateSystemSettings(settingsForm)
@@ -57,6 +74,38 @@ export default function Settings() {
     })
   }
 
+  const handleModeToggle = (checked: boolean) => {
+    if (checked) {
+      // Trying to enable
+      setIsPasswordDialogOpen(true)
+    } else {
+      // Trying to disable - allowed without password
+      toggleDeveloperMode()
+    }
+  }
+
+  const confirmPassword = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+
+    if (passwordInput === '16071997') {
+      toggleDeveloperMode()
+      setIsPasswordDialogOpen(false)
+      setPasswordInput('')
+      toast({
+        title: 'Modo Desenvolvedor Ativado',
+        description:
+          'Você tem acesso completo às configurações e controle de acesso.',
+      })
+    } else {
+      toast({
+        title: 'Acesso Negado',
+        description: 'Senha incorreta.',
+        variant: 'destructive',
+      })
+      setPasswordInput('')
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
@@ -70,7 +119,14 @@ export default function Settings() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <CardTitle>Modo Desenvolvedor</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                {isDeveloperMode ? (
+                  <Unlock className="h-5 w-5 text-amber-500" />
+                ) : (
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                )}
+                Modo Desenvolvedor
+              </CardTitle>
               <CardDescription>
                 Habilita funções avançadas de edição, remoção e configuração de
                 parâmetros.
@@ -78,14 +134,50 @@ export default function Settings() {
             </div>
             <Switch
               checked={isDeveloperMode}
-              onCheckedChange={toggleDeveloperMode}
+              onCheckedChange={handleModeToggle}
             />
           </div>
         </CardHeader>
       </Card>
 
+      {/* Password Dialog */}
+      <Dialog
+        open={isPasswordDialogOpen}
+        onOpenChange={setIsPasswordDialogOpen}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Autenticação Requerida</DialogTitle>
+            <DialogDescription>
+              Digite a senha de administrador para habilitar o modo
+              desenvolvedor.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmPassword}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="password">Senha de Administrador</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Confirmar Acesso</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {isDeveloperMode && (
-        <>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <AccessControl />
+
           <Card className="border-primary/20 bg-secondary/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -198,7 +290,7 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
-        </>
+        </div>
       )}
     </div>
   )
