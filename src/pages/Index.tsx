@@ -337,7 +337,7 @@ export default function Dashboard() {
                   config={chartConfig}
                   className="h-[300px] w-full"
                 >
-                  <BarChart data={lossesChartData}>
+                  <BarChart data={lossesChartData} margin={{ top: 20 }}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <XAxis
                       dataKey="date"
@@ -350,7 +350,18 @@ export default function Dashboard() {
                       dataKey="perdas"
                       fill="var(--color-perdas)"
                       radius={[4, 4, 0, 0]}
-                    />
+                    >
+                      <LabelList
+                        dataKey="perdas"
+                        position="top"
+                        offset={12}
+                        className="fill-foreground"
+                        fontSize={12}
+                        formatter={(value: any) =>
+                          value > 0 ? `${value.toLocaleString('pt-BR')} kg` : ''
+                        }
+                      />
+                    </Bar>
                   </BarChart>
                 </ChartContainer>
               </CardContent>
