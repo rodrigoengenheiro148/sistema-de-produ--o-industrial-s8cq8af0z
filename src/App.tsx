@@ -12,6 +12,7 @@ import Inventory from './pages/Inventory'
 import Shipping from './pages/Shipping'
 import Settings from './pages/Settings'
 import Factories from './pages/Factories'
+import AdvancedReports from './pages/AdvancedReports'
 import NotFound from './pages/NotFound'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/rendimentos" element={<Yields />} />
             <Route path="/acidez-diaria" element={<DailyAcidity />} />
             <Route path="/qualidade" element={<Quality />} />
+            <Route path="/relatorios-avancados" element={<AdvancedReports />} />
             <Route path="/estoque" element={<Inventory />} />
             <Route path="/expedicao" element={<Shipping />} />
             <Route path="/fabricas" element={<Factories />} />

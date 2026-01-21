@@ -9,6 +9,7 @@ import {
   FlaskConical,
   Building2,
   ClipboardCheck,
+  LineChart,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -58,6 +59,11 @@ const items = [
     title: 'Qualidade',
     url: '/qualidade',
     icon: ClipboardCheck,
+  },
+  {
+    title: 'Relatórios',
+    url: '/relatorios-avancados',
+    icon: LineChart,
   },
   {
     title: 'Estoque',

@@ -7,6 +7,7 @@ import {
   Send,
   Menu,
   ClipboardCheck,
+  LineChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -36,6 +37,11 @@ export function MobileNav() {
       title: 'Qualidade',
       url: '/qualidade',
       icon: ClipboardCheck,
+    },
+    {
+      title: 'Relatórios',
+      url: '/relatorios-avancados',
+      icon: LineChart,
     },
     {
       title: 'Saída',
