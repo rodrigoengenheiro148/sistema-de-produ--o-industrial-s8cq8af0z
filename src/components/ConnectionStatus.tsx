@@ -1,7 +1,21 @@
 import { Badge } from '@/components/ui/badge'
-import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react'
+import {
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ConnectionStatus as StatusType } from '@/lib/types'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface ConnectionStatusProps {
   status: StatusType
@@ -18,25 +32,25 @@ export function ConnectionStatus({
     switch (status) {
       case 'online':
         return {
-          icon: Wifi,
-          label: 'Online',
-          color: 'bg-green-100 text-green-700 border-green-200',
-          dot: 'bg-green-500',
+          icon: CheckCircle2,
+          label: 'Sincronizado',
+          color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+          desc: 'Conexão estável com o servidor.',
         }
       case 'syncing':
         return {
           icon: RefreshCw,
-          label: 'Syncing',
+          label: 'Sincronizando...',
           color: 'bg-blue-100 text-blue-700 border-blue-200',
-          dot: 'bg-blue-500',
           animate: true,
+          desc: 'Atualizando dados em tempo real.',
         }
       case 'error':
         return {
           icon: AlertCircle,
-          label: 'Error',
+          label: 'Erro de Sync',
           color: 'bg-red-100 text-red-700 border-red-200',
-          dot: 'bg-red-500',
+          desc: 'Falha ao comunicar com o servidor.',
         }
       case 'offline':
       default:
@@ -44,7 +58,7 @@ export function ConnectionStatus({
           icon: WifiOff,
           label: 'Offline',
           color: 'bg-slate-100 text-slate-700 border-slate-200',
-          dot: 'bg-slate-500',
+          desc: 'Sem conexão com a internet.',
         }
     }
   }
@@ -53,17 +67,35 @@ export function ConnectionStatus({
   const Icon = config.icon
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <Badge
-        variant="outline"
-        className={cn(
-          'gap-1.5 py-0.5 px-2 transition-all duration-300',
-          config.color,
-        )}
-      >
-        <Icon className={cn('h-3 w-3', config.animate && 'animate-spin')} />
-        <span className="hidden sm:inline-block">{config.label}</span>
-      </Badge>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={cn('flex items-center gap-2', className)}>
+            <Badge
+              variant="outline"
+              className={cn(
+                'gap-1.5 py-1 px-3 transition-all duration-300 shadow-sm cursor-help',
+                config.color,
+              )}
+            >
+              <Icon
+                className={cn('h-3.5 w-3.5', config.animate && 'animate-spin')}
+              />
+              <span className="font-medium hidden sm:inline-block">
+                {config.label}
+              </span>
+            </Badge>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="end" className="text-xs">
+          <p className="font-semibold">{config.desc}</p>
+          {lastSync && (
+            <p className="text-muted-foreground mt-1">
+              Último sync: {format(lastSync, 'HH:mm:ss', { locale: ptBR })}
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }

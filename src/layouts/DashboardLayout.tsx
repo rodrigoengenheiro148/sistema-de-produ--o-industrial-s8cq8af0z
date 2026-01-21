@@ -62,42 +62,42 @@ export default function DashboardLayout() {
       <SidebarInset className="bg-background flex flex-col min-h-screen">
         <header
           className={cn(
-            'flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background sticky top-0 z-10 shadow-sm/50 transition-colors',
+            'flex h-16 shrink-0 items-center gap-2 border-b px-3 md:px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20 transition-colors',
             isDeveloperMode && 'border-b-amber-400/50 bg-amber-50/10',
           )}
         >
-          <SidebarTrigger className="-ml-1 hover:bg-secondary text-primary hidden md:flex" />
+          <SidebarTrigger className="-ml-2 hover:bg-secondary text-primary hidden md:flex" />
           <div className="h-4 w-px bg-border mx-2 hidden md:block" />
-          <div className="flex-1 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center justify-between overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0">
               {isDeveloperMode && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Terminal className="h-4 w-4 text-amber-500" />
+                    <Terminal className="h-4 w-4 text-amber-500 shrink-0" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Modo Desenvolvedor Ativo</p>
                   </TooltipContent>
                 </Tooltip>
               )}
-              <div className="flex flex-col">
-                <h1 className="text-lg font-bold text-primary tracking-tight leading-tight">
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-base md:text-lg font-bold text-primary tracking-tight leading-tight truncate">
                   {getTitle()}
                 </h1>
                 {currentFactory && location.pathname !== '/fabricas' && (
-                  <p className="text-xs text-muted-foreground hidden sm:block">
+                  <p className="text-xs text-muted-foreground hidden sm:block truncate">
                     {currentFactory.name}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-2 md:gap-4 shrink-0 pl-2">
               <ConnectionStatus
                 status={connectionStatus}
                 lastSync={lastProtheusSync}
               />
 
-              <span className="text-sm text-muted-foreground hidden md:inline-block font-medium border-l pl-4 ml-2">
+              <span className="text-sm text-muted-foreground hidden lg:inline-block font-medium border-l pl-4 ml-2">
                 {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
               </span>
               <Button
@@ -106,7 +106,7 @@ export default function DashboardLayout() {
                 className="relative hover:bg-secondary text-muted-foreground hover:text-primary hidden md:inline-flex"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-accent" />
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
               </Button>
               <Button
                 variant="ghost"
@@ -118,7 +118,7 @@ export default function DashboardLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6 bg-secondary/30 pb-20 md:pb-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 bg-secondary/30 pb-24 md:pb-6">
           <Outlet />
         </main>
         <MobileNav />

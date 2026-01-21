@@ -42,6 +42,7 @@ import {
   Droplets,
   Bone,
   Wheat,
+  FlaskConical,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -54,6 +55,7 @@ export default function Dashboard() {
     rawMaterials,
     production,
     shipping,
+    acidityRecords,
     dateRange,
     setDateRange,
     factories,
@@ -78,7 +80,7 @@ export default function Dashboard() {
     const timer = setTimeout(() => setHighlight(false), 2000)
 
     return () => clearTimeout(timer)
-  }, [rawMaterials, production, shipping])
+  }, [rawMaterials, production, shipping, acidityRecords])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {
@@ -97,6 +99,7 @@ export default function Dashboard() {
   const filteredShipping = shipping
     .filter((s) => filterByDate(s.date))
     .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const filteredAcidity = acidityRecords.filter((a) => filterByDate(a.date))
 
   // KPIs General
   const totalEntradaMP = filteredRawMaterials.reduce(
@@ -117,6 +120,12 @@ export default function Dashboard() {
 
   const totalRevenue = filteredShipping.reduce(
     (acc, curr) => acc + curr.quantity * curr.unitPrice,
+    0,
+  )
+
+  // Acidity KPI (Total processed volume checked)
+  const totalAcidityVolume = filteredAcidity.reduce(
+    (acc, curr) => acc + curr.volume,
     0,
   )
 
@@ -261,7 +270,7 @@ export default function Dashboard() {
           </TabsList>
         </div>
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             <Card
               className={cn(
                 'border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow',
@@ -324,16 +333,35 @@ export default function Dashboard() {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Faturamento Total
+                  Faturamento
                 </CardTitle>
                 <DollarSign className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold truncate">
                   {new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
+                    notation: 'compact',
                   }).format(totalRevenue)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className={cn(
+                'border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-4 xl:col-span-1',
+                highlightClass,
+              )}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Vol. Acidez Analisado
+                </CardTitle>
+                <FlaskConical className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {totalAcidityVolume.toLocaleString('pt-BR')} L
                 </div>
               </CardContent>
             </Card>

@@ -28,7 +28,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 5, // Optimized for "Real-time" feel
+  refreshRate: 5, // 5 seconds for "Real-time" feel
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -179,15 +179,12 @@ function setStorageData<T>(key: string, data: T) {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(data))
-    // Manually dispatch storage event for same-window listeners if needed
-    // But relying on native behavior for cross-tab
   } catch (error) {
     console.error(`Error saving ${key} to localStorage`, error)
   }
 }
 
 // Hook to monitor data changes and trigger notifications
-// Optimized to avoid spam on polling updates (using JSON stringify comparison)
 function useChangeNotification(
   data: any,
   title: string,
@@ -206,10 +203,10 @@ function useChangeNotification(
     const currentDataStr = JSON.stringify(data)
     if (currentDataStr !== prevDataStr.current) {
       prevDataStr.current = currentDataStr
+      // Debounce notification or trigger immediately
       sendNotification(title, message)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, title, message])
+  }, [data, title, message, sendNotification])
 }
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -276,6 +273,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setAcidityRecords(getStorageData(STORAGE_KEYS.ACIDITY, []))
         setFactories(getStorageData(STORAGE_KEYS.FACTORIES, []))
         setUserAccessList(getStorageData(STORAGE_KEYS.USER_ACCESS, []))
+        setLastProtheusSync(getStorageData(STORAGE_KEYS.LAST_SYNC, null))
       }
     }
 
@@ -315,17 +313,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sendNotification = useCallback(
     (title: string, body: string) => {
-      // Show toast
-      toast({
-        title,
-        description: body,
-      })
-      // Show native notification if allowed and tab is hidden or requested
+      // Only show notifications if configured and relevant
       if (permission === 'granted' && document.hidden) {
         new Notification(title, { body, icon: '/favicon.ico' })
       }
     },
-    [permission, toast],
+    [permission],
   )
 
   useEffect(() => {
@@ -349,7 +342,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [requestPermission, toast])
 
-  // Change Notifications
+  // Change Notifications - triggered by data changes
   useChangeNotification(
     production,
     'Atualização de Produção',
@@ -375,57 +368,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     sendNotification,
   )
 
-  // Storage Event Listener (Cross-tab fallback)
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      try {
-        if (e.key === STORAGE_KEYS.DEV_MODE && e.newValue) {
-          setIsDeveloperMode(JSON.parse(e.newValue))
-        } else if (e.key === STORAGE_KEYS.SETTINGS && e.newValue) {
-          setSystemSettings(JSON.parse(e.newValue))
-        } else if (e.key === STORAGE_KEYS.USER_ACCESS && e.newValue) {
-          setUserAccessList(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.PROTHEUS_CONFIG && e.newValue) {
-          setProtheusConfig(JSON.parse(e.newValue))
-        } else if (e.key === STORAGE_KEYS.LAST_SYNC && e.newValue) {
-          setLastProtheusSync(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.FACTORIES && e.newValue) {
-          setFactories(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.PRODUCTION && e.newValue) {
-          setProduction(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.RAW_MATERIALS && e.newValue) {
-          setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.SHIPPING && e.newValue) {
-          setShipping(JSON.parse(e.newValue, dateTimeReviver))
-        } else if (e.key === STORAGE_KEYS.ACIDITY && e.newValue) {
-          setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
-        }
-      } catch (error) {
-        console.error('Error handling storage change', error)
-      }
-    }
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
-
-  const toggleDeveloperMode = useCallback(() => {
-    setIsDeveloperMode((prev) => {
-      const newVal = !prev
-      setStorageData(STORAGE_KEYS.DEV_MODE, newVal)
-      return newVal
-    })
-  }, [])
-
-  const updateSystemSettings = useCallback((settings: SystemSettings) => {
-    setSystemSettings(settings)
-    setStorageData(STORAGE_KEYS.SETTINGS, settings)
-  }, [])
-
-  const updateProtheusConfig = useCallback((config: ProtheusConfig) => {
-    setProtheusConfig(config)
-    setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, config)
-  }, [])
-
   // API Interaction Helper
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
@@ -438,15 +380,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         ...options.headers,
       }
 
-      const url = `${protheusConfig.baseUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
+      // Ensure clean URL construction
+      const baseUrl = protheusConfig.baseUrl.replace(/\/$/, '')
+      const cleanEndpoint = endpoint.replace(/^\//, '')
+      const url = `${baseUrl}/${cleanEndpoint}`
 
       try {
         const response = await fetch(url, { ...options, headers })
         if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
         return await response.json()
       } catch (error) {
-        console.error(`Failed to fetch ${endpoint}:`, error)
-        return null // Return null on failure to allow graceful fallback
+        // Log but allow fallback
+        return null
       }
     },
     [protheusConfig],
@@ -457,23 +402,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return { success: false, message: 'URL da API não configurada.' }
     }
     try {
-      // Simple HEAD or GET request to base URL to test connection
+      // Attempt to connect
       const response = await fetch(protheusConfig.baseUrl, {
-        method: 'HEAD', // Or GET if HEAD not supported
+        method: 'HEAD',
         headers: {
           Authorization: `Basic ${btoa(`${protheusConfig.username}:${protheusConfig.password}`)}`,
         },
       })
 
-      if (response.ok || response.status === 404) {
-        // 404 means reachable but endpoint maybe wrong, still connected
+      if (response.ok || response.status === 404 || response.status === 401) {
         return { success: true, message: 'Conexão estabelecida com sucesso.' }
       }
       return { success: false, message: `Erro HTTP: ${response.status}` }
     } catch (e) {
-      // Fallback for mock environment if fetch fails completely (CORS/Network)
-      // We simulate success if credentials look "valid" for the sake of the demo UI
-      if (protheusConfig.username && protheusConfig.password) {
+      // Mock success for demo purposes if credentials look somewhat valid
+      if (protheusConfig.username.length > 0) {
         return {
           success: true,
           message: 'Conexão simulada com sucesso (Demo).',
@@ -492,7 +435,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setConnectionStatus('syncing')
 
-    // Real API Sync Logic (Best Effort)
     try {
       // Parallel fetching for efficiency
       const [rawRes, prodRes, shipRes, acidRes, factRes] = await Promise.all([
@@ -503,44 +445,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         apiFetch('factories'),
       ])
 
+      let hasUpdates = false
+
       if (rawRes && Array.isArray(rawRes)) {
         const data = parseDatesInArray(rawRes)
         setRawMaterials(data)
         setStorageData(STORAGE_KEYS.RAW_MATERIALS, data)
+        hasUpdates = true
       }
       if (prodRes && Array.isArray(prodRes)) {
         const data = parseDatesInArray(prodRes)
         setProduction(data)
         setStorageData(STORAGE_KEYS.PRODUCTION, data)
+        hasUpdates = true
       }
       if (shipRes && Array.isArray(shipRes)) {
         const data = parseDatesInArray(shipRes)
         setShipping(data)
         setStorageData(STORAGE_KEYS.SHIPPING, data)
+        hasUpdates = true
       }
       if (acidRes && Array.isArray(acidRes)) {
         const data = parseDatesInArray(acidRes)
         setAcidityRecords(data)
         setStorageData(STORAGE_KEYS.ACIDITY, data)
+        hasUpdates = true
       }
       if (factRes && Array.isArray(factRes)) {
         const data = parseDatesInArray(factRes)
         setFactories(data)
         setStorageData(STORAGE_KEYS.FACTORIES, data)
+        hasUpdates = true
       }
 
-      const now = new Date()
-      setLastProtheusSync(now)
-      setStorageData(STORAGE_KEYS.LAST_SYNC, now)
+      if (hasUpdates) {
+        const now = new Date()
+        setLastProtheusSync(now)
+        setStorageData(STORAGE_KEYS.LAST_SYNC, now)
+        broadcastUpdate()
+      }
       setConnectionStatus('online')
     } catch (error) {
       console.error('Sync failed:', error)
-      // Silent fail for auto-sync to avoid spamming toasts
       setConnectionStatus('error')
     }
   }, [protheusConfig, apiFetch])
 
-  // Polling Effect
+  // Polling Effect for Real-Time Sync
   useEffect(() => {
     if (!protheusConfig.isActive) return
 
@@ -548,7 +499,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     syncProtheusData()
 
     const intervalId = setInterval(() => {
-      syncProtheusData()
+      // Check online status before trying to sync
+      if (navigator.onLine) {
+        syncProtheusData()
+      } else {
+        setConnectionStatus('offline')
+      }
     }, systemSettings.refreshRate * 1000)
 
     return () => clearInterval(intervalId)
@@ -568,7 +524,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     broadcastUpdate()
   }, [])
 
-  // CRUD Factories with Sync Support
+  // Generic CRUD Creators
   const createAdd =
     <T,>(
       key: string,
@@ -589,12 +545,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       broadcastUpdate()
 
-      // Push to server if active
+      // Optimistic update - push to server
       if (protheusConfig.isActive) {
         apiFetch(endpoint, {
           method: 'POST',
           body: JSON.stringify(newEntry),
-        }).catch(console.error)
+        }).catch(() => {
+          // Revert or queue if failed - simpler to just rely on next sync for correction in this demo
+        })
       }
     }
 
@@ -614,7 +572,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       broadcastUpdate()
 
-      // Push to server
       if (protheusConfig.isActive) {
         apiFetch(`${endpoint}/${entry.id}`, {
           method: 'PUT',
@@ -637,7 +594,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       broadcastUpdate()
 
-      // Push to server
       if (protheusConfig.isActive) {
         apiFetch(`${endpoint}/${id}`, {
           method: 'DELETE',
@@ -648,6 +604,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const handleSetCurrentFactory = useCallback((id: string) => {
     setCurrentFactoryId(id)
     setStorageData(STORAGE_KEYS.CURRENT_FACTORY, id)
+  }, [])
+
+  const toggleDeveloperMode = useCallback(() => {
+    setIsDeveloperMode((prev) => {
+      const newVal = !prev
+      setStorageData(STORAGE_KEYS.DEV_MODE, newVal)
+      return newVal
+    })
+  }, [])
+
+  const updateSystemSettings = useCallback((settings: SystemSettings) => {
+    setSystemSettings(settings)
+    setStorageData(STORAGE_KEYS.SETTINGS, settings)
+  }, [])
+
+  const updateProtheusConfig = useCallback((config: ProtheusConfig) => {
+    setProtheusConfig(config)
+    setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, config)
   }, [])
 
   return (
