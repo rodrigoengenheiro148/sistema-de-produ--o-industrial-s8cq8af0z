@@ -61,11 +61,14 @@ export function RawMaterialForm({
   })
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Ensuring the exact value is used without any additions or offsets
+    const quantityValue = Number(values.quantity)
+
     const entryData = {
       date: new Date(values.date),
       supplier: values.supplier,
       type: values.type,
-      quantity: Number(values.quantity),
+      quantity: quantityValue,
       notes: values.notes,
     }
 
