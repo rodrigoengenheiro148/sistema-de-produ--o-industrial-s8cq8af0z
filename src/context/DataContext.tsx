@@ -23,14 +23,13 @@ import {
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
-import { ToastAction } from '@/components/ui/toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 5,
+  refreshRate: 10, // Increased default to avoid spamming
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -143,6 +142,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { toast } = useToast()
+
+  // State Initialization
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
     getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
   )
@@ -188,6 +189,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   })
+
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     navigator.onLine ? 'online' : 'offline',
   )
@@ -195,85 +197,147 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   // API Interaction
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
-      if (!protheusConfig.baseUrl) return null
+      // Validate configuration before attempting fetch
+      if (!protheusConfig.isActive) return null
+      if (!protheusConfig.baseUrl) throw new Error('Base URL not configured')
+
       const auth = btoa(`${protheusConfig.username}:${protheusConfig.password}`)
       const headers = {
         'Content-Type': 'application/json',
         Authorization: `Basic ${auth}`,
         ...options.headers,
       }
+
+      // Ensure clean URL construction
       const baseUrl = protheusConfig.baseUrl.replace(/\/$/, '')
-      const url = `${baseUrl}/${endpoint.replace(/^\//, '')}`
-      const response = await fetch(url, { ...options, headers })
-      if (!response.ok) throw new Error(`API Error: ${response.statusText}`)
-      return await response.json()
+      const cleanEndpoint = endpoint.replace(/^\//, '')
+      const url = `${baseUrl}/${cleanEndpoint}`
+
+      try {
+        const response = await fetch(url, { ...options, headers })
+
+        if (response.status === 405) {
+          throw new Error('Method Not Allowed (405). Verifique a URL da API.')
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `API Error: ${response.status} ${response.statusText}`,
+          )
+        }
+
+        // Handle 204 No Content
+        if (response.status === 204) return null
+
+        return await response.json()
+      } catch (error) {
+        console.error('API Fetch Error:', error)
+        throw error
+      }
     },
     [protheusConfig],
   )
 
-  // Queue Processing
+  // Queue Processing - Improved Reliability
   const processSyncQueue = useCallback(async () => {
-    if (!protheusConfig.isActive || pendingOperations.length === 0) return true
+    // If not active, or queue empty, considered "success" (idle)
+    if (!protheusConfig.isActive) {
+      if (pendingOperations.length > 0) setConnectionStatus('pending')
+      return true
+    }
+
+    // If active but offline, set pending
     if (!navigator.onLine) {
       setConnectionStatus('pending')
       return false
     }
 
+    // If active but no URL, set error (don't clear queue)
+    if (!protheusConfig.baseUrl) {
+      setConnectionStatus('error')
+      return false
+    }
+
+    if (pendingOperations.length === 0) {
+      setConnectionStatus('online')
+      return true
+    }
+
     setConnectionStatus('syncing')
     let success = true
     const remainingOps = [...pendingOperations]
+    const maxRetries = 3
 
-    for (const op of pendingOperations) {
-      try {
-        if (op.endpoint) {
-          const method =
-            op.type === 'ADD' ? 'POST' : op.type === 'UPDATE' ? 'PUT' : 'DELETE'
-          const url =
-            op.type === 'ADD' ? op.endpoint : `${op.endpoint}/${op.entityId}`
+    // Process one by one to ensure order
+    // We only remove from queue if successful
+    // We break loop on first error to maintain sequence integrity
+    const op = remainingOps[0] // Peek first
 
-          const res = await apiFetch(url, {
-            method,
-            body: op.type !== 'DELETE' ? JSON.stringify(op.data) : undefined,
-          })
+    try {
+      if (op.endpoint) {
+        const method =
+          op.type === 'ADD' ? 'POST' : op.type === 'UPDATE' ? 'PUT' : 'DELETE'
 
-          // Handle ID replacement on ADD
-          if (op.type === 'ADD' && res && res.id) {
-            // Update subsequent operations for this entity
-            remainingOps.forEach((nextOp) => {
-              if (nextOp.entityId === op.entityId) nextOp.entityId = res.id
-            })
-            // Update local state ID (simplified for this context)
-          }
-        }
-        remainingOps.shift() // Remove successful op
-      } catch (e) {
-        success = false
-        break // Stop on error to preserve order
+        // Construct entity specific URL
+        const endpointUrl =
+          op.type === 'ADD' ? op.endpoint : `${op.endpoint}/${op.entityId}`
+
+        const res = await apiFetch(endpointUrl, {
+          method,
+          body: op.type !== 'DELETE' ? JSON.stringify(op.data) : undefined,
+        })
+
+        // On successful ADD, we might get a real ID from backend
+        // In a real app, we would update local ID, but for this simulation we just proceed
       }
+
+      // Remove successful operation
+      remainingOps.shift()
+      setPendingOperations(remainingOps)
+      setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
+
+      // Recursively process next if any (with small delay to not choke JS event loop)
+      if (remainingOps.length > 0) {
+        setTimeout(() => processSyncQueue(), 50)
+      } else {
+        setConnectionStatus('online')
+      }
+    } catch (e) {
+      console.error('Sync failed for op:', op.id, e)
+      success = false
+      setConnectionStatus('error')
+      // We do NOT remove the op, so it retries later
     }
 
-    setPendingOperations(remainingOps)
-    setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
-    if (success) setConnectionStatus('online')
-    else setConnectionStatus('error')
     return success
   }, [pendingOperations, protheusConfig, apiFetch])
 
-  // Core Sync
+  // Core Sync (Pull Data)
   const syncProtheusData = useCallback(async () => {
-    if (!protheusConfig.isActive) return
-    const queueProcessed = await processSyncQueue()
-    if (!queueProcessed) return // Don't fetch if we have unsaved changes to avoid overwrite
+    if (!protheusConfig.isActive || !protheusConfig.baseUrl) return
+    if (!navigator.onLine) {
+      setConnectionStatus('offline')
+      return
+    }
+
+    // Process queue first (Push)
+    // We only fetch if queue is empty to avoid overwriting local changes that haven't been pushed
+    if (pendingOperations.length > 0) {
+      const queueProcessed = await processSyncQueue()
+      if (!queueProcessed) return
+    }
 
     setConnectionStatus('syncing')
     try {
-      const [raw, prod, ship, acid, fact] = await Promise.all([
+      const endpoints = [
         apiFetch('raw-materials'),
         apiFetch('production'),
         apiFetch('shipping'),
         apiFetch('acidity'),
         apiFetch('factories'),
-      ])
+      ]
+
+      const [raw, prod, ship, acid, fact] = await Promise.all(endpoints)
 
       if (raw)
         setRawMaterials(
@@ -315,9 +379,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
       setConnectionStatus('online')
     } catch (error) {
+      console.error('Sync Pull Error:', error)
       setConnectionStatus('error')
     }
-  }, [protheusConfig, apiFetch, processSyncQueue])
+  }, [protheusConfig, apiFetch, pendingOperations.length, processSyncQueue])
 
   // Lifecycle & Polling
   useEffect(() => {
@@ -325,20 +390,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (document.visibilityState === 'visible') syncProtheusData()
     }
     const handleOnline = () => {
-      setConnectionStatus('online')
-      syncProtheusData()
+      // Trigger sync when coming back online
+      processSyncQueue().then(() => syncProtheusData())
     }
     const handleOffline = () => setConnectionStatus('offline')
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    window.addEventListener('focus', syncProtheusData)
 
-    if (protheusConfig.isActive) syncProtheusData()
+    // Initial Sync
+    if (protheusConfig.isActive && navigator.onLine) {
+      syncProtheusData()
+    } else if (!navigator.onLine) {
+      setConnectionStatus('offline')
+    }
 
     const intervalId = setInterval(() => {
-      if (navigator.onLine && document.visibilityState === 'visible') {
+      if (
+        navigator.onLine &&
+        document.visibilityState === 'visible' &&
+        protheusConfig.isActive
+      ) {
         syncProtheusData()
       }
     }, systemSettings.refreshRate * 1000)
@@ -347,10 +420,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
-      window.removeEventListener('focus', syncProtheusData)
       clearInterval(intervalId)
     }
-  }, [syncProtheusData, systemSettings.refreshRate, protheusConfig.isActive])
+  }, [
+    syncProtheusData,
+    systemSettings.refreshRate,
+    protheusConfig.isActive,
+    processSyncQueue,
+  ])
 
   // CRUD Generator with Queue
   const createAction =
@@ -384,7 +461,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         } else if (type === 'UPDATE') {
           newData = prev.map((item) =>
-            item.id === entryOrId.id ? entryOrId : item,
+            item.id === entryOrId.id ? { ...item, ...entryOrId } : item,
           )
           newOp = {
             id: Math.random().toString(36),
@@ -411,23 +488,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return newData
       })
 
+      // Queue Management logic
       if (endpoint) {
         setPendingOperations((prev) => {
           const updated = [...prev, newOp!]
           setStorageData(STORAGE_KEYS.PENDING_SYNC, updated)
           return updated
         })
+
+        // Optimistically set status, actual processing happens via side effect or immediate call
         setConnectionStatus('pending')
-        processSyncQueue() // Try immediately
+
+        // Try to process immediately if online and active
+        if (navigator.onLine && protheusConfig.isActive) {
+          // Use setTimeout to allow state update to settle
+          setTimeout(() => processSyncQueue(), 0)
+        }
       }
     }
 
   const testProtheusConnection = async () => {
     try {
+      if (!protheusConfig.baseUrl) throw new Error('URL base não configurada')
       await apiFetch('factories') // Simple fetch to test auth
       return { success: true, message: 'Conexão OK' }
-    } catch {
-      return { success: false, message: 'Falha na conexão' }
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Falha na conexão' }
     }
   }
 
@@ -517,19 +603,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         qualityRecords,
         addQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
-          null,
+          'quality', // Added endpoint for syncing quality
           setQualityRecords,
           'ADD',
         ),
         updateQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
-          null,
+          'quality',
           setQualityRecords,
           'UPDATE',
         ),
         deleteQualityRecord: createAction(
           STORAGE_KEYS.QUALITY,
-          null,
+          'quality',
           setQualityRecords,
           'DELETE',
         ),

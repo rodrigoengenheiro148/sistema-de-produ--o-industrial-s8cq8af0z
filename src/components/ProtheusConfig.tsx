@@ -36,16 +36,29 @@ import {
 import { useData } from '@/context/DataContext'
 import { useToast } from '@/hooks/use-toast'
 
-const formSchema = z.object({
-  baseUrl: z.string().min(1, 'Base URL é obrigatória').url('URL inválida'),
-  clientId: z.string().min(1, 'Client ID é obrigatório'),
-  clientSecret: z.string().min(1, 'Client Secret é obrigatório'),
-  username: z.string().min(1, 'Usuário é obrigatório'),
-  password: z.string().min(1, 'Senha é obrigatória'),
-  syncInventory: z.boolean(),
-  syncProduction: z.boolean(),
-  isActive: z.boolean(),
-})
+const formSchema = z
+  .object({
+    baseUrl: z.string().optional(), // Optional initially, refined later if active
+    clientId: z.string().optional(),
+    clientSecret: z.string().optional(),
+    username: z.string().optional(),
+    password: z.string().optional(),
+    syncInventory: z.boolean(),
+    syncProduction: z.boolean(),
+    isActive: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      if (data.isActive) {
+        return !!data.baseUrl && data.baseUrl.length > 5
+      }
+      return true
+    },
+    {
+      message: 'URL da API é obrigatória para ativar a sincronização',
+      path: ['baseUrl'],
+    },
+  )
 
 export function ProtheusConfig() {
   const { protheusConfig, updateProtheusConfig, testProtheusConnection } =
@@ -64,11 +77,29 @@ export function ProtheusConfig() {
   const isActive = form.watch('isActive')
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    updateProtheusConfig(values)
-    toast({
-      title: 'Configurações Salvas',
-      description: 'As credenciais do Protheus foram atualizadas.',
-    })
+    // Force baseUrl to string if undefined to match type definition
+    const configToSave = {
+      ...values,
+      baseUrl: values.baseUrl || '',
+      clientId: values.clientId || '',
+      clientSecret: values.clientSecret || '',
+      username: values.username || '',
+      password: values.password || '',
+    }
+
+    updateProtheusConfig(configToSave)
+
+    if (configToSave.isActive) {
+      toast({
+        title: 'Configurações Salvas',
+        description: 'A sincronização está ativa. O sistema tentará conectar.',
+      })
+    } else {
+      toast({
+        title: 'Sincronização Pausada',
+        description: 'O modo offline foi ativado.',
+      })
+    }
     setConnectionStatus('idle')
   }
 
@@ -77,7 +108,29 @@ export function ProtheusConfig() {
     setConnectionStatus('idle')
 
     const currentValues = form.getValues()
-    updateProtheusConfig(currentValues)
+    // Validation is handled by form submission usually, but for test button we do manual check
+    if (!currentValues.baseUrl) {
+      toast({
+        title: 'Configuração Inválida',
+        description: 'Insira a URL da API para testar.',
+        variant: 'destructive',
+      })
+      setIsTesting(false)
+      return
+    }
+
+    const configToTest = {
+      ...protheusConfig,
+      ...currentValues,
+      baseUrl: currentValues.baseUrl || '',
+      clientId: currentValues.clientId || '',
+      clientSecret: currentValues.clientSecret || '',
+      username: currentValues.username || '',
+      password: currentValues.password || '',
+    }
+
+    // Update context temporarily to test
+    updateProtheusConfig(configToTest)
 
     try {
       const result = await testProtheusConnection()
@@ -187,7 +240,9 @@ export function ProtheusConfig() {
                     name="baseUrl"
                     render={({ field }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel>API Base URL</FormLabel>
+                        <FormLabel>
+                          API Base URL <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             placeholder="https://api.empresa.com.br/v1"

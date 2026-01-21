@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useData } from '@/context/DataContext'
 
 interface ConnectionStatusProps {
   status: StatusType
@@ -29,6 +30,8 @@ export function ConnectionStatus({
   className,
   lastSync,
 }: ConnectionStatusProps) {
+  const { pendingOperationsCount } = useData()
+
   const getStatusConfig = (status: StatusType) => {
     switch (status) {
       case 'online':
@@ -49,16 +52,19 @@ export function ConnectionStatus({
       case 'pending':
         return {
           icon: CloudUpload,
-          label: 'Pendente',
+          label:
+            pendingOperationsCount > 0
+              ? `Pendente (${pendingOperationsCount})`
+              : 'Pendente',
           color: 'bg-amber-100 text-amber-700 border-amber-200',
-          desc: 'Dados salvos localmente. Aguardando conexão.',
+          desc: `${pendingOperationsCount} operações aguardando envio.`,
         }
       case 'error':
         return {
           icon: AlertCircle,
           label: 'Erro de Sync',
           color: 'bg-red-100 text-red-700 border-red-200',
-          desc: 'Falha ao comunicar com o servidor.',
+          desc: 'Falha ao comunicar com o servidor. Verifique a configuração.',
         }
       case 'offline':
       default:
@@ -95,10 +101,19 @@ export function ConnectionStatus({
             </Badge>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" align="end" className="text-xs">
-          <p className="font-semibold">{config.desc}</p>
+        <TooltipContent
+          side="bottom"
+          align="end"
+          className="text-xs max-w-[200px]"
+        >
+          <p className="font-semibold mb-1">{config.desc}</p>
+          {status === 'pending' && pendingOperationsCount > 0 && (
+            <p className="text-xs text-muted-foreground mb-1">
+              Os dados serão enviados assim que a conexão for restabelecida.
+            </p>
+          )}
           {lastSync && (
-            <p className="text-muted-foreground mt-1">
+            <p className="text-muted-foreground border-t pt-1 mt-1">
               Último sync: {format(lastSync, 'HH:mm:ss', { locale: ptBR })}
             </p>
           )}
