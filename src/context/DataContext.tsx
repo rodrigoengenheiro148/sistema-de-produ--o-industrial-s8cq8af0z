@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react'
 import {
   RawMaterialEntry,
   ProductionEntry,
@@ -152,46 +158,134 @@ const MOCK_ACIDITY: AcidityEntry[] = [
   },
 ]
 
+const STORAGE_KEYS = {
+  RAW_MATERIALS: 'spi_raw_materials',
+  PRODUCTION: 'spi_production',
+  SHIPPING: 'spi_shipping',
+  ACIDITY: 'spi_acidity',
+}
+
+const dateTimeReviver = (key: string, value: any) => {
+  if (typeof value === 'string') {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+    if (dateRegex.test(value)) {
+      return new Date(value)
+    }
+  }
+  return value
+}
+
+const getStorageData = <T,>(key: string, defaultData: T): T => {
+  if (typeof window === 'undefined') return defaultData
+  try {
+    const item = localStorage.getItem(key)
+    if (item) {
+      return JSON.parse(item, dateTimeReviver) as T
+    }
+    localStorage.setItem(key, JSON.stringify(defaultData))
+    return defaultData
+  } catch (error) {
+    console.error(`Error reading ${key} from localStorage`, error)
+    return defaultData
+  }
+}
+
+const setStorageData = <T,>(key: string, data: T) => {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (error) {
+    console.error(`Error saving ${key} to localStorage`, error)
+  }
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [rawMaterials, setRawMaterials] =
-    useState<RawMaterialEntry[]>(MOCK_RAW_MATERIALS)
-  const [production, setProduction] =
-    useState<ProductionEntry[]>(MOCK_PRODUCTION)
-  const [shipping, setShipping] = useState<ShippingEntry[]>(MOCK_SHIPPING)
-  const [acidityRecords, setAcidityRecords] =
-    useState<AcidityEntry[]>(MOCK_ACIDITY)
+  const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
+  )
+  const [production, setProduction] = useState<ProductionEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.PRODUCTION, MOCK_PRODUCTION),
+  )
+  const [shipping, setShipping] = useState<ShippingEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.SHIPPING, MOCK_SHIPPING),
+  )
+  const [acidityRecords, setAcidityRecords] = useState<AcidityEntry[]>(() =>
+    getStorageData(STORAGE_KEYS.ACIDITY, MOCK_ACIDITY),
+  )
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   })
 
-  const addRawMaterial = (entry: Omit<RawMaterialEntry, 'id'>) => {
-    const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-    setRawMaterials((prev) => [newEntry, ...prev])
-  }
+  // Listen for storage events to sync across tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      try {
+        if (e.newValue) {
+          if (e.key === STORAGE_KEYS.RAW_MATERIALS) {
+            setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
+          } else if (e.key === STORAGE_KEYS.PRODUCTION) {
+            setProduction(JSON.parse(e.newValue, dateTimeReviver))
+          } else if (e.key === STORAGE_KEYS.SHIPPING) {
+            setShipping(JSON.parse(e.newValue, dateTimeReviver))
+          } else if (e.key === STORAGE_KEYS.ACIDITY) {
+            setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
+          }
+        }
+      } catch (error) {
+        console.error('Error handling storage change', error)
+      }
+    }
 
-  const addProduction = (entry: Omit<ProductionEntry, 'id'>) => {
-    const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-    setProduction((prev) => [newEntry, ...prev])
-  }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
-  const addShipping = (entry: Omit<ShippingEntry, 'id'>) => {
-    const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-    setShipping((prev) => [newEntry, ...prev])
-  }
+  const addRawMaterial = useCallback((entry: Omit<RawMaterialEntry, 'id'>) => {
+    setRawMaterials((prev) => {
+      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
+      const newData = [newEntry, ...prev]
+      setStorageData(STORAGE_KEYS.RAW_MATERIALS, newData)
+      return newData
+    })
+  }, [])
 
-  const addAcidityRecord = (entry: Omit<AcidityEntry, 'id'>) => {
-    const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
-    setAcidityRecords((prev) => [newEntry, ...prev])
-  }
+  const addProduction = useCallback((entry: Omit<ProductionEntry, 'id'>) => {
+    setProduction((prev) => {
+      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
+      const newData = [newEntry, ...prev]
+      setStorageData(STORAGE_KEYS.PRODUCTION, newData)
+      return newData
+    })
+  }, [])
 
-  const updateAcidityRecord = (entry: AcidityEntry) => {
-    setAcidityRecords((prev) =>
-      prev.map((item) => (item.id === entry.id ? entry : item)),
-    )
-  }
+  const addShipping = useCallback((entry: Omit<ShippingEntry, 'id'>) => {
+    setShipping((prev) => {
+      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
+      const newData = [newEntry, ...prev]
+      setStorageData(STORAGE_KEYS.SHIPPING, newData)
+      return newData
+    })
+  }, [])
+
+  const addAcidityRecord = useCallback((entry: Omit<AcidityEntry, 'id'>) => {
+    setAcidityRecords((prev) => {
+      const newEntry = { ...entry, id: Math.random().toString(36).substring(7) }
+      const newData = [newEntry, ...prev]
+      setStorageData(STORAGE_KEYS.ACIDITY, newData)
+      return newData
+    })
+  }, [])
+
+  const updateAcidityRecord = useCallback((entry: AcidityEntry) => {
+    setAcidityRecords((prev) => {
+      const newData = prev.map((item) => (item.id === entry.id ? entry : item))
+      setStorageData(STORAGE_KEYS.ACIDITY, newData)
+      return newData
+    })
+  }, [])
 
   return (
     <DataContext.Provider
