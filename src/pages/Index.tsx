@@ -38,10 +38,10 @@ import {
   TrendingUp,
   Factory as FactoryIcon,
   PieChart,
+  DollarSign,
   Droplets,
   Bone,
   Wheat,
-  DollarSign,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -201,14 +201,14 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 no-print">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 id="date"
                 variant={'outline'}
                 className={cn(
-                  'w-[240px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
+                  'w-full sm:w-[240px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
                   !dateRange && 'text-muted-foreground',
                 )}
               >
@@ -234,34 +234,34 @@ export default function Dashboard() {
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
                 onSelect={(range: any) => setDateRange(range)}
-                numberOfMonths={2}
+                numberOfMonths={isMobile ? 1 : 2}
                 className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
-          <ExportOptions />
+          <ExportOptions className="w-full sm:w-auto" />
         </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <div className="no-print">
-          <TabsList className="bg-muted/50">
+        <div className="no-print overflow-x-auto pb-2">
+          <TabsList className="bg-muted/50 w-full sm:w-auto flex">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               Visão Geral
             </TabsTrigger>
             <TabsTrigger
               value="yields"
-              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               Rendimentos Individuais
             </TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
             <Card
               className={cn(
                 'border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow',
@@ -344,11 +344,11 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4 shadow-sm border-primary/10">
+            <Card className="col-span-1 md:col-span-2 lg:col-span-4 shadow-sm border-primary/10">
               <CardHeader>
                 <CardTitle>Desempenho de Produção</CardTitle>
               </CardHeader>
-              <CardContent className="pl-2">
+              <CardContent className="pl-0 sm:pl-2">
                 <ChartContainer
                   config={chartConfig}
                   className="h-[300px] w-full"
@@ -364,6 +364,7 @@ export default function Dashboard() {
                     <YAxis
                       tickLine={false}
                       axisLine={false}
+                      width={isMobile ? 30 : 60}
                       tickFormatter={(value) => `${value / 1000}k`}
                     />
                     <ChartTooltip content={<ChartTooltipContent />} />
@@ -386,7 +387,7 @@ export default function Dashboard() {
                 </ChartContainer>
               </CardContent>
             </Card>
-            <Card className="col-span-3 shadow-sm border-primary/10">
+            <Card className="col-span-1 md:col-span-2 lg:col-span-3 shadow-sm border-primary/10">
               <CardHeader>
                 <CardTitle>Análise de Perdas</CardTitle>
               </CardHeader>
@@ -446,6 +447,7 @@ export default function Dashboard() {
                   <YAxis
                     tickLine={false}
                     axisLine={false}
+                    width={isMobile ? 35 : 60}
                     tickFormatter={(value) => `R$${value / 1000}k`}
                   />
                   <ChartTooltip
@@ -470,11 +472,12 @@ export default function Dashboard() {
                       position="top"
                       offset={12}
                       className="fill-foreground"
-                      fontSize={12}
+                      fontSize={isMobile ? 10 : 12}
                       formatter={(value: any) =>
                         new Intl.NumberFormat('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
+                          notation: isMobile ? 'compact' : 'standard',
                         }).format(Number(value))
                       }
                     />
@@ -544,7 +547,7 @@ export default function Dashboard() {
               >
                 <LineChart
                   data={yieldChartData}
-                  margin={{ top: 20, right: 20, left: 20, bottom: 10 }}
+                  margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
                 >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
@@ -556,6 +559,7 @@ export default function Dashboard() {
                   <YAxis
                     tickLine={false}
                     axisLine={false}
+                    width={40}
                     tickFormatter={(value) => `${value}%`}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />

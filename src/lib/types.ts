@@ -85,6 +85,8 @@ export interface Factory {
   createdAt: Date
 }
 
+export type ConnectionStatus = 'online' | 'offline' | 'syncing' | 'error'
+
 export interface DataContextType {
   rawMaterials: RawMaterialEntry[]
   production: ProductionEntry[]
@@ -133,6 +135,7 @@ export interface DataContextType {
   testProtheusConnection: () => Promise<{ success: boolean; message: string }>
   lastProtheusSync: Date | null
   syncProtheusData: () => Promise<void>
+  connectionStatus: ConnectionStatus
 
   clearAllData: () => void
 }

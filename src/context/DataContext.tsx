@@ -17,6 +17,7 @@ import {
   UserAccessEntry,
   ProtheusConfig,
   Factory,
+  ConnectionStatus,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -256,6 +257,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     to: endOfMonth(new Date()),
   })
 
+  // Connection Status State
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    navigator.onLine ? 'online' : 'offline',
+  )
+
   // Broadcast Channel for efficient cross-tab sync
   const broadcastChannel = useRef<BroadcastChannel | null>(null)
 
@@ -272,7 +278,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setUserAccessList(getStorageData(STORAGE_KEYS.USER_ACCESS, []))
       }
     }
-    return () => broadcastChannel.current?.close()
+
+    const handleOnline = () => setConnectionStatus('online')
+    const handleOffline = () => setConnectionStatus('offline')
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      broadcastChannel.current?.close()
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
   }, [])
 
   const broadcastUpdate = () => {
@@ -298,11 +315,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sendNotification = useCallback(
     (title: string, body: string) => {
+      // Show toast
+      toast({
+        title,
+        description: body,
+      })
+      // Show native notification if allowed and tab is hidden or requested
       if (permission === 'granted' && document.hidden) {
         new Notification(title, { body, icon: '/favicon.ico' })
       }
     },
-    [permission],
+    [permission, toast],
   )
 
   useEffect(() => {
@@ -467,6 +490,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const syncProtheusData = useCallback(async () => {
     if (!protheusConfig.isActive) return
 
+    setConnectionStatus('syncing')
+
     // Real API Sync Logic (Best Effort)
     try {
       // Parallel fetching for efficiency
@@ -507,9 +532,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       const now = new Date()
       setLastProtheusSync(now)
       setStorageData(STORAGE_KEYS.LAST_SYNC, now)
+      setConnectionStatus('online')
     } catch (error) {
       console.error('Sync failed:', error)
       // Silent fail for auto-sync to avoid spamming toasts
+      setConnectionStatus('error')
     }
   }, [protheusConfig, apiFetch])
 
@@ -741,6 +768,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         testProtheusConnection,
         lastProtheusSync,
         syncProtheusData,
+        connectionStatus,
 
         clearAllData,
       }}

@@ -18,10 +18,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { ConnectionStatus } from '@/components/ConnectionStatus'
 
 export default function DashboardLayout() {
   const location = useLocation()
-  const { isDeveloperMode, factories, currentFactoryId } = useData()
+  const {
+    isDeveloperMode,
+    factories,
+    currentFactoryId,
+    connectionStatus,
+    lastProtheusSync,
+  } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   const getTitle = () => {
@@ -73,7 +80,7 @@ export default function DashboardLayout() {
                   </TooltipContent>
                 </Tooltip>
               )}
-              <div>
+              <div className="flex flex-col">
                 <h1 className="text-lg font-bold text-primary tracking-tight leading-tight">
                   {getTitle()}
                 </h1>
@@ -84,14 +91,19 @@ export default function DashboardLayout() {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden md:inline-block font-medium">
+            <div className="flex items-center gap-2 md:gap-4">
+              <ConnectionStatus
+                status={connectionStatus}
+                lastSync={lastProtheusSync}
+              />
+
+              <span className="text-sm text-muted-foreground hidden md:inline-block font-medium border-l pl-4 ml-2">
                 {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative hover:bg-secondary text-muted-foreground hover:text-primary"
+                className="relative hover:bg-secondary text-muted-foreground hover:text-primary hidden md:inline-flex"
               >
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-accent" />

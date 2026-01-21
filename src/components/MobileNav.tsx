@@ -1,29 +1,15 @@
 import { Link, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Factory,
-  Building2,
-  Menu,
-  Package,
-} from 'lucide-react'
+import { LayoutDashboard, Factory, PieChart, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSidebar } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
 
 export function MobileNav() {
   const location = useLocation()
-  const { toggleSidebar } = useSidebar()
 
   const items = [
     {
-      title: 'Home',
+      title: 'Dashboard',
       url: '/',
       icon: LayoutDashboard,
-    },
-    {
-      title: 'Fábricas',
-      url: '/fabricas',
-      icon: Building2,
     },
     {
       title: 'Produção',
@@ -31,9 +17,14 @@ export function MobileNav() {
       icon: Factory,
     },
     {
-      title: 'Estoque',
-      url: '/estoque',
-      icon: Package,
+      title: 'Rendimentos',
+      url: '/rendimentos',
+      icon: PieChart,
+    },
+    {
+      title: 'Configuração',
+      url: '/settings',
+      icon: Settings,
     },
   ]
 
@@ -63,14 +54,6 @@ export function MobileNav() {
             </Link>
           )
         })}
-        <Button
-          variant="ghost"
-          className="flex flex-col items-center justify-center w-full h-full gap-1 h-auto py-0 rounded-none hover:bg-transparent text-muted-foreground hover:text-primary/70 active:scale-95 duration-200"
-          onClick={toggleSidebar}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Menu</span>
-        </Button>
       </div>
     </div>
   )
