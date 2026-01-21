@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -50,6 +51,23 @@ import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
 export default function Dashboard() {
   const { rawMaterials, production, shipping, dateRange, setDateRange } =
     useData()
+
+  // Visual feedback state
+  const [highlight, setHighlight] = useState(false)
+  const isFirstRender = useRef(true)
+
+  // Trigger visual highlight when data updates
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+
+    setHighlight(true)
+    const timer = setTimeout(() => setHighlight(false), 2000)
+
+    return () => clearTimeout(timer)
+  }, [rawMaterials, production, shipping])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {
@@ -157,6 +175,11 @@ export default function Dashboard() {
     farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
   }
 
+  // Dynamic classes for visual feedback
+  const highlightClass = highlight
+    ? 'ring-2 ring-primary bg-primary/5 shadow-md scale-[1.01] transition-all duration-300'
+    : 'transition-all duration-700'
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -224,7 +247,12 @@ export default function Dashboard() {
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              className={cn(
+                'border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow',
+                highlightClass,
+              )}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Entrada MP
@@ -237,7 +265,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              className={cn(
+                'border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow',
+                highlightClass,
+              )}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Produção
@@ -250,7 +283,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-chart-3 shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              className={cn(
+                'border-l-4 border-l-chart-3 shadow-sm hover:shadow-md transition-shadow',
+                highlightClass,
+              )}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Rendimento
@@ -263,7 +301,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-l-4 border-l-green-600 shadow-sm hover:shadow-md transition-shadow">
+            <Card
+              className={cn(
+                'border-l-4 border-l-green-600 shadow-sm hover:shadow-md transition-shadow',
+                highlightClass,
+              )}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Faturamento Total

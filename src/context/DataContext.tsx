@@ -14,6 +14,7 @@ import {
   DataContextType,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
+import { toast } from '@/hooks/use-toast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -175,7 +176,7 @@ const dateTimeReviver = (key: string, value: any) => {
   return value
 }
 
-const getStorageData = <T,>(key: string, defaultData: T): T => {
+const getStorageData = <T>(key: string, defaultData: T): T => {
   if (typeof window === 'undefined') return defaultData
   try {
     const item = localStorage.getItem(key)
@@ -190,7 +191,7 @@ const getStorageData = <T,>(key: string, defaultData: T): T => {
   }
 }
 
-const setStorageData = <T,>(key: string, data: T) => {
+const setStorageData = <T>(key: string, data: T) => {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(key, JSON.stringify(data))
@@ -224,14 +225,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     const handleStorageChange = (e: StorageEvent) => {
       try {
         if (e.newValue) {
+          let updated = false
+          let title = ''
+          let description = ''
+
           if (e.key === STORAGE_KEYS.RAW_MATERIALS) {
             setRawMaterials(JSON.parse(e.newValue, dateTimeReviver))
+            title = 'Matéria-Prima'
+            description = 'Novos dados de entrada sincronizados.'
+            updated = true
           } else if (e.key === STORAGE_KEYS.PRODUCTION) {
             setProduction(JSON.parse(e.newValue, dateTimeReviver))
+            title = 'Produção'
+            description = 'Dados de produção atualizados em tempo real.'
+            updated = true
           } else if (e.key === STORAGE_KEYS.SHIPPING) {
             setShipping(JSON.parse(e.newValue, dateTimeReviver))
+            title = 'Expedição'
+            description = 'Registros de faturamento atualizados.'
+            updated = true
           } else if (e.key === STORAGE_KEYS.ACIDITY) {
             setAcidityRecords(JSON.parse(e.newValue, dateTimeReviver))
+            title = 'Qualidade'
+            description = 'Novas medições de acidez detectadas.'
+            updated = true
+          }
+
+          if (updated) {
+            toast({
+              title: `${title} Atualizada`,
+              description: description,
+              variant: 'default',
+              className: 'border-l-4 border-l-primary',
+            })
           }
         }
       } catch (error) {
