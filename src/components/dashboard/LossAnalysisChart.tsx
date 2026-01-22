@@ -34,6 +34,7 @@ interface LossAnalysisChartProps {
 export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
     // Filter out entries with 0 losses and map to chart format
+    // Strict requirement: Bars with a value of 0 must not be displayed.
     const processedData = data
       .filter((p) => p.losses > 0)
       .map((p) => ({

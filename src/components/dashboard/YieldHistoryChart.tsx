@@ -16,7 +16,8 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import {
-  LineChart,
+  ComposedChart,
+  Bar,
   Line,
   CartesianGrid,
   XAxis,
@@ -35,7 +36,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, CalendarDays, CalendarRange, Filter } from 'lucide-react'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -50,6 +50,44 @@ interface YieldHistoryChartProps {
   data: ProductionEntry[]
   isMobile?: boolean
   className?: string
+}
+
+// Helper to calculate exponential trend line points: y = a * e^(b * x)
+const calculateExponentialTrend = (dataPoints: number[]) => {
+  // Filter valid points for regression (y > 0 for log)
+  // x is the index
+  const validPoints = dataPoints
+    .map((y, x) => ({ x, y }))
+    .filter((p) => p.y > 0)
+
+  if (validPoints.length < 2) return Array(dataPoints.length).fill(null)
+
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumXX = 0
+  const n = validPoints.length
+
+  validPoints.forEach((p) => {
+    const logY = Math.log(p.y)
+    sumX += p.x
+    sumY += logY
+    sumXY += p.x * logY
+    sumXX += p.x * p.x
+  })
+
+  const denominator = n * sumXX - sumX * sumX
+  if (denominator === 0) return Array(dataPoints.length).fill(null)
+
+  const b = (n * sumXY - sumX * sumY) / denominator
+  const a = Math.exp((sumY - b * sumX) / n)
+
+  // Generate trend points for all original indices
+  return dataPoints.map((_, x) => {
+    const val = a * Math.exp(b * x)
+    // Cap at 100% or 0% for sanity, though exponential can grow indefinitely
+    return Math.max(0, Math.min(100, val))
+  })
 }
 
 export function YieldHistoryChart({
@@ -67,6 +105,7 @@ export function YieldHistoryChart({
   const { chartData, chartConfig } = useMemo(() => {
     let processedData: any[] = []
 
+    // 1. Prepare Base Data
     if (timeScale === 'daily') {
       processedData = data
         .sort((a, b) => a.date.getTime() - b.date.getTime())
@@ -80,8 +119,6 @@ export function YieldHistoryChart({
     } else {
       // Monthly Aggregation
       const monthlyData = new Map<string, any>()
-
-      // Sort data first to ensure chronological order when processing
       const sortedData = [...data].sort(
         (a, b) => a.date.getTime() - b.date.getTime(),
       )
@@ -93,7 +130,7 @@ export function YieldHistoryChart({
         if (!monthlyData.has(monthKey)) {
           monthlyData.set(monthKey, {
             monthKey,
-            date: displayDate, // Use formatted month as display date
+            date: displayDate,
             mpUsed: 0,
             seboProduced: 0,
             fcoProduced: 0,
@@ -117,13 +154,38 @@ export function YieldHistoryChart({
       }))
     }
 
+    // 2. Calculate Trend Lines
+    // Extract series
+    const seboSeries = processedData.map((d) => d.sebo as number)
+    const fcoSeries = processedData.map((d) => d.fco as number)
+    const farinhetaSeries = processedData.map((d) => d.farinheta as number)
+
+    // Compute trends
+    const seboTrend = calculateExponentialTrend(seboSeries)
+    const fcoTrend = calculateExponentialTrend(fcoSeries)
+    const farinhetaTrend = calculateExponentialTrend(farinhetaSeries)
+
+    // Merge trends back into processedData
+    const finalData = processedData.map((item, index) => ({
+      ...item,
+      sebo_trend: seboTrend[index],
+      fco_trend: fcoTrend[index],
+      farinheta_trend: farinhetaTrend[index],
+    }))
+
     const config: ChartConfig = {
       sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
       fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
       farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
+      sebo_trend: { label: 'Tendência Sebo', color: 'hsl(var(--chart-1))' },
+      fco_trend: { label: 'Tendência FCO', color: 'hsl(var(--chart-2))' },
+      farinheta_trend: {
+        label: 'Tendência Farinheta',
+        color: 'hsl(var(--chart-3))',
+      },
     }
 
-    return { chartData: processedData, chartConfig: config }
+    return { chartData: finalData, chartConfig: config }
   }, [data, timeScale])
 
   if (!data || data.length === 0) {
@@ -131,7 +193,9 @@ export function YieldHistoryChart({
       <Card className={cn('shadow-sm border-primary/10', className)}>
         <CardHeader>
           <CardTitle>Histórico de Rendimentos</CardTitle>
-          <CardDescription>Evolução percentual dos rendimentos</CardDescription>
+          <CardDescription>
+            Evolução percentual dos rendimentos com tendência
+          </CardDescription>
         </CardHeader>
         <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
           Nenhum dado de rendimento disponível.
@@ -143,7 +207,6 @@ export function YieldHistoryChart({
   const toggleProduct = (product: string) => {
     setSelectedProducts((prev) => {
       if (prev.includes(product)) {
-        // Prevent unselecting all
         if (prev.length === 1) return prev
         return prev.filter((p) => p !== product)
       }
@@ -153,7 +216,7 @@ export function YieldHistoryChart({
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <LineChart
+      <ComposedChart
         data={chartData}
         margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
       >
@@ -170,70 +233,75 @@ export function YieldHistoryChart({
           axisLine={false}
           width={40}
           tickFormatter={(value) => `${value}%`}
+          domain={[0, 'auto']}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
+
+        {/* Bars */}
+        {selectedProducts.includes('sebo') && (
+          <Bar
+            dataKey="sebo"
+            fill="var(--color-sebo)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={40}
+            name="Sebo"
+          />
+        )}
+        {selectedProducts.includes('fco') && (
+          <Bar
+            dataKey="fco"
+            fill="var(--color-fco)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={40}
+            name="FCO"
+          />
+        )}
+        {selectedProducts.includes('farinheta') && (
+          <Bar
+            dataKey="farinheta"
+            fill="var(--color-farinheta)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={40}
+            name="Farinheta"
+          />
+        )}
+
+        {/* Trend Lines (Exponential) */}
         {selectedProducts.includes('sebo') && (
           <Line
             type="monotone"
-            dataKey="sebo"
+            dataKey="sebo_trend"
             stroke="var(--color-sebo)"
             strokeWidth={2}
-            dot={{ r: 4, fill: 'var(--color-sebo)' }}
-            activeDot={{ r: 6 }}
-          >
-            {timeScale === 'monthly' && (
-              <LabelList
-                position="top"
-                offset={12}
-                fill="var(--color-sebo)"
-                fontSize={isMobile ? 9 : 12}
-                formatter={(value: number) => `${value.toFixed(1)}%`}
-              />
-            )}
-          </Line>
+            strokeDasharray="4 4"
+            dot={false}
+            name="Tend. Sebo"
+          />
         )}
         {selectedProducts.includes('fco') && (
           <Line
             type="monotone"
-            dataKey="fco"
+            dataKey="fco_trend"
             stroke="var(--color-fco)"
             strokeWidth={2}
-            dot={{ r: 4, fill: 'var(--color-fco)' }}
-            activeDot={{ r: 6 }}
-          >
-            {timeScale === 'monthly' && (
-              <LabelList
-                position="top"
-                offset={12}
-                fill="var(--color-fco)"
-                fontSize={isMobile ? 9 : 12}
-                formatter={(value: number) => `${value.toFixed(1)}%`}
-              />
-            )}
-          </Line>
+            strokeDasharray="4 4"
+            dot={false}
+            name="Tend. FCO"
+          />
         )}
         {selectedProducts.includes('farinheta') && (
           <Line
             type="monotone"
-            dataKey="farinheta"
+            dataKey="farinheta_trend"
             stroke="var(--color-farinheta)"
             strokeWidth={2}
-            dot={{ r: 4, fill: 'var(--color-farinheta)' }}
-            activeDot={{ r: 6 }}
-          >
-            {timeScale === 'monthly' && (
-              <LabelList
-                position="top"
-                offset={12}
-                fill="var(--color-farinheta)"
-                fontSize={isMobile ? 9 : 12}
-                formatter={(value: number) => `${value.toFixed(1)}%`}
-              />
-            )}
-          </Line>
+            strokeDasharray="4 4"
+            dot={false}
+            name="Tend. Farinheta"
+          />
         )}
-      </LineChart>
+      </ComposedChart>
     </ChartContainer>
   )
 
@@ -245,7 +313,7 @@ export function YieldHistoryChart({
         <div>
           <CardTitle>Histórico de Rendimentos</CardTitle>
           <CardDescription>
-            Evolução percentual dos rendimentos (
+            Barras de produção com linha de tendência exponencial (
             {timeScale === 'daily' ? 'Diário' : 'Mensal'})
           </CardDescription>
         </div>
@@ -315,7 +383,8 @@ export function YieldHistoryChart({
               <DialogHeader>
                 <DialogTitle>Histórico de Rendimentos</DialogTitle>
                 <DialogDescription>
-                  Visualização detalhada dos rendimentos.
+                  Visualização detalhada dos rendimentos com análise de
+                  tendência.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 w-full min-h-0 py-4">

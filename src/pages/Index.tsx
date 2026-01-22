@@ -169,6 +169,15 @@ export default function Dashboard() {
   const yieldFarinheta =
     totalMPUsada > 0 ? (totalFarinheta / totalMPUsada) * 100 : 0
 
+  // Helper for conditional coloring based on targets
+  const getYieldColorClass = (value: number, target: number) => {
+    // If no data (0), stay neutral or handle as needed. Assuming 0 is bad if target > 0.
+    if (value === 0 && target > 0) return 'text-destructive'
+    return value >= target
+      ? 'text-green-600 dark:text-green-500'
+      : 'text-destructive'
+  }
+
   // Dynamic classes for visual feedback
   const highlightClass = highlight
     ? 'ring-2 ring-primary bg-primary/5 shadow-md scale-[1.01] transition-all duration-300'
@@ -364,7 +373,14 @@ export default function Dashboard() {
                 />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{yieldSebo.toFixed(2)}%</div>
+                <div
+                  className={cn(
+                    'text-xl font-bold',
+                    getYieldColorClass(yieldSebo, yieldTargets.sebo),
+                  )}
+                >
+                  {yieldSebo.toFixed(2)}%
+                </div>
               </CardContent>
             </Card>
             <Card className="shadow-sm border-primary/10 bg-card/50">
@@ -378,7 +394,14 @@ export default function Dashboard() {
                 />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{yieldFCO.toFixed(2)}%</div>
+                <div
+                  className={cn(
+                    'text-xl font-bold',
+                    getYieldColorClass(yieldFCO, yieldTargets.fco),
+                  )}
+                >
+                  {yieldFCO.toFixed(2)}%
+                </div>
               </CardContent>
             </Card>
             <Card className="shadow-sm border-primary/10 bg-card/50">
@@ -392,7 +415,12 @@ export default function Dashboard() {
                 />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">
+                <div
+                  className={cn(
+                    'text-xl font-bold',
+                    getYieldColorClass(yieldFarinheta, yieldTargets.farinheta),
+                  )}
+                >
                   {yieldFarinheta.toFixed(2)}%
                 </div>
               </CardContent>
@@ -485,10 +513,6 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="yields" className="space-y-4">
-          {/* Note: Small cards removed from here as they are now in Overview, but we could keep or remove them.
-              Given the user request was to visualize in Overview, having them there satisfies the story.
-              The tab is now dedicated to detailed history analysis.
-          */}
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
         </TabsContent>
       </Tabs>
