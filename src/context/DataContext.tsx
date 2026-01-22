@@ -44,6 +44,11 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   emailEnabled: false,
   smsEnabled: false,
   yieldThreshold: 0,
+  seboThreshold: 0,
+  farinhetaThreshold: 0,
+  farinhaThreshold: 0,
+  notificationEmail: '',
+  notificationPhone: '',
 }
 
 // Helper to safely parse dates, forcing local noon for date-only strings to avoid timezone shifts
@@ -157,7 +162,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .order('date', { ascending: false }),
         supabase.from('factories').select('*'),
         supabase.from('integration_configs').select('*').limit(1).maybeSingle(),
-        // @ts-expect-error - notification_settings table is created in a migration
+        // @ts-expect-error - notification_settings table columns are created in migrations
         supabase
           .from('notification_settings')
           .select('*')
@@ -187,11 +192,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (notifications) {
-        setNotificationSettings({
+        const settings: NotificationSettings = {
           id: notifications.id,
           emailEnabled: notifications.email_enabled || false,
           smsEnabled: notifications.sms_enabled || false,
           yieldThreshold: notifications.yield_threshold || 0,
+          seboThreshold: notifications.sebo_threshold || 0,
+          farinhetaThreshold: notifications.farinheta_threshold || 0,
+          farinhaThreshold: notifications.farinha_threshold || 0,
+          notificationEmail: notifications.notification_email || '',
+          notificationPhone: notifications.notification_phone || '',
+        }
+        setNotificationSettings(settings)
+
+        // Sync yield targets with notification settings
+        setYieldTargets({
+          sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
+          fco: settings.farinhaThreshold || DEFAULT_YIELD_TARGETS.fco,
+          farinheta:
+            settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
+          total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total,
         })
       }
 
@@ -516,11 +536,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const updateNotificationSettings = async (settings: NotificationSettings) => {
     setNotificationSettings(settings)
+    // Keep yieldTargets in sync locally immediately
+    setYieldTargets({
+      sebo: settings.seboThreshold,
+      fco: settings.farinhaThreshold,
+      farinheta: settings.farinhetaThreshold,
+      total: settings.yieldThreshold,
+    })
 
     const dataToUpsert = {
       email_enabled: settings.emailEnabled,
       sms_enabled: settings.smsEnabled,
       yield_threshold: settings.yieldThreshold,
+      sebo_threshold: settings.seboThreshold,
+      farinheta_threshold: settings.farinhetaThreshold,
+      farinha_threshold: settings.farinhaThreshold,
+      notification_email: settings.notificationEmail,
+      notification_phone: settings.notificationPhone,
       user_id: user?.id,
     }
 
@@ -549,6 +581,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     fetchData()
+  }
+
+  // Handler for Yields page to update targets via notification settings
+  const updateYieldTargets = async (targets: YieldTargets) => {
+    const updatedSettings = {
+      ...notificationSettings,
+      seboThreshold: targets.sebo,
+      farinhaThreshold: targets.fco,
+      farinhetaThreshold: targets.farinheta,
+      yieldThreshold: targets.total,
+    }
+    await updateNotificationSettings(updatedSettings)
   }
 
   const testProtheusConnection = async () => {
@@ -652,7 +696,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         systemSettings,
         updateSystemSettings: setSystemSettings,
         yieldTargets,
-        updateYieldTargets: setYieldTargets,
+        updateYieldTargets,
 
         protheusConfig,
         updateProtheusConfig,

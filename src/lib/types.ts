@@ -100,6 +100,11 @@ export interface NotificationSettings {
   emailEnabled: boolean
   smsEnabled: boolean
   yieldThreshold: number
+  seboThreshold: number
+  farinhetaThreshold: number
+  farinhaThreshold: number
+  notificationEmail: string
+  notificationPhone: string
 }
 
 export interface Factory {

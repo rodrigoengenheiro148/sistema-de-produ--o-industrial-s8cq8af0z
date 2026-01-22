@@ -22,6 +22,9 @@ import {
   Server,
   AlertTriangle,
   Bell,
+  Mail,
+  Phone,
+  Target,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -108,21 +111,62 @@ export default function Settings() {
   }
 
   const handleSaveNotifications = async () => {
-    if (localNotifications.yieldThreshold < 0) {
+    // Validation
+    if (
+      localNotifications.yieldThreshold < 0 ||
+      localNotifications.seboThreshold < 0 ||
+      localNotifications.farinhetaThreshold < 0 ||
+      localNotifications.farinhaThreshold < 0
+    ) {
       toast({
         title: 'Valor Inválido',
-        description: 'A meta de rendimento deve ser positiva.',
+        description: 'As metas de rendimento devem ser positivas.',
         variant: 'destructive',
       })
       return
     }
 
-    await updateNotificationSettings(localNotifications)
-    toast({
-      title: 'Configurações de Alerta Salvas',
-      description:
-        'Suas preferências de notificação foram atualizadas com sucesso.',
-    })
+    if (
+      localNotifications.emailEnabled &&
+      (!localNotifications.notificationEmail ||
+        !localNotifications.notificationEmail.includes('@'))
+    ) {
+      toast({
+        title: 'Email Inválido',
+        description:
+          'Por favor, insira um endereço de email válido para receber alertas.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (
+      localNotifications.smsEnabled &&
+      !localNotifications.notificationPhone
+    ) {
+      toast({
+        title: 'Telefone Obrigatório',
+        description: 'Insira um número de telefone para receber alertas SMS.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      await updateNotificationSettings(localNotifications)
+      toast({
+        title: 'Configurações de Alerta Salvas',
+        description:
+          'Suas preferências de notificação e metas foram atualizadas com sucesso.',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro ao Salvar',
+        description:
+          'Ocorreu um erro ao salvar as configurações. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const handleClearData = async () => {
@@ -163,13 +207,218 @@ export default function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="connection" className="space-y-4">
+      <Tabs defaultValue="alerts" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="alerts">Alertas & Metas</TabsTrigger>
           <TabsTrigger value="connection">Conexão API</TabsTrigger>
           <TabsTrigger value="system">Sistema</TabsTrigger>
-          <TabsTrigger value="alerts">Alertas</TabsTrigger>
           <TabsTrigger value="danger">Zona de Perigo</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" /> Configuração de Alertas de
+                Desempenho
+              </CardTitle>
+              <CardDescription>
+                Defina os canais de comunicação e as metas mínimas de produção.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4" /> Notificações
+                </h3>
+                <div className="grid gap-4 border rounded-lg p-4 bg-muted/20">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Alertas por E-mail</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receba relatórios quando as metas não forem atingidas.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={localNotifications.emailEnabled}
+                      onCheckedChange={(checked) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          emailEnabled: checked,
+                        })
+                      }
+                    />
+                  </div>
+                  {localNotifications.emailEnabled && (
+                    <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
+                      <Label htmlFor="notification-email">
+                        E-mail de Destino
+                      </Label>
+                      <Input
+                        id="notification-email"
+                        type="email"
+                        placeholder="gerente@industria.com"
+                        value={localNotifications.notificationEmail}
+                        onChange={(e) =>
+                          setLocalNotifications({
+                            ...localNotifications,
+                            notificationEmail: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-start justify-between pt-2 border-t mt-2">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Alertas por SMS</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Avisos urgentes diretamente no celular.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={localNotifications.smsEnabled}
+                      onCheckedChange={(checked) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          smsEnabled: checked,
+                        })
+                      }
+                    />
+                  </div>
+                  {localNotifications.smsEnabled && (
+                    <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
+                      <Label htmlFor="notification-phone">
+                        Telefone Celular
+                      </Label>
+                      <div className="relative">
+                        <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="notification-phone"
+                          type="tel"
+                          placeholder="+55 11 99999-9999"
+                          className="pl-9"
+                          value={localNotifications.notificationPhone}
+                          onChange={(e) =>
+                            setLocalNotifications({
+                              ...localNotifications,
+                              notificationPhone: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Target className="h-4 w-4" /> Metas de Rendimento (%)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="sebo-threshold">Meta Sebo</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="sebo-threshold"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={localNotifications.seboThreshold}
+                        onChange={(e) =>
+                          setLocalNotifications({
+                            ...localNotifications,
+                            seboThreshold: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <span className="text-muted-foreground w-6">%</span>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="farinha-threshold">
+                      Meta Farinha (FCO)
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="farinha-threshold"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={localNotifications.farinhaThreshold}
+                        onChange={(e) =>
+                          setLocalNotifications({
+                            ...localNotifications,
+                            farinhaThreshold: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <span className="text-muted-foreground w-6">%</span>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="farinheta-threshold">Meta Farinheta</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="farinheta-threshold"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={localNotifications.farinhetaThreshold}
+                        onChange={(e) =>
+                          setLocalNotifications({
+                            ...localNotifications,
+                            farinhetaThreshold: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <span className="text-muted-foreground w-6">%</span>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label
+                      htmlFor="yield-threshold"
+                      className="font-bold text-primary"
+                    >
+                      Meta Total Fábrica
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="yield-threshold"
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        className="border-primary/50 bg-primary/5 font-medium"
+                        value={localNotifications.yieldThreshold}
+                        onChange={(e) =>
+                          setLocalNotifications({
+                            ...localNotifications,
+                            yieldThreshold: Number(e.target.value),
+                          })
+                        }
+                      />
+                      <span className="text-muted-foreground w-6">%</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  * Você será notificado se o rendimento diário cair abaixo
+                  destes valores.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t p-6">
+              <Button onClick={handleSaveNotifications}>
+                <Save className="mr-2 h-4 w-4" /> Salvar Configurações
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="connection" className="space-y-4">
           <Card>
@@ -345,98 +594,6 @@ export default function Settings() {
             <CardFooter className="border-t p-6">
               <Button onClick={handleSaveSystem}>
                 <Save className="mr-2 h-4 w-4" /> Salvar Preferências
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" /> Configurações de Alertas de
-                Desempenho
-              </CardTitle>
-              <CardDescription>
-                Defina como e quando você deseja ser notificado sobre
-                indicadores de produção.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col space-y-4">
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="email-alerts" className="text-base">
-                      Alertas por E-mail
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba notificações diárias sobre o desempenho da produção
-                      no seu e-mail cadastrado.
-                    </p>
-                  </div>
-                  <Switch
-                    id="email-alerts"
-                    checked={localNotifications.emailEnabled}
-                    onCheckedChange={(checked) =>
-                      setLocalNotifications({
-                        ...localNotifications,
-                        emailEnabled: checked,
-                      })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="sms-alerts" className="text-base">
-                      Alertas por SMS
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receba alertas urgentes diretamente no seu telefone
-                      celular.
-                    </p>
-                  </div>
-                  <Switch
-                    id="sms-alerts"
-                    checked={localNotifications.smsEnabled}
-                    onCheckedChange={(checked) =>
-                      setLocalNotifications({
-                        ...localNotifications,
-                        smsEnabled: checked,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2 pt-2">
-                <Label htmlFor="yield-threshold">Meta de Rendimento (%)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="yield-threshold"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    className="max-w-[200px]"
-                    value={localNotifications.yieldThreshold}
-                    onChange={(e) =>
-                      setLocalNotifications({
-                        ...localNotifications,
-                        yieldThreshold: Number(e.target.value),
-                      })
-                    }
-                  />
-                  <span className="text-muted-foreground">%</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Você será notificado se o rendimento diário cair abaixo deste
-                  valor.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t p-6">
-              <Button onClick={handleSaveNotifications}>
-                <Save className="mr-2 h-4 w-4" /> Salvar Configurações de Alerta
               </Button>
             </CardFooter>
           </Card>
