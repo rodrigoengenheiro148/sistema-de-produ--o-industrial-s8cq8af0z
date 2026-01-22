@@ -100,7 +100,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         <div>
           <CardTitle>Análise de Perdas</CardTitle>
           <CardDescription>
-            Volume de quebra técnica e perdas por dia ( > 0kg )
+            Volume de quebra técnica e perdas por dia ( &gt; 0kg )
           </CardDescription>
         </div>
         <Dialog>
