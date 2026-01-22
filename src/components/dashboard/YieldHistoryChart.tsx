@@ -246,7 +246,18 @@ export function YieldHistoryChart({
             radius={[4, 4, 0, 0]}
             maxBarSize={40}
             name="Sebo"
-          />
+          >
+            <LabelList
+              dataKey="sebo"
+              position="top"
+              offset={5}
+              className="fill-foreground font-bold"
+              fontSize={10}
+              formatter={(value: any) =>
+                value > 0 ? `${value.toFixed(1)}%` : ''
+              }
+            />
+          </Bar>
         )}
         {selectedProducts.includes('fco') && (
           <Bar
@@ -255,7 +266,18 @@ export function YieldHistoryChart({
             radius={[4, 4, 0, 0]}
             maxBarSize={40}
             name="FCO"
-          />
+          >
+            <LabelList
+              dataKey="fco"
+              position="top"
+              offset={5}
+              className="fill-foreground font-bold"
+              fontSize={10}
+              formatter={(value: any) =>
+                value > 0 ? `${value.toFixed(1)}%` : ''
+              }
+            />
+          </Bar>
         )}
         {selectedProducts.includes('farinheta') && (
           <Bar
@@ -264,7 +286,18 @@ export function YieldHistoryChart({
             radius={[4, 4, 0, 0]}
             maxBarSize={40}
             name="Farinheta"
-          />
+          >
+            <LabelList
+              dataKey="farinheta"
+              position="top"
+              offset={5}
+              className="fill-foreground font-bold"
+              fontSize={10}
+              formatter={(value: any) =>
+                value > 0 ? `${value.toFixed(1)}%` : ''
+              }
+            />
+          </Bar>
         )}
 
         {/* Trend Lines (Exponential) */}
@@ -313,8 +346,7 @@ export function YieldHistoryChart({
         <div>
           <CardTitle>Histórico de Rendimentos</CardTitle>
           <CardDescription>
-            Barras de produção com linha de tendência exponencial (
-            {timeScale === 'daily' ? 'Diário' : 'Mensal'})
+            Evolução percentual dos rendimentos com tendência
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">

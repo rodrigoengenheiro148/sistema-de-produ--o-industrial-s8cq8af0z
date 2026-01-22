@@ -15,7 +15,14 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
+} from 'recharts'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -75,7 +82,7 @@ export function ProductionPerformanceChart({
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
       <LineChart
         data={chartData}
-        margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+        margin={{ top: 20, right: 20, left: 10, bottom: 0 }}
       >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
@@ -98,15 +105,37 @@ export function ProductionPerformanceChart({
           dataKey="producao"
           stroke="var(--color-producao)"
           strokeWidth={2}
-          dot={false}
-        />
+          dot={{ r: 4, fill: 'var(--color-producao)' }}
+          activeDot={{ r: 6 }}
+        >
+          <LabelList
+            position="top"
+            offset={12}
+            className="fill-foreground font-bold"
+            fontSize={10}
+            formatter={(value: any) =>
+              value > 0 ? `${(value / 1000).toFixed(1)}k` : ''
+            }
+          />
+        </Line>
         <Line
           type="monotone"
           dataKey="mp"
           stroke="var(--color-mp)"
           strokeWidth={2}
-          dot={false}
-        />
+          dot={{ r: 4, fill: 'var(--color-mp)' }}
+          activeDot={{ r: 6 }}
+        >
+          <LabelList
+            position="bottom"
+            offset={12}
+            className="fill-muted-foreground"
+            fontSize={9}
+            formatter={(value: any) =>
+              value > 0 ? `${(value / 1000).toFixed(1)}k` : ''
+            }
+          />
+        </Line>
       </LineChart>
     </ChartContainer>
   )

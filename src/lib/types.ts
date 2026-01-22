@@ -84,6 +84,7 @@ export interface UserAccessEntry {
 }
 
 export interface ProtheusConfig {
+  id?: string
   baseUrl: string
   clientId: string
   clientSecret: string

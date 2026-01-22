@@ -83,11 +83,11 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
           <LabelList
             dataKey="perdas"
             position="top"
-            offset={12}
-            className="fill-foreground"
-            fontSize={12}
+            offset={8}
+            className="fill-foreground font-bold"
+            fontSize={11}
             formatter={(value: any) =>
-              value > 0 ? `${value.toLocaleString('pt-BR')} kg` : ''
+              value > 0 ? `${value.toLocaleString('pt-BR')}` : ''
             }
           />
         </Bar>

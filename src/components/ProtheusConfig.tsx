@@ -79,6 +79,7 @@ export function ProtheusConfig() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Force baseUrl to string if undefined to match type definition
     const configToSave = {
+      ...protheusConfig, // Keep existing ID if present
       ...values,
       baseUrl: values.baseUrl || '',
       clientId: values.clientId || '',
@@ -119,6 +120,7 @@ export function ProtheusConfig() {
       return
     }
 
+    // Use current form values for testing, not just saved state
     const configToTest = {
       ...protheusConfig,
       ...currentValues,
@@ -129,11 +131,15 @@ export function ProtheusConfig() {
       password: currentValues.password || '',
     }
 
-    // Update context temporarily to test
-    updateProtheusConfig(configToTest)
-
     try {
+      // We update the config first so the context has the latest for the test function
+      updateProtheusConfig(configToTest)
+
+      // Give a small delay for state update
+      await new Promise((r) => setTimeout(r, 500))
+
       const result = await testProtheusConnection()
+
       if (result.success) {
         setConnectionStatus('success')
         toast({

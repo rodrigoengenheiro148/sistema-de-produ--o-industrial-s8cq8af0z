@@ -108,8 +108,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   // Fetch all data from Supabase
-  // Wrapped in useCallback to be stable for useEffect dependencies if needed,
-  // though currently mostly used inside useEffect where user changes
   const fetchData = useCallback(async () => {
     if (!user) {
       setConnectionStatus('offline')
@@ -124,6 +122,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: acid },
         { data: qual },
         { data: fact },
+        { data: integration },
       ] = await Promise.all([
         supabase
           .from('raw_materials')
@@ -146,6 +145,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('*')
           .order('date', { ascending: false }),
         supabase.from('factories').select('*'),
+        supabase.from('integration_configs').select('*').limit(1).single(),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -155,8 +155,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (qual) setQualityRecords(mapData(qual))
       if (fact) setFactories(mapData(fact))
 
+      if (integration) {
+        setProtheusConfig({
+          id: integration.id,
+          baseUrl: integration.base_url || '',
+          clientId: integration.client_id || '',
+          clientSecret: integration.client_secret || '',
+          username: integration.username || '',
+          password: integration.password || '',
+          syncInventory: integration.sync_inventory || false,
+          syncProduction: integration.sync_production || false,
+          isActive: integration.is_active || false,
+        })
+      }
+
       setLastProtheusSync(new Date())
     } catch (error) {
+      // It's ok if integration config is not found (error code PGRST116)
       console.error('Error fetching data:', error)
       setConnectionStatus('error')
     }
@@ -180,8 +195,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchData().then(() => setConnectionStatus('online'))
 
     // Realtime subscriptions
-    // Using a simple channel name.
-    // Ensure tables are added to supabase_realtime publication in database migration.
     const channel = supabase
       .channel('db-changes')
       .on(
@@ -214,9 +227,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setConnectionStatus('online')
         } else if (status === 'CHANNEL_ERROR') {
           console.error(`Realtime subscription error: ${status}`, err)
-          setConnectionStatus('error')
-        } else if (status === 'TIMED_OUT') {
-          console.error(`Realtime subscription error: ${status}`)
           setConnectionStatus('error')
         }
       })
@@ -434,6 +444,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) console.error('Error deleting factory:', error)
   }
 
+  // --- Integration Handlers ---
+
+  const updateProtheusConfig = async (config: ProtheusConfig) => {
+    // Optimistic update
+    setProtheusConfig(config)
+
+    // Persist to DB
+    const dataToUpsert = {
+      base_url: config.baseUrl,
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      username: config.username,
+      password: config.password,
+      sync_inventory: config.syncInventory,
+      sync_production: config.syncProduction,
+      is_active: config.isActive,
+      user_id: user?.id,
+      // if config.id exists, it will update, otherwise insert (if user_id constraint matches)
+      // But since we rely on user_id, let's look for existing config for this user first or rely on RLS
+    }
+
+    if (config.id) {
+      await supabase
+        .from('integration_configs')
+        .update(dataToUpsert)
+        .eq('id', config.id)
+    } else {
+      // Check if exists for user
+      const { data: existing } = await supabase
+        .from('integration_configs')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single()
+      if (existing) {
+        await supabase
+          .from('integration_configs')
+          .update(dataToUpsert)
+          .eq('id', existing.id)
+      } else {
+        await supabase.from('integration_configs').insert(dataToUpsert)
+      }
+    }
+
+    // Refresh to get the ID if needed
+    fetchData()
+  }
+
+  const testProtheusConnection = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('protheus-sync', {
+        body: {
+          action: 'test-connection',
+          config: protheusConfig,
+        },
+      })
+
+      if (error) throw error
+      return { success: data.success, message: data.message }
+    } catch (error: any) {
+      console.error('Test connection error:', error)
+      return {
+        success: false,
+        message: error.message || 'Erro ao conectar com a Edge Function',
+      }
+    }
+  }
+
+  const syncProtheusData = async () => {
+    try {
+      await supabase.functions.invoke('protheus-sync', {
+        body: {
+          action: 'sync-data',
+          config: protheusConfig,
+        },
+      })
+      await fetchData()
+    } catch (error) {
+      console.error('Sync error:', error)
+      throw error
+    }
+  }
+
   // Legacy/Mock functions
   const addUserAccess = () => {}
   const updateUserAccess = () => {}
@@ -442,13 +534,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkPermission = () => true
   const toggleDeveloperMode = () => {}
   const setViewerMode = () => {}
-  const testProtheusConnection = async () => ({
-    success: true,
-    message: 'Supabase Connected',
-  })
-  const syncProtheusData = async () => {
-    await fetchData()
-  }
   const clearAllData = async () => {}
 
   return (
@@ -510,7 +595,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         updateYieldTargets: setYieldTargets,
 
         protheusConfig,
-        updateProtheusConfig: setProtheusConfig,
+        updateProtheusConfig,
         testProtheusConnection,
         lastProtheusSync,
         syncProtheusData,
