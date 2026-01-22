@@ -18,6 +18,9 @@ import {
   DollarSign,
   FlaskConical,
   ClipboardCheck,
+  Droplets,
+  Bone,
+  Wheat,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -30,7 +33,6 @@ import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
-import { Droplets, Bone, Wheat } from 'lucide-react'
 
 export default function Dashboard() {
   const {
@@ -246,11 +248,12 @@ export default function Dashboard() {
               value="yields"
               className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
-              Rendimentos Individuais
+              Rendimentos Detalhados
             </TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="space-y-4">
+          {/* Main KPIs */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             <Card
               className={cn(
@@ -296,7 +299,7 @@ export default function Dashboard() {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento
+                  Rendimento Geral
                 </CardTitle>
                 <PieChart className="h-4 w-4 text-chart-3" />
               </CardHeader>
@@ -343,6 +346,54 @@ export default function Dashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">
                   {totalAcidityVolume.toLocaleString('pt-BR')} L
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Yields Summary Cards for Overview */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <Card className="shadow-sm border-primary/10 bg-card/50">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Rendimento Sebo
+                </CardTitle>
+                <Droplets
+                  className="h-3.5 w-3.5"
+                  style={{ color: 'hsl(var(--chart-1))' }}
+                />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold">{yieldSebo.toFixed(2)}%</div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-primary/10 bg-card/50">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Rendimento FCO
+                </CardTitle>
+                <Bone
+                  className="h-3.5 w-3.5"
+                  style={{ color: 'hsl(var(--chart-2))' }}
+                />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold">{yieldFCO.toFixed(2)}%</div>
+              </CardContent>
+            </Card>
+            <Card className="shadow-sm border-primary/10 bg-card/50">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  Rendimento Farinheta
+                </CardTitle>
+                <Wheat
+                  className="h-3.5 w-3.5"
+                  style={{ color: 'hsl(var(--chart-3))' }}
+                />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold">
+                  {yieldFarinheta.toFixed(2)}%
                 </div>
               </CardContent>
             </Card>
@@ -434,54 +485,10 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="yields" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento Sebo
-                </CardTitle>
-                <Droplets
-                  className="h-4 w-4"
-                  style={{ color: 'hsl(var(--chart-1))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {yieldSebo.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento FCO
-                </CardTitle>
-                <Bone
-                  className="h-4 w-4"
-                  style={{ color: 'hsl(var(--chart-2))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{yieldFCO.toFixed(2)}%</div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-primary/10">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento Farinheta
-                </CardTitle>
-                <Wheat
-                  className="h-4 w-4"
-                  style={{ color: 'hsl(var(--chart-3))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {yieldFarinheta.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Note: Small cards removed from here as they are now in Overview, but we could keep or remove them.
+              Given the user request was to visualize in Overview, having them there satisfies the story.
+              The tab is now dedicated to detailed history analysis.
+          */}
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
         </TabsContent>
       </Tabs>

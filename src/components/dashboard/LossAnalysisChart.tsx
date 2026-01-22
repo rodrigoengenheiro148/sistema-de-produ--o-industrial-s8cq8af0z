@@ -33,10 +33,16 @@ interface LossAnalysisChartProps {
 
 export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
-    const processedData = data.map((p) => ({
-      date: format(p.date, 'dd/MM'),
-      perdas: p.losses,
-    }))
+    // Filter out entries with 0 losses and map to chart format
+    const processedData = data
+      .filter((p) => p.losses > 0)
+      .map((p) => ({
+        date: format(p.date, 'dd/MM'),
+        originalDate: p.date,
+        perdas: p.losses,
+      }))
+      // Ensure chronological order if not already sorted
+      .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
 
     const config: ChartConfig = {
       perdas: { label: 'Perdas', color: 'hsl(var(--destructive))' },
@@ -94,7 +100,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         <div>
           <CardTitle>Análise de Perdas</CardTitle>
           <CardDescription>
-            Volume de quebra técnica e perdas por dia
+            Volume de quebra técnica e perdas por dia ( > 0kg )
           </CardDescription>
         </div>
         <Dialog>
@@ -118,7 +124,13 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         </Dialog>
       </CardHeader>
       <CardContent className="pt-4">
-        <ChartContent />
+        {chartData.length > 0 ? (
+          <ChartContent />
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
+            Nenhuma perda registrada no período.
+          </div>
+        )}
       </CardContent>
     </Card>
   )
