@@ -300,10 +300,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           window.history.replaceState({}, '', newUrl)
 
           // If a valid config is loaded, we should attempt to sync immediately
-          // to overwrite local mock data with real data if available
           if (decoded.isActive && decoded.baseUrl) {
             setConnectionStatus('syncing')
-            // Force a small delay to allow state to settle
             setTimeout(() => {
               const event = new Event('online')
               window.dispatchEvent(event)
@@ -482,7 +480,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
 
       if (remainingOps.length > 0) {
-        setTimeout(() => processSyncQueue(), 50)
+        // Fast processing for immediate updates
+        setTimeout(() => processSyncQueue(), 5)
       } else {
         setConnectionStatus('online')
       }
@@ -557,6 +556,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             pendingOperations,
             collectionKey,
           )
+          setter(merged)
+          setStorageData(storageKey, merged)
+        } else if (
+          fetchedData &&
+          Array.isArray(fetchedData) &&
+          fetchedData.length === 0
+        ) {
+          // Handle explicit empty data from server (Global Reset scenario)
+          const merged = mergeServerData([], pendingOperations, collectionKey)
           setter(merged)
           setStorageData(storageKey, merged)
         }
@@ -728,152 +736,249 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }
 
+  // Create actions separately to be able to use them inside clearAllData
+  const addRawMaterial = createAction(
+    STORAGE_KEYS.RAW_MATERIALS,
+    'raw-materials',
+    setRawMaterials,
+    'ADD',
+  )
+  const updateRawMaterial = createAction(
+    STORAGE_KEYS.RAW_MATERIALS,
+    'raw-materials',
+    setRawMaterials,
+    'UPDATE',
+  )
+  const deleteRawMaterial = createAction(
+    STORAGE_KEYS.RAW_MATERIALS,
+    'raw-materials',
+    setRawMaterials,
+    'DELETE',
+  )
+
+  const addProduction = createAction(
+    STORAGE_KEYS.PRODUCTION,
+    'production',
+    setProduction,
+    'ADD',
+  )
+  const updateProduction = createAction(
+    STORAGE_KEYS.PRODUCTION,
+    'production',
+    setProduction,
+    'UPDATE',
+  )
+  const deleteProduction = createAction(
+    STORAGE_KEYS.PRODUCTION,
+    'production',
+    setProduction,
+    'DELETE',
+  )
+
+  const addShipping = createAction(
+    STORAGE_KEYS.SHIPPING,
+    'shipping',
+    setShipping,
+    'ADD',
+  )
+  const updateShipping = createAction(
+    STORAGE_KEYS.SHIPPING,
+    'shipping',
+    setShipping,
+    'UPDATE',
+  )
+  const deleteShipping = createAction(
+    STORAGE_KEYS.SHIPPING,
+    'shipping',
+    setShipping,
+    'DELETE',
+  )
+
+  const addAcidityRecord = createAction(
+    STORAGE_KEYS.ACIDITY,
+    'acidity',
+    setAcidityRecords,
+    'ADD',
+  )
+  const updateAcidityRecord = createAction(
+    STORAGE_KEYS.ACIDITY,
+    'acidity',
+    setAcidityRecords,
+    'UPDATE',
+  )
+  const deleteAcidityRecord = createAction(
+    STORAGE_KEYS.ACIDITY,
+    'acidity',
+    setAcidityRecords,
+    'DELETE',
+  )
+
+  const addQualityRecord = createAction(
+    STORAGE_KEYS.QUALITY,
+    'quality',
+    setQualityRecords,
+    'ADD',
+  )
+  const updateQualityRecord = createAction(
+    STORAGE_KEYS.QUALITY,
+    'quality',
+    setQualityRecords,
+    'UPDATE',
+  )
+  const deleteQualityRecord = createAction(
+    STORAGE_KEYS.QUALITY,
+    'quality',
+    setQualityRecords,
+    'DELETE',
+  )
+
+  const addUserAccess = createAction(
+    STORAGE_KEYS.USER_ACCESS,
+    'users',
+    setUserAccessList,
+    'ADD',
+  )
+  const updateUserAccess = createAction(
+    STORAGE_KEYS.USER_ACCESS,
+    'users',
+    setUserAccessList,
+    'UPDATE',
+  )
+  const deleteUserAccess = createAction(
+    STORAGE_KEYS.USER_ACCESS,
+    'users',
+    setUserAccessList,
+    'DELETE',
+  )
+
+  const addFactory = createAction(
+    STORAGE_KEYS.FACTORIES,
+    'factories',
+    setFactories,
+    'ADD',
+  )
+  const updateFactory = createAction(
+    STORAGE_KEYS.FACTORIES,
+    'factories',
+    setFactories,
+    'UPDATE',
+  )
+  const deleteFactory = createAction(
+    STORAGE_KEYS.FACTORIES,
+    'factories',
+    setFactories,
+    'DELETE',
+  )
+
+  const clearAllData = async () => {
+    // If active connection, perform Global Wipe (queue deletions)
+    if (protheusConfig.isActive && protheusConfig.baseUrl) {
+      console.log('Initiating Global Wipe of Server Data...')
+
+      const queueDelete = (items: any[], deleteFn: (id: string) => void) => {
+        items.forEach((item) => {
+          if (item.id) deleteFn(item.id)
+        })
+      }
+
+      queueDelete(rawMaterials, deleteRawMaterial)
+      queueDelete(production, deleteProduction)
+      queueDelete(shipping, deleteShipping)
+      queueDelete(acidityRecords, deleteAcidityRecord)
+      queueDelete(qualityRecords, deleteQualityRecord)
+      // Keep factory structure usually, but user requested global reset
+      // We will clear factories except maybe the default one if logic required, but wipe is wipe.
+      queueDelete(factories, deleteFactory)
+
+      // Reset sync state to force update
+      setLastProtheusSync(null)
+
+      // Trigger sync processing immediately
+      setConnectionStatus('syncing')
+      setTimeout(() => processSyncQueue(), 5)
+
+      // We do NOT clear ProtheusConfig here to maintain the connection
+      // so the DELETE operations can actually be sent to the server.
+      // This ensures "Global Reset Propagation".
+    } else {
+      // Local Reset Mode (Offline/Legacy)
+      setRawMaterials([])
+      setProduction([])
+      setShipping([])
+      setAcidityRecords([])
+      setQualityRecords([])
+      setPendingOperations([])
+      setFactories([])
+      setUserAccessList([])
+
+      setSystemSettings(DEFAULT_SETTINGS)
+      setYieldTargets(DEFAULT_YIELD_TARGETS)
+      setProtheusConfig(DEFAULT_PROTHEUS_CONFIG)
+      setLastProtheusSync(null)
+      setConnectionStatus('online')
+
+      setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
+      setStorageData(STORAGE_KEYS.PRODUCTION, [])
+      setStorageData(STORAGE_KEYS.SHIPPING, [])
+      setStorageData(STORAGE_KEYS.ACIDITY, [])
+      setStorageData(STORAGE_KEYS.QUALITY, [])
+      setStorageData(STORAGE_KEYS.USER_ACCESS, [])
+      setStorageData(STORAGE_KEYS.FACTORIES, [])
+      setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
+
+      setStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+      setStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS)
+      setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG)
+      setStorageData(STORAGE_KEYS.LAST_SYNC, null)
+
+      setCurrentFactoryId('1')
+      setStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1')
+      setCurrentUserId('1')
+      setStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1')
+    }
+  }
+
   return (
     <DataContext.Provider
       value={{
         rawMaterials,
-        addRawMaterial: createAction(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-          'ADD',
-        ),
-        updateRawMaterial: createAction(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-          'UPDATE',
-        ),
-        deleteRawMaterial: createAction(
-          STORAGE_KEYS.RAW_MATERIALS,
-          'raw-materials',
-          setRawMaterials,
-          'DELETE',
-        ),
+        addRawMaterial,
+        updateRawMaterial,
+        deleteRawMaterial,
 
         production,
-        addProduction: createAction(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-          'ADD',
-        ),
-        updateProduction: createAction(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-          'UPDATE',
-        ),
-        deleteProduction: createAction(
-          STORAGE_KEYS.PRODUCTION,
-          'production',
-          setProduction,
-          'DELETE',
-        ),
+        addProduction,
+        updateProduction,
+        deleteProduction,
 
         shipping,
-        addShipping: createAction(
-          STORAGE_KEYS.SHIPPING,
-          'shipping',
-          setShipping,
-          'ADD',
-        ),
-        updateShipping: createAction(
-          STORAGE_KEYS.SHIPPING,
-          'shipping',
-          setShipping,
-          'UPDATE',
-        ),
-        deleteShipping: createAction(
-          STORAGE_KEYS.SHIPPING,
-          'shipping',
-          setShipping,
-          'DELETE',
-        ),
+        addShipping,
+        updateShipping,
+        deleteShipping,
 
         acidityRecords,
-        addAcidityRecord: createAction(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-          'ADD',
-        ),
-        updateAcidityRecord: createAction(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-          'UPDATE',
-        ),
-        deleteAcidityRecord: createAction(
-          STORAGE_KEYS.ACIDITY,
-          'acidity',
-          setAcidityRecords,
-          'DELETE',
-        ),
+        addAcidityRecord,
+        updateAcidityRecord,
+        deleteAcidityRecord,
 
         qualityRecords,
-        addQualityRecord: createAction(
-          STORAGE_KEYS.QUALITY,
-          'quality',
-          setQualityRecords,
-          'ADD',
-        ),
-        updateQualityRecord: createAction(
-          STORAGE_KEYS.QUALITY,
-          'quality',
-          setQualityRecords,
-          'UPDATE',
-        ),
-        deleteQualityRecord: createAction(
-          STORAGE_KEYS.QUALITY,
-          'quality',
-          setQualityRecords,
-          'DELETE',
-        ),
+        addQualityRecord,
+        updateQualityRecord,
+        deleteQualityRecord,
 
         userAccessList,
-        addUserAccess: createAction(
-          STORAGE_KEYS.USER_ACCESS,
-          'users',
-          setUserAccessList,
-          'ADD',
-        ),
-        updateUserAccess: createAction(
-          STORAGE_KEYS.USER_ACCESS,
-          'users',
-          setUserAccessList,
-          'UPDATE',
-        ),
-        deleteUserAccess: createAction(
-          STORAGE_KEYS.USER_ACCESS,
-          'users',
-          setUserAccessList,
-          'DELETE',
-        ),
+        addUserAccess,
+        updateUserAccess,
+        deleteUserAccess,
 
         currentUser,
         login,
         checkPermission,
 
         factories,
-        addFactory: createAction(
-          STORAGE_KEYS.FACTORIES,
-          'factories',
-          setFactories,
-          'ADD',
-        ),
-        updateFactory: createAction(
-          STORAGE_KEYS.FACTORIES,
-          'factories',
-          setFactories,
-          'UPDATE',
-        ),
-        deleteFactory: createAction(
-          STORAGE_KEYS.FACTORIES,
-          'factories',
-          setFactories,
-          'DELETE',
-        ),
+        addFactory,
+        updateFactory,
+        deleteFactory,
 
         currentFactoryId,
         setCurrentFactoryId: (id) => {
@@ -907,45 +1012,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         syncProtheusData,
         connectionStatus,
         pendingOperationsCount: pendingOperations.length,
-        clearAllData: () => {
-          // Reset state to empty values
-          setRawMaterials([])
-          setProduction([])
-          setShipping([])
-          setAcidityRecords([])
-          setQualityRecords([])
-          setPendingOperations([])
-          setFactories([])
-          setUserAccessList([])
-
-          // Reset settings to defaults
-          setSystemSettings(DEFAULT_SETTINGS)
-          setYieldTargets(DEFAULT_YIELD_TARGETS)
-          setProtheusConfig(DEFAULT_PROTHEUS_CONFIG)
-          setLastProtheusSync(null)
-          setConnectionStatus('online')
-
-          // Persist empty/default values to storage to prevent mock data reload
-          setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
-          setStorageData(STORAGE_KEYS.PRODUCTION, [])
-          setStorageData(STORAGE_KEYS.SHIPPING, [])
-          setStorageData(STORAGE_KEYS.ACIDITY, [])
-          setStorageData(STORAGE_KEYS.QUALITY, [])
-          setStorageData(STORAGE_KEYS.USER_ACCESS, [])
-          setStorageData(STORAGE_KEYS.FACTORIES, [])
-          setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
-
-          setStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
-          setStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS)
-          setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG)
-          setStorageData(STORAGE_KEYS.LAST_SYNC, null)
-
-          // Reset local identifiers
-          setCurrentFactoryId('1')
-          setStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1')
-          setCurrentUserId('1')
-          setStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1')
-        },
+        clearAllData,
       }}
     >
       {children}

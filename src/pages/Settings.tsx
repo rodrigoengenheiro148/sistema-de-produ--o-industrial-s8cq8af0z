@@ -14,7 +14,14 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { Save, RefreshCw, Trash2, ShieldCheck, Server } from 'lucide-react'
+import {
+  Save,
+  RefreshCw,
+  Trash2,
+  ShieldCheck,
+  Server,
+  AlertTriangle,
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
   AlertDialog,
@@ -86,10 +93,18 @@ export default function Settings() {
 
   const handleClearData = () => {
     clearAllData()
-    toast({
-      title: 'Sistema Resetado',
-      description: 'Todos os dados e configurações foram apagados com sucesso.',
-    })
+    if (protheusConfig.isActive) {
+      toast({
+        title: 'Limpeza Global Iniciada',
+        description:
+          'Todos os registros estão sendo removidos do servidor e de todos os dispositivos sincronizados.',
+      })
+    } else {
+      toast({
+        title: 'Sistema Resetado',
+        description: 'Todos os dados locais foram apagados.',
+      })
+    }
     navigate('/')
   }
 
@@ -289,26 +304,28 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="danger" className="space-y-4">
-          <Card className="border-red-200 dark:border-red-900">
+          <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
             <CardHeader>
-              <CardTitle className="text-red-600 dark:text-red-400">
-                Zona de Perigo
+              <CardTitle className="text-red-600 dark:text-red-400 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" /> Zona de Perigo
               </CardTitle>
               <CardDescription>
-                Ações irreversíveis que afetam seus dados locais.
+                Ações destrutivas que afetam os dados do sistema.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Limpar os dados removerá todas as informações armazenadas neste
-                dispositivo e restaurará o sistema para o estado inicial vazio.
-                Isso inclui registros de produção, estoque, qualidade e
-                configurações.
+                {protheusConfig.isActive
+                  ? 'ATENÇÃO: Como a sincronização está ativa, essa ação apagará TODOS os dados no servidor e propagará a exclusão para todos os dispositivos conectados. Esta ação é irreversível.'
+                  : 'Limpar os dados removerá todas as informações armazenadas localmente neste dispositivo. Seus dados no servidor não serão afetados se estiverem desconectados.'}
               </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive">
-                    <Trash2 className="mr-2 h-4 w-4" /> Resetar Aplicação
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {protheusConfig.isActive
+                      ? 'Limpar Dados Globais (Servidor + Local)'
+                      : 'Resetar Aplicação Local'}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -317,9 +334,9 @@ export default function Settings() {
                       Você tem certeza absoluta?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Essa ação não pode ser desfeita. Isso excluirá
-                      permanentemente todos os dados de produção, configurações
-                      e registros do dispositivo.
+                      {protheusConfig.isActive
+                        ? 'Esta ação apagará permanentemente todos os registros do servidor. Todos os dispositivos conectados verão os dados zerados imediatamente.'
+                        : 'Essa ação apagará os dados deste dispositivo e restaurará as configurações de fábrica locais.'}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -328,7 +345,7 @@ export default function Settings() {
                       onClick={handleClearData}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Continuar e Resetar
+                      Confirmar Exclusão
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
