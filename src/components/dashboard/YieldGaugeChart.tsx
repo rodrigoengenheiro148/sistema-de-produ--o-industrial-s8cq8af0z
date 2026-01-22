@@ -31,7 +31,7 @@ export function YieldGaugeChart({
   target,
   className,
 }: YieldGaugeChartProps) {
-  // Constants
+  // Constants - Strict 100% cap as per requirement
   const MAX_VALUE = 100
   const safeValue = Math.min(Math.max(value, 0), MAX_VALUE)
   const safeTarget = Math.min(Math.max(target, 0), MAX_VALUE)
@@ -39,6 +39,7 @@ export function YieldGaugeChart({
   // Determine status color and text
   // Red: < 90% of target | Amber: 90%-99% of target | Green: >= 100% of target
   const getStatus = (val: number, tgt: number) => {
+    // Use the raw value for status comparison to ensure accuracy even if capped visually
     if (val >= tgt)
       return {
         color: '#10b981',
@@ -61,10 +62,12 @@ export function YieldGaugeChart({
     } // Red-500
   }
 
-  const status = getStatus(safeValue, safeTarget)
+  // Use raw value for status calculation, but safe values for visual rendering
+  const status = getStatus(value, target)
 
   // Chart Data Layers
   // Layer 1: The Gauge Value (colored) + Transparent remainder
+  // Ensure we use safeValue to never exceed 100% visually
   const data = useMemo(
     () => [
       { name: 'Atual', value: safeValue },
@@ -78,6 +81,8 @@ export function YieldGaugeChart({
 
   // Angles for absolute positioning (-90deg to 90deg scale)
   const calculateAngle = (val: number) => (val / MAX_VALUE) * 180 - 90
+
+  // Needle and target also respect the 100% cap
   const needleAngle = calculateAngle(safeValue)
   const targetAngle = calculateAngle(safeTarget)
 
@@ -160,13 +165,13 @@ export function YieldGaugeChart({
                               status.textClass,
                             )}
                           >
-                            {safeValue.toFixed(2)}%
+                            {value.toFixed(2)}%
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-muted-foreground">Meta:</span>
                           <span className="font-mono">
-                            {safeTarget.toFixed(1)}%
+                            {target.toFixed(1)}%
                           </span>
                         </div>
                       </div>
@@ -260,7 +265,7 @@ export function YieldGaugeChart({
             Acelerômetro de Rendimento
           </CardTitle>
           <CardDescription className="text-xs mt-1">
-            Performance em tempo real
+            Performance em tempo real (Máx 100%)
           </CardDescription>
         </div>
         <Dialog>
@@ -281,7 +286,7 @@ export function YieldGaugeChart({
               </DialogTitle>
               <DialogDescription>
                 Análise aprofundada da eficiência da fábrica em relação à meta
-                de {target.toFixed(1)}%.
+                de {target.toFixed(1)}%. O gráfico é limitado a 100% de escala.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-10 flex items-center justify-center bg-gradient-to-b from-muted/20 to-transparent rounded-xl mt-4 border border-border/50">

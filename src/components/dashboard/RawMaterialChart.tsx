@@ -51,16 +51,23 @@ export function RawMaterialChart({
     const supplierMap = new Map<string, any>()
 
     data.forEach((item) => {
-      if (!supplierMap.has(item.supplier)) {
-        supplierMap.set(item.supplier, {
-          supplier: item.supplier,
+      // Normalize supplier name to avoid duplicates due to spacing
+      const supplierName = item.supplier.trim()
+
+      if (!supplierMap.has(supplierName)) {
+        supplierMap.set(supplierName, {
+          supplier: supplierName,
           _breakdown: {}, // Map to store entries by type for tooltip details
+          total: 0, // Track total for sorting if needed
         })
       }
-      const entry = supplierMap.get(item.supplier)
+      const entry = supplierMap.get(supplierName)
 
-      // Sum quantity
+      // Sum quantity per type
       entry[item.type] = (entry[item.type] || 0) + item.quantity
+
+      // Update total
+      entry.total += item.quantity
 
       // Store entry for breakdown
       if (!entry._breakdown[item.type]) {
@@ -69,7 +76,7 @@ export function RawMaterialChart({
       entry._breakdown[item.type].push(item)
     })
 
-    // Convert map to array and sort by supplier name
+    // Convert map to array and sort by supplier name alphabetically
     const processedData = Array.from(supplierMap.values()).sort((a, b) =>
       a.supplier.localeCompare(b.supplier),
     )
@@ -126,8 +133,8 @@ export function RawMaterialChart({
               type="category"
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 10, width: 80 }}
-              width={80}
+              tick={{ fontSize: 11, width: 100 }}
+              width={100}
             />
           </>
         ) : (
