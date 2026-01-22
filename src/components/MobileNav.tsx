@@ -44,26 +44,24 @@ export function MobileNav() {
       url: '/qualidade',
       icon: ClipboardCheck,
     },
+    // Hidden on very small screens or scrollable container handles it
     {
       title: 'Relatórios',
       url: '/relatorios-avancados',
       icon: LineChart,
-    },
-    {
-      title: 'Saída',
-      url: '/expedicao',
-      icon: Send,
+      className: 'hidden xs:flex',
     },
     {
       title: 'Rendimentos',
       url: '/rendimentos',
       icon: PieChart,
+      className: 'hidden sm:flex',
     },
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe overflow-x-auto scrollbar-hide">
-      <div className="flex items-center justify-between px-2 h-16 min-w-max">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-safe">
+      <div className="flex items-center justify-around px-2 h-16 w-full max-w-lg mx-auto">
         {items.map((item) => {
           const isActive = location.pathname === item.url
           return (
@@ -71,10 +69,11 @@ export function MobileNav() {
               key={item.url}
               to={item.url}
               className={cn(
-                'flex flex-col items-center justify-center min-w-[64px] h-full gap-1 transition-all duration-200 active:scale-95 px-1',
+                'flex flex-col items-center justify-center min-w-[50px] h-full gap-1 transition-all duration-200 active:scale-95 px-1',
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-primary/70',
+                item.className,
               )}
             >
               <div
@@ -99,7 +98,7 @@ export function MobileNav() {
         <Button
           variant="ghost"
           size="icon"
-          className="flex flex-col items-center justify-center min-w-[64px] h-full gap-1 text-muted-foreground hover:text-primary hover:bg-transparent rounded-none"
+          className="flex flex-col items-center justify-center min-w-[50px] h-full gap-1 text-muted-foreground hover:text-primary hover:bg-transparent rounded-none"
           onClick={toggleSidebar}
         >
           <Menu className="h-5 w-5" />

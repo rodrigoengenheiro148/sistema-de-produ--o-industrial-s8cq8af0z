@@ -44,10 +44,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function Yields() {
   const { production, dateRange, yieldTargets, updateYieldTargets } = useData()
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   // Ref to track the last alerted state to prevent duplicate toasts
   const lastAlertedRef = useRef<string | null>(null)
 
@@ -179,7 +181,7 @@ export default function Yields() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold tracking-tight text-primary">
             Análise de Rendimentos
@@ -191,7 +193,11 @@ export default function Yields() {
 
         <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
+            >
               <Settings className="h-4 w-4" />
               Configurar Metas
             </Button>
@@ -358,28 +364,13 @@ export default function Yields() {
             </TooltipProvider>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Turno</TableHead>
-                <TableHead className="text-right">Sebo %</TableHead>
-                <TableHead className="text-right">FCO %</TableHead>
-                <TableHead className="text-right">Farinheta %</TableHead>
-                <TableHead className="text-right">Rendimento Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <CardContent className={isMobile ? 'p-4 pt-0' : 'p-6 pt-0'}>
+          {isMobile ? (
+            <div className="space-y-4">
               {filteredProduction.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center h-24 text-muted-foreground"
-                  >
-                    Nenhum registro encontrado no período.
-                  </TableCell>
-                </TableRow>
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhum registro encontrado.
+                </div>
               ) : (
                 filteredProduction.map((entry) => {
                   const yieldSebo = calculateYield(
@@ -400,79 +391,198 @@ export default function Yields() {
                       entry.farinhetaProduced,
                     entry.mpUsed,
                   )
-
                   const isTotalLow = yieldTotal < yieldTargets.total
 
                   return (
-                    <TableRow key={entry.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        {format(entry.date, 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>{entry.shift}</TableCell>
-
-                      {/* Sebo Cell */}
-                      <TableCell className="text-right">
-                        <div
-                          className={cn(
-                            'flex items-center justify-end gap-1.5',
-                            getTextColor(yieldSebo, yieldTargets.sebo),
-                          )}
-                        >
-                          {yieldSebo.toFixed(2)}%
-                          {getStatusIcon(yieldSebo, yieldTargets.sebo)}
+                    <Card key={entry.id} className="shadow-sm border">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-center pb-2 border-b">
+                          <span className="font-semibold">
+                            {format(entry.date, 'dd/MM/yyyy')}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            Turno: {entry.shift}
+                          </span>
                         </div>
-                      </TableCell>
-
-                      {/* FCO Cell */}
-                      <TableCell className="text-right">
-                        <div
-                          className={cn(
-                            'flex items-center justify-end gap-1.5',
-                            getTextColor(yieldFCO, yieldTargets.fco),
-                          )}
-                        >
-                          {yieldFCO.toFixed(2)}%
-                          {getStatusIcon(yieldFCO, yieldTargets.fco)}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Sebo</span>
+                            <div
+                              className={cn(
+                                'flex items-center gap-1',
+                                getTextColor(yieldSebo, yieldTargets.sebo),
+                              )}
+                            >
+                              {yieldSebo.toFixed(2)}%{' '}
+                              {getStatusIcon(yieldSebo, yieldTargets.sebo)}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">FCO</span>
+                            <div
+                              className={cn(
+                                'flex items-center gap-1',
+                                getTextColor(yieldFCO, yieldTargets.fco),
+                              )}
+                            >
+                              {yieldFCO.toFixed(2)}%{' '}
+                              {getStatusIcon(yieldFCO, yieldTargets.fco)}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">
+                              Farinheta
+                            </span>
+                            <div
+                              className={cn(
+                                'flex items-center gap-1',
+                                getTextColor(
+                                  yieldFarinheta,
+                                  yieldTargets.farinheta,
+                                ),
+                              )}
+                            >
+                              {yieldFarinheta.toFixed(2)}%{' '}
+                              {getStatusIcon(
+                                yieldFarinheta,
+                                yieldTargets.farinheta,
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-
-                      {/* Farinheta Cell */}
-                      <TableCell className="text-right">
-                        <div
-                          className={cn(
-                            'flex items-center justify-end gap-1.5',
-                            getTextColor(
-                              yieldFarinheta,
-                              yieldTargets.farinheta,
-                            ),
-                          )}
-                        >
-                          {yieldFarinheta.toFixed(2)}%
-                          {getStatusIcon(
-                            yieldFarinheta,
-                            yieldTargets.farinheta,
-                          )}
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="font-medium">Total</span>
+                          <Badge
+                            variant={isTotalLow ? 'destructive' : 'default'}
+                            className={cn(
+                              !isTotalLow && 'bg-green-600 hover:bg-green-700',
+                            )}
+                          >
+                            {yieldTotal.toFixed(2)}%
+                          </Badge>
                         </div>
-                      </TableCell>
-
-                      {/* Total Cell */}
-                      <TableCell className="text-right">
-                        <Badge
-                          variant={isTotalLow ? 'destructive' : 'default'}
-                          className={cn(
-                            'ml-auto w-fit',
-                            !isTotalLow && 'bg-green-600 hover:bg-green-700',
-                          )}
-                        >
-                          {yieldTotal.toFixed(2)}%
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
+                      </CardContent>
+                    </Card>
                   )
                 })
               )}
-            </TableBody>
-          </Table>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Turno</TableHead>
+                  <TableHead className="text-right">Sebo %</TableHead>
+                  <TableHead className="text-right">FCO %</TableHead>
+                  <TableHead className="text-right">Farinheta %</TableHead>
+                  <TableHead className="text-right">Rendimento Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProduction.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center h-24 text-muted-foreground"
+                    >
+                      Nenhum registro encontrado no período.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredProduction.map((entry) => {
+                    const yieldSebo = calculateYield(
+                      entry.seboProduced,
+                      entry.mpUsed,
+                    )
+                    const yieldFCO = calculateYield(
+                      entry.fcoProduced,
+                      entry.mpUsed,
+                    )
+                    const yieldFarinheta = calculateYield(
+                      entry.farinhetaProduced,
+                      entry.mpUsed,
+                    )
+                    const yieldTotal = calculateYield(
+                      entry.seboProduced +
+                        entry.fcoProduced +
+                        entry.farinhetaProduced,
+                      entry.mpUsed,
+                    )
+
+                    const isTotalLow = yieldTotal < yieldTargets.total
+
+                    return (
+                      <TableRow key={entry.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          {format(entry.date, 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>{entry.shift}</TableCell>
+
+                        {/* Sebo Cell */}
+                        <TableCell className="text-right">
+                          <div
+                            className={cn(
+                              'flex items-center justify-end gap-1.5',
+                              getTextColor(yieldSebo, yieldTargets.sebo),
+                            )}
+                          >
+                            {yieldSebo.toFixed(2)}%
+                            {getStatusIcon(yieldSebo, yieldTargets.sebo)}
+                          </div>
+                        </TableCell>
+
+                        {/* FCO Cell */}
+                        <TableCell className="text-right">
+                          <div
+                            className={cn(
+                              'flex items-center justify-end gap-1.5',
+                              getTextColor(yieldFCO, yieldTargets.fco),
+                            )}
+                          >
+                            {yieldFCO.toFixed(2)}%
+                            {getStatusIcon(yieldFCO, yieldTargets.fco)}
+                          </div>
+                        </TableCell>
+
+                        {/* Farinheta Cell */}
+                        <TableCell className="text-right">
+                          <div
+                            className={cn(
+                              'flex items-center justify-end gap-1.5',
+                              getTextColor(
+                                yieldFarinheta,
+                                yieldTargets.farinheta,
+                              ),
+                            )}
+                          >
+                            {yieldFarinheta.toFixed(2)}%
+                            {getStatusIcon(
+                              yieldFarinheta,
+                              yieldTargets.farinheta,
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Total Cell */}
+                        <TableCell className="text-right">
+                          <Badge
+                            variant={isTotalLow ? 'destructive' : 'default'}
+                            className={cn(
+                              'ml-auto w-fit',
+                              !isTotalLow && 'bg-green-600 hover:bg-green-700',
+                            )}
+                          >
+                            {yieldTotal.toFixed(2)}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -16,9 +16,6 @@ import {
   Factory as FactoryIcon,
   PieChart,
   DollarSign,
-  Droplets,
-  Bone,
-  Wheat,
   FlaskConical,
   ClipboardCheck,
 } from 'lucide-react'
@@ -32,6 +29,7 @@ import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
+import { Droplets, Bone, Wheat } from 'lucide-react'
 
 export default function Dashboard() {
   const {
@@ -226,7 +224,7 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <div className="no-print overflow-x-auto pb-2">
+        <div className="no-print overflow-x-auto pb-2 scrollbar-hide">
           <TabsList className="bg-muted/50 w-full sm:w-auto flex">
             <TabsTrigger
               value="overview"
@@ -356,6 +354,7 @@ export default function Dashboard() {
             <RawMaterialChart
               data={filteredRawMaterials}
               className="col-span-1 md:col-span-2 lg:col-span-5"
+              isMobile={isMobile}
             />
           </div>
 

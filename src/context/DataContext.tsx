@@ -28,7 +28,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined)
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 10,
+  refreshRate: 5, // Optimized for "Real-Time" feel (5 seconds)
 }
 
 const DEFAULT_YIELD_TARGETS: YieldTargets = {
@@ -229,7 +229,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return true
   }
 
-  // Real-time synchronization across tabs
+  // Real-time synchronization across tabs (and simulated "devices" on same browser)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.newValue) return
@@ -438,6 +438,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
+      // Parallel fetch for speed
       const results = await Promise.all([
         safeFetch(apiFetch('raw-materials')),
         safeFetch(apiFetch('production')),
@@ -447,6 +448,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ])
 
       const [raw, prod, ship, acid, fact] = results
+
+      // If any request succeeds, we are technically connected
       const hasSuccess = results.some((r) => r !== null)
 
       if (!hasSuccess && results.length > 0) {
@@ -454,6 +457,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return
       }
 
+      // Update state if new data
       if (raw && Array.isArray(raw)) {
         const parsed = parseDatesInArray(raw)
         setRawMaterials(parsed)
@@ -513,6 +517,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setConnectionStatus('offline')
     }
 
+    // Polling mechanism for Real-Time Sync
     const intervalId = setInterval(() => {
       if (
         navigator.onLine &&
@@ -774,14 +779,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         dateRange,
         setDateRange,
         isDeveloperMode,
-        toggleDeveloperMode: () => {
-          // Deprecated or redirect to login?
-          console.warn('Developer Mode toggle is deprecated in favor of Roles.')
-        },
+        toggleDeveloperMode: () => {},
         isViewerMode,
-        setViewerMode: () => {
-          console.warn('Viewer Mode toggle is deprecated in favor of Roles.')
-        },
+        setViewerMode: () => {},
         systemSettings,
         updateSystemSettings: (s) => {
           setSystemSettings(s)

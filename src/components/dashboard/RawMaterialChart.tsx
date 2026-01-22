@@ -31,9 +31,14 @@ import { cn } from '@/lib/utils'
 interface RawMaterialChartProps {
   data: RawMaterialEntry[]
   className?: string
+  isMobile?: boolean
 }
 
-export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
+export function RawMaterialChart({
+  data,
+  className,
+  isMobile = false,
+}: RawMaterialChartProps) {
   // Process data for the chart
   const { chartData, chartConfig } = useMemo(() => {
     // Get unique product types (for stacks)
@@ -91,20 +96,45 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart data={chartData} margin={{ top: 20 }}>
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis
-          dataKey="supplier"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
+      <BarChart
+        data={chartData}
+        margin={{ top: 20, left: isMobile ? 0 : 20, right: 10 }}
+        layout={isMobile ? 'vertical' : 'horizontal'}
+      >
+        <CartesianGrid
+          vertical={!isMobile}
+          horizontal={isMobile}
+          strokeDasharray="3 3"
         />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => `${value / 1000}k`}
-        />
+        {isMobile ? (
+          <>
+            <XAxis type="number" hide />
+            <YAxis
+              dataKey="supplier"
+              type="category"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 10, width: 80 }}
+              width={80}
+            />
+          </>
+        ) : (
+          <>
+            <XAxis
+              dataKey="supplier"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `${value / 1000}k`}
+            />
+          </>
+        )}
         <ChartTooltip
+          cursor={{ fill: 'transparent' }}
           content={
             <ChartTooltipContent
               className="w-48"
@@ -125,19 +155,22 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
             key={productType}
             dataKey={productType}
             fill={chartConfig[productType].color}
-            radius={[4, 4, 0, 0]}
+            radius={isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0]}
             stackId="a"
+            maxBarSize={50}
           >
-            <LabelList
-              dataKey={productType}
-              position="inside"
-              className="fill-white font-bold"
-              style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
-              fontSize={11}
-              formatter={(value: any) =>
-                value > 0 ? `${(value / 1000).toFixed(0)}k` : ''
-              }
-            />
+            {!isMobile && (
+              <LabelList
+                dataKey={productType}
+                position="inside"
+                className="fill-white font-bold"
+                style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
+                fontSize={11}
+                formatter={(value: any) =>
+                  value > 0 ? `${(value / 1000).toFixed(0)}k` : ''
+                }
+              />
+            )}
           </Bar>
         ))}
       </BarChart>
@@ -176,7 +209,7 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
         </Dialog>
       </CardHeader>
       <CardContent className="pt-4">
-        <ChartContent />
+        <ChartContent height={isMobile ? 'h-[400px]' : 'h-[350px]'} />
       </CardContent>
     </Card>
   )
