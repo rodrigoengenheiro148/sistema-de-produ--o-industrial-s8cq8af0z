@@ -4,6 +4,7 @@ export interface RawMaterialEntry {
   supplier: string
   type: string
   quantity: number
+  unit: string
   notes?: string
   createdAt?: Date
 }

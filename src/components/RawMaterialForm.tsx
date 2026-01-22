@@ -33,6 +33,7 @@ const formSchema = z.object({
   quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: 'Quantidade deve ser um número positivo',
   }),
+  unit: z.string().min(1, 'Unidade é obrigatória'),
   notes: z.string().optional(),
 })
 
@@ -59,6 +60,7 @@ export function RawMaterialForm({
       supplier: initialData?.supplier || '',
       type: initialData?.type || '',
       quantity: initialData ? String(initialData.quantity) : '',
+      unit: initialData?.unit || 'kg',
       notes: initialData?.notes || '',
     },
   })
@@ -70,6 +72,7 @@ export function RawMaterialForm({
         supplier: initialData.supplier,
         type: initialData.type,
         quantity: String(initialData.quantity),
+        unit: initialData.unit || 'kg',
         notes: initialData.notes || '',
       })
     } else {
@@ -78,6 +81,7 @@ export function RawMaterialForm({
         supplier: '',
         type: '',
         quantity: '',
+        unit: 'kg',
         notes: '',
       })
     }
@@ -92,6 +96,7 @@ export function RawMaterialForm({
       supplier: values.supplier,
       type: values.type,
       quantity: quantityValue,
+      unit: values.unit,
       notes: values.notes,
     }
 
@@ -121,7 +126,7 @@ export function RawMaterialForm({
           name="date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Data</FormLabel>
+              <FormLabel>Data de Entrada</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -147,7 +152,7 @@ export function RawMaterialForm({
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tipo de Matéria-Prima</FormLabel>
+              <FormLabel>Nome da Matéria-Prima</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -165,19 +170,47 @@ export function RawMaterialForm({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="quantity"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Quantidade (kg)</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="0.00" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Quantidade</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="0.00" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unidade</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Un." />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="kg">kg</SelectItem>
+                    <SelectItem value="L">Litros</SelectItem>
+                    <SelectItem value="un">Unidades</SelectItem>
+                    <SelectItem value="ton">Toneladas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="notes"
@@ -196,7 +229,7 @@ export function RawMaterialForm({
             Cancelar
           </Button>
           <Button type="submit">
-            {initialData ? 'Atualizar' : 'Salvar Registro'}
+            {initialData ? 'Salvar Alterações' : 'Salvar Registro'}
           </Button>
         </DialogFooter>
       </form>

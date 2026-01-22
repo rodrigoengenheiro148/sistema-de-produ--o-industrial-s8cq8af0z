@@ -56,6 +56,7 @@ const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
     supplier: 'Frigorífico Boi Gordo',
     type: 'Ossos',
     quantity: 15000,
+    unit: 'kg',
     notes: 'Entrega padrão',
   },
 ]

@@ -141,8 +141,8 @@ export default function RawMaterial() {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Fornecedor</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-right">Quantidade (kg)</TableHead>
+                <TableHead>Matéria-Prima</TableHead>
+                <TableHead className="text-right">Quantidade</TableHead>
                 <TableHead>Observações</TableHead>
                 {(canEdit || canDelete) && (
                   <TableHead className="w-[80px]">Ações</TableHead>
@@ -175,7 +175,8 @@ export default function RawMaterial() {
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {entry.quantity.toLocaleString('pt-BR')}
+                      {entry.quantity.toLocaleString('pt-BR')}{' '}
+                      {entry.unit || 'kg'}
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
