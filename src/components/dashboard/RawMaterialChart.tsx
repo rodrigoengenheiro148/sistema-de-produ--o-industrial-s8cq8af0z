@@ -16,7 +16,6 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -37,33 +36,39 @@ interface RawMaterialChartProps {
 export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
   // Process data for the chart
   const { chartData, chartConfig } = useMemo(() => {
-    const suppliers = Array.from(new Set(data.map((item) => item.supplier)))
-    const dateMap = new Map<string, any>()
+    // Get unique product types (for stacks)
+    const productTypes = Array.from(
+      new Set(data.map((item) => item.type)),
+    ).sort()
+
+    // Group data by supplier
+    const supplierMap = new Map<string, any>()
 
     data.forEach((item) => {
-      const dateKey = format(item.date, 'dd/MM')
-      if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, { date: dateKey, originalDate: item.date })
+      if (!supplierMap.has(item.supplier)) {
+        supplierMap.set(item.supplier, { supplier: item.supplier })
       }
-      const entry = dateMap.get(dateKey)
-      entry[item.supplier] = (entry[item.supplier] || 0) + item.quantity
+      const entry = supplierMap.get(item.supplier)
+      entry[item.type] = (entry[item.type] || 0) + item.quantity
     })
 
-    const sortedData = Array.from(dateMap.values()).sort(
-      (a, b) => a.originalDate.getTime() - b.originalDate.getTime(),
+    // Convert map to array and sort by supplier name
+    const processedData = Array.from(supplierMap.values()).sort((a, b) =>
+      a.supplier.localeCompare(b.supplier),
     )
 
-    // Generate config with Green/Yellow theme colors
+    // Generate config with themes
     const config: ChartConfig = {}
-    suppliers.forEach((supplier, index) => {
+    productTypes.forEach((type, index) => {
+      // Cycle through chart colors 1-5
       const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`
-      config[supplier] = {
-        label: supplier,
+      config[type] = {
+        label: type,
         color: colorVar,
       }
     })
 
-    return { chartData: sortedData, chartConfig: config }
+    return { chartData: processedData, chartConfig: config }
   }, [data])
 
   if (!data || data.length === 0) {
@@ -72,9 +77,9 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
         className={cn('col-span-full shadow-sm border-primary/10', className)}
       >
         <CardHeader>
-          <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>
+          <CardTitle>Entrada de MP por Fornecedor</CardTitle>
           <CardDescription>
-            Acompanhamento diário de recebimento de matéria-prima
+            Volume total recebido por fornecedor e tipo de material
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
@@ -86,10 +91,10 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart data={chartData} margin={{ top: 10 }}>
+      <BarChart data={chartData} margin={{ top: 20 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
-          dataKey="date"
+          dataKey="supplier"
           tickLine={false}
           axisLine={false}
           tickMargin={8}
@@ -115,22 +120,22 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
           }
         />
         <ChartLegend content={<ChartLegendContent />} />
-        {Object.keys(chartConfig).map((supplier) => (
+        {Object.keys(chartConfig).map((productType) => (
           <Bar
-            key={supplier}
-            dataKey={supplier}
-            fill={chartConfig[supplier].color}
+            key={productType}
+            dataKey={productType}
+            fill={chartConfig[productType].color}
             radius={[4, 4, 0, 0]}
             stackId="a"
           >
             <LabelList
-              dataKey={supplier}
+              dataKey={productType}
               position="inside"
               className="fill-white font-bold"
               style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
               fontSize={11}
               formatter={(value: any) =>
-                value > 0 ? `${Number(value).toLocaleString('pt-BR')} kg` : ''
+                value > 0 ? `${(value / 1000).toFixed(0)}k` : ''
               }
             />
           </Bar>
@@ -145,9 +150,9 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle>Entrada Diária de MP por Fornecedor</CardTitle>
+          <CardTitle>Entrada de MP por Fornecedor</CardTitle>
           <CardDescription>
-            Volume recebido por dia detalhado por fornecedor
+            Volume total recebido por fornecedor e tipo de material
           </CardDescription>
         </div>
         <Dialog>
@@ -159,9 +164,9 @@ export function RawMaterialChart({ data, className }: RawMaterialChartProps) {
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Entrada Diária de MP por Fornecedor</DialogTitle>
+              <DialogTitle>Entrada de MP por Fornecedor</DialogTitle>
               <DialogDescription>
-                Detalhamento do volume recebido por fornecedor.
+                Detalhamento do volume recebido por fornecedor e produto.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
