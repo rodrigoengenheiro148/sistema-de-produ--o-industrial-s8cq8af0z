@@ -113,6 +113,7 @@ export default function RawMaterial() {
               <RawMaterialForm
                 initialData={editingItem}
                 onSuccess={() => setIsOpen(false)}
+                onCancel={() => setIsOpen(false)}
               />
             </DialogContent>
           </Dialog>

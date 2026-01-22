@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -38,11 +39,13 @@ const formSchema = z.object({
 interface RawMaterialFormProps {
   initialData?: RawMaterialEntry
   onSuccess: () => void
+  onCancel: () => void
 }
 
 export function RawMaterialForm({
   initialData,
   onSuccess,
+  onCancel,
 }: RawMaterialFormProps) {
   const { addRawMaterial, updateRawMaterial } = useData()
   const { toast } = useToast()
@@ -60,12 +63,32 @@ export function RawMaterialForm({
     },
   })
 
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        date: format(initialData.date, 'yyyy-MM-dd'),
+        supplier: initialData.supplier,
+        type: initialData.type,
+        quantity: String(initialData.quantity),
+        notes: initialData.notes || '',
+      })
+    } else {
+      form.reset({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        supplier: '',
+        type: '',
+        quantity: '',
+        notes: '',
+      })
+    }
+  }, [initialData, form])
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Ensuring the exact value is used without any additions or offsets
     const quantityValue = Number(values.quantity)
+    const dateValue = new Date(`${values.date}T12:00:00`)
 
     const entryData = {
-      date: new Date(values.date),
+      date: dateValue,
       supplier: values.supplier,
       type: values.type,
       quantity: quantityValue,
@@ -169,6 +192,9 @@ export function RawMaterialForm({
           )}
         />
         <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
           <Button type="submit">
             {initialData ? 'Atualizar' : 'Salvar Registro'}
           </Button>
