@@ -145,7 +145,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('*')
           .order('date', { ascending: false }),
         supabase.from('factories').select('*'),
-        supabase.from('integration_configs').select('*').limit(1).single(),
+        supabase.from('integration_configs').select('*').limit(1).maybeSingle(),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -476,7 +476,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         .from('integration_configs')
         .select('id')
         .eq('user_id', user?.id)
-        .single()
+        .maybeSingle()
       if (existing) {
         await supabase
           .from('integration_configs')
