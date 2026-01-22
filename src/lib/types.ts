@@ -95,6 +95,13 @@ export interface ProtheusConfig {
   isActive: boolean
 }
 
+export interface NotificationSettings {
+  id?: string
+  emailEnabled: boolean
+  smsEnabled: boolean
+  yieldThreshold: number
+}
+
 export interface Factory {
   id: string
   name: string
@@ -185,6 +192,10 @@ export interface DataContextType {
   testProtheusConnection: () => Promise<{ success: boolean; message: string }>
   lastProtheusSync: Date | null
   syncProtheusData: () => Promise<void>
+
+  notificationSettings: NotificationSettings
+  updateNotificationSettings: (settings: NotificationSettings) => Promise<void>
+
   connectionStatus: ConnectionStatus
   pendingOperationsCount: number
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Server,
   AlertTriangle,
+  Bell,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -34,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { NotificationSettings } from '@/lib/types'
 
 export default function Settings() {
   const {
@@ -45,6 +47,8 @@ export default function Settings() {
     clearAllData,
     systemSettings,
     updateSystemSettings,
+    notificationSettings,
+    updateNotificationSettings,
   } = useData()
 
   const { toast } = useToast()
@@ -54,6 +58,17 @@ export default function Settings() {
   const [testing, setTesting] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [localSettings, setLocalSettings] = useState(systemSettings)
+  const [localNotifications, setLocalNotifications] =
+    useState<NotificationSettings>(notificationSettings)
+
+  // Sync state with context when context updates
+  useEffect(() => {
+    setLocalNotifications(notificationSettings)
+  }, [notificationSettings])
+
+  useEffect(() => {
+    setConfig(protheusConfig)
+  }, [protheusConfig])
 
   const handleSaveConnection = async () => {
     updateProtheusConfig(config)
@@ -89,6 +104,24 @@ export default function Settings() {
     toast({
       title: 'Preferências Salvas',
       description: 'As configurações do sistema foram atualizadas.',
+    })
+  }
+
+  const handleSaveNotifications = async () => {
+    if (localNotifications.yieldThreshold < 0) {
+      toast({
+        title: 'Valor Inválido',
+        description: 'A meta de rendimento deve ser positiva.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    await updateNotificationSettings(localNotifications)
+    toast({
+      title: 'Configurações de Alerta Salvas',
+      description:
+        'Suas preferências de notificação foram atualizadas com sucesso.',
     })
   }
 
@@ -134,6 +167,7 @@ export default function Settings() {
         <TabsList>
           <TabsTrigger value="connection">Conexão API</TabsTrigger>
           <TabsTrigger value="system">Sistema</TabsTrigger>
+          <TabsTrigger value="alerts">Alertas</TabsTrigger>
           <TabsTrigger value="danger">Zona de Perigo</TabsTrigger>
         </TabsList>
 
@@ -311,6 +345,98 @@ export default function Settings() {
             <CardFooter className="border-t p-6">
               <Button onClick={handleSaveSystem}>
                 <Save className="mr-2 h-4 w-4" /> Salvar Preferências
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" /> Configurações de Alertas de
+                Desempenho
+              </CardTitle>
+              <CardDescription>
+                Defina como e quando você deseja ser notificado sobre
+                indicadores de produção.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="email-alerts" className="text-base">
+                      Alertas por E-mail
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receba notificações diárias sobre o desempenho da produção
+                      no seu e-mail cadastrado.
+                    </p>
+                  </div>
+                  <Switch
+                    id="email-alerts"
+                    checked={localNotifications.emailEnabled}
+                    onCheckedChange={(checked) =>
+                      setLocalNotifications({
+                        ...localNotifications,
+                        emailEnabled: checked,
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="sms-alerts" className="text-base">
+                      Alertas por SMS
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receba alertas urgentes diretamente no seu telefone
+                      celular.
+                    </p>
+                  </div>
+                  <Switch
+                    id="sms-alerts"
+                    checked={localNotifications.smsEnabled}
+                    onCheckedChange={(checked) =>
+                      setLocalNotifications({
+                        ...localNotifications,
+                        smsEnabled: checked,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2 pt-2">
+                <Label htmlFor="yield-threshold">Meta de Rendimento (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="yield-threshold"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    className="max-w-[200px]"
+                    value={localNotifications.yieldThreshold}
+                    onChange={(e) =>
+                      setLocalNotifications({
+                        ...localNotifications,
+                        yieldThreshold: Number(e.target.value),
+                      })
+                    }
+                  />
+                  <span className="text-muted-foreground">%</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Você será notificado se o rendimento diário cair abaixo deste
+                  valor.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t p-6">
+              <Button onClick={handleSaveNotifications}>
+                <Save className="mr-2 h-4 w-4" /> Salvar Configurações de Alerta
               </Button>
             </CardFooter>
           </Card>

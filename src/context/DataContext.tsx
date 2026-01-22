@@ -19,6 +19,7 @@ import {
   Factory,
   ConnectionStatus,
   YieldTargets,
+  NotificationSettings,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -37,6 +38,12 @@ const DEFAULT_YIELD_TARGETS: YieldTargets = {
   fco: 26,
   farinheta: 3.5,
   total: 58,
+}
+
+const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
+  emailEnabled: false,
+  smsEnabled: false,
+  yieldThreshold: 0,
 }
 
 // Helper to safely parse dates, forcing local noon for date-only strings to avoid timezone shifts
@@ -79,6 +86,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     syncProduction: false,
     isActive: false,
   })
+
+  const [notificationSettings, setNotificationSettings] =
+    useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS)
 
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
@@ -123,6 +133,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: qual },
         { data: fact },
         { data: integration },
+        { data: notifications },
       ] = await Promise.all([
         supabase
           .from('raw_materials')
@@ -146,6 +157,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .order('date', { ascending: false }),
         supabase.from('factories').select('*'),
         supabase.from('integration_configs').select('*').limit(1).maybeSingle(),
+        // @ts-expect-error - notification_settings table is created in a migration
+        supabase
+          .from('notification_settings')
+          .select('*')
+          .limit(1)
+          .maybeSingle(),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -169,9 +186,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         })
       }
 
+      if (notifications) {
+        setNotificationSettings({
+          id: notifications.id,
+          emailEnabled: notifications.email_enabled || false,
+          smsEnabled: notifications.sms_enabled || false,
+          yieldThreshold: notifications.yield_threshold || 0,
+        })
+      }
+
       setLastProtheusSync(new Date())
     } catch (error) {
-      // It's ok if integration config is not found (error code PGRST116)
+      // It's ok if configs are not found
       console.error('Error fetching data:', error)
       setConnectionStatus('error')
     }
@@ -461,8 +487,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       sync_production: config.syncProduction,
       is_active: config.isActive,
       user_id: user?.id,
-      // if config.id exists, it will update, otherwise insert (if user_id constraint matches)
-      // But since we rely on user_id, let's look for existing config for this user first or rely on RLS
     }
 
     if (config.id) {
@@ -471,7 +495,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         .update(dataToUpsert)
         .eq('id', config.id)
     } else {
-      // Check if exists for user
       const { data: existing } = await supabase
         .from('integration_configs')
         .select('id')
@@ -486,8 +509,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         await supabase.from('integration_configs').insert(dataToUpsert)
       }
     }
+    fetchData()
+  }
 
-    // Refresh to get the ID if needed
+  // --- Notification Handlers ---
+
+  const updateNotificationSettings = async (settings: NotificationSettings) => {
+    setNotificationSettings(settings)
+
+    const dataToUpsert = {
+      email_enabled: settings.emailEnabled,
+      sms_enabled: settings.smsEnabled,
+      yield_threshold: settings.yieldThreshold,
+      user_id: user?.id,
+    }
+
+    if (settings.id) {
+      // @ts-expect-error - notification_settings table is created in a migration
+      await supabase
+        .from('notification_settings')
+        .update(dataToUpsert)
+        .eq('id', settings.id)
+    } else {
+      // @ts-expect-error - notification_settings table is created in a migration
+      const { data: existing } = await supabase
+        .from('notification_settings')
+        .select('id')
+        .eq('user_id', user?.id)
+        .maybeSingle()
+      if (existing) {
+        // @ts-expect-error - notification_settings table is created in a migration
+        await supabase
+          .from('notification_settings')
+          .update(dataToUpsert)
+          .eq('id', existing.id)
+      } else {
+        // @ts-expect-error - notification_settings table is created in a migration
+        await supabase.from('notification_settings').insert(dataToUpsert)
+      }
+    }
     fetchData()
   }
 
@@ -599,6 +659,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         testProtheusConnection,
         lastProtheusSync,
         syncProtheusData,
+
+        notificationSettings,
+        updateNotificationSettings,
+
         connectionStatus,
         pendingOperationsCount: 0,
         clearAllData,
