@@ -81,8 +81,9 @@ export function ProductionForm({
   }, [mpUsed, sebo, fco, farinheta, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
     const entryData = {
-      date: new Date(values.date),
+      date: new Date(`${values.date}T12:00:00`),
       shift: values.shift,
       mpUsed: values.mpUsed,
       seboProduced: values.sebo,

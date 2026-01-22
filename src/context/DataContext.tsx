@@ -33,6 +33,17 @@ const DEFAULT_YIELD_TARGETS: YieldTargets = {
   total: 58,
 }
 
+// Helper to safely parse dates, forcing local noon for date-only strings to avoid timezone shifts
+const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
+  if (!dateStr) return new Date()
+  if (dateStr instanceof Date) return dateStr
+  // If string matches YYYY-MM-DD exactly (no time), append T12:00:00 to force local noon interpretation
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}T12:00:00`)
+  }
+  return new Date(dateStr)
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -76,9 +87,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const mapData = (data: any[]) => {
     return data.map((item) => ({
       ...item,
-      date: new Date(item.date),
+      // Use safe date parsing to prevent off-by-one-day errors
+      date: parseDateSafe(item.date),
       createdAt: item.created_at ? new Date(item.created_at) : undefined,
-      // Map database snake_case columns to camelCase if needed, though most are matching or handled
+      // Map database snake_case columns to camelCase if needed
       mpUsed: item.mp_used,
       seboProduced: item.sebo_produced,
       fcoProduced: item.fco_produced,
@@ -96,7 +108,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    setConnectionStatus('syncing')
     try {
       const [
         { data: raw },
@@ -136,7 +147,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (qual) setQualityRecords(mapData(qual))
       if (fact) setFactories(mapData(fact))
 
-      setConnectionStatus('online')
       setLastProtheusSync(new Date())
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -157,54 +167,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    fetchData()
+    // Initial load
+    setConnectionStatus('syncing')
+    fetchData().then(() => setConnectionStatus('online'))
 
     // Realtime subscriptions
-    const channels = [
-      supabase
-        .channel('raw_materials_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'raw_materials' },
-          fetchData,
-        )
-        .subscribe(),
-      supabase
-        .channel('production_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'production' },
-          fetchData,
-        )
-        .subscribe(),
-      supabase
-        .channel('shipping_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'shipping' },
-          fetchData,
-        )
-        .subscribe(),
-      supabase
-        .channel('acidity_records_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'acidity_records' },
-          fetchData,
-        )
-        .subscribe(),
-      supabase
-        .channel('quality_records_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'quality_records' },
-          fetchData,
-        )
-        .subscribe(),
-    ]
+    // We combine all subscriptions into one channel for better management
+    const channel = supabase
+      .channel('db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'raw_materials' },
+        fetchData,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'production' },
+        fetchData,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shipping' },
+        fetchData,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'acidity_records' },
+        fetchData,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'quality_records' },
+        fetchData,
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('online')
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error(`Realtime subscription error: ${status}`)
+          setConnectionStatus('error')
+        }
+      })
 
     return () => {
-      channels.forEach((channel) => supabase.removeChannel(channel))
+      supabase.removeChannel(channel)
     }
   }, [user])
 
@@ -416,7 +422,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) console.error('Error deleting factory:', error)
   }
 
-  // Legacy/Mock functions for compatibility
+  // Legacy/Mock functions
   const addUserAccess = () => {}
   const updateUserAccess = () => {}
   const deleteUserAccess = () => {}

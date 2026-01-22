@@ -57,7 +57,8 @@ export function AcidityForm({
 
   function handleSubmit(values: z.infer<typeof formSchema>) {
     onSubmit({
-      date: new Date(values.date),
+      // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
+      date: new Date(`${values.date}T12:00:00`),
       time: values.time,
       responsible: values.responsible,
       weight: values.weight,

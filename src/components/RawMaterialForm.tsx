@@ -89,6 +89,7 @@ export function RawMaterialForm({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const quantityValue = Number(values.quantity)
+    // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
     const dateValue = new Date(`${values.date}T12:00:00`)
 
     const entryData = {

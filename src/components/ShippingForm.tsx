@@ -64,7 +64,8 @@ export function ShippingForm({ initialData, onSuccess }: ShippingFormProps) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const entryData = {
-      date: new Date(values.date),
+      // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
+      date: new Date(`${values.date}T12:00:00`),
       client: values.client,
       product: values.product,
       quantity: Number(values.quantity),
