@@ -118,6 +118,7 @@ export interface SyncOperation {
   data: any
   entityId: string
   timestamp: number
+  retryCount?: number
 }
 
 export interface DataContextType {

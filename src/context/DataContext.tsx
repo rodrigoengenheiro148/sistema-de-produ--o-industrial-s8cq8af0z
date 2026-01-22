@@ -135,10 +135,47 @@ const parseDatesInArray = (arr: any[]) => {
   return arr.map((item) => {
     if (!item) return item
     const newItem = { ...item }
-    if (newItem.date) newItem.date = new Date(newItem.date)
-    if (newItem.createdAt) newItem.createdAt = new Date(newItem.createdAt)
+    if (newItem.date && typeof newItem.date === 'string')
+      newItem.date = new Date(newItem.date)
+    if (newItem.createdAt && typeof newItem.createdAt === 'string')
+      newItem.createdAt = new Date(newItem.createdAt)
     return newItem
   })
+}
+
+// Helper to merge server data with local pending operations to prevent UI flickering
+function mergeServerData<T extends { id: string }>(
+  serverData: T[],
+  pendingOps: SyncOperation[],
+  collectionKey: string,
+): T[] {
+  // Create a map for efficient lookups/updates
+  const dataMap = new Map<string, T>()
+  serverData.forEach((item) => dataMap.set(item.id, item))
+
+  // Apply pending operations in chronological order
+  pendingOps.forEach((op) => {
+    if (op.collection !== collectionKey) return
+
+    if (op.type === 'ADD') {
+      // For ADD, we optimistically add the item if it's not already there
+      if (!dataMap.has(op.entityId)) {
+        dataMap.set(op.entityId, op.data as T)
+      }
+    } else if (op.type === 'UPDATE') {
+      // For UPDATE, we merge the partial updates into the existing item
+      const existing = dataMap.get(op.entityId)
+      if (existing) {
+        dataMap.set(op.entityId, { ...existing, ...op.data })
+      }
+    } else if (op.type === 'DELETE') {
+      // For DELETE, we remove the item from the map
+      dataMap.delete(op.entityId)
+    }
+  })
+
+  // Convert map back to array and return
+  return Array.from(dataMap.values())
 }
 
 function getStorageData<T>(key: string, defaultData: T): T {
@@ -345,14 +382,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
         return data
       } catch (error) {
-        console.error('API Fetch Error:', error)
+        // console.error('API Fetch Error:', error) // Reduced logging noise
         throw error
       }
     },
     [protheusConfig],
   )
 
-  // Queue Processing - Improved Reliability
+  // Queue Processing - Improved Reliability with Retry Logic
   const processSyncQueue = useCallback(async () => {
     if (!protheusConfig.isActive) {
       if (pendingOperations.length > 0) setConnectionStatus('pending')
@@ -408,6 +445,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Sync failed for op:', op.id, e)
       success = false
       setConnectionStatus('error')
+
+      // Retry logic: increment retry count
+      const retries = (op.retryCount || 0) + 1
+      if (retries > 5) {
+        console.error('Max retries reached, discarding operation', op)
+        remainingOps.shift() // Drop it to unblock queue
+      } else {
+        remainingOps[0] = { ...op, retryCount: retries }
+      }
+      setPendingOperations(remainingOps)
+      setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
     }
 
     return success
@@ -421,9 +469,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
+    // Attempt to process queue first
     if (pendingOperations.length > 0) {
       const queueProcessed = await processSyncQueue()
-      if (!queueProcessed) return
+      // If queue failed, we still try to fetch, but we need to be careful with state merging
     }
 
     setConnectionStatus('syncing')
@@ -457,36 +506,56 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return
       }
 
-      // Update state if new data
-      if (raw && Array.isArray(raw)) {
-        const parsed = parseDatesInArray(raw)
-        setRawMaterials(parsed)
-        setStorageData(STORAGE_KEYS.RAW_MATERIALS, parsed)
+      // Helper for updating state with merge logic
+      const updateStateWithMerge = <T extends { id: string }>(
+        fetchedData: any[],
+        storageKey: string,
+        setter: React.Dispatch<React.SetStateAction<T[]>>,
+        collectionKey: string,
+      ) => {
+        if (fetchedData && Array.isArray(fetchedData)) {
+          const parsed = parseDatesInArray(fetchedData)
+          // Merge server data with local pending operations
+          const merged = mergeServerData(
+            parsed,
+            pendingOperations,
+            collectionKey,
+          )
+          setter(merged)
+          setStorageData(storageKey, merged)
+        }
       }
 
-      if (prod && Array.isArray(prod)) {
-        const parsed = parseDatesInArray(prod)
-        setProduction(parsed)
-        setStorageData(STORAGE_KEYS.PRODUCTION, parsed)
-      }
-
-      if (ship && Array.isArray(ship)) {
-        const parsed = parseDatesInArray(ship)
-        setShipping(parsed)
-        setStorageData(STORAGE_KEYS.SHIPPING, parsed)
-      }
-
-      if (acid && Array.isArray(acid)) {
-        const parsed = parseDatesInArray(acid)
-        setAcidityRecords(parsed)
-        setStorageData(STORAGE_KEYS.ACIDITY, parsed)
-      }
-
-      if (fact && Array.isArray(fact)) {
-        const parsed = parseDatesInArray(fact)
-        setFactories(parsed)
-        setStorageData(STORAGE_KEYS.FACTORIES, parsed)
-      }
+      updateStateWithMerge(
+        raw,
+        STORAGE_KEYS.RAW_MATERIALS,
+        setRawMaterials,
+        STORAGE_KEYS.RAW_MATERIALS,
+      )
+      updateStateWithMerge(
+        prod,
+        STORAGE_KEYS.PRODUCTION,
+        setProduction,
+        STORAGE_KEYS.PRODUCTION,
+      )
+      updateStateWithMerge(
+        ship,
+        STORAGE_KEYS.SHIPPING,
+        setShipping,
+        STORAGE_KEYS.SHIPPING,
+      )
+      updateStateWithMerge(
+        acid,
+        STORAGE_KEYS.ACIDITY,
+        setAcidityRecords,
+        STORAGE_KEYS.ACIDITY,
+      )
+      updateStateWithMerge(
+        fact,
+        STORAGE_KEYS.FACTORIES,
+        setFactories,
+        STORAGE_KEYS.FACTORIES,
+      )
 
       setLastProtheusSync(new Date())
       setStorageData(STORAGE_KEYS.LAST_SYNC, new Date())
@@ -495,7 +564,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Sync Pull Critical Error:', error)
       setConnectionStatus('error')
     }
-  }, [protheusConfig, apiFetch, pendingOperations.length, processSyncQueue])
+  }, [protheusConfig, apiFetch, pendingOperations, processSyncQueue])
 
   // Lifecycle & Polling
   useEffect(() => {
@@ -570,6 +639,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             data: newEntry,
             entityId: newEntry.id,
             timestamp,
+            retryCount: 0,
           }
         } else if (type === 'UPDATE') {
           newData = prev.map((item) =>
@@ -583,6 +653,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             data: entryOrId,
             entityId: entryOrId.id,
             timestamp,
+            retryCount: 0,
           }
         } else {
           newData = prev.filter((item) => item.id !== entryOrId)
@@ -594,6 +665,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             data: null,
             entityId: entryOrId,
             timestamp,
+            retryCount: 0,
           }
         }
         setStorageData(key, newData)
