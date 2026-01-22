@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { ShippingEntry } from '@/lib/types'
 import {
   Card,
@@ -13,6 +13,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
+  ChartLegend,
+  ChartLegendContent,
 } from '@/components/ui/chart'
 import {
   BarChart,
@@ -20,8 +22,8 @@ import {
   CartesianGrid,
   XAxis,
   YAxis,
-  Cell,
   ReferenceLine,
+  LabelList,
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -34,8 +36,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, TrendingUp, DollarSign } from 'lucide-react'
+import { Maximize2, TrendingUp, DollarSign, Layers, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -48,64 +51,98 @@ export function RevenueChart({
   isMobile = false,
   className,
 }: RevenueChartProps) {
-  const {
-    chartData,
-    chartConfig,
-    totalRevenue,
-    averageRevenue,
-    maxRevenue,
-    maxDate,
-  } = useMemo(() => {
-    const revenueMap = new Map<string, number>()
+  const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
 
-    // Group by ISO date to ensure correct sorting across years/months
-    data.forEach((s) => {
-      if (!s.date) return
-      const key = format(s.date, 'yyyy-MM-dd')
-      revenueMap.set(key, (revenueMap.get(key) || 0) + s.quantity * s.unitPrice)
-    })
+  const { chartData, chartConfig, keys, averageRevenue, maxRevenue, maxDate } =
+    useMemo(() => {
+      const uniqueKeys = new Set<string>()
+      const dateMap = new Map<string, any>()
+      let globalTotal = 0
 
-    const processedData = Array.from(revenueMap.entries())
-      .map(([dateKey, revenue]) => {
-        const dateObj = parseISO(dateKey)
-        return {
-          dateKey, // for sorting
-          displayDate: format(dateObj, 'dd/MM'),
-          fullDate: format(dateObj, "dd 'de' MMMM", { locale: ptBR }),
-          revenue,
+      // Group by Date and Segment
+      data.forEach((s) => {
+        if (!s.date) return
+        const dateKey = format(s.date, 'yyyy-MM-dd')
+        const revenue = s.quantity * s.unitPrice
+        const groupKey = groupBy === 'product' ? s.product : s.client
+
+        uniqueKeys.add(groupKey)
+        globalTotal += revenue
+
+        if (!dateMap.has(dateKey)) {
+          const dateObj = parseISO(dateKey)
+          dateMap.set(dateKey, {
+            dateKey, // for sorting
+            displayDate: format(dateObj, 'dd/MM'),
+            fullDate: format(dateObj, "dd 'de' MMMM", { locale: ptBR }),
+            totalRevenue: 0,
+          })
+        }
+
+        const entry = dateMap.get(dateKey)
+        entry[groupKey] = (entry[groupKey] || 0) + revenue
+        entry.totalRevenue += revenue
+      })
+
+      const processedData = Array.from(dateMap.values()).sort((a, b) =>
+        a.dateKey.localeCompare(b.dateKey),
+      )
+
+      const avg =
+        processedData.length > 0 ? globalTotal / processedData.length : 0
+
+      // Find peak
+      let max = 0
+      let mDate = ''
+      processedData.forEach((d) => {
+        if (d.totalRevenue > max) {
+          max = d.totalRevenue
+          mDate = d.fullDate
         }
       })
-      .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
 
-    const total = processedData.reduce((acc, curr) => acc + curr.revenue, 0)
-    const avg = processedData.length > 0 ? total / processedData.length : 0
+      const sortedKeys = Array.from(uniqueKeys).sort()
+      const config: ChartConfig = {}
 
-    // Find peak
-    let max = 0
-    let mDate = ''
-    processedData.forEach((d) => {
-      if (d.revenue > max) {
-        max = d.revenue
-        mDate = d.fullDate
+      // Assign colors based on index or specific mapping if needed
+      sortedKeys.forEach((key, index) => {
+        config[key] = {
+          label: key,
+          color: `hsl(var(--chart-${(index % 5) + 1}))`,
+        }
+      })
+
+      // Fallback config if no keys
+      if (Object.keys(config).length === 0) {
+        config['revenue'] = { label: 'Receita', color: 'hsl(var(--primary))' }
       }
-    })
 
-    const config: ChartConfig = {
-      revenue: {
-        label: 'Faturamento',
-        color: 'hsl(var(--primary))',
-      },
-    }
+      return {
+        chartData: processedData,
+        chartConfig: config,
+        keys: sortedKeys,
+        totalRevenue: globalTotal,
+        averageRevenue: avg,
+        maxRevenue: max,
+        maxDate: mDate,
+      }
+    }, [data, groupBy])
 
-    return {
-      chartData: processedData,
-      chartConfig: config,
-      totalRevenue: total,
-      averageRevenue: avg,
-      maxRevenue: max,
-      maxDate: mDate,
-    }
-  }, [data])
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 0,
+    }).format(value)
+
+  const formatCompact = (value: number) =>
+    new Intl.NumberFormat('pt-BR', {
+      notation: 'compact',
+      compactDisplay: 'short',
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 1,
+    }).format(value)
 
   if (!data || data.length === 0) {
     return (
@@ -126,18 +163,11 @@ export function RevenueChart({
     )
   }
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      maximumFractionDigits: 0,
-    }).format(value)
-
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
       <BarChart
         data={chartData}
-        margin={{ top: 20, right: 10, left: 10, bottom: 0 }}
+        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
       >
         <CartesianGrid
           vertical={false}
@@ -154,7 +184,7 @@ export function RevenueChart({
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={isMobile ? 40 : 80}
+          width={isMobile ? 35 : 60}
           tickFormatter={(value) =>
             new Intl.NumberFormat('pt-BR', {
               notation: 'compact',
@@ -172,10 +202,16 @@ export function RevenueChart({
               labelFormatter={(value, payload) => {
                 return payload[0]?.payload?.fullDate || value
               }}
-              formatter={(value) => (
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <span className="font-semibold text-foreground">
+              formatter={(value, name, item) => (
+                <div className="flex items-center gap-2 w-full min-w-[150px]">
+                  <div
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-muted-foreground flex-1 text-xs">
+                    {name}
+                  </span>
+                  <span className="font-semibold text-foreground text-xs font-mono">
                     {formatCurrency(Number(value))}
                   </span>
                 </div>
@@ -183,23 +219,32 @@ export function RevenueChart({
             />
           }
         />
-        <Bar
-          dataKey="revenue"
-          fill="var(--color-revenue)"
-          radius={[4, 4, 0, 0]}
-          maxBarSize={60}
-        >
-          {chartData.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={
-                entry.revenue === maxRevenue && chartData.length > 1
-                  ? 'hsl(var(--chart-2))'
-                  : 'hsl(var(--primary))'
-              }
+        <ChartLegend content={<ChartLegendContent />} />
+        {keys.map((key) => (
+          <Bar
+            key={key}
+            dataKey={key}
+            stackId="a"
+            fill={`var(--color-${key})`}
+            radius={[0, 0, 0, 0]}
+            maxBarSize={60}
+          >
+            <LabelList
+              dataKey={key}
+              position="inside"
+              className="fill-white font-bold"
+              style={{
+                textShadow: '0px 1px 2px rgba(0,0,0,0.6)',
+                pointerEvents: 'none',
+              }}
+              fontSize={isMobile ? 10 : 11}
+              formatter={(value: number) => {
+                if (value === 0) return ''
+                return formatCompact(value)
+              }}
             />
-          ))}
-        </Bar>
+          </Bar>
+        ))}
         {/* Average Line */}
         <ReferenceLine
           y={averageRevenue}
@@ -220,58 +265,78 @@ export function RevenueChart({
     <Card
       className={cn('shadow-sm border-primary/10 flex flex-col', className)}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            Receita Diária
-          </CardTitle>
-          <CardDescription>
-            Análise de faturamento por dia de expedição
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-muted"
+      <CardHeader className="pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Receita Diária
+            </CardTitle>
+            <CardDescription>Faturamento segmentado</CardDescription>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Tabs
+              value={groupBy}
+              onValueChange={(v) => setGroupBy(v as 'product' | 'client')}
+              className="w-[200px]"
             >
-              <Maximize2 className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">Expandir</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Detalhamento de Receita Diária</DialogTitle>
-              <DialogDescription>
-                Visualização expandida do faturamento diário e tendências.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 w-full min-h-0 py-4">
-              <ChartContent height="h-full" />
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm text-muted-foreground border-t pt-4">
-              <div>
-                Média do Período:{' '}
-                <span className="font-medium text-foreground">
-                  {formatCurrency(averageRevenue)}
-                </span>
-              </div>
-              {maxRevenue > 0 && (
-                <div>
-                  Pico do Período:{' '}
-                  <span className="font-medium text-foreground">
-                    {formatCurrency(maxRevenue)}
-                  </span>{' '}
-                  ({maxDate})
+              <TabsList className="grid w-full grid-cols-2 h-8">
+                <TabsTrigger value="product" className="text-xs px-2 h-6">
+                  <Layers className="h-3 w-3 mr-1" />
+                  Produtos
+                </TabsTrigger>
+                <TabsTrigger value="client" className="text-xs px-2 h-6">
+                  <Users className="h-3 w-3 mr-1" />
+                  Clientes
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-muted"
+                >
+                  <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="sr-only">Expandir</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] h-[85vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Detalhamento de Receita Diária</DialogTitle>
+                  <DialogDescription>
+                    Visualização expandida do faturamento diário.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 w-full min-h-0 py-4">
+                  <ChartContent height="h-full" />
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm text-muted-foreground border-t pt-4">
+                  <div>
+                    Média:{' '}
+                    <span className="font-medium text-foreground">
+                      {formatCurrency(averageRevenue)}
+                    </span>
+                  </div>
+                  {maxRevenue > 0 && (
+                    <div>
+                      Pico:{' '}
+                      <span className="font-medium text-foreground">
+                        {formatCurrency(maxRevenue)}
+                      </span>{' '}
+                      ({maxDate})
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="pt-4 flex-1 min-h-0">
+      <CardContent className="pt-2 flex-1 min-h-0">
         <ChartContent />
       </CardContent>
       {maxRevenue > 0 && (
