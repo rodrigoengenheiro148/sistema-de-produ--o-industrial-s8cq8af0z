@@ -336,55 +336,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       const cleanEndpoint = endpoint.replace(/^\//, '')
       const url = `${baseUrl}/${cleanEndpoint}`
 
-      try {
-        const response = await fetch(url, { ...options, headers }).catch(
-          (err) => {
-            throw new Error(`Network Error: ${err.message}`)
-          },
+      const response = await fetch(url, { ...options, headers }).catch(
+        (err) => {
+          throw new Error(`Network Error: ${err.message}`)
+        },
+      )
+
+      if (response.status === 204) return null
+
+      const contentType = response.headers.get('content-type') || ''
+      const isJson = contentType.includes('application/json')
+
+      if (!response.ok && !isJson) {
+        throw new Error(
+          `API Error: ${response.status} ${response.statusText} (Non-JSON response)`,
         )
-
-        if (response.status === 204) return null
-
-        const contentType = response.headers.get('content-type') || ''
-        const isJson = contentType.includes('application/json')
-
-        if (!response.ok && !isJson) {
-          throw new Error(
-            `API Error: ${response.status} ${response.statusText} (Non-JSON response)`,
-          )
-        }
-
-        const text = await response.text()
-        let data
-        if (text) {
-          try {
-            data = JSON.parse(text)
-          } catch (e) {
-            console.error(
-              `JSON Parse Error from ${url}:`,
-              text.substring(0, 100),
-            )
-            if (!response.ok) {
-              throw new Error(
-                `API Error: ${response.status} ${response.statusText}`,
-              )
-            }
-            throw new Error('Invalid API Response: Malformed JSON')
-          }
-        } else {
-          data = null
-        }
-
-        if (!response.ok) {
-          const errorMessage = data?.message || response.statusText
-          throw new Error(`API Error: ${response.status} ${errorMessage}`)
-        }
-
-        return data
-      } catch (error) {
-        // console.error('API Fetch Error:', error) // Reduced logging noise
-        throw error
       }
+
+      const text = await response.text()
+      let data
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch (e) {
+          console.error(`JSON Parse Error from ${url}:`, text.substring(0, 100))
+          if (!response.ok) {
+            throw new Error(
+              `API Error: ${response.status} ${response.statusText}`,
+            )
+          }
+          throw new Error('Invalid API Response: Malformed JSON')
+        }
+      } else {
+        data = null
+      }
+
+      if (!response.ok) {
+        const errorMessage = data?.message || response.statusText
+        throw new Error(`API Error: ${response.status} ${errorMessage}`)
+      }
+
+      return data
     },
     [protheusConfig],
   )
