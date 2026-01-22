@@ -15,6 +15,18 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { Save, RefreshCw, Trash2, ShieldCheck, Server } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 export default function Settings() {
   const {
@@ -29,6 +41,7 @@ export default function Settings() {
   } = useData()
 
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const [config, setConfig] = useState(protheusConfig)
   const [testing, setTesting] = useState(false)
@@ -72,14 +85,12 @@ export default function Settings() {
   }
 
   const handleClearData = () => {
-    if (
-      confirm(
-        'Tem certeza? Isso apagará todos os dados locais e reiniciará o aplicativo.',
-      )
-    ) {
-      clearAllData()
-      window.location.reload()
-    }
+    clearAllData()
+    toast({
+      title: 'Sistema Resetado',
+      description: 'Todos os dados e configurações foram apagados com sucesso.',
+    })
+    navigate('/')
   }
 
   return (
@@ -290,13 +301,38 @@ export default function Settings() {
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
                 Limpar os dados removerá todas as informações armazenadas neste
-                dispositivo e restaurará os dados de demonstração padrão. Se
-                você estiver sincronizado, os dados do servidor serão baixados
-                novamente.
+                dispositivo e restaurará o sistema para o estado inicial vazio.
+                Isso inclui registros de produção, estoque, qualidade e
+                configurações.
               </p>
-              <Button variant="destructive" onClick={handleClearData}>
-                <Trash2 className="mr-2 h-4 w-4" /> Resetar Aplicação
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" /> Resetar Aplicação
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Você tem certeza absoluta?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Essa ação não pode ser desfeita. Isso excluirá
+                      permanentemente todos os dados de produção, configurações
+                      e registros do dispositivo.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleClearData}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Continuar e Resetar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </TabsContent>

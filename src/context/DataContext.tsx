@@ -21,7 +21,7 @@ import {
   SyncOperation,
   YieldTargets,
 } from '@/lib/types'
-import { startOfMonth, endOfMonth, subDays, addDays } from 'date-fns'
+import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -908,13 +908,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         connectionStatus,
         pendingOperationsCount: pendingOperations.length,
         clearAllData: () => {
+          // Reset state to empty values
           setRawMaterials([])
           setProduction([])
           setShipping([])
           setAcidityRecords([])
           setQualityRecords([])
           setPendingOperations([])
-          localStorage.clear()
+          setFactories([])
+          setUserAccessList([])
+
+          // Reset settings to defaults
+          setSystemSettings(DEFAULT_SETTINGS)
+          setYieldTargets(DEFAULT_YIELD_TARGETS)
+          setProtheusConfig(DEFAULT_PROTHEUS_CONFIG)
+          setLastProtheusSync(null)
+          setConnectionStatus('online')
+
+          // Persist empty/default values to storage to prevent mock data reload
+          setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
+          setStorageData(STORAGE_KEYS.PRODUCTION, [])
+          setStorageData(STORAGE_KEYS.SHIPPING, [])
+          setStorageData(STORAGE_KEYS.ACIDITY, [])
+          setStorageData(STORAGE_KEYS.QUALITY, [])
+          setStorageData(STORAGE_KEYS.USER_ACCESS, [])
+          setStorageData(STORAGE_KEYS.FACTORIES, [])
+          setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
+
+          setStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+          setStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS)
+          setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG)
+          setStorageData(STORAGE_KEYS.LAST_SYNC, null)
+
+          // Reset local identifiers
+          setCurrentFactoryId('1')
+          setStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1')
+          setCurrentUserId('1')
+          setStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1')
         },
       }}
     >
