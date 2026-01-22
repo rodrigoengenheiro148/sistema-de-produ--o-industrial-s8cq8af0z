@@ -862,71 +862,78 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   )
 
   const clearAllData = async () => {
-    // If active connection, perform Global Wipe (queue deletions)
-    if (protheusConfig.isActive && protheusConfig.baseUrl) {
-      console.log('Initiating Global Wipe of Server Data...')
+    // Stop any pending operations to avoid conflict
+    setPendingOperations([])
+    setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
 
-      const queueDelete = (items: any[], deleteFn: (id: string) => void) => {
-        items.forEach((item) => {
-          if (item.id) deleteFn(item.id)
+    // If active connection, perform Global Wipe on Server first
+    if (protheusConfig.isActive && protheusConfig.baseUrl && navigator.onLine) {
+      console.log('Initiating Global Wipe of Server Data...')
+      setConnectionStatus('syncing')
+
+      const deleteCollection = async (items: any[], endpoint: string) => {
+        // Create an array of delete promises
+        const promises = items.map((item) => {
+          if (!item.id) return Promise.resolve()
+          return apiFetch(`${endpoint}/${item.id}`, { method: 'DELETE' }).catch(
+            (e) => console.error(`Failed to delete ${endpoint}/${item.id}`, e),
+          )
         })
+
+        // Wait for all deletions to complete
+        await Promise.all(promises)
       }
 
-      queueDelete(rawMaterials, deleteRawMaterial)
-      queueDelete(production, deleteProduction)
-      queueDelete(shipping, deleteShipping)
-      queueDelete(acidityRecords, deleteAcidityRecord)
-      queueDelete(qualityRecords, deleteQualityRecord)
-      // Keep factory structure usually, but user requested global reset
-      // We will clear factories except maybe the default one if logic required, but wipe is wipe.
-      queueDelete(factories, deleteFactory)
+      try {
+        await deleteCollection(rawMaterials, 'raw-materials')
+        await deleteCollection(production, 'production')
+        await deleteCollection(shipping, 'shipping')
+        await deleteCollection(acidityRecords, 'acidity')
+        // Factories might be shared master data, but "Master Data Wipe" was requested.
+        await deleteCollection(factories, 'factories')
 
-      // Reset sync state to force update
-      setLastProtheusSync(null)
-
-      // Trigger sync processing immediately
-      setConnectionStatus('syncing')
-      setTimeout(() => processSyncQueue(), 5)
-
-      // We do NOT clear ProtheusConfig here to maintain the connection
-      // so the DELETE operations can actually be sent to the server.
-      // This ensures "Global Reset Propagation".
-    } else {
-      // Local Reset Mode (Offline/Legacy)
-      setRawMaterials([])
-      setProduction([])
-      setShipping([])
-      setAcidityRecords([])
-      setQualityRecords([])
-      setPendingOperations([])
-      setFactories([])
-      setUserAccessList([])
-
-      setSystemSettings(DEFAULT_SETTINGS)
-      setYieldTargets(DEFAULT_YIELD_TARGETS)
-      setProtheusConfig(DEFAULT_PROTHEUS_CONFIG)
-      setLastProtheusSync(null)
-      setConnectionStatus('online')
-
-      setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
-      setStorageData(STORAGE_KEYS.PRODUCTION, [])
-      setStorageData(STORAGE_KEYS.SHIPPING, [])
-      setStorageData(STORAGE_KEYS.ACIDITY, [])
-      setStorageData(STORAGE_KEYS.QUALITY, [])
-      setStorageData(STORAGE_KEYS.USER_ACCESS, [])
-      setStorageData(STORAGE_KEYS.FACTORIES, [])
-      setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
-
-      setStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
-      setStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS)
-      setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG)
-      setStorageData(STORAGE_KEYS.LAST_SYNC, null)
-
-      setCurrentFactoryId('1')
-      setStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1')
-      setCurrentUserId('1')
-      setStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1')
+        // Also quality records if endpoint exists in mock
+        await deleteCollection(qualityRecords, 'quality')
+      } catch (error) {
+        console.error('Global wipe failed partially', error)
+        // Continue to local wipe regardless to ensure user gets a clean state
+      }
     }
+
+    // Local Wipe Mode (Offline/Legacy) - Reset everything to defaults
+    setRawMaterials([])
+    setProduction([])
+    setShipping([])
+    setAcidityRecords([])
+    setQualityRecords([])
+    setFactories([])
+    setUserAccessList([])
+
+    setSystemSettings(DEFAULT_SETTINGS)
+    setYieldTargets(DEFAULT_YIELD_TARGETS)
+    setProtheusConfig(DEFAULT_PROTHEUS_CONFIG)
+    setLastProtheusSync(null)
+    setConnectionStatus('online')
+
+    // Clear Storage
+    setStorageData(STORAGE_KEYS.RAW_MATERIALS, [])
+    setStorageData(STORAGE_KEYS.PRODUCTION, [])
+    setStorageData(STORAGE_KEYS.SHIPPING, [])
+    setStorageData(STORAGE_KEYS.ACIDITY, [])
+    setStorageData(STORAGE_KEYS.QUALITY, [])
+    setStorageData(STORAGE_KEYS.USER_ACCESS, [])
+    setStorageData(STORAGE_KEYS.FACTORIES, [])
+    setStorageData(STORAGE_KEYS.PENDING_SYNC, [])
+
+    setStorageData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+    setStorageData(STORAGE_KEYS.YIELD_TARGETS, DEFAULT_YIELD_TARGETS)
+    setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, DEFAULT_PROTHEUS_CONFIG)
+    setStorageData(STORAGE_KEYS.LAST_SYNC, null)
+
+    setCurrentFactoryId('1')
+    setStorageData(STORAGE_KEYS.CURRENT_FACTORY, '1')
+    setCurrentUserId('1')
+    setStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1')
   }
 
   return (

@@ -187,5 +187,5 @@ export interface DataContextType {
   connectionStatus: ConnectionStatus
   pendingOperationsCount: number
 
-  clearAllData: () => void
+  clearAllData: () => Promise<void>
 }

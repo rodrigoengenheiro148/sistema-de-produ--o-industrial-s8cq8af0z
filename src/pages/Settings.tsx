@@ -52,6 +52,7 @@ export default function Settings() {
 
   const [config, setConfig] = useState(protheusConfig)
   const [testing, setTesting] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
   const [localSettings, setLocalSettings] = useState(systemSettings)
 
   const handleSaveConnection = async () => {
@@ -91,21 +92,33 @@ export default function Settings() {
     })
   }
 
-  const handleClearData = () => {
-    clearAllData()
+  const handleClearData = async () => {
+    setIsClearing(true)
     if (protheusConfig.isActive) {
       toast({
         title: 'Limpeza Global Iniciada',
         description:
-          'Todos os registros estão sendo removidos do servidor e de todos os dispositivos sincronizados.',
-      })
-    } else {
-      toast({
-        title: 'Sistema Resetado',
-        description: 'Todos os dados locais foram apagados.',
+          'Aguarde enquanto os registros são removidos do servidor e de todos os dispositivos...',
       })
     }
-    navigate('/')
+
+    try {
+      await clearAllData()
+      toast({
+        title: 'Sistema Resetado',
+        description: 'Todos os dados foram apagados com sucesso.',
+        variant: 'default',
+      })
+      navigate('/')
+    } catch (error) {
+      toast({
+        title: 'Erro no Reset',
+        description: 'Ocorreu um problema ao tentar resetar os dados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsClearing(false)
+    }
   }
 
   return (
@@ -321,8 +334,12 @@ export default function Settings() {
               </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
+                  <Button variant="destructive" disabled={isClearing}>
+                    {isClearing ? (
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
                     {protheusConfig.isActive
                       ? 'Limpar Dados Globais (Servidor + Local)'
                       : 'Resetar Aplicação Local'}
@@ -335,17 +352,23 @@ export default function Settings() {
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       {protheusConfig.isActive
-                        ? 'Esta ação apagará permanentemente todos os registros do servidor. Todos os dispositivos conectados verão os dados zerados imediatamente.'
+                        ? 'Esta ação apagará permanentemente todos os registros do servidor e resetará as configurações deste dispositivo. Todos os outros dispositivos sincronizados ficarão com os dados zerados.'
                         : 'Essa ação apagará os dados deste dispositivo e restaurará as configurações de fábrica locais.'}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel disabled={isClearing}>
+                      Cancelar
+                    </AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={handleClearData}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleClearData()
+                      }}
+                      disabled={isClearing}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Confirmar Exclusão
+                      {isClearing ? 'Limpando...' : 'Confirmar Exclusão'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
