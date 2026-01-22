@@ -164,6 +164,8 @@ export function RawMaterialForm({
                   <SelectItem value="Vísceras">Vísceras</SelectItem>
                   <SelectItem value="Sangue">Sangue</SelectItem>
                   <SelectItem value="Misto">Misto</SelectItem>
+                  <SelectItem value="Despojo">Despojo</SelectItem>
+                  <SelectItem value="Barrigada">Barrigada</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
