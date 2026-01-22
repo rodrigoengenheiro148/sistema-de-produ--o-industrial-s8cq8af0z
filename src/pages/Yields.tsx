@@ -232,8 +232,8 @@ export default function Yields() {
                     id="password"
                     type="password"
                     placeholder="Digite a senha para desbloquear"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) =>
                       e.key === 'Enter' && handlePasswordSubmit()
                     }
