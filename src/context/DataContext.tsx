@@ -558,15 +558,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           )
           setter(merged)
           setStorageData(storageKey, merged)
-        } else if (
-          fetchedData &&
-          Array.isArray(fetchedData) &&
-          fetchedData.length === 0
-        ) {
-          // Handle explicit empty data from server (Global Reset scenario)
-          const merged = mergeServerData([], pendingOperations, collectionKey)
-          setter(merged)
-          setStorageData(storageKey, merged)
         }
       }
 
