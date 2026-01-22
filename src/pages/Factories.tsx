@@ -44,22 +44,14 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Factories() {
-  const {
-    factories,
-    deleteFactory,
-    currentFactoryId,
-    setCurrentFactoryId,
-    checkPermission,
-  } = useData()
+  const { factories, deleteFactory, currentFactoryId, setCurrentFactoryId } =
+    useData()
   const { toast } = useToast()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingFactory, setEditingFactory] = useState<Factory | undefined>(
     undefined,
   )
-
-  // Use permission for managing factories (Admin only)
-  const canManage = checkPermission('manage_factories')
 
   const handleCreate = () => {
     setEditingFactory(undefined)
@@ -115,31 +107,29 @@ export default function Factories() {
             Gerencie as unidades fabris integradas ao sistema.
           </p>
         </div>
-        {canManage && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCreate} className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Fábrica
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingFactory ? 'Editar Fábrica' : 'Adicionar Nova Fábrica'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingFactory
-                    ? 'Atualize os dados da unidade selecionada.'
-                    : 'Preencha as informações para registrar uma nova planta fabril.'}
-                </DialogDescription>
-              </DialogHeader>
-              <FactoryForm
-                initialData={editingFactory}
-                onSuccess={() => setIsDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleCreate} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova Fábrica
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingFactory ? 'Editar Fábrica' : 'Adicionar Nova Fábrica'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingFactory
+                  ? 'Atualize os dados da unidade selecionada.'
+                  : 'Preencha as informações para registrar uma nova planta fabril.'}
+              </DialogDescription>
+            </DialogHeader>
+            <FactoryForm
+              initialData={editingFactory}
+              onSuccess={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -194,50 +184,48 @@ export default function Factories() {
                     </span>
                   )}
                 </div>
-                {canManage && (
-                  <div
-                    className="flex gap-1"
-                    onClick={(e) => e.stopPropagation()}
+                <div
+                  className="flex gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => handleEditClick(factory)}
                   >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleEditClick(factory)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir Fábrica</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja remover a unidade{' '}
+                          <strong>{factory.name}</strong>?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(factory.id)}
+                          className="bg-destructive hover:bg-destructive/90"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Excluir Fábrica</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja remover a unidade{' '}
-                            <strong>{factory.name}</strong>?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(factory.id)}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            Remover
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                )}
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             </CardContent>
           </Card>

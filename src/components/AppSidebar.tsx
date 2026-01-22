@@ -85,8 +85,7 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { factories, currentFactoryId, checkPermission, currentUser } =
-    useData()
+  const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   return (
@@ -144,21 +143,19 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4 border-t border-sidebar-border gap-4">
-        {checkPermission('manage_settings') && (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={location.pathname === '/settings'}
-              >
-                <Link to="/settings" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  <span>Configurações</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === '/settings'}
+            >
+              <Link to="/settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span>Configurações</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <UserSwitcher />
       </SidebarFooter>
     </Sidebar>

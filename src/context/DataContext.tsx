@@ -156,27 +156,6 @@ function setStorageData<T>(key: string, data: T) {
   localStorage.setItem(key, JSON.stringify(data))
 }
 
-const PERMISSIONS = {
-  Administrator: [
-    'manage_users',
-    'manage_settings',
-    'manage_factories',
-    'view_reports',
-    'edit_goals',
-    'create_records',
-    'edit_records',
-    'delete_records',
-  ],
-  Manager: [
-    'view_reports',
-    'create_records',
-    'edit_records',
-    'delete_records',
-    'manage_factories', // Read-only mostly managed by component logic
-  ],
-  Operator: ['create_records'],
-}
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -246,9 +225,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const checkPermission = (permission: string) => {
-    if (!currentUser) return false
-    const rolePermissions = PERMISSIONS[currentUser.role] || []
-    return rolePermissions.includes(permission)
+    // Permission check bypassed for all users as per request
+    return true
   }
 
   // Real-time synchronization across tabs

@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { useData } from '@/context/DataContext'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -66,7 +60,6 @@ export default function DailyAcidity() {
     updateAcidityRecord,
     deleteAcidityRecord,
     dateRange,
-    checkPermission,
   } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -78,10 +71,6 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  const canCreate = checkPermission('create_records')
-  const canEdit = checkPermission('edit_records')
-  const canDelete = checkPermission('delete_records')
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
@@ -139,29 +128,27 @@ export default function DailyAcidity() {
           <FlaskConical className="h-6 w-6 text-primary" />
           Acidez Diária
         </h2>
-        {canCreate && (
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
-                <Plus className="h-4 w-4" />{' '}
-                <span className="hidden sm:inline">Novo Registro</span>
-                <span className="sm:hidden">Novo</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Registrar Medição de Acidez</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados da análise de acidez do tanque.
-                </DialogDescription>
-              </DialogHeader>
-              <AcidityForm
-                onSubmit={handleCreate}
-                onCancel={() => setIsCreateOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
+              <Plus className="h-4 w-4" />{' '}
+              <span className="hidden sm:inline">Novo Registro</span>
+              <span className="sm:hidden">Novo</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Registrar Medição de Acidez</DialogTitle>
+              <DialogDescription>
+                Preencha os dados da análise de acidez do tanque.
+              </DialogDescription>
+            </DialogHeader>
+            <AcidityForm
+              onSubmit={handleCreate}
+              onCancel={() => setIsCreateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <AcidityChart data={filteredRecords} />
@@ -209,36 +196,30 @@ export default function DailyAcidity() {
                             {entry.time}
                           </div>
                         </div>
-                        {(canEdit || canDelete) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {canEdit && (
-                                <DropdownMenuItem
-                                  onClick={() => handleEditClick(entry)}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" /> Editar
-                                </DropdownMenuItem>
-                              )}
-                              {canDelete && (
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteId(entry.id)}
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditClick(entry)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" /> Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteId(entry.id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 py-2 border-t border-b mb-3">
@@ -285,16 +266,14 @@ export default function DailyAcidity() {
                   <TableHead className="text-right">Volume (L)</TableHead>
                   <TableHead>Horários Real.</TableHead>
                   <TableHead>Observações</TableHead>
-                  {(canEdit || canDelete) && (
-                    <TableHead className="w-[80px]">Ações</TableHead>
-                  )}
+                  <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRecords.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={canEdit || canDelete ? 9 : 8}
+                      colSpan={9}
                       className="text-center h-24 text-muted-foreground"
                     >
                       Nenhum registro encontrado no período.
@@ -328,30 +307,24 @@ export default function DailyAcidity() {
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">
                         {entry.notes || '-'}
                       </TableCell>
-                      {(canEdit || canDelete) && (
-                        <TableCell className="flex items-center gap-1">
-                          {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditClick(entry)}
-                              title="Editar"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => setDeleteId(entry.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      )}
+                      <TableCell className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(entry)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => setDeleteId(entry.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

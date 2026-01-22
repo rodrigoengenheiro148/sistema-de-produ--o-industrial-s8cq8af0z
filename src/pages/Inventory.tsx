@@ -24,13 +24,9 @@ export default function Inventory() {
     protheusConfig,
     syncProtheusData,
     lastProtheusSync,
-    checkPermission,
   } = useData()
   const { toast } = useToast()
   const [isSyncing, setIsSyncing] = useState(false)
-
-  // Permission for manual sync
-  const canSync = checkPermission('manage_settings')
 
   // MP Balance = Sum(Entries) - Sum(Used in Production)
   const mpIn = rawMaterials.reduce((acc, curr) => acc + curr.quantity, 0)
@@ -148,7 +144,7 @@ export default function Inventory() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
-        {protheusConfig.isActive && protheusConfig.syncInventory && canSync && (
+        {protheusConfig.isActive && protheusConfig.syncInventory && (
           <div className="flex items-center gap-3">
             {lastProtheusSync && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">

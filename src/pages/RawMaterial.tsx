@@ -36,8 +36,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function RawMaterial() {
-  const { rawMaterials, deleteRawMaterial, dateRange, checkPermission } =
-    useData()
+  const { rawMaterials, deleteRawMaterial, dateRange } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -45,10 +44,6 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  const canCreate = checkPermission('create_records')
-  const canEdit = checkPermission('edit_records')
-  const canDelete = checkPermission('delete_records')
 
   const handleEdit = (item: RawMaterialEntry) => {
     setEditingItem(item)
@@ -89,35 +84,30 @@ export default function RawMaterial() {
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        {canCreate && (
-          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button
-                className="gap-2"
-                onClick={() => setEditingItem(undefined)}
-              >
-                <Plus className="h-4 w-4" /> Nova Entrada
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingItem
-                    ? 'Atualize os detalhes do registro selecionado.'
-                    : 'Insira os detalhes do recebimento de matéria-prima.'}
-                </DialogDescription>
-              </DialogHeader>
-              <RawMaterialForm
-                initialData={editingItem}
-                onSuccess={() => setIsOpen(false)}
-                onCancel={() => setIsOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+          <DialogTrigger asChild>
+            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
+              <Plus className="h-4 w-4" /> Nova Entrada
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingItem
+                  ? 'Atualize os detalhes do registro selecionado.'
+                  : 'Insira os detalhes do recebimento de matéria-prima.'}
+              </DialogDescription>
+            </DialogHeader>
+            <RawMaterialForm
+              initialData={editingItem}
+              onSuccess={() => setIsOpen(false)}
+              onCancel={() => setIsOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
@@ -144,16 +134,14 @@ export default function RawMaterial() {
                 <TableHead>Matéria-Prima</TableHead>
                 <TableHead className="text-right">Quantidade</TableHead>
                 <TableHead>Observações</TableHead>
-                {(canEdit || canDelete) && (
-                  <TableHead className="w-[80px]">Ações</TableHead>
-                )}
+                <TableHead className="w-[80px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredMaterials.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={canEdit || canDelete ? 6 : 5}
+                    colSpan={6}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -181,30 +169,24 @@ export default function RawMaterial() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    {(canEdit || canDelete) && (
-                      <TableCell className="flex items-center gap-1">
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleEdit(entry)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => setDeleteId(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
+                    <TableCell className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={() => handleEdit(entry)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => setDeleteId(entry.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

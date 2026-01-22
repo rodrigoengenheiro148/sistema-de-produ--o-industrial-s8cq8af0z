@@ -46,18 +46,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function Yields() {
-  const {
-    production,
-    dateRange,
-    yieldTargets,
-    updateYieldTargets,
-    checkPermission,
-  } = useData()
+  const { production, dateRange, yieldTargets, updateYieldTargets } = useData()
   const { toast } = useToast()
   // Ref to track the last alerted state to prevent duplicate toasts
   const lastAlertedRef = useRef<string | null>(null)
-
-  const canEditGoals = checkPermission('edit_goals')
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -197,94 +189,92 @@ export default function Yields() {
           </p>
         </div>
 
-        {canEditGoals && (
-          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Settings className="h-4 w-4" />
-                Configurar Metas
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Configuração de Metas</DialogTitle>
-                <DialogDescription>
-                  Ajuste os percentuais mínimos de rendimento esperados.
-                </DialogDescription>
-              </DialogHeader>
+        <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Configurar Metas
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Configuração de Metas</DialogTitle>
+              <DialogDescription>
+                Ajuste os percentuais mínimos de rendimento esperados.
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Meta Sebo (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editTargets.sebo}
-                      onChange={(e) =>
-                        setEditTargets({
-                          ...editTargets,
-                          sebo: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Meta FCO (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editTargets.fco}
-                      onChange={(e) =>
-                        setEditTargets({
-                          ...editTargets,
-                          fco: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Meta Farinheta (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editTargets.farinheta}
-                      onChange={(e) =>
-                        setEditTargets({
-                          ...editTargets,
-                          farinheta: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Meta Fábrica (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editTargets.total}
-                      onChange={(e) =>
-                        setEditTargets({
-                          ...editTargets,
-                          total: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Meta Sebo (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editTargets.sebo}
+                    onChange={(e) =>
+                      setEditTargets({
+                        ...editTargets,
+                        sebo: Number(e.target.value),
+                      })
+                    }
+                  />
                 </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSaveTargets}>Salvar Alterações</Button>
-                </DialogFooter>
+                <div className="space-y-2">
+                  <Label>Meta FCO (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editTargets.fco}
+                    onChange={(e) =>
+                      setEditTargets({
+                        ...editTargets,
+                        fco: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta Farinheta (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editTargets.farinheta}
+                    onChange={(e) =>
+                      setEditTargets({
+                        ...editTargets,
+                        farinheta: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta Fábrica (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editTargets.total}
+                    onChange={(e) =>
+                      setEditTargets({
+                        ...editTargets,
+                        total: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveTargets}>Salvar Alterações</Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

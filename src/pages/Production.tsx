@@ -35,17 +35,13 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function Production() {
-  const { production, deleteProduction, dateRange, checkPermission } = useData()
+  const { production, deleteProduction, dateRange } = useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductionEntry | undefined>(
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  const canCreate = checkPermission('create_records')
-  const canEdit = checkPermission('edit_records')
-  const canDelete = checkPermission('delete_records')
 
   const handleEdit = (item: ProductionEntry) => {
     setEditingItem(item)
@@ -81,34 +77,29 @@ export default function Production() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Produção Diária</h2>
-        {canCreate && (
-          <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-            <SheetTrigger asChild>
-              <Button
-                className="gap-2"
-                onClick={() => setEditingItem(undefined)}
-              >
-                <Plus className="h-4 w-4" /> Novo Registro
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="overflow-y-auto sm:max-w-md">
-              <SheetHeader>
-                <SheetTitle>
-                  {editingItem ? 'Editar Produção' : 'Registrar Produção'}
-                </SheetTitle>
-                <SheetDescription>
-                  {editingItem
-                    ? 'Atualize os dados de processamento.'
-                    : 'Informe os dados de processamento do turno. O cálculo de perdas será automático.'}
-                </SheetDescription>
-              </SheetHeader>
-              <ProductionForm
-                initialData={editingItem}
-                onSuccess={() => setIsOpen(false)}
-              />
-            </SheetContent>
-          </Sheet>
-        )}
+        <Sheet open={isOpen} onOpenChange={handleOpenChange}>
+          <SheetTrigger asChild>
+            <Button className="gap-2" onClick={() => setEditingItem(undefined)}>
+              <Plus className="h-4 w-4" /> Novo Registro
+            </Button>
+          </SheetTrigger>
+          <SheetContent className="overflow-y-auto sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>
+                {editingItem ? 'Editar Produção' : 'Registrar Produção'}
+              </SheetTitle>
+              <SheetDescription>
+                {editingItem
+                  ? 'Atualize os dados de processamento.'
+                  : 'Informe os dados de processamento do turno. O cálculo de perdas será automático.'}
+              </SheetDescription>
+            </SheetHeader>
+            <ProductionForm
+              initialData={editingItem}
+              onSuccess={() => setIsOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
       </div>
 
       <Card>
@@ -128,16 +119,14 @@ export default function Production() {
                 <TableHead className="text-right text-red-500">
                   Perdas (kg)
                 </TableHead>
-                {(canEdit || canDelete) && (
-                  <TableHead className="w-[80px]">Ações</TableHead>
-                )}
+                <TableHead className="w-[80px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProduction.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={canEdit || canDelete ? 8 : 7}
+                    colSpan={8}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -168,30 +157,24 @@ export default function Production() {
                     <TableCell className="text-right font-mono text-red-500 font-medium">
                       {entry.losses.toLocaleString('pt-BR')}
                     </TableCell>
-                    {(canEdit || canDelete) && (
-                      <TableCell className="flex items-center gap-1">
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                            onClick={() => handleEdit(entry)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => setDeleteId(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    )}
+                    <TableCell className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        onClick={() => handleEdit(entry)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => setDeleteId(entry.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}

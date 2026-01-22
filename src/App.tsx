@@ -17,7 +17,6 @@ import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
-import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 const App = () => (
   <DataProvider>
@@ -39,24 +38,8 @@ const App = () => (
             <Route path="/estoque" element={<Inventory />} />
             <Route path="/expedicao" element={<Shipping />} />
             <Route path="/access-denied" element={<AccessDenied />} />
-
-            {/* Protected Routes */}
-            <Route
-              path="/fabricas"
-              element={
-                <ProtectedRoute requiredRoles={['Administrator', 'Manager']}>
-                  <Factories />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute requiredRoles={['Administrator']}>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/fabricas" element={<Factories />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
