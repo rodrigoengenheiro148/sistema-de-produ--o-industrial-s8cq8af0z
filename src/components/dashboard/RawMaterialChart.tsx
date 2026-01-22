@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
 
 interface RawMaterialChartProps {
   data: RawMaterialEntry[]
@@ -51,10 +52,21 @@ export function RawMaterialChart({
 
     data.forEach((item) => {
       if (!supplierMap.has(item.supplier)) {
-        supplierMap.set(item.supplier, { supplier: item.supplier })
+        supplierMap.set(item.supplier, {
+          supplier: item.supplier,
+          _breakdown: {}, // Map to store entries by type for tooltip details
+        })
       }
       const entry = supplierMap.get(item.supplier)
+
+      // Sum quantity
       entry[item.type] = (entry[item.type] || 0) + item.quantity
+
+      // Store entry for breakdown
+      if (!entry._breakdown[item.type]) {
+        entry._breakdown[item.type] = []
+      }
+      entry._breakdown[item.type].push(item)
     })
 
     // Convert map to array and sort by supplier name
@@ -137,15 +149,52 @@ export function RawMaterialChart({
           cursor={{ fill: 'transparent' }}
           content={
             <ChartTooltipContent
-              className="w-48"
-              formatter={(value, name) => (
-                <div className="flex w-full justify-between gap-2">
-                  <span className="text-muted-foreground">{name}</span>
-                  <span className="font-mono font-medium">
-                    {Number(value).toLocaleString('pt-BR')} kg
-                  </span>
-                </div>
-              )}
+              className="w-auto min-w-[200px] max-w-[300px]"
+              formatter={(value, name, item) => {
+                const type = name as string
+                // item.payload is the chart data entry (supplierMap value)
+                const entry = item.payload
+                const breakdown = entry._breakdown?.[type] as
+                  | RawMaterialEntry[]
+                  | undefined
+
+                // Sort breakdown by date descending
+                const sortedBreakdown = breakdown
+                  ? [...breakdown].sort(
+                      (a, b) => b.date.getTime() - a.date.getTime(),
+                    )
+                  : []
+
+                return (
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex w-full justify-between gap-2 items-center border-b pb-1 mb-1 border-border/50">
+                      <span className="text-muted-foreground font-semibold">
+                        {name}
+                      </span>
+                      <span className="font-mono font-bold">
+                        {Number(value).toLocaleString('pt-BR')} kg
+                      </span>
+                    </div>
+                    {sortedBreakdown.length > 0 && (
+                      <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto pr-1">
+                        {sortedBreakdown.map((record, idx) => (
+                          <div
+                            key={record.id || idx}
+                            className="flex justify-between gap-4 text-xs"
+                          >
+                            <span className="text-muted-foreground">
+                              {format(record.date, 'dd/MM/yyyy')}
+                            </span>
+                            <span className="font-mono text-foreground/80">
+                              {record.quantity.toLocaleString('pt-BR')} kg
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              }}
             />
           }
         />
