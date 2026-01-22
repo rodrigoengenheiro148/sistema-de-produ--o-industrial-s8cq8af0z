@@ -29,6 +29,7 @@ import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
+import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
 import { Droplets, Bone, Wheat } from 'lucide-react'
 
 export default function Dashboard() {
@@ -219,7 +220,10 @@ export default function Dashboard() {
               />
             </PopoverContent>
           </Popover>
-          <ExportOptions className="w-full sm:w-auto" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <SyncDeviceDialog />
+            <ExportOptions className="flex-1 sm:flex-none" />
+          </div>
         </div>
       </div>
 

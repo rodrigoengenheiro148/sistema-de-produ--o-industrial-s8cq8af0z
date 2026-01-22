@@ -21,14 +21,14 @@ import {
   SyncOperation,
   YieldTargets,
 } from '@/lib/types'
-import { startOfMonth, endOfMonth, subDays } from 'date-fns'
+import { startOfMonth, endOfMonth, subDays, addDays } from 'date-fns'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
 const DEFAULT_SETTINGS: SystemSettings = {
   productionGoal: 50000,
   maxLossThreshold: 1500,
-  refreshRate: 5, // Optimized for "Real-Time" feel (5 seconds)
+  refreshRate: 5,
 }
 
 const DEFAULT_YIELD_TARGETS: YieldTargets = {
@@ -49,32 +49,72 @@ const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
   isActive: false,
 }
 
-const MOCK_RAW_MATERIALS: RawMaterialEntry[] = [
-  {
-    id: '1',
-    date: subDays(new Date(), 5),
-    supplier: 'Frigorífico Boi Gordo',
-    type: 'Ossos',
-    quantity: 15000,
+// Enhanced Mock Data for consistency
+const MOCK_RAW_MATERIALS: RawMaterialEntry[] = Array.from({ length: 15 }).map(
+  (_, i) => ({
+    id: `rm-${i}`,
+    date: subDays(new Date(), i),
+    supplier: i % 2 === 0 ? 'Frigorífico Boi Gordo' : 'Agropecuária Silva',
+    type: i % 3 === 0 ? 'Ossos' : 'Visceras',
+    quantity: 25000 + Math.random() * 5000,
     unit: 'kg',
-    notes: 'Entrega padrão',
+    notes: 'Recebimento padrão',
+    createdAt: subDays(new Date(), i),
+  }),
+)
+
+const MOCK_PRODUCTION: ProductionEntry[] = Array.from({ length: 15 }).map(
+  (_, i) => {
+    const mpUsed = 30000 + Math.random() * 2000
+    return {
+      id: `prod-${i}`,
+      date: subDays(new Date(), i),
+      shift: i % 2 === 0 ? 'Manhã' : 'Tarde',
+      mpUsed: mpUsed,
+      seboProduced: mpUsed * 0.28,
+      fcoProduced: mpUsed * 0.26,
+      farinhetaProduced: mpUsed * 0.035,
+      losses: mpUsed * 0.02,
+      createdAt: subDays(new Date(), i),
+    }
   },
-]
-const MOCK_PRODUCTION: ProductionEntry[] = [
-  {
-    id: '1',
-    date: subDays(new Date(), 5),
-    shift: 'Manhã',
-    mpUsed: 14000,
-    seboProduced: 4200,
-    fcoProduced: 7000,
-    farinhetaProduced: 1400,
-    losses: 1400,
-  },
-]
-const MOCK_SHIPPING: ShippingEntry[] = []
-const MOCK_ACIDITY: AcidityEntry[] = []
-const MOCK_QUALITY: QualityEntry[] = []
+)
+
+const MOCK_SHIPPING: ShippingEntry[] = Array.from({ length: 10 }).map(
+  (_, i) => ({
+    id: `ship-${i}`,
+    date: subDays(new Date(), i),
+    client: i % 2 === 0 ? 'PetFood Inc' : 'Sabões & Cia',
+    product: i % 2 === 0 ? 'Farinheta' : 'Sebo',
+    quantity: 10000 + Math.random() * 2000,
+    unitPrice: i % 2 === 0 ? 2.5 : 4.5,
+    docRef: `NF-${1000 + i}`,
+    createdAt: subDays(new Date(), i),
+  }),
+)
+
+const MOCK_ACIDITY: AcidityEntry[] = Array.from({ length: 20 }).map((_, i) => ({
+  id: `acid-${i}`,
+  date: subDays(new Date(), Math.floor(i / 2)),
+  time: i % 2 === 0 ? '08:00' : '14:00',
+  responsible: 'João Silva',
+  weight: 150 + Math.random() * 10,
+  volume: 180 + Math.random() * 10,
+  tank: `Tanque ${1 + (i % 3)}`,
+  performedTimes: '1',
+  createdAt: subDays(new Date(), Math.floor(i / 2)),
+}))
+
+const MOCK_QUALITY: QualityEntry[] = Array.from({ length: 15 }).map((_, i) => ({
+  id: `qual-${i}`,
+  date: subDays(new Date(), i),
+  product: i % 2 === 0 ? 'Farinha' : 'Farinheta',
+  acidity: 2 + Math.random(),
+  protein: 45 + Math.random() * 5,
+  responsible: 'Maria Oliveira',
+  createdAt: subDays(new Date(), i),
+}))
+
 const MOCK_USER_ACCESS: UserAccessEntry[] = [
   {
     id: '1',
@@ -95,6 +135,7 @@ const MOCK_USER_ACCESS: UserAccessEntry[] = [
     createdAt: new Date(),
   },
 ]
+
 const MOCK_FACTORIES: Factory[] = [
   {
     id: '1',
@@ -143,38 +184,31 @@ const parseDatesInArray = (arr: any[]) => {
   })
 }
 
-// Helper to merge server data with local pending operations to prevent UI flickering
 function mergeServerData<T extends { id: string }>(
   serverData: T[],
   pendingOps: SyncOperation[],
   collectionKey: string,
 ): T[] {
-  // Create a map for efficient lookups/updates
   const dataMap = new Map<string, T>()
   serverData.forEach((item) => dataMap.set(item.id, item))
 
-  // Apply pending operations in chronological order
   pendingOps.forEach((op) => {
     if (op.collection !== collectionKey) return
 
     if (op.type === 'ADD') {
-      // For ADD, we optimistically add the item if it's not already there
       if (!dataMap.has(op.entityId)) {
         dataMap.set(op.entityId, op.data as T)
       }
     } else if (op.type === 'UPDATE') {
-      // For UPDATE, we merge the partial updates into the existing item
       const existing = dataMap.get(op.entityId)
       if (existing) {
         dataMap.set(op.entityId, { ...existing, ...op.data })
       }
     } else if (op.type === 'DELETE') {
-      // For DELETE, we remove the item from the map
       dataMap.delete(op.entityId)
     }
   })
 
-  // Convert map back to array and return
   return Array.from(dataMap.values())
 }
 
@@ -196,7 +230,6 @@ function setStorageData<T>(key: string, data: T) {
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // State Initialization
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>(() =>
     getStorageData(STORAGE_KEYS.RAW_MATERIALS, MOCK_RAW_MATERIALS),
   )
@@ -251,22 +284,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     navigator.onLine ? 'online' : 'offline',
   )
 
-  const currentUser = userAccessList.find((u) => u.id === currentUserId) || null
+  // Load Config from URL (for sharing settings across devices)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const configParam = params.get('config')
+    if (configParam) {
+      try {
+        const decoded = JSON.parse(atob(configParam))
+        if (decoded && typeof decoded === 'object') {
+          setProtheusConfig(decoded)
+          setStorageData(STORAGE_KEYS.PROTHEUS_CONFIG, decoded)
 
+          // Clean URL
+          const newUrl = window.location.pathname
+          window.history.replaceState({}, '', newUrl)
+
+          // If a valid config is loaded, we should attempt to sync immediately
+          // to overwrite local mock data with real data if available
+          if (decoded.isActive && decoded.baseUrl) {
+            setConnectionStatus('syncing')
+            // Force a small delay to allow state to settle
+            setTimeout(() => {
+              const event = new Event('online')
+              window.dispatchEvent(event)
+            }, 500)
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse config from URL', e)
+      }
+    }
+  }, [])
+
+  const currentUser = userAccessList.find((u) => u.id === currentUserId) || null
   const isDeveloperMode = currentUser?.role === 'Administrator'
-  const isViewerMode = false // Deprecated in favor of role based
+  const isViewerMode = false
 
   const login = (userId: string) => {
     setCurrentUserId(userId)
     setStorageData(STORAGE_KEYS.CURRENT_USER_ID, userId)
   }
 
-  const checkPermission = (permission: string) => {
-    // Permission check bypassed for all users as per request
-    return true
-  }
+  const checkPermission = (permission: string) => true
 
-  // Real-time synchronization across tabs (and simulated "devices" on same browser)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.newValue) return
@@ -318,10 +378,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  // API Interaction with robust validation
   const apiFetch = useCallback(
     async (endpoint: string, options: RequestInit = {}) => {
-      // Validate configuration before attempting fetch
       if (!protheusConfig.isActive) return null
       if (!protheusConfig.baseUrl) throw new Error('Base URL not configured')
 
@@ -348,9 +406,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       const isJson = contentType.includes('application/json')
 
       if (!response.ok && !isJson) {
-        throw new Error(
-          `API Error: ${response.status} ${response.statusText} (Non-JSON response)`,
-        )
+        throw new Error(`API Error: ${response.status} ${response.statusText}`)
       }
 
       const text = await response.text()
@@ -359,7 +415,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           data = JSON.parse(text)
         } catch (e) {
-          console.error(`JSON Parse Error from ${url}:`, text.substring(0, 100))
           if (!response.ok) {
             throw new Error(
               `API Error: ${response.status} ${response.statusText}`,
@@ -381,7 +436,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     [protheusConfig],
   )
 
-  // Queue Processing - Improved Reliability with Retry Logic
   const processSyncQueue = useCallback(async () => {
     if (!protheusConfig.isActive) {
       if (pendingOperations.length > 0) setConnectionStatus('pending')
@@ -407,7 +461,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     let success = true
     const remainingOps = [...pendingOperations]
 
-    const op = remainingOps[0] // Peek first
+    const op = remainingOps[0]
 
     try {
       if (op.endpoint) {
@@ -423,7 +477,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         })
       }
 
-      // Remove successful operation
       remainingOps.shift()
       setPendingOperations(remainingOps)
       setStorageData(STORAGE_KEYS.PENDING_SYNC, remainingOps)
@@ -438,11 +491,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       success = false
       setConnectionStatus('error')
 
-      // Retry logic: increment retry count
       const retries = (op.retryCount || 0) + 1
       if (retries > 5) {
         console.error('Max retries reached, discarding operation', op)
-        remainingOps.shift() // Drop it to unblock queue
+        remainingOps.shift()
       } else {
         remainingOps[0] = { ...op, retryCount: retries }
       }
@@ -453,7 +505,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return success
   }, [pendingOperations, protheusConfig, apiFetch])
 
-  // Core Sync (Pull Data)
   const syncProtheusData = useCallback(async () => {
     if (!protheusConfig.isActive || !protheusConfig.baseUrl) return
     if (!navigator.onLine) {
@@ -461,10 +512,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    // Attempt to process queue first
     if (pendingOperations.length > 0) {
-      const queueProcessed = await processSyncQueue()
-      // If queue failed, we still try to fetch, but we need to be careful with state merging
+      await processSyncQueue()
     }
 
     setConnectionStatus('syncing')
@@ -479,7 +528,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Parallel fetch for speed
       const results = await Promise.all([
         safeFetch(apiFetch('raw-materials')),
         safeFetch(apiFetch('production')),
@@ -489,8 +537,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ])
 
       const [raw, prod, ship, acid, fact] = results
-
-      // If any request succeeds, we are technically connected
       const hasSuccess = results.some((r) => r !== null)
 
       if (!hasSuccess && results.length > 0) {
@@ -498,7 +544,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         return
       }
 
-      // Helper for updating state with merge logic
       const updateStateWithMerge = <T extends { id: string }>(
         fetchedData: any[],
         storageKey: string,
@@ -507,7 +552,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ) => {
         if (fetchedData && Array.isArray(fetchedData)) {
           const parsed = parseDatesInArray(fetchedData)
-          // Merge server data with local pending operations
           const merged = mergeServerData(
             parsed,
             pendingOperations,
@@ -558,7 +602,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [protheusConfig, apiFetch, pendingOperations, processSyncQueue])
 
-  // Lifecycle & Polling
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') syncProtheusData()
@@ -578,7 +621,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setConnectionStatus('offline')
     }
 
-    // Polling mechanism for Real-Time Sync
     const intervalId = setInterval(() => {
       if (
         navigator.onLine &&
@@ -602,7 +644,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     processSyncQueue,
   ])
 
-  // CRUD Generator with Queue
   const createAction =
     <T extends { id: string }>(
       key: string,
