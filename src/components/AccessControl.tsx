@@ -37,19 +37,19 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
-  ShieldCheck,
   UserPlus,
   Pencil,
   Trash2,
-  CheckCircle2,
-  XCircle,
   Users,
+  Shield,
+  ShieldAlert,
+  HardHat,
 } from 'lucide-react'
 import { UserAccessForm } from './UserAccessForm'
 import { UserAccessEntry } from '@/lib/types'
 
 export function AccessControl() {
-  const { userAccessList, deleteUserAccess } = useData()
+  const { userAccessList, deleteUserAccess, currentUser } = useData()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserAccessEntry | undefined>(
     undefined,
@@ -69,6 +69,19 @@ export function AccessControl() {
     deleteUserAccess(id)
   }
 
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'Administrator':
+        return <ShieldAlert className="h-4 w-4 text-destructive" />
+      case 'Manager':
+        return <Shield className="h-4 w-4 text-blue-500" />
+      case 'Operator':
+        return <HardHat className="h-4 w-4 text-amber-500" />
+      default:
+        return <Users className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
   return (
     <Card className="border-primary/20">
       <CardHeader>
@@ -76,10 +89,10 @@ export function AccessControl() {
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              Controle de Acesso
+              Gestão de Usuários
             </CardTitle>
             <CardDescription>
-              Gerencie usuários e permissões para funções sensíveis do sistema.
+              Controle quem tem acesso e quais funções podem desempenhar.
             </CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -88,13 +101,13 @@ export function AccessControl() {
                 <UserPlus className="h-4 w-4" /> Adicionar Usuário
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl">
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
                   {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
                 </DialogTitle>
                 <DialogDescription>
-                  Configure as informações e níveis de permissão.
+                  Configure as informações e o perfil de acesso.
                 </DialogDescription>
               </DialogHeader>
               <UserAccessForm
@@ -111,10 +124,7 @@ export function AccessControl() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Função</TableHead>
-                <TableHead className="text-center">Prod.</TableHead>
-                <TableHead className="text-center">Const.</TableHead>
-                <TableHead className="text-center">Logs</TableHead>
+                <TableHead>Perfil</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -122,47 +132,31 @@ export function AccessControl() {
               {userAccessList.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={3}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    Nenhum usuário configurado. Adicione o primeiro
-                    administrador.
+                    Nenhum usuário configurado.
                   </TableCell>
                 </TableRow>
               ) : (
                 userAccessList.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <span>{user.name}</span>
-                        <span className="text-xs text-muted-foreground sm:hidden">
-                          {user.role}
+                      {user.name}
+                      {user.id === currentUser?.id && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          (Você)
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="secondary">{user.role}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.permissions.editProduction ? (
-                        <CheckCircle2 className="h-4 w-4 mx-auto text-green-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mx-auto text-muted-foreground/30" />
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {user.permissions.modifyConstants ? (
-                        <CheckCircle2 className="h-4 w-4 mx-auto text-green-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mx-auto text-muted-foreground/30" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.permissions.deleteHistory ? (
-                        <ShieldCheck className="h-4 w-4 mx-auto text-amber-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 mx-auto text-muted-foreground/30" />
-                      )}
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="flex w-fit items-center gap-1.5"
+                      >
+                        {getRoleIcon(user.role)}
+                        {user.role}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -179,6 +173,7 @@ export function AccessControl() {
                               variant="ghost"
                               size="icon"
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              disabled={user.id === currentUser?.id}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

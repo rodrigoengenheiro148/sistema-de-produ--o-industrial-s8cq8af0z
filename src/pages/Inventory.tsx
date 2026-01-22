@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Clock,
-  CheckCircle2,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -25,12 +24,14 @@ export default function Inventory() {
     protheusConfig,
     syncProtheusData,
     lastProtheusSync,
+    checkPermission,
   } = useData()
   const { toast } = useToast()
   const [isSyncing, setIsSyncing] = useState(false)
 
-  // Initial Stock is 0 for simulation or could be a parameter.
-  // For this exercise, we assume starting from 0 and calculating current balance.
+  // Permission for manual sync
+  const canSync = checkPermission('manage_settings')
+
   // MP Balance = Sum(Entries) - Sum(Used in Production)
   const mpIn = rawMaterials.reduce((acc, curr) => acc + curr.quantity, 0)
   const mpOut = production.reduce((acc, curr) => acc + curr.mpUsed, 0)
@@ -147,13 +148,15 @@ export default function Inventory() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
-        {protheusConfig.isActive && protheusConfig.syncInventory && (
+        {protheusConfig.isActive && protheusConfig.syncInventory && canSync && (
           <div className="flex items-center gap-3">
             {lastProtheusSync && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Atualizado:{' '}
-                {format(lastProtheusSync, "dd/MM 'às' HH:mm", { locale: ptBR })}
+                {format(lastProtheusSync, "dd/MM 'às' HH:mm", {
+                  locale: ptBR,
+                })}
               </span>
             )}
             <Button

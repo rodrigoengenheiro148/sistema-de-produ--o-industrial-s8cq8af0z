@@ -38,13 +38,8 @@ import { QualityChart } from '@/components/dashboard/QualityChart'
 import { QualityEntry } from '@/lib/types'
 
 export default function Quality() {
-  const {
-    qualityRecords,
-    deleteQualityRecord,
-    dateRange,
-    isDeveloperMode,
-    isViewerMode,
-  } = useData()
+  const { qualityRecords, deleteQualityRecord, dateRange, checkPermission } =
+    useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -52,6 +47,10 @@ export default function Quality() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const canCreate = checkPermission('create_records')
+  const canEdit = checkPermission('edit_records')
+  const canDelete = checkPermission('delete_records')
 
   const handleEdit = (item: QualityEntry) => {
     setEditingItem(item)
@@ -98,7 +97,7 @@ export default function Quality() {
             Monitoramento de Acidez e Proteína (Farinha/Farinheta).
           </p>
         </div>
-        {!isViewerMode && (
+        {canCreate && (
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button
@@ -155,7 +154,7 @@ export default function Quality() {
                 <TableHead className="text-right">Proteína (%)</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Observações</TableHead>
-                {isDeveloperMode && !isViewerMode && (
+                {(canEdit || canDelete) && (
                   <TableHead className="w-[80px]">Ações</TableHead>
                 )}
               </TableRow>
@@ -164,7 +163,7 @@ export default function Quality() {
               {filteredRecords.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={isDeveloperMode && !isViewerMode ? 7 : 6}
+                    colSpan={canEdit || canDelete ? 7 : 6}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhuma análise encontrada no período.
@@ -201,24 +200,28 @@ export default function Quality() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    {isDeveloperMode && !isViewerMode && (
+                    {(canEdit || canDelete) && (
                       <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() => handleEdit(entry)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setDeleteId(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>

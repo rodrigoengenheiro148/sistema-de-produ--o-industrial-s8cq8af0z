@@ -20,6 +20,7 @@ import {
   ConnectionStatus,
   SyncOperation,
   YieldTargets,
+  UserRole,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
@@ -32,10 +33,10 @@ const DEFAULT_SETTINGS: SystemSettings = {
 }
 
 const DEFAULT_YIELD_TARGETS: YieldTargets = {
-  sebo: 28, // Min 28%
-  fco: 26, // Min 26%
-  farinheta: 3.5, // Min 3.5%
-  total: 58, // Min 58%
+  sebo: 28,
+  fco: 26,
+  farinheta: 3.5,
+  total: 58,
 }
 
 const DEFAULT_PROTHEUS_CONFIG: ProtheusConfig = {
@@ -77,13 +78,20 @@ const MOCK_QUALITY: QualityEntry[] = []
 const MOCK_USER_ACCESS: UserAccessEntry[] = [
   {
     id: '1',
-    name: 'Admin',
-    role: 'Admin',
-    permissions: {
-      editProduction: true,
-      deleteHistory: true,
-      modifyConstants: true,
-    },
+    name: 'Admin User',
+    role: 'Administrator',
+    createdAt: new Date(),
+  },
+  {
+    id: '2',
+    name: 'Manager User',
+    role: 'Manager',
+    createdAt: new Date(),
+  },
+  {
+    id: '3',
+    name: 'Operator User',
+    role: 'Operator',
     createdAt: new Date(),
   },
 ]
@@ -104,8 +112,7 @@ const STORAGE_KEYS = {
   SHIPPING: 'spi_shipping',
   ACIDITY: 'spi_acidity',
   QUALITY: 'spi_quality',
-  DEV_MODE: 'spi_dev_mode',
-  VIEWER_MODE: 'spi_viewer_mode',
+  CURRENT_USER_ID: 'spi_current_user_id',
   SETTINGS: 'spi_settings',
   YIELD_TARGETS: 'spi_yield_targets',
   USER_ACCESS: 'spi_user_access',
@@ -149,6 +156,27 @@ function setStorageData<T>(key: string, data: T) {
   localStorage.setItem(key, JSON.stringify(data))
 }
 
+const PERMISSIONS = {
+  Administrator: [
+    'manage_users',
+    'manage_settings',
+    'manage_factories',
+    'view_reports',
+    'edit_goals',
+    'create_records',
+    'edit_records',
+    'delete_records',
+  ],
+  Manager: [
+    'view_reports',
+    'create_records',
+    'edit_records',
+    'delete_records',
+    'manage_factories', // Read-only mostly managed by component logic
+  ],
+  Operator: ['create_records'],
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -182,12 +210,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     () => getStorageData(STORAGE_KEYS.PENDING_SYNC, []),
   )
 
-  const [isDeveloperMode, setIsDeveloperMode] = useState<boolean>(() =>
-    getStorageData(STORAGE_KEYS.DEV_MODE, false),
-  )
-
-  const [isViewerMode, setIsViewerMode] = useState<boolean>(() =>
-    getStorageData(STORAGE_KEYS.VIEWER_MODE, false),
+  const [currentUserId, setCurrentUserId] = useState<string>(() =>
+    getStorageData(STORAGE_KEYS.CURRENT_USER_ID, '1'),
   )
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() =>
@@ -210,6 +234,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     navigator.onLine ? 'online' : 'offline',
   )
+
+  const currentUser = userAccessList.find((u) => u.id === currentUserId) || null
+
+  const isDeveloperMode = currentUser?.role === 'Administrator'
+  const isViewerMode = false // Deprecated in favor of role based
+
+  const login = (userId: string) => {
+    setCurrentUserId(userId)
+    setStorageData(STORAGE_KEYS.CURRENT_USER_ID, userId)
+  }
+
+  const checkPermission = (permission: string) => {
+    if (!currentUser) return false
+    const rolePermissions = PERMISSIONS[currentUser.role] || []
+    return rolePermissions.includes(permission)
+  }
 
   // Real-time synchronization across tabs
   useEffect(() => {
@@ -244,11 +284,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         case STORAGE_KEYS.CURRENT_FACTORY:
           setCurrentFactoryId(JSON.parse(e.newValue))
           break
-        case STORAGE_KEYS.DEV_MODE:
-          setIsDeveloperMode(JSON.parse(e.newValue))
-          break
-        case STORAGE_KEYS.VIEWER_MODE:
-          setIsViewerMode(JSON.parse(e.newValue))
+        case STORAGE_KEYS.CURRENT_USER_ID:
+          setCurrentUserId(JSON.parse(e.newValue))
           break
         case STORAGE_KEYS.PROTHEUS_CONFIG:
           setProtheusConfig(JSON.parse(e.newValue))
@@ -280,7 +317,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         ...options.headers,
       }
 
-      // Ensure clean URL construction
       const baseUrl = protheusConfig.baseUrl.replace(/\/$/, '')
       const cleanEndpoint = endpoint.replace(/^\//, '')
       const url = `${baseUrl}/${cleanEndpoint}`
@@ -292,24 +328,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         )
 
-        // Handle 204 No Content
         if (response.status === 204) return null
 
-        // STRICT RESPONSE VALIDATION
         const contentType = response.headers.get('content-type') || ''
         const isJson = contentType.includes('application/json')
-        const isHtml =
-          contentType.includes('text/html') ||
-          contentType.includes('application/xhtml+xml')
 
-        if (isHtml) {
-          console.warn(
-            `API returned HTML Content-Type from ${url} (Status: ${response.status}). This usually indicates a 404 or server error page.`,
-          )
-          throw new Error('Invalid API Response: Server returned HTML')
-        }
-
-        // Check if response is NOT OK and NOT JSON - fail fast
         if (!response.ok && !isJson) {
           throw new Error(
             `API Error: ${response.status} ${response.statusText} (Non-JSON response)`,
@@ -317,19 +340,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         const text = await response.text()
-        const trimmedText = text.trim().toLowerCase()
-        if (
-          trimmedText.startsWith('<!doctype') ||
-          trimmedText.startsWith('<html') ||
-          trimmedText.startsWith('<!--') ||
-          (trimmedText.startsWith('<') && trimmedText.includes('body'))
-        ) {
-          console.warn(
-            `API returned HTML body from ${url}. This usually indicates a 404 handled by the SPA.`,
-          )
-          throw new Error('Invalid API Response: Server returned HTML')
-        }
-
         let data
         if (text) {
           try {
@@ -366,9 +376,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Queue Processing - Improved Reliability
   const processSyncQueue = useCallback(async () => {
-    // If in viewer mode, we don't process mutations from this client, but we should sync reading
-    if (isViewerMode) return true
-
     if (!protheusConfig.isActive) {
       if (pendingOperations.length > 0) setConnectionStatus('pending')
       return true
@@ -426,7 +433,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     return success
-  }, [pendingOperations, protheusConfig, apiFetch, isViewerMode])
+  }, [pendingOperations, protheusConfig, apiFetch])
 
   // Core Sync (Pull Data)
   const syncProtheusData = useCallback(async () => {
@@ -436,7 +443,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
 
-    if (pendingOperations.length > 0 && !isViewerMode) {
+    if (pendingOperations.length > 0) {
       const queueProcessed = await processSyncQueue()
       if (!queueProcessed) return
     }
@@ -506,13 +513,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Sync Pull Critical Error:', error)
       setConnectionStatus('error')
     }
-  }, [
-    protheusConfig,
-    apiFetch,
-    pendingOperations.length,
-    processSyncQueue,
-    isViewerMode,
-  ])
+  }, [protheusConfig, apiFetch, pendingOperations.length, processSyncQueue])
 
   // Lifecycle & Polling
   useEffect(() => {
@@ -566,12 +567,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       type: 'ADD' | 'UPDATE' | 'DELETE',
     ) =>
     (entryOrId: any) => {
-      // Prevent mutations in viewer mode
-      if (isViewerMode) {
-        console.warn('Action blocked: Viewer Mode Active')
-        return
-      }
-
       let newOp: SyncOperation
       const timestamp = Date.now()
 
@@ -768,6 +763,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           'DELETE',
         ),
 
+        currentUser,
+        login,
+        checkPermission,
+
         factories,
         addFactory: createAction(
           STORAGE_KEYS.FACTORIES,
@@ -798,20 +797,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setDateRange,
         isDeveloperMode,
         toggleDeveloperMode: () => {
-          setIsDeveloperMode((p) => {
-            setStorageData(STORAGE_KEYS.DEV_MODE, !p)
-            return !p
-          })
+          // Deprecated or redirect to login?
+          console.warn('Developer Mode toggle is deprecated in favor of Roles.')
         },
         isViewerMode,
-        setViewerMode: (value: boolean) => {
-          setIsViewerMode(value)
-          setStorageData(STORAGE_KEYS.VIEWER_MODE, value)
-          // Ensure dev mode is off if viewer mode is on
-          if (value && isDeveloperMode) {
-            setIsDeveloperMode(false)
-            setStorageData(STORAGE_KEYS.DEV_MODE, false)
-          }
+        setViewerMode: () => {
+          console.warn('Viewer Mode toggle is deprecated in favor of Roles.')
         },
         systemSettings,
         updateSystemSettings: (s) => {

@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils'
 import logoBrRender from '@/assets/logotipo-br-render.png'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/context/DataContext'
+import { UserSwitcher } from '@/components/UserSwitcher'
 
 const items = [
   {
@@ -84,7 +85,7 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { isDeveloperMode, isViewerMode, factories, currentFactoryId } =
+  const { factories, currentFactoryId, checkPermission, currentUser } =
     useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
@@ -100,22 +101,6 @@ export function AppSidebar() {
           {currentFactory && (
             <Badge variant="secondary" className="text-[10px] h-5">
               {currentFactory.name}
-            </Badge>
-          )}
-          {isDeveloperMode && (
-            <Badge
-              variant="outline"
-              className="text-[10px] h-5 border-amber-500 text-amber-600 bg-amber-50"
-            >
-              DEV MODE
-            </Badge>
-          )}
-          {isViewerMode && (
-            <Badge
-              variant="outline"
-              className="text-[10px] h-5 border-blue-500 text-blue-600 bg-blue-50"
-            >
-              VISUALIZADOR
             </Badge>
           )}
         </div>
@@ -157,8 +142,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {!isViewerMode && (
-        <SidebarFooter className="p-4 border-t border-sidebar-border">
+
+      <SidebarFooter className="p-4 border-t border-sidebar-border gap-4">
+        {checkPermission('manage_settings') && (
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -172,8 +158,9 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarFooter>
-      )}
+        )}
+        <UserSwitcher />
+      </SidebarFooter>
     </Sidebar>
   )
 }

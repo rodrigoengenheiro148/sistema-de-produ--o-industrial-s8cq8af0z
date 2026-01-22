@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -29,8 +28,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Building2,
   Plus,
@@ -52,22 +49,17 @@ export default function Factories() {
     deleteFactory,
     currentFactoryId,
     setCurrentFactoryId,
-    isViewerMode,
+    checkPermission,
   } = useData()
   const { toast } = useToast()
 
-  // State for the Factory Form (Create/Edit)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingFactory, setEditingFactory] = useState<Factory | undefined>(
     undefined,
   )
 
-  // State for Password Verification
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
-  const [passwordInput, setPasswordInput] = useState('')
-  const [pendingFactory, setPendingFactory] = useState<Factory | undefined>(
-    undefined,
-  )
+  // Use permission for managing factories (Admin only)
+  const canManage = checkPermission('manage_factories')
 
   const handleCreate = () => {
     setEditingFactory(undefined)
@@ -75,31 +67,8 @@ export default function Factories() {
   }
 
   const handleEditClick = (factory: Factory) => {
-    setPendingFactory(factory)
-    setPasswordInput('')
-    setIsPasswordDialogOpen(true)
-  }
-
-  const handlePasswordSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault()
-
-    if (passwordInput === '16071997') {
-      setIsPasswordDialogOpen(false)
-      setEditingFactory(pendingFactory)
-      setIsDialogOpen(true)
-      toast({
-        title: 'Acesso Autorizado',
-        description: 'Autenticação de administrador confirmada.',
-        variant: 'default',
-        className: 'bg-green-50 border-green-200 text-green-800',
-      })
-    } else {
-      toast({
-        title: 'Acesso Negado',
-        description: 'A senha informada está incorreta.',
-        variant: 'destructive',
-      })
-    }
+    setEditingFactory(factory)
+    setIsDialogOpen(true)
   }
 
   const handleDelete = (id: string) => {
@@ -146,7 +115,7 @@ export default function Factories() {
             Gerencie as unidades fabris integradas ao sistema.
           </p>
         </div>
-        {!isViewerMode && (
+        {canManage && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={handleCreate} className="gap-2">
@@ -172,45 +141,6 @@ export default function Factories() {
           </Dialog>
         )}
       </div>
-
-      {/* Password Verification Dialog */}
-      <Dialog
-        open={isPasswordDialogOpen}
-        onOpenChange={setIsPasswordDialogOpen}
-      >
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Autenticação Necessária</DialogTitle>
-            <DialogDescription>
-              Esta ação é restrita a administradores. Digite a senha para
-              continuar.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handlePasswordSubmit} className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="admin-password">Senha de Administrador</Label>
-              <Input
-                id="admin-password"
-                type="password"
-                placeholder="••••••••"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsPasswordDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit">Verificar</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {factories.map((factory) => (
@@ -264,7 +194,7 @@ export default function Factories() {
                     </span>
                   )}
                 </div>
-                {!isViewerMode && (
+                {canManage && (
                   <div
                     className="flex gap-1"
                     onClick={(e) => e.stopPropagation()}

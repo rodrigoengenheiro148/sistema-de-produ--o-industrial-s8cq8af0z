@@ -36,13 +36,8 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function RawMaterial() {
-  const {
-    rawMaterials,
-    deleteRawMaterial,
-    dateRange,
-    isDeveloperMode,
-    isViewerMode,
-  } = useData()
+  const { rawMaterials, deleteRawMaterial, dateRange, checkPermission } =
+    useData()
   const { toast } = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -50,6 +45,10 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const canCreate = checkPermission('create_records')
+  const canEdit = checkPermission('edit_records')
+  const canDelete = checkPermission('delete_records')
 
   const handleEdit = (item: RawMaterialEntry) => {
     setEditingItem(item)
@@ -90,7 +89,7 @@ export default function RawMaterial() {
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        {!isViewerMode && (
+        {canCreate && (
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button
@@ -144,7 +143,7 @@ export default function RawMaterial() {
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Quantidade (kg)</TableHead>
                 <TableHead>Observações</TableHead>
-                {isDeveloperMode && !isViewerMode && (
+                {(canEdit || canDelete) && (
                   <TableHead className="w-[80px]">Ações</TableHead>
                 )}
               </TableRow>
@@ -153,7 +152,7 @@ export default function RawMaterial() {
               {filteredMaterials.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={isDeveloperMode && !isViewerMode ? 6 : 5}
+                    colSpan={canEdit || canDelete ? 6 : 5}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhum registro encontrado no período.
@@ -180,24 +179,28 @@ export default function RawMaterial() {
                     <TableCell className="max-w-[200px] truncate text-muted-foreground">
                       {entry.notes || '-'}
                     </TableCell>
-                    {isDeveloperMode && !isViewerMode && (
+                    {(canEdit || canDelete) && (
                       <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() => handleEdit(entry)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => setDeleteId(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>

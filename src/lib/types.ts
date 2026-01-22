@@ -73,17 +73,12 @@ export interface YieldTargets {
   total: number
 }
 
-export interface AccessPermissions {
-  editProduction: boolean
-  deleteHistory: boolean
-  modifyConstants: boolean
-}
+export type UserRole = 'Administrator' | 'Manager' | 'Operator'
 
 export interface UserAccessEntry {
   id: string
   name: string
-  role: string
-  permissions: AccessPermissions
+  role: UserRole
   createdAt: Date
 }
 
@@ -115,12 +110,12 @@ export type ConnectionStatus =
   | 'pending'
 
 export interface SyncOperation {
-  id: string // Unique ID for the operation
+  id: string
   type: 'ADD' | 'UPDATE' | 'DELETE'
-  collection: string // 'raw-materials', 'production', etc.
+  collection: string
   endpoint: string | null
-  data: any // The payload
-  entityId: string // The ID of the entity being modified
+  data: any
+  entityId: string
   timestamp: number
 }
 
@@ -156,6 +151,10 @@ export interface DataContextType {
   updateUserAccess: (entry: UserAccessEntry) => void
   deleteUserAccess: (id: string) => void
 
+  currentUser: UserAccessEntry | null
+  login: (userId: string) => void
+  checkPermission: (permission: string) => boolean
+
   factories: Factory[]
   addFactory: (entry: Omit<Factory, 'id' | 'createdAt'>) => void
   updateFactory: (entry: Factory) => void
@@ -166,9 +165,9 @@ export interface DataContextType {
   dateRange: DateRange
   setDateRange: (range: DateRange) => void
 
+  // Deprecated/Legacy flags mapping to roles
   isDeveloperMode: boolean
   toggleDeveloperMode: () => void
-
   isViewerMode: boolean
   setViewerMode: (value: boolean) => void
 

@@ -24,8 +24,6 @@ import {
   Target,
   Info,
   Settings,
-  Lock,
-  Unlock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -48,37 +46,27 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function Yields() {
-  const { production, dateRange, yieldTargets, updateYieldTargets } = useData()
+  const {
+    production,
+    dateRange,
+    yieldTargets,
+    updateYieldTargets,
+    checkPermission,
+  } = useData()
   const { toast } = useToast()
   // Ref to track the last alerted state to prevent duplicate toasts
   const lastAlertedRef = useRef<string | null>(null)
 
-  // Dialog & Auth State
+  const canEditGoals = checkPermission('edit_goals')
+
+  // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState(false)
   const [editTargets, setEditTargets] = useState(yieldTargets)
 
   const handleOpenChange = (open: boolean) => {
     setIsDialogOpen(open)
-    if (!open) {
-      // Reset state on close
-      setIsAuthenticated(false)
-      setPassword('')
-      setAuthError(false)
-    } else {
-      // Init temp state on open
+    if (open) {
       setEditTargets(yieldTargets)
-    }
-  }
-
-  const handlePasswordSubmit = () => {
-    if (password === '16071997') {
-      setIsAuthenticated(true)
-      setAuthError(false)
-    } else {
-      setAuthError(true)
     }
   }
 
@@ -209,46 +197,22 @@ export default function Yields() {
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Configurar Metas
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Configuração de Metas</DialogTitle>
-              <DialogDescription>
-                Ajuste os percentuais mínimos de rendimento esperados.
-              </DialogDescription>
-            </DialogHeader>
+        {canEditGoals && (
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Configurar Metas
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Configuração de Metas</DialogTitle>
+                <DialogDescription>
+                  Ajuste os percentuais mínimos de rendimento esperados.
+                </DialogDescription>
+              </DialogHeader>
 
-            {!isAuthenticated ? (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha de Administrador</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Digite a senha para desbloquear"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && handlePasswordSubmit()
-                    }
-                  />
-                  {authError && (
-                    <p className="text-sm text-destructive font-medium">
-                      Senha incorreta.
-                    </p>
-                  )}
-                </div>
-                <Button className="w-full gap-2" onClick={handlePasswordSubmit}>
-                  <Unlock className="h-4 w-4" /> Desbloquear
-                </Button>
-              </div>
-            ) : (
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -318,9 +282,9 @@ export default function Yields() {
                   <Button onClick={handleSaveTargets}>Salvar Alterações</Button>
                 </DialogFooter>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

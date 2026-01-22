@@ -14,8 +14,10 @@ import Settings from './pages/Settings'
 import Factories from './pages/Factories'
 import AdvancedReports from './pages/AdvancedReports'
 import NotFound from './pages/NotFound'
+import AccessDenied from './pages/AccessDenied'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 const App = () => (
   <DataProvider>
@@ -36,8 +38,25 @@ const App = () => (
             <Route path="/relatorios-avancados" element={<AdvancedReports />} />
             <Route path="/estoque" element={<Inventory />} />
             <Route path="/expedicao" element={<Shipping />} />
-            <Route path="/fabricas" element={<Factories />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/access-denied" element={<AccessDenied />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/fabricas"
+              element={
+                <ProtectedRoute requiredRoles={['Administrator', 'Manager']}>
+                  <Factories />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute requiredRoles={['Administrator']}>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

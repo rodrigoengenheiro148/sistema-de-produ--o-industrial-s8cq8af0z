@@ -66,8 +66,7 @@ export default function DailyAcidity() {
     updateAcidityRecord,
     deleteAcidityRecord,
     dateRange,
-    isDeveloperMode,
-    isViewerMode,
+    checkPermission,
   } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -79,6 +78,10 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const canCreate = checkPermission('create_records')
+  const canEdit = checkPermission('edit_records')
+  const canDelete = checkPermission('delete_records')
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
@@ -136,7 +139,7 @@ export default function DailyAcidity() {
           <FlaskConical className="h-6 w-6 text-primary" />
           Acidez Diária
         </h2>
-        {!isViewerMode && (
+        {canCreate && (
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
@@ -206,7 +209,7 @@ export default function DailyAcidity() {
                             {entry.time}
                           </div>
                         </div>
-                        {!isViewerMode && (
+                        {(canEdit || canDelete) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -218,12 +221,14 @@ export default function DailyAcidity() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditClick(entry)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                              {isDeveloperMode && (
+                              {canEdit && (
+                                <DropdownMenuItem
+                                  onClick={() => handleEditClick(entry)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                              )}
+                              {canDelete && (
                                 <DropdownMenuItem
                                   onClick={() => setDeleteId(entry.id)}
                                   className="text-red-600 focus:text-red-600"
@@ -280,7 +285,7 @@ export default function DailyAcidity() {
                   <TableHead className="text-right">Volume (L)</TableHead>
                   <TableHead>Horários Real.</TableHead>
                   <TableHead>Observações</TableHead>
-                  {!isViewerMode && (
+                  {(canEdit || canDelete) && (
                     <TableHead className="w-[80px]">Ações</TableHead>
                   )}
                 </TableRow>
@@ -289,7 +294,7 @@ export default function DailyAcidity() {
                 {filteredRecords.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={!isViewerMode ? 9 : 8}
+                      colSpan={canEdit || canDelete ? 9 : 8}
                       className="text-center h-24 text-muted-foreground"
                     >
                       Nenhum registro encontrado no período.
@@ -323,17 +328,19 @@ export default function DailyAcidity() {
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">
                         {entry.notes || '-'}
                       </TableCell>
-                      {!isViewerMode && (
+                      {(canEdit || canDelete) && (
                         <TableCell className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditClick(entry)}
-                            title="Editar"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {isDeveloperMode && (
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(entry)}
+                              title="Editar"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
                             <Button
                               variant="ghost"
                               size="icon"
