@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface LossAnalysisChartProps {
   data: ProductionEntry[]
@@ -41,6 +42,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         date: format(p.date, 'dd/MM'),
         originalDate: p.date,
         perdas: p.losses,
+        percentage: p.mpUsed > 0 ? (p.losses / p.mpUsed) * 100 : 0,
       }))
       // Ensure chronological order if not already sorted
       .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
@@ -54,7 +56,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card className={`shadow-sm border-primary/10 ${className}`}>
+      <Card className={cn('shadow-sm border-primary/10', className)}>
         <CardHeader>
           <CardTitle>Análise de Perdas</CardTitle>
           <CardDescription>
@@ -81,13 +83,13 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="perdas" fill="var(--color-perdas)" radius={[4, 4, 0, 0]}>
           <LabelList
-            dataKey="perdas"
+            dataKey="percentage"
             position="top"
             offset={8}
             className="fill-foreground font-bold"
             fontSize={11}
-            formatter={(value: any) =>
-              value > 0 ? `${value.toLocaleString('pt-BR')}` : ''
+            formatter={(value: number) =>
+              value > 0 ? `${value.toFixed(1)}%` : ''
             }
           />
         </Bar>
@@ -96,7 +98,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
   )
 
   return (
-    <Card className={`shadow-sm border-primary/10 ${className}`}>
+    <Card className={cn('shadow-sm border-primary/10', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
           <CardTitle>Análise de Perdas</CardTitle>
@@ -115,7 +117,7 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
             <DialogHeader>
               <DialogTitle>Análise de Perdas</DialogTitle>
               <DialogDescription>
-                Visualização detalhada das perdas diárias.
+                Visualização detalhada das perdas diárias com percentual.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
