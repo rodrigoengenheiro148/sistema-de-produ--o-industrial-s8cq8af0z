@@ -20,7 +20,6 @@ import {
   ConnectionStatus,
   SyncOperation,
   YieldTargets,
-  UserRole,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, subDays } from 'date-fns'
 
@@ -78,7 +77,7 @@ const MOCK_QUALITY: QualityEntry[] = []
 const MOCK_USER_ACCESS: UserAccessEntry[] = [
   {
     id: '1',
-    name: 'Admin User',
+    name: 'Rodrigo Gomes',
     role: 'Administrator',
     createdAt: new Date(),
   },
