@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react'
 import {
   RawMaterialEntry,
   ProductionEntry,
@@ -102,7 +108,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   // Fetch all data from Supabase
-  const fetchData = async () => {
+  // Wrapped in useCallback to be stable for useEffect dependencies if needed,
+  // though currently mostly used inside useEffect where user changes
+  const fetchData = useCallback(async () => {
     if (!user) {
       setConnectionStatus('offline')
       return
@@ -152,7 +160,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Error fetching data:', error)
       setConnectionStatus('error')
     }
-  }
+  }, [user])
 
   // Initial fetch and Realtime Subscription
   useEffect(() => {
@@ -172,38 +180,42 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchData().then(() => setConnectionStatus('online'))
 
     // Realtime subscriptions
-    // We combine all subscriptions into one channel for better management
+    // Using a simple channel name.
+    // Ensure tables are added to supabase_realtime publication in database migration.
     const channel = supabase
       .channel('db-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'raw_materials' },
-        fetchData,
+        () => fetchData(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'production' },
-        fetchData,
+        () => fetchData(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'shipping' },
-        fetchData,
+        () => fetchData(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'acidity_records' },
-        fetchData,
+        () => fetchData(),
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'quality_records' },
-        fetchData,
+        () => fetchData(),
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('online')
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`Realtime subscription error: ${status}`, err)
+          setConnectionStatus('error')
+        } else if (status === 'TIMED_OUT') {
           console.error(`Realtime subscription error: ${status}`)
           setConnectionStatus('error')
         }
@@ -212,7 +224,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user])
+  }, [user, fetchData])
 
   // --- Action Handlers using Supabase ---
 
