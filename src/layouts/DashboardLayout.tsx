@@ -13,7 +13,6 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useData } from '@/context/DataContext'
 import { ConnectionStatus } from '@/components/ConnectionStatus'
-import { RenderAssistant } from '@/components/RenderAssistant'
 
 export default function DashboardLayout() {
   const location = useLocation()
@@ -101,8 +100,6 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
         <MobileNav />
-        {/* Render Assistant - Global Availability */}
-        <RenderAssistant />
       </SidebarInset>
     </SidebarProvider>
   )
