@@ -209,6 +209,7 @@ export interface DataContextType {
   testProtheusConnection: () => Promise<{ success: boolean; message: string }>
   lastProtheusSync: Date | null
   syncProtheusData: () => Promise<void>
+  refreshOperationalData: () => Promise<void>
 
   notificationSettings: NotificationSettings
   updateNotificationSettings: (settings: NotificationSettings) => Promise<void>

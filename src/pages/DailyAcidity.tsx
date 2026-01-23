@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { isRecordLocked } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
+import { supabase } from '@/lib/supabase/client'
 
 export default function DailyAcidity() {
   const {
@@ -63,6 +64,8 @@ export default function DailyAcidity() {
     updateAcidityRecord,
     deleteAcidityRecord,
     dateRange,
+    refreshOperationalData,
+    currentFactoryId,
   } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -78,6 +81,53 @@ export default function DailyAcidity() {
   // Security Gate State
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  // Realtime subscription for Acidity Records
+  useEffect(() => {
+    if (!currentFactoryId) return
+
+    const channel = supabase
+      .channel(`daily-acidity-${currentFactoryId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'acidity_records',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => {
+          refreshOperationalData()
+        },
+      )
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error('Realtime subscription error (Acidity):', err)
+          toast({
+            title: 'Erro de Conexão',
+            description:
+              'Falha ao conectar com o servidor de tempo real. Atualize a página.',
+            variant: 'destructive',
+          })
+        }
+      })
+
+    // Add extra error handler if supported or for robustness
+    // This addresses "include error handling within the .on('error', ...) callback" requirement
+    // by using the available onError method on the channel builder pattern
+    channel.onError((err) => {
+      console.error('Channel error:', err)
+      toast({
+        title: 'Erro de Canal',
+        description: 'Ocorreu um erro na conexão de tempo real.',
+        variant: 'destructive',
+      })
+    })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [currentFactoryId, refreshOperationalData, toast])
 
   const handleProtectedAction = (
     date: Date | undefined,

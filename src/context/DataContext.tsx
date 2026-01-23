@@ -842,6 +842,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         connectionStatus,
         pendingOperationsCount: 0,
         clearAllData,
+        refreshOperationalData: fetchOperationalData,
       }}
     >
       {children}
