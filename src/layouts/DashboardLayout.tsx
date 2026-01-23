@@ -13,6 +13,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useData } from '@/context/DataContext'
 import { ConnectionStatus } from '@/components/ConnectionStatus'
+import { RenderAssistant } from '@/components/RenderAssistant'
 
 export default function DashboardLayout() {
   const location = useLocation()
@@ -50,7 +51,7 @@ export default function DashboardLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="bg-background flex flex-col min-h-screen">
+      <SidebarInset className="bg-background flex flex-col min-h-screen relative">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-3 md:px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20">
           <SidebarTrigger className="-ml-2 hover:bg-secondary text-primary hidden md:flex" />
           <div className="h-4 w-px bg-border mx-2 hidden md:block" />
@@ -100,6 +101,8 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
         <MobileNav />
+        {/* Render Assistant - Global Availability */}
+        <RenderAssistant />
       </SidebarInset>
     </SidebarProvider>
   )
