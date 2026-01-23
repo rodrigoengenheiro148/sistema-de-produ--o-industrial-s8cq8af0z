@@ -1,31 +1,10 @@
-import { useMemo } from 'react'
-import { QualityEntry } from '@/lib/types'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartConfig,
-} from '@/components/ui/chart'
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  LabelList,
-} from 'recharts'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { useIsMobile } from '@/hooks/use-mobile'
 import {
   Dialog,
   DialogContent,
@@ -36,215 +15,131 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
+import {
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  ComposedChart,
+} from 'recharts'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  ChartConfig,
+} from '@/components/ui/chart'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface QualityChartProps {
-  data: QualityEntry[]
+  title: string
+  data: any[]
+  mean: number
+  stdDev: number
+  unit: string
 }
 
-export function QualityChart({ data }: QualityChartProps) {
+const chartConfig: ChartConfig = {
+  value: { label: 'Valor', color: 'hsl(var(--primary))' },
+  valueMA: { label: 'Média Móvel', color: 'hsl(var(--chart-2))' },
+  mean: { label: 'Média Período', color: 'hsl(var(--muted-foreground))' },
+}
+
+export function QualityChart({
+  title,
+  data,
+  mean,
+  stdDev,
+  unit,
+}: QualityChartProps) {
   const isMobile = useIsMobile()
 
-  const { chartData, chartConfig } = useMemo(() => {
-    // Sort chronologically
-    const sortedData = [...data].sort(
-      (a, b) => a.date.getTime() - b.date.getTime(),
-    )
-
-    // Prepare data points
-    const processedData = sortedData.map((item) => ({
-      ...item,
-      formattedDate: format(item.date, 'dd/MM', { locale: ptBR }),
-      fullDate: format(item.date, 'dd/MM/yyyy HH:mm', { locale: ptBR }),
-      // Flatten specific values for the lines
-      acidity_Farinha: item.product === 'Farinha' ? item.acidity : null,
-      protein_Farinha: item.product === 'Farinha' ? item.protein : null,
-      acidity_Farinheta: item.product === 'Farinheta' ? item.acidity : null,
-      protein_Farinheta: item.product === 'Farinheta' ? item.protein : null,
-    }))
-
-    const config: ChartConfig = {
-      acidity_Farinha: {
-        label: 'Acidez - Farinha',
-        color: 'hsl(var(--chart-1))',
-      },
-      acidity_Farinheta: {
-        label: 'Acidez - Farinheta',
-        color: 'hsl(var(--chart-2))',
-      },
-      protein_Farinha: {
-        label: 'Proteína - Farinha',
-        color: 'hsl(var(--chart-3))',
-      },
-      protein_Farinheta: {
-        label: 'Proteína - Farinheta',
-        color: 'hsl(var(--chart-4))',
-      },
-    }
-
-    return { chartData: processedData, chartConfig: config }
-  }, [data])
-
-  if (!data || data.length === 0) {
+  if (data.length === 0) {
     return (
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Evolução da Qualidade</CardTitle>
-          <CardDescription>
-            Tendências de Acidez e Proteína (Farinha vs. Farinheta)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado disponível para análise de qualidade.
-        </CardContent>
-      </Card>
+      <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10 text-muted-foreground text-sm p-4 text-center">
+        Sem dados suficientes.
+      </div>
     )
   }
 
-  const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
-    <ChartContainer
-      config={chartConfig}
-      className={`aspect-auto ${height} w-full`}
-    >
-      <LineChart
-        accessibilityLayer
-        data={chartData}
-        margin={{
-          top: 20,
-          right: isMobile ? 0 : 20,
-          bottom: 20,
-          left: isMobile ? 0 : 20,
-        }}
+  const lowerBound = Math.max(0, mean - stdDev)
+  const upperBound = mean + stdDev
+
+  const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
+    <ChartContainer config={chartConfig} className={`${height} w-full`}>
+      <ComposedChart
+        data={data}
+        margin={{ top: 20, right: 10, bottom: 20, left: 0 }}
       >
-        <CartesianGrid vertical={false} />
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
-          dataKey="formattedDate"
+          dataKey="dateStr"
           tickLine={false}
           axisLine={false}
           tickMargin={8}
           fontSize={isMobile ? 10 : 12}
+          interval="preserveStartEnd"
         />
-        {/* Left Axis for Acidity */}
         <YAxis
-          yAxisId="left"
+          domain={['auto', 'auto']}
           tickLine={false}
           axisLine={false}
-          tickMargin={8}
           width={isMobile ? 30 : 40}
           fontSize={isMobile ? 10 : 12}
-          label={{
-            value: isMobile ? '' : 'Acidez (%)',
-            angle: -90,
-            position: 'insideLeft',
-            offset: 10,
-            fontSize: 10,
-          }}
-        />
-        {/* Right Axis for Protein */}
-        <YAxis
-          yAxisId="right"
-          orientation="right"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          width={isMobile ? 30 : 40}
-          fontSize={isMobile ? 10 : 12}
-          label={{
-            value: isMobile ? '' : 'Proteína (%)',
-            angle: 90,
-            position: 'insideRight',
-            offset: 10,
-            fontSize: 10,
-          }}
+          tickFormatter={(val) => `${val.toFixed(1)}`}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {/* Lines - Acidity (Left Axis) */}
-        <Line
-          yAxisId="left"
-          dataKey="acidity_Farinha"
-          type="monotone"
-          stroke="var(--color-acidity_Farinha)"
-          strokeWidth={2}
-          dot={{ r: 4, fill: 'var(--color-acidity_Farinha)' }}
-          activeDot={{ r: 6 }}
-          connectNulls
-        >
-          <LabelList
-            position="top"
-            offset={10}
-            className="fill-foreground text-[10px]"
-            formatter={(val: number) => val?.toFixed(1)}
-          />
-        </Line>
+        <ReferenceLine
+          y={mean}
+          stroke="hsl(var(--muted-foreground))"
+          strokeDasharray="3 3"
+        />
+        <ReferenceLine
+          y={upperBound}
+          stroke="hsl(var(--destructive))"
+          strokeOpacity={0.5}
+          strokeDasharray="3 3"
+        />
+        <ReferenceLine
+          y={lowerBound}
+          stroke="hsl(var(--destructive))"
+          strokeOpacity={0.5}
+          strokeDasharray="3 3"
+        />
 
         <Line
-          yAxisId="left"
-          dataKey="acidity_Farinheta"
           type="monotone"
-          stroke="var(--color-acidity_Farinheta)"
+          dataKey="value"
+          stroke="var(--color-value)"
+          strokeWidth={2}
+          dot={{ r: 3, fill: 'var(--color-value)' }}
+          activeDot={{ r: 5 }}
+          name={`Valor (${unit})`}
+        />
+        <Line
+          type="monotone"
+          dataKey="valueMA"
+          stroke="var(--color-valueMA)"
           strokeWidth={2}
           strokeDasharray="5 5"
-          dot={{ r: 4, fill: 'var(--color-acidity_Farinheta)' }}
-          activeDot={{ r: 6 }}
-          connectNulls
-        >
-          <LabelList
-            position="top"
-            offset={10}
-            className="fill-foreground text-[10px]"
-            formatter={(val: number) => val?.toFixed(1)}
-          />
-        </Line>
-
-        {/* Lines - Protein (Right Axis) */}
-        <Line
-          yAxisId="right"
-          dataKey="protein_Farinha"
-          type="monotone"
-          stroke="var(--color-protein_Farinha)"
-          strokeWidth={2}
-          dot={{ r: 4, fill: 'var(--color-protein_Farinha)' }}
-          activeDot={{ r: 6 }}
-          connectNulls
-        >
-          <LabelList
-            position="bottom"
-            offset={10}
-            className="fill-foreground text-[10px]"
-            formatter={(val: number) => val?.toFixed(1)}
-          />
-        </Line>
-
-        <Line
-          yAxisId="right"
-          dataKey="protein_Farinheta"
-          type="monotone"
-          stroke="var(--color-protein_Farinheta)"
-          strokeWidth={2}
-          strokeDasharray="5 5"
-          dot={{ r: 4, fill: 'var(--color-protein_Farinheta)' }}
-          activeDot={{ r: 6 }}
-          connectNulls
-        >
-          <LabelList
-            position="bottom"
-            offset={10}
-            className="fill-foreground text-[10px]"
-            formatter={(val: number) => val?.toFixed(1)}
-          />
-        </Line>
-      </LineChart>
+          dot={false}
+          name="Média Móvel"
+        />
+      </ComposedChart>
     </ChartContainer>
   )
 
   return (
     <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle>Evolução da Qualidade</CardTitle>
-          <CardDescription>
-            Tendências de Acidez e Proteína (Farinha vs. Farinheta)
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+        <div className="flex flex-col space-y-1.5">
+          <CardTitle className="text-base">{title}</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Tendência e Desvio Padrão (σ = {stdDev.toFixed(2)})
           </CardDescription>
         </div>
         <Dialog>
@@ -256,9 +151,9 @@ export function QualityChart({ data }: QualityChartProps) {
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Evolução da Qualidade</DialogTitle>
+              <DialogTitle>{title}</DialogTitle>
               <DialogDescription>
-                Análise detalhada das tendências de qualidade.
+                Tendência e Desvio Padrão (σ = {stdDev.toFixed(2)})
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
@@ -267,7 +162,7 @@ export function QualityChart({ data }: QualityChartProps) {
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
         <ChartContent />
       </CardContent>
     </Card>
