@@ -298,7 +298,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
-  // Realtime Subscriptions
+  // Realtime Subscriptions (Global - Factories)
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel('factories-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'factories',
+        },
+        () => fetchGlobalData(),
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.error(
+            'Realtime subscription error (factories): CHANNEL_ERROR',
+          )
+        }
+      })
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user, fetchGlobalData])
+
+  // Realtime Subscriptions (Operational - Scoped to Factory)
   useEffect(() => {
     if (!user || !currentFactoryId) return
 
@@ -712,7 +740,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       yield_threshold: settings.yieldThreshold,
       sebo_threshold: settings.seboThreshold,
       farinheta_threshold: settings.farinhetaThreshold,
-      farinha_threshold: settings.farinhaThreshold,
+      farinha_threshold: settings.farinha_threshold,
       notification_email: settings.notificationEmail,
       notification_phone: settings.notificationPhone,
       brevo_api_key: settings.brevoApiKey,
