@@ -43,6 +43,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { NotificationSettings } from '@/lib/types'
+import { DataExport } from '@/components/settings/DataExport'
 
 export default function Settings() {
   const {
@@ -288,6 +289,7 @@ export default function Settings() {
           <TabsTrigger value="integrations">Integrações</TabsTrigger>
           <TabsTrigger value="connection">Conexão ERP</TabsTrigger>
           <TabsTrigger value="system">Sistema</TabsTrigger>
+          <TabsTrigger value="data">Dados</TabsTrigger>
           <TabsTrigger value="danger">Zona de Perigo</TabsTrigger>
         </TabsList>
 
@@ -782,6 +784,10 @@ export default function Settings() {
               </Button>
             </CardFooter>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-4">
+          <DataExport />
         </TabsContent>
 
         <TabsContent value="danger" className="space-y-4">
