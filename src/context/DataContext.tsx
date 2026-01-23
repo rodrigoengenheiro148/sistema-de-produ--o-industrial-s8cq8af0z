@@ -24,7 +24,6 @@ import {
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
-import { RealtimeChannel } from '@supabase/supabase-js'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -142,7 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 1. Fetch Global Settings & Factories
   const fetchGlobalData = useCallback(async () => {
-    if (!user) return
+    if (!user?.id) return
 
     try {
       const [{ data: fact }, { data: integration }, { data: notifications }] =
@@ -210,7 +209,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error('Error fetching global data:', error)
     }
-  }, [user])
+  }, [user?.id])
 
   // Validate and set currentFactoryId if needed
   useEffect(() => {
@@ -224,7 +223,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 2. Fetch Operational Data (Scoped to Factory)
   const fetchOperationalData = useCallback(async () => {
-    if (!user || !currentFactoryId) {
+    if (!user?.id || !currentFactoryId) {
       setRawMaterials([])
       setProduction([])
       setShipping([])
@@ -279,7 +278,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Error fetching operational data:', error)
       setConnectionStatus('error')
     }
-  }, [user, currentFactoryId])
+  }, [user?.id, currentFactoryId])
 
   // Initial fetch Global
   useEffect(() => {
@@ -301,10 +300,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Realtime Subscriptions (Global - Factories)
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
 
-    // Ensure unique channel name to avoid conflicts and stale subscriptions
-    const channelName = `factories-updates-${user.id}-${Date.now()}`
+    // Ensure unique channel name per user context, but stable across renders
+    const channelName = `factories-updates-${user.id}`
 
     const channel = supabase
       .channel(channelName)
@@ -316,10 +315,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           table: 'factories',
           filter: `user_id=eq.${user.id}`,
         },
-        () => fetchGlobalData(),
+        (payload) => {
+          console.log('Realtime update received (factories):', payload)
+          fetchGlobalData()
+        },
       )
       .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR') {
+        if (status === 'SUBSCRIBED') {
+          // Channel connected successfully
+        } else if (status === 'CHANNEL_ERROR') {
           console.error(
             `Realtime subscription error (factories) on channel ${channelName}:`,
             err,
@@ -334,14 +338,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user, fetchGlobalData])
+  }, [user?.id, fetchGlobalData])
 
   // Realtime Subscriptions (Operational - Scoped to Factory)
   useEffect(() => {
-    if (!user || !currentFactoryId) return
+    if (!user?.id || !currentFactoryId) return
 
-    // Ensure unique channel name for operational data as well
-    const channelName = `operational-data-${currentFactoryId}-${Date.now()}`
+    const channelName = `operational-data-${currentFactoryId}`
 
     const channel = supabase
       .channel(channelName)
@@ -415,7 +418,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user, currentFactoryId, fetchOperationalData])
+  }, [user?.id, currentFactoryId, fetchOperationalData])
 
   const checkThresholdsAndNotify = async (
     entry: Omit<ProductionEntry, 'id'>,
