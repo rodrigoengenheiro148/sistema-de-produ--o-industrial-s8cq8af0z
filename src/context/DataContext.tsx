@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react'
 import {
   RawMaterialEntry,
@@ -72,6 +73,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { user } = useAuth()
 
+  // Initialize with empty string to force selection/loading
+  const [currentFactoryId, setCurrentFactoryId] = useState<string>(() => {
+    return localStorage.getItem('currentFactoryId') || ''
+  })
+
+  // Persist currentFactoryId selection
+  useEffect(() => {
+    if (currentFactoryId) {
+      localStorage.setItem('currentFactoryId', currentFactoryId)
+    }
+  }, [currentFactoryId])
+
   const [rawMaterials, setRawMaterials] = useState<RawMaterialEntry[]>([])
   const [production, setProduction] = useState<ProductionEntry[]>([])
   const [shipping, setShipping] = useState<ShippingEntry[]>([])
@@ -80,7 +93,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
 
-  const [currentFactoryId, setCurrentFactoryId] = useState<string>('1')
   const [systemSettings, setSystemSettings] =
     useState<SystemSettings>(DEFAULT_SETTINGS)
   const [yieldTargets, setYieldTargets] = useState<YieldTargets>(
@@ -124,63 +136,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       unitPrice: item.unit_price,
       docRef: item.doc_ref,
       performedTimes: item.performed_times,
+      factoryId: item.factory_id,
     }))
   }
 
-  // Fetch all data from Supabase
-  const fetchData = useCallback(async () => {
-    if (!user) {
-      setConnectionStatus('offline')
-      return
-    }
+  // 1. Fetch Global Settings & Factories
+  const fetchGlobalData = useCallback(async () => {
+    if (!user) return
 
     try {
-      const [
-        { data: raw },
-        { data: prod },
-        { data: ship },
-        { data: acid },
-        { data: qual },
-        { data: fact },
-        { data: integration },
-        { data: notifications },
-      ] = await Promise.all([
-        supabase
-          .from('raw_materials')
-          .select('*')
-          .order('date', { ascending: false }),
-        supabase
-          .from('production')
-          .select('*')
-          .order('date', { ascending: false }),
-        supabase
-          .from('shipping')
-          .select('*')
-          .order('date', { ascending: false }),
-        supabase
-          .from('acidity_records')
-          .select('*')
-          .order('date', { ascending: false }),
-        supabase
-          .from('quality_records')
-          .select('*')
-          .order('date', { ascending: false }),
-        supabase.from('factories').select('*'),
-        supabase.from('integration_configs').select('*').limit(1).maybeSingle(),
-        // @ts-expect-error - notification_settings table columns are created in migrations
-        supabase
-          .from('notification_settings')
-          .select('*')
-          .limit(1)
-          .maybeSingle(),
-      ])
+      const [{ data: fact }, { data: integration }, { data: notifications }] =
+        await Promise.all([
+          supabase.from('factories').select('*').order('name'),
+          supabase
+            .from('integration_configs')
+            .select('*')
+            .limit(1)
+            .maybeSingle(),
+          // @ts-expect-error - notification_settings table columns are created in migrations
+          supabase
+            .from('notification_settings')
+            .select('*')
+            .limit(1)
+            .maybeSingle(),
+        ])
 
-      if (raw) setRawMaterials(mapData(raw))
-      if (prod) setProduction(mapData(prod))
-      if (ship) setShipping(mapData(ship))
-      if (acid) setAcidityRecords(mapData(acid))
-      if (qual) setQualityRecords(mapData(qual))
-      if (fact) setFactories(mapData(fact))
+      if (fact) {
+        const mappedFactories = mapData(fact)
+        setFactories(mappedFactories)
+
+        // Ensure currentFactoryId is valid
+        if (mappedFactories.length > 0) {
+          const isValid = mappedFactories.some((f) => f.id === currentFactoryId)
+          if (!isValid || !currentFactoryId) {
+            setCurrentFactoryId(mappedFactories[0].id)
+          }
+        }
+      }
 
       if (integration) {
         setProtheusConfig({
@@ -224,59 +216,143 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total,
         })
       }
-
-      setLastProtheusSync(new Date())
     } catch (error) {
-      // It's ok if configs are not found
-      console.error('Error fetching data:', error)
-      setConnectionStatus('error')
+      console.error('Error fetching global data:', error)
     }
-  }, [user])
+  }, [user, currentFactoryId])
 
-  // Initial fetch and Realtime Subscription
-  useEffect(() => {
-    if (!user) {
+  // 2. Fetch Operational Data (Scoped to Factory)
+  const fetchOperationalData = useCallback(async () => {
+    if (!user || !currentFactoryId) {
       setRawMaterials([])
       setProduction([])
       setShipping([])
       setAcidityRecords([])
       setQualityRecords([])
+      return
+    }
+
+    try {
+      const [
+        { data: raw },
+        { data: prod },
+        { data: ship },
+        { data: acid },
+        { data: qual },
+      ] = await Promise.all([
+        supabase
+          .from('raw_materials')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
+          .from('production')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
+          .from('shipping')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
+          .from('acidity_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
+          .from('quality_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+      ])
+
+      if (raw) setRawMaterials(mapData(raw))
+      if (prod) setProduction(mapData(prod))
+      if (ship) setShipping(mapData(ship))
+      if (acid) setAcidityRecords(mapData(acid))
+      if (qual) setQualityRecords(mapData(qual))
+
+      setLastProtheusSync(new Date())
+    } catch (error) {
+      console.error('Error fetching operational data:', error)
+      setConnectionStatus('error')
+    }
+  }, [user, currentFactoryId])
+
+  // Initial fetch Global
+  useEffect(() => {
+    if (!user) {
       setFactories([])
       setConnectionStatus('offline')
       return
     }
-
-    // Initial load
     setConnectionStatus('syncing')
-    fetchData().then(() => setConnectionStatus('online'))
+    fetchGlobalData().then(() => setConnectionStatus('online'))
+  }, [user, fetchGlobalData])
 
-    // Realtime subscriptions
+  // Fetch Operational Data when Factory Changes
+  useEffect(() => {
+    if (currentFactoryId) {
+      fetchOperationalData()
+    }
+  }, [currentFactoryId, fetchOperationalData])
+
+  // Realtime Subscriptions
+  useEffect(() => {
+    if (!user || !currentFactoryId) return
+
     const channel = supabase
       .channel('db-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'raw_materials' },
-        () => fetchData(),
+        {
+          event: '*',
+          schema: 'public',
+          table: 'raw_materials',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => fetchOperationalData(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'production' },
-        () => fetchData(),
+        {
+          event: '*',
+          schema: 'public',
+          table: 'production',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => fetchOperationalData(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'shipping' },
-        () => fetchData(),
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shipping',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => fetchOperationalData(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'acidity_records' },
-        () => fetchData(),
+        {
+          event: '*',
+          schema: 'public',
+          table: 'acidity_records',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => fetchOperationalData(),
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'quality_records' },
-        () => fetchData(),
+        {
+          event: '*',
+          schema: 'public',
+          table: 'quality_records',
+          filter: `factory_id=eq.${currentFactoryId}`,
+        },
+        () => fetchOperationalData(),
       )
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
@@ -290,13 +366,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [user, fetchData])
+  }, [user, currentFactoryId, fetchOperationalData])
 
   const checkThresholdsAndNotify = async (
     entry: Omit<ProductionEntry, 'id'>,
   ) => {
-    // Only invoke edge function if we have basic notification settings enabled
-    // The edge function will handle the granular threshold logic
     if (notificationSettings.emailEnabled || notificationSettings.smsEnabled) {
       try {
         await supabase.functions.invoke('send-brevo-alert', {
@@ -313,6 +387,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   // --- Action Handlers using Supabase ---
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
+    if (!currentFactoryId) {
+      console.error('No active factory selected')
+      return
+    }
     const { error } = await supabase.from('raw_materials').insert({
       date: entry.date.toISOString(),
       supplier: entry.supplier,
@@ -321,8 +399,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       unit: entry.unit,
       notes: entry.notes,
       user_id: user?.id,
+      factory_id: currentFactoryId,
     })
     if (error) console.error('Error adding raw material:', error)
+    else fetchOperationalData()
   }
 
   const updateRawMaterial = async (entry: RawMaterialEntry) => {
@@ -338,14 +418,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .eq('id', entry.id)
     if (error) console.error('Error updating raw material:', error)
+    else fetchOperationalData()
   }
 
   const deleteRawMaterial = async (id: string) => {
     const { error } = await supabase.from('raw_materials').delete().eq('id', id)
     if (error) console.error('Error deleting raw material:', error)
+    else fetchOperationalData()
   }
 
   const addProduction = async (entry: Omit<ProductionEntry, 'id'>) => {
+    if (!currentFactoryId) {
+      console.error('No active factory selected')
+      return
+    }
     const { error } = await supabase.from('production').insert({
       date: entry.date.toISOString(),
       shift: entry.shift,
@@ -355,12 +441,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       farinheta_produced: entry.farinhetaProduced,
       losses: entry.losses,
       user_id: user?.id,
+      factory_id: currentFactoryId,
     })
     if (error) {
       console.error('Error adding production:', error)
     } else {
-      // Trigger alert check
       checkThresholdsAndNotify(entry)
+      fetchOperationalData()
     }
   }
 
@@ -380,17 +467,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) {
       console.error('Error updating production:', error)
     } else {
-      // Trigger alert check
       checkThresholdsAndNotify(entry)
+      fetchOperationalData()
     }
   }
 
   const deleteProduction = async (id: string) => {
     const { error } = await supabase.from('production').delete().eq('id', id)
     if (error) console.error('Error deleting production:', error)
+    else fetchOperationalData()
   }
 
   const addShipping = async (entry: Omit<ShippingEntry, 'id'>) => {
+    if (!currentFactoryId) {
+      console.error('No active factory selected')
+      return
+    }
     const { error } = await supabase.from('shipping').insert({
       date: entry.date.toISOString(),
       client: entry.client,
@@ -399,8 +491,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       unit_price: entry.unitPrice,
       doc_ref: entry.docRef,
       user_id: user?.id,
+      factory_id: currentFactoryId,
     })
     if (error) console.error('Error adding shipping:', error)
+    else fetchOperationalData()
   }
 
   const updateShipping = async (entry: ShippingEntry) => {
@@ -416,14 +510,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .eq('id', entry.id)
     if (error) console.error('Error updating shipping:', error)
+    else fetchOperationalData()
   }
 
   const deleteShipping = async (id: string) => {
     const { error } = await supabase.from('shipping').delete().eq('id', id)
     if (error) console.error('Error deleting shipping:', error)
+    else fetchOperationalData()
   }
 
   const addAcidityRecord = async (entry: Omit<AcidityEntry, 'id'>) => {
+    if (!currentFactoryId) {
+      console.error('No active factory selected')
+      return
+    }
     const { error } = await supabase.from('acidity_records').insert({
       date: entry.date.toISOString(),
       time: entry.time,
@@ -434,8 +534,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       performed_times: entry.performedTimes,
       notes: entry.notes,
       user_id: user?.id,
+      factory_id: currentFactoryId,
     })
     if (error) console.error('Error adding acidity record:', error)
+    else fetchOperationalData()
   }
 
   const updateAcidityRecord = async (entry: AcidityEntry) => {
@@ -453,6 +555,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .eq('id', entry.id)
     if (error) console.error('Error updating acidity record:', error)
+    else fetchOperationalData()
   }
 
   const deleteAcidityRecord = async (id: string) => {
@@ -461,9 +564,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .delete()
       .eq('id', id)
     if (error) console.error('Error deleting acidity record:', error)
+    else fetchOperationalData()
   }
 
   const addQualityRecord = async (entry: Omit<QualityEntry, 'id'>) => {
+    if (!currentFactoryId) {
+      console.error('No active factory selected')
+      return
+    }
     const { error } = await supabase.from('quality_records').insert({
       date: entry.date.toISOString(),
       product: entry.product,
@@ -472,8 +580,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       responsible: entry.responsible,
       notes: entry.notes,
       user_id: user?.id,
+      factory_id: currentFactoryId,
     })
     if (error) console.error('Error adding quality record:', error)
+    else fetchOperationalData()
   }
 
   const updateQualityRecord = async (entry: QualityEntry) => {
@@ -489,6 +599,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .eq('id', entry.id)
     if (error) console.error('Error updating quality record:', error)
+    else fetchOperationalData()
   }
 
   const deleteQualityRecord = async (id: string) => {
@@ -497,6 +608,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .delete()
       .eq('id', id)
     if (error) console.error('Error deleting quality record:', error)
+    else fetchOperationalData()
   }
 
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
@@ -508,6 +620,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
     })
     if (error) console.error('Error adding factory:', error)
+    else fetchGlobalData()
   }
 
   const updateFactory = async (entry: Factory) => {
@@ -521,11 +634,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .eq('id', entry.id)
     if (error) console.error('Error updating factory:', error)
+    else fetchGlobalData()
   }
 
   const deleteFactory = async (id: string) => {
     const { error } = await supabase.from('factories').delete().eq('id', id)
     if (error) console.error('Error deleting factory:', error)
+    else {
+      // If deleting current factory, switch to another if available
+      if (id === currentFactoryId) {
+        const remaining = factories.filter((f) => f.id !== id)
+        if (remaining.length > 0) {
+          setCurrentFactoryId(remaining[0].id)
+        } else {
+          setCurrentFactoryId('')
+        }
+      }
+      fetchGlobalData()
+    }
   }
 
   // --- Integration Handlers ---
@@ -534,7 +660,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     // Optimistic update
     setProtheusConfig(config)
 
-    // Persist to DB
     const dataToUpsert = {
       base_url: config.baseUrl,
       client_id: config.clientId,
@@ -567,14 +692,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         await supabase.from('integration_configs').insert(dataToUpsert)
       }
     }
-    fetchData()
+    fetchGlobalData()
   }
 
   // --- Notification Handlers ---
 
   const updateNotificationSettings = async (settings: NotificationSettings) => {
     setNotificationSettings(settings)
-    // Keep yieldTargets in sync locally immediately
     setYieldTargets({
       sebo: settings.seboThreshold,
       fco: settings.farinhaThreshold,
@@ -623,10 +747,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         await supabase.from('notification_settings').insert(dataToUpsert)
       }
     }
-    fetchData()
+    fetchGlobalData()
   }
 
-  // Handler for Yields page to update targets via notification settings
   const updateYieldTargets = async (targets: YieldTargets) => {
     const updatedSettings = {
       ...notificationSettings,
@@ -666,11 +789,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           config: protheusConfig,
         },
       })
-      await fetchData()
+      await fetchOperationalData()
     } catch (error) {
       console.error('Sync error:', error)
       throw error
     }
+  }
+
+  const clearAllData = async () => {
+    if (!user) return
+
+    // Clear data from operational tables only for the current user
+    // RLS handles the isolation, but we explicit filter by user_id for safety
+    await Promise.all([
+      supabase.from('raw_materials').delete().eq('user_id', user.id),
+      supabase.from('production').delete().eq('user_id', user.id),
+      supabase.from('shipping').delete().eq('user_id', user.id),
+      supabase.from('acidity_records').delete().eq('user_id', user.id),
+      supabase.from('quality_records').delete().eq('user_id', user.id),
+    ])
+
+    fetchOperationalData()
   }
 
   // Legacy/Mock functions
@@ -681,7 +820,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkPermission = () => true
   const toggleDeveloperMode = () => {}
   const setViewerMode = () => {}
-  const clearAllData = async () => {}
 
   return (
     <DataContext.Provider

@@ -60,6 +60,7 @@ export default function DashboardLayout() {
                 <h1 className="text-base md:text-lg font-bold text-primary tracking-tight leading-tight truncate">
                   {getTitle()}
                 </h1>
+                {/* Factory name moved to Sidebar for better context switching, keeping breadcrumb style here if needed */}
                 {currentFactory && location.pathname !== '/fabricas' && (
                   <p className="text-xs text-muted-foreground hidden sm:block truncate">
                     {currentFactory.name}

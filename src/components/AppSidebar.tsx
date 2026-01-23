@@ -26,9 +26,8 @@ import {
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import logoBrRender from '@/assets/logotipo-br-render.png'
-import { Badge } from '@/components/ui/badge'
-import { useData } from '@/context/DataContext'
 import { UserSwitcher } from '@/components/UserSwitcher'
+import { FactorySwitcher } from '@/components/FactorySwitcher'
 
 const items = [
   {
@@ -85,24 +84,18 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { factories, currentFactoryId } = useData()
-  const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
   return (
     <Sidebar className="border-r border-border bg-sidebar">
-      <SidebarHeader className="p-4 border-b border-sidebar-border bg-white dark:bg-sidebar-background">
+      <SidebarHeader className="p-4 border-b border-sidebar-border bg-white dark:bg-sidebar-background space-y-4">
         <div className="flex flex-col items-center gap-2 justify-center py-2">
           <img
             src={logoBrRender}
             alt="Grupo BR Render"
             className="h-14 w-auto object-contain"
           />
-          {currentFactory && (
-            <Badge variant="secondary" className="text-[10px] h-5">
-              {currentFactory.name}
-            </Badge>
-          )}
         </div>
+        <FactorySwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
