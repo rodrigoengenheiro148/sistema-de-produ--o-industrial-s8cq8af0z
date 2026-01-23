@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { NotificationSettings } from '@/lib/types'
 import { DataExport } from '@/components/settings/DataExport'
+import { PowerBIExport } from '@/components/settings/PowerBIExport'
 
 export default function Settings() {
   const {
@@ -788,6 +789,7 @@ export default function Settings() {
 
         <TabsContent value="data" className="space-y-4">
           <DataExport />
+          <PowerBIExport />
         </TabsContent>
 
         <TabsContent value="danger" className="space-y-4">
