@@ -7,15 +7,17 @@ import {
   Minimize2,
   Maximize2,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useRenderAI } from '@/hooks/use-render-ai'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import logoUrl from '@/assets/logotipo-br-render.png'
 
 interface Message {
   id: string
@@ -32,7 +34,7 @@ export function RenderAssistant() {
       id: 'welcome',
       role: 'assistant',
       content:
-        'Olá! Eu sou o Render, o assistente virtual do Grupo BR Render. Como posso ajudar você hoje?',
+        'Olá! Eu sou o **Render**, seu especialista em produção industrial. Posso ajudar com rendimentos, perdas, faturamento e projeções. O que deseja saber?',
       timestamp: new Date(),
     },
   ])
@@ -40,8 +42,34 @@ export function RenderAssistant() {
   const [isTyping, setIsTyping] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { processQuery } = useRenderAI()
+
+  // Inactivity Auto-Close Logic
+  const resetInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+    if (isOpen && !isMinimized) {
+      inactivityTimerRef.current = setTimeout(() => {
+        setIsOpen(false)
+        setIsMinimized(false)
+      }, 60000) // 60 seconds
+    }
+  }
+
+  useEffect(() => {
+    resetInactivityTimer()
+    return () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
+    }
+  }, [isOpen, isMinimized, messages, isTyping])
+
+  // Reset timer on user input
+  const handleUserActivity = () => {
+    resetInactivityTimer()
+  }
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -66,6 +94,7 @@ export function RenderAssistant() {
     e?.preventDefault()
     if (!inputValue.trim()) return
 
+    handleUserActivity()
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -100,7 +129,6 @@ export function RenderAssistant() {
     }
   }
 
-  // Formatting helpers
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('pt-BR', {
       hour: '2-digit',
@@ -109,17 +137,16 @@ export function RenderAssistant() {
   }
 
   const formatMessageContent = (content: string) => {
-    // Simple bold/bullet formatting
     return content.split('\n').map((line, i) => (
       <p
         key={i}
         className={cn('min-h-[1.2em]', line.startsWith('•') && 'pl-4')}
       >
         {line
-          .split('**')
+          .split(/(\*\*.*?\*\*)/)
           .map((part, index) =>
-            index % 2 === 1 ? (
-              <strong key={index}>{part}</strong>
+            part.startsWith('**') && part.endsWith('**') ? (
+              <strong key={index}>{part.replace(/\*\*/g, '')}</strong>
             ) : (
               <span key={index}>{part}</span>
             ),
@@ -132,12 +159,12 @@ export function RenderAssistant() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 h-14 w-14 rounded-full shadow-lg z-50 animate-in zoom-in duration-300 hover:scale-105 bg-primary text-primary-foreground"
+        className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-2xl z-50 animate-in zoom-in duration-300 hover:scale-110 bg-primary border-4 border-white/20 transition-all"
         size="icon"
       >
-        <Avatar className="h-10 w-10 cursor-pointer">
+        <Avatar className="h-12 w-12 cursor-pointer transition-transform hover:rotate-12">
           <AvatarImage
-            src="https://img.usecurling.com/p/128/128?q=cute%20robot%20mascot&style=3d"
+            src="https://img.usecurling.com/p/128/128?q=humanoid%20robot%20mascot&style=3d"
             alt="Render"
           />
           <AvatarFallback>
@@ -146,10 +173,10 @@ export function RenderAssistant() {
         </Avatar>
         <span className="sr-only">Abrir Assistente Render</span>
         <Badge
-          className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-red-500 border-2 border-white"
+          className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-red-500 border-2 border-white animate-pulse"
           variant="destructive"
         >
-          <span className="sr-only">Notificação</span>
+          1
         </Badge>
       </Button>
     )
@@ -158,55 +185,74 @@ export function RenderAssistant() {
   return (
     <div
       className={cn(
-        'fixed right-4 z-50 transition-all duration-300 ease-in-out',
-        isMinimized ? 'bottom-4 w-72' : 'bottom-4 w-[90vw] sm:w-[380px]',
+        'fixed right-4 z-50 transition-all duration-500 ease-apple',
+        isMinimized ? 'bottom-4 w-80' : 'bottom-4 w-[90vw] sm:w-[400px]',
       )}
+      onMouseMove={handleUserActivity}
+      onClick={handleUserActivity}
+      onKeyDown={handleUserActivity}
     >
-      <Card className="shadow-2xl border-primary/20 overflow-hidden flex flex-col max-h-[80vh]">
+      <Card className="shadow-2xl border-primary/20 overflow-hidden flex flex-col max-h-[85vh] bg-white/95 dark:bg-card/95 backdrop-blur-sm">
         <CardHeader
           className={cn(
-            'flex flex-row items-center justify-between space-y-0 p-3 bg-primary text-primary-foreground cursor-pointer',
+            'flex flex-row items-center justify-between space-y-0 p-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground cursor-pointer transition-all',
             isMinimized ? 'rounded-lg' : 'rounded-t-lg',
           )}
           onClick={() => setIsMinimized(!isMinimized)}
         >
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8 border-2 border-white/20">
-              <AvatarImage
-                src="https://img.usecurling.com/p/128/128?q=cute%20robot%20mascot&style=3d"
-                alt="Render"
-              />
-              <AvatarFallback className="bg-primary-foreground text-primary">
-                <Bot size={16} />
-              </AvatarFallback>
-            </Avatar>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Avatar className="h-10 w-10 border-2 border-white/30 shadow-sm">
+                <AvatarImage
+                  src="https://img.usecurling.com/p/128/128?q=humanoid%20robot%20mascot&style=3d"
+                  alt="Render"
+                />
+                <AvatarFallback className="bg-primary-foreground text-primary">
+                  <Bot size={20} />
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-400 border-2 border-primary"></span>
+            </div>
             <div>
-              <CardTitle className="text-sm font-bold">Render</CardTitle>
-              <p className="text-[10px] text-primary-foreground/80 font-normal">
-                Assistente Virtual
-              </p>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base font-bold">Render</CardTitle>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] h-4 px-1 bg-white/20 text-white border-0"
+                >
+                  AI
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 opacity-90">
+                <img
+                  src={logoUrl}
+                  alt="BR Render"
+                  className="h-3 w-auto brightness-0 invert"
+                />
+                <span className="text-[10px]">Assistant</span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-primary-foreground hover:bg-primary-foreground/20"
+              className="h-7 w-7 text-primary-foreground hover:bg-white/20 rounded-full"
               onClick={(e) => {
                 e.stopPropagation()
                 setIsMinimized(!isMinimized)
               }}
             >
               {isMinimized ? (
-                <Maximize2 className="h-3 w-3" />
+                <Maximize2 className="h-3.5 w-3.5" />
               ) : (
-                <Minimize2 className="h-3 w-3" />
+                <Minimize2 className="h-3.5 w-3.5" />
               )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-primary-foreground hover:bg-primary-foreground/20"
+              className="h-7 w-7 text-primary-foreground hover:bg-white/20 rounded-full"
               onClick={(e) => {
                 e.stopPropagation()
                 setIsOpen(false)
@@ -221,18 +267,24 @@ export function RenderAssistant() {
         {!isMinimized && (
           <>
             <ScrollArea
-              className="flex-1 h-[400px] p-4 bg-secondary/10"
+              className="flex-1 h-[450px] p-4 bg-slate-50 dark:bg-black/20"
               ref={scrollRef}
             >
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
-                      'flex w-full',
+                      'flex w-full animate-in slide-in-from-bottom-2 duration-300',
                       msg.role === 'user' ? 'justify-end' : 'justify-start',
                     )}
                   >
+                    {msg.role === 'assistant' && (
+                      <Avatar className="h-6 w-6 mr-2 mt-1">
+                        <AvatarImage src="https://img.usecurling.com/p/128/128?q=humanoid%20robot%20mascot&style=3d" />
+                        <AvatarFallback>R</AvatarFallback>
+                      </Avatar>
+                    )}
                     <div
                       className={cn(
                         'flex flex-col max-w-[85%] space-y-1',
@@ -241,26 +293,29 @@ export function RenderAssistant() {
                     >
                       <div
                         className={cn(
-                          'rounded-2xl px-4 py-2.5 text-sm shadow-sm',
+                          'rounded-2xl px-4 py-3 text-sm shadow-sm leading-relaxed',
                           msg.role === 'user'
-                            ? 'bg-primary text-primary-foreground rounded-br-none'
-                            : 'bg-white dark:bg-card border rounded-bl-none',
+                            ? 'bg-primary text-primary-foreground rounded-br-sm'
+                            : 'bg-white dark:bg-card border rounded-bl-sm text-foreground',
                         )}
                       >
                         {formatMessageContent(msg.content)}
                       </div>
-                      <span className="text-[10px] text-muted-foreground px-1">
+                      <span className="text-[10px] text-muted-foreground px-1 select-none">
                         {formatTime(msg.timestamp)}
                       </span>
                     </div>
                   </div>
                 ))}
                 {isTyping && (
-                  <div className="flex w-full justify-start">
-                    <div className="flex items-center space-x-2 bg-white dark:bg-card border rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
-                      <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                      <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                      <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+                  <div className="flex w-full justify-start animate-in fade-in duration-300">
+                    <Avatar className="h-6 w-6 mr-2 mt-1">
+                      <AvatarImage src="https://img.usecurling.com/p/128/128?q=humanoid%20robot%20mascot&style=3d" />
+                    </Avatar>
+                    <div className="flex items-center space-x-1.5 bg-white dark:bg-card border rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm h-[44px]">
+                      <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" />
                     </div>
                   </div>
                 )}
@@ -273,15 +328,21 @@ export function RenderAssistant() {
               >
                 <Input
                   ref={inputRef}
-                  placeholder="Digite sua pergunta..."
+                  placeholder="Pergunte sobre rendimentos, vendas..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  className="flex-1 rounded-full bg-secondary/20 border-primary/10 focus-visible:ring-primary/20"
+                  className="flex-1 rounded-full bg-secondary/30 border-primary/10 focus-visible:ring-primary/20 pl-4"
+                  onFocus={handleUserActivity}
                 />
                 <Button
                   type="submit"
                   size="icon"
-                  className="rounded-full h-10 w-10 shrink-0"
+                  className={cn(
+                    'rounded-full h-10 w-10 shrink-0 transition-all',
+                    inputValue.trim()
+                      ? 'bg-primary hover:bg-primary/90'
+                      : 'bg-muted text-muted-foreground',
+                  )}
                   disabled={!inputValue.trim() || isTyping}
                 >
                   {isTyping ? (
@@ -291,6 +352,10 @@ export function RenderAssistant() {
                   )}
                 </Button>
               </form>
+              <div className="text-[10px] text-center text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                <Sparkles className="h-3 w-3 text-yellow-500" />
+                <span>IA conectada ao Supabase em tempo real</span>
+              </div>
             </div>
           </>
         )}
