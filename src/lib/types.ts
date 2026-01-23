@@ -108,6 +108,7 @@ export interface NotificationSettings {
   seboThreshold: number
   farinhetaThreshold: number
   farinhaThreshold: number
+  fcoThreshold?: number // Added for FCO
   notificationEmail: string
   notificationPhone: string
   // Brevo / SMTP Integration

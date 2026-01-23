@@ -183,7 +183,7 @@ export default function Settings() {
       localNotifications.yieldThreshold < 0 ||
       localNotifications.seboThreshold < 0 ||
       localNotifications.farinhetaThreshold < 0 ||
-      localNotifications.farinhaThreshold < 0
+      (localNotifications.fcoThreshold && localNotifications.fcoThreshold < 0)
     ) {
       toast({
         title: 'Valor Inválido',
@@ -220,7 +220,15 @@ export default function Settings() {
     }
 
     try {
-      await updateNotificationSettings(localNotifications)
+      // Sync farinhaThreshold for backward compatibility if fcoThreshold is used
+      const settingsToSave = {
+        ...localNotifications,
+        farinhaThreshold:
+          localNotifications.fcoThreshold ||
+          localNotifications.farinhaThreshold,
+      }
+
+      await updateNotificationSettings(settingsToSave)
       toast({
         title: 'Configurações de Alerta Salvas',
         description:
@@ -406,20 +414,22 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="farinha-threshold">
-                      Meta Farinha (FCO)
-                    </Label>
+                    <Label htmlFor="fco-threshold">Meta Farinha (FCO)</Label>
                     <div className="flex items-center gap-2">
                       <Input
-                        id="farinha-threshold"
+                        id="fco-threshold"
                         type="number"
                         min={0}
                         max={100}
                         step={0.1}
-                        value={localNotifications.farinhaThreshold}
+                        value={
+                          localNotifications.fcoThreshold ||
+                          localNotifications.farinhaThreshold
+                        }
                         onChange={(e) =>
                           setLocalNotifications({
                             ...localNotifications,
+                            fcoThreshold: Number(e.target.value),
                             farinhaThreshold: Number(e.target.value),
                           })
                         }

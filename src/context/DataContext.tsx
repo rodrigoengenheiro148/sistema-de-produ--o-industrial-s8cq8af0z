@@ -47,6 +47,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   seboThreshold: 0,
   farinhetaThreshold: 0,
   farinhaThreshold: 0,
+  fcoThreshold: 0,
   notificationEmail: '',
   notificationPhone: '',
   brevoApiKey: '',
@@ -187,6 +188,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           seboThreshold: notifications.sebo_threshold || 0,
           farinhetaThreshold: notifications.farinheta_threshold || 0,
           farinhaThreshold: notifications.farinha_threshold || 0,
+          fcoThreshold:
+            notifications.fco_threshold || notifications.farinha_threshold || 0, // Fallback to existing
           notificationEmail: notifications.notification_email || '',
           notificationPhone: notifications.notification_phone || '',
           brevoApiKey: notifications.brevo_api_key || '',
@@ -200,7 +203,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         // Sync yield targets with notification settings
         setYieldTargets({
           sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
-          fco: settings.farinhaThreshold || DEFAULT_YIELD_TARGETS.fco,
+          fco:
+            settings.fcoThreshold ||
+            settings.farinhaThreshold ||
+            DEFAULT_YIELD_TARGETS.fco,
           farinheta:
             settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
           total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total,
@@ -420,21 +426,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
 
-  const checkThresholdsAndNotify = async (
-    entry: Omit<ProductionEntry, 'id'>,
-  ) => {
-    if (notificationSettings.emailEnabled || notificationSettings.smsEnabled) {
-      try {
-        await supabase.functions.invoke('send-brevo-alert', {
-          body: {
-            productionData: entry,
-          },
-        })
-      } catch (err) {
-        console.error('Failed to invoke alert function:', err)
-      }
-    }
-  }
+  // Removed manual checkThresholdsAndNotify since it is now handled by Database Trigger
 
   // --- Action Handlers using Supabase ---
 
@@ -498,7 +490,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) {
       console.error('Error adding production:', error)
     } else {
-      checkThresholdsAndNotify(entry)
       fetchOperationalData()
     }
   }
@@ -519,7 +510,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (error) {
       console.error('Error updating production:', error)
     } else {
-      checkThresholdsAndNotify(entry)
       fetchOperationalData()
     }
   }
@@ -753,7 +743,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     setNotificationSettings(settings)
     setYieldTargets({
       sebo: settings.seboThreshold,
-      fco: settings.farinhaThreshold,
+      fco: settings.fcoThreshold || settings.farinhaThreshold || 0,
       farinheta: settings.farinhetaThreshold,
       total: settings.yieldThreshold,
     })
@@ -764,7 +754,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       yield_threshold: settings.yieldThreshold,
       sebo_threshold: settings.seboThreshold,
       farinheta_threshold: settings.farinhetaThreshold,
-      farinha_threshold: settings.farinha_threshold,
+      farinha_threshold: settings.farinhaThreshold,
+      fco_threshold: settings.fcoThreshold, // Update new column
       notification_email: settings.notificationEmail,
       notification_phone: settings.notificationPhone,
       brevo_api_key: settings.brevoApiKey,
@@ -803,6 +794,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ...notificationSettings,
       seboThreshold: targets.sebo,
       farinhaThreshold: targets.fco,
+      fcoThreshold: targets.fco, // Sync both for compatibility
       farinhetaThreshold: targets.farinheta,
       yieldThreshold: targets.total,
     }
