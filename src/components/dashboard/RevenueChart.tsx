@@ -58,6 +58,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -72,6 +73,9 @@ interface RevenueChartProps {
   }
   activeFilter?: string[]
   onFilterChange?: (filters: string[]) => void
+  clientFilter?: string[]
+  onClientFilterChange?: (clients: string[]) => void
+  allClients?: string[]
 }
 
 const PRODUCT_COLORS: Record<string, string> = {
@@ -91,6 +95,9 @@ export function RevenueChart({
   forecastMetrics,
   activeFilter = ['Sebo', 'FCO', 'Farinheta'],
   onFilterChange,
+  clientFilter = [],
+  onClientFilterChange,
+  allClients = [],
 }: RevenueChartProps) {
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
 
@@ -101,6 +108,7 @@ export function RevenueChart({
     'Farinheta',
   ])
   const currentFilter = onFilterChange ? activeFilter : localFilter
+
   const handleFilterChange = (val: string) => {
     const newFilter = currentFilter.includes(val)
       ? currentFilter.filter((f) => f !== val)
@@ -111,6 +119,14 @@ export function RevenueChart({
     } else {
       setLocalFilter(newFilter)
     }
+  }
+
+  const handleClientFilterChange = (val: string) => {
+    if (!onClientFilterChange) return
+    const newFilter = clientFilter.includes(val)
+      ? clientFilter.filter((f) => f !== val)
+      : [...clientFilter, val]
+    onClientFilterChange(newFilter)
   }
 
   const {
@@ -149,12 +165,11 @@ export function RevenueChart({
     let globalForecast = 0
 
     // 2. Process Shipping Data (Actual Revenue) - Apply Filter
+    // Note: 'data' is already filtered by Client in the parent if clientFilter is active
     data.forEach((s) => {
       if (!s.date) return
       // Filter Logic:
       // If filtering by product, strictly check product name
-      // If filtering by client, we still might want to restrict by product if that's the intent of the "Material Filter".
-      // The user story implies filtering the *materials* (products) regardless of view.
       if (!currentFilter.includes(s.product)) return
 
       let dateKey: string
@@ -193,6 +208,7 @@ export function RevenueChart({
     })
 
     // 3. Process Production Data (Forecast Revenue) - Apply Filter
+    // Production Data is Global (not filtered by client), as per requirement
     productionData.forEach((p) => {
       if (!p.date) return
 
@@ -292,7 +308,7 @@ export function RevenueChart({
       maxRevenue: max,
       maxDate: mDate,
       totalForecast: globalForecast,
-      calculatedForecastTotal: globalForecast, // To compare/replace forecastMetrics.total if needed
+      calculatedForecastTotal: globalForecast,
     }
   }, [data, productionData, groupBy, timeScale, currentFilter])
 
@@ -312,16 +328,6 @@ export function RevenueChart({
       maximumFractionDigits: 1,
     }).format(value)
 
-  // Determine which metrics to display.
-  // If we are filtering, we should likely use our internally calculated total
-  // OR rely on the parent updating `forecastMetrics`.
-  // The user story says "The 'Previsão de Faturamento' header value must recalculate automatically".
-  // Assuming the parent (Index.tsx) is doing the math and passing it down via forecastMetrics.total.
-  // However, we can use our local calculation to be safe or if parent logic is complex.
-  // Let's use the prop if available, but if we suspect the prop isn't filtered (e.g. if we are using local state), use local.
-  // Since we are lifting state to Index.tsx, forecastMetrics.total SHOULD be correct from parent.
-  // But let's fallback to calculatedForecastTotal if specific prop logic isn't aligned.
-  // Actually, let's trust the prop `forecastMetrics.total` if provided, assuming parent updates it.
   const displayTotalForecast = forecastMetrics?.total ?? calculatedForecastTotal
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
@@ -451,7 +457,56 @@ export function RevenueChart({
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-center">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+            {/* Client Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="hidden xs:inline text-xs">Clientes</span>
+                  {clientFilter.length > 0 && (
+                    <Badge variant="secondary" className="h-5 px-1 text-[10px]">
+                      {clientFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuLabel>Filtrar Clientes</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <ScrollArea className="h-[200px]">
+                  {allClients.length > 0 ? (
+                    allClients.map((client) => (
+                      <DropdownMenuCheckboxItem
+                        key={client}
+                        checked={clientFilter.includes(client)}
+                        onCheckedChange={() => handleClientFilterChange(client)}
+                      >
+                        {client}
+                      </DropdownMenuCheckboxItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-xs text-muted-foreground text-center">
+                      Nenhum cliente disponível
+                    </div>
+                  )}
+                </ScrollArea>
+                {clientFilter.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs h-8"
+                      onClick={() => onClientFilterChange?.([])}
+                    >
+                      Limpar Filtro
+                    </Button>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Material Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -492,7 +547,7 @@ export function RevenueChart({
             <Tabs
               value={groupBy}
               onValueChange={(v) => setGroupBy(v as 'product' | 'client')}
-              className="w-[200px]"
+              className="w-[180px]"
             >
               <TabsList className="grid w-full grid-cols-2 h-8">
                 <TabsTrigger value="product" className="text-xs px-2 h-6">
@@ -585,7 +640,11 @@ export function RevenueChart({
               </div>
               <span className="text-[10px] text-muted-foreground mt-1">
                 Inclui faturamento realizado + estoque excedente (Filtro:{' '}
-                {currentFilter.join(', ') || 'Nenhum'})
+                {currentFilter.join(', ') || 'Nenhum'}
+                {clientFilter.length > 0
+                  ? ` | Clientes: ${clientFilter.length}`
+                  : ''}
+                )
               </span>
             </div>
             <div className="hidden sm:flex flex-col items-end">

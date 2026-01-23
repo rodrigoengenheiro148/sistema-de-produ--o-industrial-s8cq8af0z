@@ -91,6 +91,14 @@ export default function Dashboard() {
     'Farinheta',
   ])
 
+  // Client Filter for Revenue Chart
+  const [clientFilter, setClientFilter] = useState<string[]>([])
+
+  // Get unique clients for filter
+  const allClients = useMemo(() => {
+    return Array.from(new Set(shipping.map((s) => s.client))).sort()
+  }, [shipping])
+
   // Trigger visual highlight when data updates
   useEffect(() => {
     if (isFirstRender.current) {
@@ -131,6 +139,13 @@ export default function Dashboard() {
   const filteredAcidity = acidityRecords.filter((a) => filterByDate(a.date))
   const filteredQuality = qualityRecords.filter((q) => filterByDate(q.date))
 
+  // Data passed to chart (Date Filtered + Client Filtered)
+  // We filter by client here so the chart only shows data for selected clients.
+  const chartShippingData = useMemo(() => {
+    if (clientFilter.length === 0) return filteredShipping
+    return filteredShipping.filter((s) => clientFilter.includes(s.client))
+  }, [filteredShipping, clientFilter])
+
   // KPIs General
   const totalEntradaMP = filteredRawMaterials.reduce(
     (acc, curr) => acc + curr.quantity,
@@ -159,9 +174,12 @@ export default function Dashboard() {
   const { totalForecast, comparisonPercentage, previousTotalRevenue } =
     useMemo(() => {
       // 1. Current Period Stats (Actual Revenue + Surplus Production Value)
-      // Actual Revenue (Current Period) - Filtered by Products
+      // Actual Revenue (Current Period) - Filtered by Products AND Clients
       const currentRevenue = filteredShipping
         .filter((s) => revenueFilter.includes(s.product))
+        .filter(
+          (s) => clientFilter.length === 0 || clientFilter.includes(s.client),
+        )
         .reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0)
 
       // Calculate Production Totals (Current Period)
@@ -176,14 +194,16 @@ export default function Dashboard() {
       )
 
       // Calculate Surplus Value: (Produced - Shipped) * AvgPrice, if positive
+      // NOTE: Surplus Inventory should be calculated against GLOBAL shipments, not just filtered clients.
+      // If we use filtered clients, we artificially create a huge surplus because we ignore shipments to other clients.
       let surplusValue = 0
       const products = ['Sebo', 'FCO', 'Farinheta']
       products.forEach((prod) => {
-        if (!revenueFilter.includes(prod)) return // Skip if not filtered
+        if (!revenueFilter.includes(prod)) return // Skip if not filtered by product
 
         const produced = currentProductionTotals[prod] || 0
 
-        // Calculate shipped quantity for this specific product in the current period
+        // Calculate GLOBAL shipped quantity for this specific product in the current period
         const shippedQty = filteredShipping
           .filter((s) => s.product === prod)
           .reduce((acc, s) => acc + s.quantity, 0)
@@ -207,15 +227,17 @@ export default function Dashboard() {
       let prevRevenue = 0
       if (dateRange.from && dateRange.to) {
         // Calculate the previous period with the same duration
-        const duration = differenceInDays(dateRange.to, dateRange.from) + 1
-        const prevFrom = subDays(dateRange.from, duration)
-        const prevTo = subDays(dateRange.to, duration)
+        const duration = differenceInDays(dateRange.from, dateRange.to)
+        // Correct previous period logic: subtract duration from 'from'
+        const prevFrom = subDays(dateRange.from, Math.abs(duration) + 1)
+        const prevTo = subDays(dateRange.to, Math.abs(duration) + 1)
 
         const prevShipping = shipping.filter(
           (s) =>
             s.date >= prevFrom &&
             s.date <= prevTo &&
-            revenueFilter.includes(s.product),
+            revenueFilter.includes(s.product) &&
+            (clientFilter.length === 0 || clientFilter.includes(s.client)),
         )
         prevRevenue = prevShipping.reduce(
           (acc, s) => acc + s.quantity * s.unitPrice,
@@ -240,6 +262,7 @@ export default function Dashboard() {
       dateRange,
       shipping,
       revenueFilter,
+      clientFilter,
     ])
 
   // Acidity KPI (Total processed volume checked)
@@ -605,7 +628,7 @@ export default function Dashboard() {
           </div>
 
           <RevenueChart
-            data={filteredShipping}
+            data={chartShippingData}
             productionData={filteredProduction}
             timeScale={overviewTimeScale}
             isMobile={isMobile}
@@ -616,6 +639,9 @@ export default function Dashboard() {
             }}
             activeFilter={revenueFilter}
             onFilterChange={setRevenueFilter}
+            clientFilter={clientFilter}
+            onClientFilterChange={setClientFilter}
+            allClients={allClients}
           />
         </TabsContent>
 
