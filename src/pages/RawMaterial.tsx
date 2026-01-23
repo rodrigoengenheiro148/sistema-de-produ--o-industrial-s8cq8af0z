@@ -26,6 +26,7 @@ import {
   Pencil,
   CalendarIcon,
   Package,
+  Lock,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -49,6 +50,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
+import { isRecordLocked } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function RawMaterial() {
   const { rawMaterials, deleteRawMaterial, dateRange } = useData()
@@ -60,6 +63,28 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Security Gate State
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    date: Date | undefined,
+    action: () => void,
+  ) => {
+    if (isRecordLocked(date)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   const handleEdit = (item: RawMaterialEntry) => {
     setEditingItem(item)
@@ -155,64 +180,80 @@ export default function RawMaterial() {
                   Nenhum registro encontrado.
                 </div>
               ) : (
-                filteredMaterials.map((entry) => (
-                  <Card key={entry.id} className="shadow-sm border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="space-y-1">
-                          <span className="font-semibold text-lg line-clamp-1">
-                            {entry.supplier}
-                          </span>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <CalendarIcon className="h-3 w-3" />
-                            {format(entry.date, 'dd/MM/yyyy')}
+                filteredMaterials.map((entry) => {
+                  const isLocked = isRecordLocked(entry.date)
+                  return (
+                    <Card key={entry.id} className="shadow-sm border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="space-y-1">
+                            <span className="font-semibold text-lg line-clamp-1">
+                              {entry.supplier}
+                            </span>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <CalendarIcon className="h-3 w-3" />
+                              {format(entry.date, 'dd/MM/yyyy')}
+                              {isLocked && (
+                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              )}
+                            </div>
                           </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    handleEdit(entry),
+                                  )
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    setDeleteId(entry.id),
+                                  )
+                                }
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(entry)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(entry.id)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
 
-                      <div className="flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-primary" />
-                          <span className="font-medium">{entry.type}</span>
-                        </div>
-                        <span className="font-mono font-bold text-lg">
-                          {entry.quantity.toLocaleString('pt-BR')}{' '}
-                          <span className="text-sm font-normal text-muted-foreground">
-                            {entry.unit}
+                        <div className="flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-primary" />
+                            <span className="font-medium">{entry.type}</span>
+                          </div>
+                          <span className="font-mono font-bold text-lg">
+                            {entry.quantity.toLocaleString('pt-BR')}{' '}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              {entry.unit}
+                            </span>
                           </span>
-                        </span>
-                      </div>
+                        </div>
 
-                      {entry.notes && (
-                        <p className="text-xs text-muted-foreground italic">
-                          "{entry.notes}"
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                        {entry.notes && (
+                          <p className="text-xs text-muted-foreground italic">
+                            "{entry.notes}"
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })
               )}
             </div>
           ) : (
@@ -238,47 +279,63 @@ export default function RawMaterial() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredMaterials.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                    >
-                      <TableCell className="font-medium">
-                        {format(entry.date, 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>{entry.supplier}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
-                          {entry.type}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.quantity.toLocaleString('pt-BR')}{' '}
-                        {entry.unit || 'kg'}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {entry.notes || '-'}
-                      </TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredMaterials.map((entry) => {
+                    const isLocked = isRecordLocked(entry.date)
+                    return (
+                      <TableRow
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {format(entry.date, 'dd/MM/yyyy')}
+                            {isLocked && (
+                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{entry.supplier}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
+                            {entry.type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.quantity.toLocaleString('pt-BR')}{' '}
+                          {entry.unit || 'kg'}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {entry.notes || '-'}
+                        </TableCell>
+                        <TableCell className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                handleEdit(entry),
+                              )
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                setDeleteId(entry.id),
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -306,6 +363,12 @@ export default function RawMaterial() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={securityOpen}
+        onOpenChange={setSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+      />
     </div>
   )
 }

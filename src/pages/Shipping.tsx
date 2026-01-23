@@ -26,6 +26,7 @@ import {
   Trash2,
   MoreVertical,
   FileText,
+  Lock,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ShippingForm } from '@/components/ShippingForm'
@@ -48,6 +49,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { isRecordLocked } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Shipping() {
   const { shipping, deleteShipping, dateRange } = useData()
@@ -59,6 +62,28 @@ export default function Shipping() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Security Gate State
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    date: Date | undefined,
+    action: () => void,
+  ) => {
+    if (isRecordLocked(date)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   const handleEdit = (item: ShippingEntry) => {
     setEditingItem(item)
@@ -158,73 +183,89 @@ export default function Shipping() {
                   Nenhum registro encontrado.
                 </div>
               ) : (
-                filteredShipping.map((entry) => (
-                  <Card key={entry.id} className="shadow-sm border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="space-y-1 max-w-[70%]">
-                          <span className="font-semibold text-lg line-clamp-1">
-                            {entry.client}
-                          </span>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>{format(entry.date, 'dd/MM/yyyy')}</span>
-                            <span className="text-xs px-1.5 py-0.5 bg-secondary rounded">
-                              {entry.docRef}
+                filteredShipping.map((entry) => {
+                  const isLocked = isRecordLocked(entry.date)
+                  return (
+                    <Card key={entry.id} className="shadow-sm border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="space-y-1 max-w-[70%]">
+                            <span className="font-semibold text-lg line-clamp-1">
+                              {entry.client}
+                            </span>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span>{format(entry.date, 'dd/MM/yyyy')}</span>
+                              {isLocked && (
+                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              )}
+                              <span className="text-xs px-1.5 py-0.5 bg-secondary rounded">
+                                {entry.docRef}
+                              </span>
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    handleEdit(entry),
+                                  )
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    setDeleteId(entry.id),
+                                  )
+                                }
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
+                          <div className="flex flex-col">
+                            <span className="text-xs text-muted-foreground">
+                              Produto
+                            </span>
+                            <span className="font-medium">{entry.product}</span>
+                          </div>
+                          <div className="flex flex-col text-right">
+                            <span className="text-xs text-muted-foreground">
+                              Quantidade
+                            </span>
+                            <span className="font-mono font-bold">
+                              {entry.quantity.toLocaleString('pt-BR')} kg
                             </span>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(entry)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(entry.id)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
 
-                      <div className="flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground">
-                            Produto
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-sm text-muted-foreground">
+                            Total
                           </span>
-                          <span className="font-medium">{entry.product}</span>
-                        </div>
-                        <div className="flex flex-col text-right">
-                          <span className="text-xs text-muted-foreground">
-                            Quantidade
-                          </span>
-                          <span className="font-mono font-bold">
-                            {entry.quantity.toLocaleString('pt-BR')} kg
+                          <span className="font-bold text-lg text-green-600">
+                            {formatCurrency(entry.quantity * entry.unitPrice)}
                           </span>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-sm text-muted-foreground">
-                          Total
-                        </span>
-                        <span className="font-bold text-lg text-green-600">
-                          {formatCurrency(entry.quantity * entry.unitPrice)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                      </CardContent>
+                    </Card>
+                  )
+                })
               )}
             </div>
           ) : (
@@ -252,52 +293,68 @@ export default function Shipping() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredShipping.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                    >
-                      <TableCell className="font-medium">
-                        {format(entry.date, 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>{entry.client}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-900 hover:bg-slate-100/80">
-                          {entry.product}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {entry.docRef}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.quantity.toLocaleString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-muted-foreground">
-                        {formatCurrency(entry.unitPrice)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-medium text-green-600">
-                        {formatCurrency(entry.quantity * entry.unitPrice)}
-                      </TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredShipping.map((entry) => {
+                    const isLocked = isRecordLocked(entry.date)
+                    return (
+                      <TableRow
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {format(entry.date, 'dd/MM/yyyy')}
+                            {isLocked && (
+                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{entry.client}</TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-900 hover:bg-slate-100/80">
+                            {entry.product}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {entry.docRef}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.quantity.toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-muted-foreground">
+                          {formatCurrency(entry.unitPrice)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-medium text-green-600">
+                          {formatCurrency(entry.quantity * entry.unitPrice)}
+                        </TableCell>
+                        <TableCell className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                handleEdit(entry),
+                              )
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                setDeleteId(entry.id),
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -324,6 +381,12 @@ export default function Shipping() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={securityOpen}
+        onOpenChange={setSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+      />
     </div>
   )
 }

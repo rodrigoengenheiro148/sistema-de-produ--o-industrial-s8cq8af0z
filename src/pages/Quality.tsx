@@ -37,6 +37,7 @@ import {
   Trash2,
   ClipboardCheck,
   MoreVertical,
+  Lock,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -50,6 +51,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { isRecordLocked } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Quality() {
   const { qualityRecords, deleteQualityRecord, dateRange } = useData()
@@ -61,6 +64,28 @@ export default function Quality() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Security Gate State
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    date: Date | undefined,
+    action: () => void,
+  ) => {
+    if (isRecordLocked(date)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   const handleEdit = (item: QualityEntry) => {
     setEditingItem(item)
@@ -204,77 +229,93 @@ export default function Quality() {
                   Nenhuma análise encontrada.
                 </div>
               ) : (
-                filteredRecords.map((entry) => (
-                  <Card key={entry.id} className="shadow-sm border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="space-y-1">
-                          <Badge
-                            variant="outline"
-                            className={
-                              entry.product === 'Farinha'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }
-                          >
-                            {entry.product}
-                          </Badge>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {format(entry.date, 'dd/MM/yyyy')}
+                filteredRecords.map((entry) => {
+                  const isLocked = isRecordLocked(entry.date)
+                  return (
+                    <Card key={entry.id} className="shadow-sm border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="space-y-1">
+                            <Badge
+                              variant="outline"
+                              className={
+                                entry.product === 'Farinha'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }
+                            >
+                              {entry.product}
+                            </Badge>
+                            <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                              {format(entry.date, 'dd/MM/yyyy')}
+                              {isLocked && (
+                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              )}
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    handleEdit(entry),
+                                  )
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    setDeleteId(entry.id),
+                                  )
+                                }
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
+                          <div className="text-center">
+                            <span className="text-xs text-muted-foreground block">
+                              Acidez
+                            </span>
+                            <span className="font-mono font-bold">
+                              {entry.acidity.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div className="text-center border-l border-border/50">
+                            <span className="text-xs text-muted-foreground block">
+                              Proteína
+                            </span>
+                            <span className="font-mono font-bold">
+                              {entry.protein.toFixed(2)}%
+                            </span>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(entry)}>
-                              <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(entry.id)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2">
-                        <div className="text-center">
-                          <span className="text-xs text-muted-foreground block">
-                            Acidez
-                          </span>
-                          <span className="font-mono font-bold">
-                            {entry.acidity.toFixed(2)}%
+                        <div className="text-xs text-muted-foreground">
+                          Resp:{' '}
+                          <span className="font-medium text-foreground">
+                            {entry.responsible}
                           </span>
                         </div>
-                        <div className="text-center border-l border-border/50">
-                          <span className="text-xs text-muted-foreground block">
-                            Proteína
-                          </span>
-                          <span className="font-mono font-bold">
-                            {entry.protein.toFixed(2)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-xs text-muted-foreground">
-                        Resp:{' '}
-                        <span className="font-medium text-foreground">
-                          {entry.responsible}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                      </CardContent>
+                    </Card>
+                  )
+                })
               )}
             </div>
           ) : (
@@ -301,56 +342,72 @@ export default function Quality() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRecords.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                    >
-                      <TableCell className="font-medium">
-                        {format(entry.date, 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            entry.product === 'Farinha'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }
-                        >
-                          {entry.product}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.acidity.toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.protein.toFixed(2)}%
-                      </TableCell>
-                      <TableCell>{entry.responsible}</TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {entry.notes || '-'}
-                      </TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                          onClick={() => handleEdit(entry)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredRecords.map((entry) => {
+                    const isLocked = isRecordLocked(entry.date)
+                    return (
+                      <TableRow
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {format(entry.date, 'dd/MM/yyyy')}
+                            {isLocked && (
+                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              entry.product === 'Farinha'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }
+                          >
+                            {entry.product}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.acidity.toFixed(2)}%
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.protein.toFixed(2)}%
+                        </TableCell>
+                        <TableCell>{entry.responsible}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {entry.notes || '-'}
+                        </TableCell>
+                        <TableCell className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                handleEdit(entry),
+                              )
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                setDeleteId(entry.id),
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -377,6 +434,12 @@ export default function Quality() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={securityOpen}
+        onOpenChange={setSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+      />
     </div>
   )
 }

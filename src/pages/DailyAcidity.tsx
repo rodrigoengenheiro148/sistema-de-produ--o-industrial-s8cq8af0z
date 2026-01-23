@@ -21,6 +21,7 @@ import {
   Clock,
   User,
   MoreVertical,
+  Lock,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { AcidityChart } from '@/components/dashboard/AcidityChart'
@@ -52,6 +53,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { isRecordLocked } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function DailyAcidity() {
   const {
@@ -71,6 +74,28 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Security Gate State
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    date: Date | undefined,
+    action: () => void,
+  ) => {
+    if (isRecordLocked(date)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
@@ -176,82 +201,98 @@ export default function DailyAcidity() {
                   Nenhum registro encontrado no período.
                 </div>
               ) : (
-                filteredRecords.map((entry) => (
-                  <Card key={entry.id} className="shadow-sm border">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-lg text-primary">
-                              {entry.tank}
-                            </span>
-                            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                              {entry.performedTimes}
-                            </span>
+                filteredRecords.map((entry) => {
+                  const isLocked = isRecordLocked(entry.date)
+                  return (
+                    <Card key={entry.id} className="shadow-sm border">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-lg text-primary">
+                                {entry.tank}
+                              </span>
+                              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                                {entry.performedTimes}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <CalendarIcon className="h-3 w-3" />
+                              {format(entry.date, 'dd/MM/yyyy')}
+                              {isLocked && (
+                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              )}
+                              <Clock className="h-3 w-3 ml-1" />
+                              {entry.time}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <CalendarIcon className="h-3 w-3" />
-                            {format(entry.date, 'dd/MM/yyyy')}
-                            <Clock className="h-3 w-3 ml-1" />
-                            {entry.time}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    handleEditClick(entry),
+                                  )
+                                }
+                              >
+                                <Pencil className="mr-2 h-4 w-4" /> Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleProtectedAction(entry.date, () =>
+                                    setDeleteId(entry.id),
+                                  )
+                                }
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 py-2 border-t border-b mb-3">
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">
+                              Peso
+                            </p>
+                            <p className="font-semibold text-lg">
+                              {entry.weight.toLocaleString('pt-BR')} kg
+                            </p>
+                          </div>
+                          <div className="text-center border-l">
+                            <p className="text-xs text-muted-foreground">
+                              Volume
+                            </p>
+                            <p className="font-semibold text-lg">
+                              {entry.volume.toLocaleString('pt-BR')} L
+                            </p>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleEditClick(entry)}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" /> Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteId(entry.id)}
-                              className="text-red-600 focus:text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 py-2 border-t border-b mb-3">
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Peso</p>
-                          <p className="font-semibold text-lg">
-                            {entry.weight.toLocaleString('pt-BR')} kg
-                          </p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                          <User className="h-3.5 w-3.5" />
+                          {entry.responsible}
                         </div>
-                        <div className="text-center border-l">
-                          <p className="text-xs text-muted-foreground">
-                            Volume
-                          </p>
-                          <p className="font-semibold text-lg">
-                            {entry.volume.toLocaleString('pt-BR')} L
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <User className="h-3.5 w-3.5" />
-                        {entry.responsible}
-                      </div>
-
-                      {entry.notes && (
-                        <p className="text-xs text-muted-foreground italic mt-2 bg-secondary/50 p-2 rounded">
-                          "{entry.notes}"
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
+                        {entry.notes && (
+                          <p className="text-xs text-muted-foreground italic mt-2 bg-secondary/50 p-2 rounded">
+                            "{entry.notes}"
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })
               )}
             </div>
           ) : (
@@ -280,53 +321,69 @@ export default function DailyAcidity() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRecords.map((entry) => (
-                    <TableRow
-                      key={entry.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                    >
-                      <TableCell className="font-medium">
-                        {format(entry.date, 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell>{entry.time}</TableCell>
-                      <TableCell>
-                        <span className="font-medium text-primary">
-                          {entry.tank}
-                        </span>
-                      </TableCell>
-                      <TableCell>{entry.responsible}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.weight.toLocaleString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {entry.volume.toLocaleString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {entry.performedTimes}
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {entry.notes || '-'}
-                      </TableCell>
-                      <TableCell className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(entry)}
-                          title="Editar"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredRecords.map((entry) => {
+                    const isLocked = isRecordLocked(entry.date)
+                    return (
+                      <TableRow
+                        key={entry.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                      >
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {format(entry.date, 'dd/MM/yyyy')}
+                            {isLocked && (
+                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{entry.time}</TableCell>
+                        <TableCell>
+                          <span className="font-medium text-primary">
+                            {entry.tank}
+                          </span>
+                        </TableCell>
+                        <TableCell>{entry.responsible}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.weight.toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.volume.toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {entry.performedTimes}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {entry.notes || '-'}
+                        </TableCell>
+                        <TableCell className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                handleEditClick(entry),
+                              )
+                            }
+                            title="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                            onClick={() =>
+                              handleProtectedAction(entry.date, () =>
+                                setDeleteId(entry.id),
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
@@ -371,6 +428,12 @@ export default function DailyAcidity() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={securityOpen}
+        onOpenChange={setSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+      />
     </div>
   )
 }
