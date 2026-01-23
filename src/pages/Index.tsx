@@ -31,6 +31,7 @@ import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPer
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
+import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
@@ -659,6 +660,7 @@ export default function Dashboard() {
         </TabsContent>
 
         <TabsContent value="yields" className="space-y-4">
+          <YieldBarChart data={filteredProduction} isMobile={isMobile} />
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
         </TabsContent>
       </Tabs>
