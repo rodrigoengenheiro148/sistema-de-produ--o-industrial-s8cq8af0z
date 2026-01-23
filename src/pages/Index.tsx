@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { format, isWithinInterval } from 'date-fns'
+import { format, isWithinInterval, subDays, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -35,6 +35,27 @@ import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
+import { ShippingEntry } from '@/lib/types'
+
+// Helper to get average prices from full history to ensure stability
+const getAveragePrices = (shippingData: ShippingEntry[]) => {
+  const totals = shippingData.reduce(
+    (acc, curr) => {
+      if (!acc[curr.product]) acc[curr.product] = { quantity: 0, value: 0 }
+      acc[curr.product].quantity += curr.quantity
+      acc[curr.product].value += curr.quantity * curr.unitPrice
+      return acc
+    },
+    {} as Record<string, { quantity: number; value: number }>,
+  )
+
+  const avgPrices: Record<string, number> = {}
+  Object.keys(totals).forEach((key) => {
+    avgPrices[key] =
+      totals[key].quantity > 0 ? totals[key].value / totals[key].quantity : 0
+  })
+  return avgPrices
+}
 
 export default function Dashboard() {
   const {
@@ -123,6 +144,88 @@ export default function Dashboard() {
     (acc, curr) => acc + curr.quantity * curr.unitPrice,
     0,
   )
+
+  // --- Forecast & Comparison Logic ---
+  const avgPrices = useMemo(() => getAveragePrices(shipping), [shipping])
+
+  const { totalForecast, comparisonPercentage, previousTotalRevenue } =
+    useMemo(() => {
+      // 1. Current Period Stats (Actual Revenue + Surplus Production Value)
+      // Actual Revenue (Current Period)
+      const currentRevenue = filteredShipping.reduce(
+        (acc, curr) => acc + curr.quantity * curr.unitPrice,
+        0,
+      )
+
+      // Calculate Production Totals (Current Period)
+      const currentProductionTotals = filteredProduction.reduce(
+        (acc, curr) => {
+          acc['Sebo'] = (acc['Sebo'] || 0) + curr.seboProduced
+          acc['FCO'] = (acc['FCO'] || 0) + curr.fcoProduced
+          acc['Farinheta'] = (acc['Farinheta'] || 0) + curr.farinhetaProduced
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+
+      // Calculate Shipping Totals (Current Period)
+      const currentShippingTotals = filteredShipping.reduce(
+        (acc, curr) => {
+          acc[curr.product] = (acc[curr.product] || 0) + curr.quantity
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+
+      // Calculate Surplus Value: (Produced - Shipped) * AvgPrice, if positive
+      let surplusValue = 0
+      const products = ['Sebo', 'FCO', 'Farinheta']
+      products.forEach((prod) => {
+        const produced = currentProductionTotals[prod] || 0
+        const shipped = currentShippingTotals[prod] || 0
+        // Handle potential FCO/Farinha naming differences in price map
+        const price =
+          avgPrices[prod] ||
+          avgPrices['Farinha'] ||
+          avgPrices['FCO'] ||
+          avgPrices['Farinheta'] ||
+          0
+
+        if (produced > shipped) {
+          surplusValue += (produced - shipped) * price
+        }
+      })
+
+      const totalForecast = currentRevenue + surplusValue
+
+      // 2. Previous Period Stats
+      let prevRevenue = 0
+      if (dateRange.from && dateRange.to) {
+        // Calculate the previous period with the same duration
+        const duration = differenceInDays(dateRange.to, dateRange.from) + 1
+        const prevFrom = subDays(dateRange.from, duration)
+        const prevTo = subDays(dateRange.to, duration)
+
+        const prevShipping = shipping.filter(
+          (s) => s.date >= prevFrom && s.date <= prevTo,
+        )
+        prevRevenue = prevShipping.reduce(
+          (acc, s) => acc + s.quantity * s.unitPrice,
+          0,
+        )
+      }
+
+      const percentage =
+        prevRevenue > 0
+          ? ((totalForecast - prevRevenue) / prevRevenue) * 100
+          : 0
+
+      return {
+        totalForecast,
+        comparisonPercentage: percentage,
+        previousTotalRevenue: prevRevenue,
+      }
+    }, [filteredShipping, filteredProduction, avgPrices, dateRange, shipping])
 
   // Acidity KPI (Total processed volume checked)
   const totalAcidityVolume = filteredAcidity.reduce(
@@ -491,6 +594,11 @@ export default function Dashboard() {
             productionData={filteredProduction}
             timeScale={overviewTimeScale}
             isMobile={isMobile}
+            forecastMetrics={{
+              total: totalForecast,
+              previous: previousTotalRevenue,
+              percentage: comparisonPercentage,
+            }}
           />
         </TabsContent>
 

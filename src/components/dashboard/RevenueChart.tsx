@@ -17,7 +17,6 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import {
-  BarChart,
   Bar,
   Line,
   ComposedChart,
@@ -27,7 +26,7 @@ import {
   ReferenceLine,
   LabelList,
 } from 'recharts'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
@@ -38,9 +37,18 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, TrendingUp, DollarSign, Layers, Users } from 'lucide-react'
+import {
+  Maximize2,
+  TrendingUp,
+  DollarSign,
+  Layers,
+  Users,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -48,6 +56,11 @@ interface RevenueChartProps {
   timeScale?: 'daily' | 'monthly'
   isMobile?: boolean
   className?: string
+  forecastMetrics?: {
+    total: number
+    previous: number
+    percentage: number
+  }
 }
 
 export function RevenueChart({
@@ -56,6 +69,7 @@ export function RevenueChart({
   timeScale = 'daily',
   isMobile = false,
   className,
+  forecastMetrics,
 }: RevenueChartProps) {
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
 
@@ -87,9 +101,6 @@ export function RevenueChart({
     Object.keys(prices).forEach((p) => {
       avgPrices[p] = counts[p] > 0 ? prices[p] / counts[p] : 0
     })
-
-    // Fallback prices if missing from current shipping data (could use a global constant or history)
-    // For now, if 0, we can't forecast value.
 
     const uniqueKeys = new Set<string>()
     const dateMap = new Map<string, any>()
@@ -136,7 +147,6 @@ export function RevenueChart({
     })
 
     // 3. Process Production Data (Forecast Revenue)
-    // Forecast = Produced Quantity * Average Unit Price
     productionData.forEach((p) => {
       if (!p.date) return
 
@@ -332,7 +342,6 @@ export function RevenueChart({
             radius={[0, 0, 0, 0]}
             maxBarSize={60}
           >
-            {/* Only show labels on bars if not cluttered, maybe skip for monthly if many months */}
             <LabelList
               dataKey={key}
               position="inside"
@@ -343,7 +352,6 @@ export function RevenueChart({
               }}
               fontSize={isMobile ? 9 : 10}
               formatter={(value: number) => {
-                // Only show if bar is tall enough relative to max
                 if (value === 0) return ''
                 return formatCompact(value)
               }}
@@ -362,7 +370,6 @@ export function RevenueChart({
           dot={{ r: 3, fill: 'hsl(var(--muted-foreground))' }}
         />
 
-        {/* Average Line */}
         <ReferenceLine
           y={averageRevenue}
           stroke="hsl(var(--muted-foreground))"
@@ -382,7 +389,7 @@ export function RevenueChart({
     <Card
       className={cn('shadow-sm border-primary/10 flex flex-col', className)}
     >
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-2 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
@@ -454,6 +461,55 @@ export function RevenueChart({
             </Dialog>
           </div>
         </div>
+
+        {/* Forecast Summary Section */}
+        {forecastMetrics && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-muted/20 rounded-lg p-3 border border-border/50 gap-2">
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                Previsão de Faturamento
+              </span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-2xl font-bold font-mono text-foreground">
+                  {formatCurrency(forecastMetrics.total)}
+                </span>
+                {forecastMetrics.previous > 0 && (
+                  <Badge
+                    variant={
+                      forecastMetrics.percentage >= 0
+                        ? 'default'
+                        : 'destructive'
+                    }
+                    className={cn(
+                      'px-1.5 py-0.5 h-auto text-[10px] font-bold',
+                      forecastMetrics.percentage >= 0
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400',
+                    )}
+                  >
+                    {forecastMetrics.percentage >= 0 ? (
+                      <ArrowUpRight className="h-3 w-3 mr-1" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3 mr-1" />
+                    )}
+                    {Math.abs(forecastMetrics.percentage).toFixed(1)}%
+                  </Badge>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground mt-1">
+                Inclui faturamento realizado + estoque excedente
+              </span>
+            </div>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-xs text-muted-foreground">
+                Período Anterior
+              </span>
+              <span className="font-mono text-sm">
+                {formatCurrency(forecastMetrics.previous)}
+              </span>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="pt-2 flex-1 min-h-0">
         <ChartContent />
