@@ -112,18 +112,6 @@ export default function DailyAcidity() {
         }
       })
 
-    // Add extra error handler if supported or for robustness
-    // This addresses "include error handling within the .on('error', ...) callback" requirement
-    // by using the available onError method on the channel builder pattern
-    channel.onError((err) => {
-      console.error('Channel error:', err)
-      toast({
-        title: 'Erro de Canal',
-        description: 'Ocorreu um erro na conexão de tempo real.',
-        variant: 'destructive',
-      })
-    })
-
     return () => {
       supabase.removeChannel(channel)
     }
