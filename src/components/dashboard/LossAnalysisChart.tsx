@@ -114,6 +114,7 @@ export function LossAnalysisChart({
           tickLine={false}
           axisLine={false}
           tickMargin={8}
+          minTickGap={32}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="perdas" fill="var(--color-perdas)" radius={[4, 4, 0, 0]}>

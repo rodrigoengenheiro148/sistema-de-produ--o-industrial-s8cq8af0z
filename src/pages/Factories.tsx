@@ -36,13 +36,11 @@ import {
   User,
   CheckCircle2,
   LayoutGrid,
-  Lock,
 } from 'lucide-react'
 import { FactoryForm } from '@/components/FactoryForm'
 import { Factory } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
-import { isRecordLocked } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Factories() {
@@ -60,16 +58,10 @@ export default function Factories() {
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
-  const handleProtectedAction = (
-    date: Date | undefined,
-    action: () => void,
-  ) => {
-    if (isRecordLocked(date)) {
-      setPendingAction(() => action)
-      setSecurityOpen(true)
-    } else {
-      action()
-    }
+  // Always require password for factory modification actions
+  const handleSecureAction = (action: () => void) => {
+    setPendingAction(() => action)
+    setSecurityOpen(true)
   }
 
   const handleSecuritySuccess = () => {
@@ -106,7 +98,7 @@ export default function Factories() {
       return
     }
 
-    handleProtectedAction(factory.createdAt, () => setDeleteId(factory.id))
+    handleSecureAction(() => setDeleteId(factory.id))
   }
 
   const confirmDelete = () => {
@@ -167,7 +159,6 @@ export default function Factories() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {factories.map((factory) => {
-          const isLocked = isRecordLocked(factory.createdAt)
           return (
             <Card
               key={factory.id}
@@ -224,17 +215,12 @@ export default function Factories() {
                     className="flex gap-1 items-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {isLocked && (
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground/50 mr-1" />
-                    )}
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
                       onClick={() =>
-                        handleProtectedAction(factory.createdAt, () =>
-                          handleEditClick(factory),
-                        )
+                        handleSecureAction(() => handleEditClick(factory))
                       }
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -280,6 +266,8 @@ export default function Factories() {
         isOpen={securityOpen}
         onOpenChange={setSecurityOpen}
         onSuccess={handleSecuritySuccess}
+        title="Área Segura"
+        description="Esta ação requer autorização de nível gerencial. Digite a senha para continuar."
       />
     </div>
   )

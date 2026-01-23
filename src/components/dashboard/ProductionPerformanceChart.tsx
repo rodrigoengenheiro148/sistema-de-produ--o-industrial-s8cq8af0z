@@ -15,14 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  LabelList,
-} from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -125,7 +118,7 @@ export function ProductionPerformanceChart({
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          interval="preserveStartEnd"
+          minTickGap={32}
         />
         <YAxis
           tickLine={false}
@@ -133,44 +126,29 @@ export function ProductionPerformanceChart({
           width={isMobile ? 30 : 50}
           tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={<ChartTooltipContent indicator="line" />}
+          cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
+        />
         <ChartLegend content={<ChartLegendContent />} />
         <Line
           type="monotone"
           dataKey="producao"
           stroke="var(--color-producao)"
-          strokeWidth={2}
-          dot={{ r: 4, fill: 'var(--color-producao)' }}
-          activeDot={{ r: 6 }}
-        >
-          <LabelList
-            position="top"
-            offset={12}
-            className="fill-foreground font-bold"
-            fontSize={10}
-            formatter={(value: any) =>
-              value > 0 ? `${(value / 1000).toFixed(1)}k` : ''
-            }
-          />
-        </Line>
+          strokeWidth={3}
+          dot={false}
+          activeDot={{ r: 6, fill: 'var(--color-producao)' }}
+          animationDuration={1000}
+        />
         <Line
           type="monotone"
           dataKey="mp"
           stroke="var(--color-mp)"
-          strokeWidth={2}
-          dot={{ r: 4, fill: 'var(--color-mp)' }}
-          activeDot={{ r: 6 }}
-        >
-          <LabelList
-            position="bottom"
-            offset={12}
-            className="fill-muted-foreground"
-            fontSize={9}
-            formatter={(value: any) =>
-              value > 0 ? `${(value / 1000).toFixed(1)}k` : ''
-            }
-          />
-        </Line>
+          strokeWidth={3}
+          dot={false}
+          activeDot={{ r: 6, fill: 'var(--color-mp)' }}
+          animationDuration={1000}
+        />
       </LineChart>
     </ChartContainer>
   )
