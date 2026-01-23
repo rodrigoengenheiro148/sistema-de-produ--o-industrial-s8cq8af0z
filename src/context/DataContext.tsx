@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from 'react'
 import {
   RawMaterialEntry,
@@ -24,6 +25,7 @@ import {
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -57,25 +59,20 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   smtpPassword: '',
 }
 
-// Helper to safely parse dates, forcing local noon for date-only strings to avoid timezone shifts
 const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
   if (!dateStr) return new Date()
   if (dateStr instanceof Date) return dateStr
-  // If string matches YYYY-MM-DD exactly (no time), append T12:00:00 to force local noon interpretation
   if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return new Date(`${dateStr}T12:00:00`)
   }
   return new Date(dateStr)
 }
 
-// Map database response to application types
 const mapData = (data: any[]) => {
   return data.map((item) => ({
     ...item,
-    // Use safe date parsing to prevent off-by-one-day errors
     date: parseDateSafe(item.date),
     createdAt: item.created_at ? new Date(item.created_at) : undefined,
-    // Map database snake_case columns to camelCase if needed
     mpUsed: item.mp_used,
     seboProduced: item.sebo_produced,
     fcoProduced: item.fco_produced,
@@ -91,13 +88,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth()
+  const factoriesChannelRef = useRef<RealtimeChannel | null>(null)
+  const operationalChannelRef = useRef<RealtimeChannel | null>(null)
 
-  // Initialize with empty string to force selection/loading
   const [currentFactoryId, setCurrentFactoryId] = useState<string>(() => {
     return localStorage.getItem('currentFactoryId') || ''
   })
 
-  // Persist currentFactoryId selection
   useEffect(() => {
     if (currentFactoryId) {
       localStorage.setItem('currentFactoryId', currentFactoryId)
@@ -140,7 +137,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<ConnectionStatus>('offline')
   const [lastProtheusSync, setLastProtheusSync] = useState<Date | null>(null)
 
-  // 1. Fetch Global Settings & Factories
   const fetchGlobalData = useCallback(async () => {
     if (!user?.id) return
 
@@ -161,8 +157,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         ])
 
       if (fact) {
-        const mappedFactories = mapData(fact)
-        setFactories(mappedFactories)
+        setFactories(mapData(fact))
       }
 
       if (integration) {
@@ -189,7 +184,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           farinhetaThreshold: notifications.farinheta_threshold || 0,
           farinhaThreshold: notifications.farinha_threshold || 0,
           fcoThreshold:
-            notifications.fco_threshold || notifications.farinha_threshold || 0, // Fallback to existing
+            notifications.fco_threshold || notifications.farinha_threshold || 0,
           notificationEmail: notifications.notification_email || '',
           notificationPhone: notifications.notification_phone || '',
           brevoApiKey: notifications.brevo_api_key || '',
@@ -199,8 +194,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           smtpPassword: notifications.smtp_password || '',
         }
         setNotificationSettings(settings)
-
-        // Sync yield targets with notification settings
         setYieldTargets({
           sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
           fco:
@@ -217,7 +210,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id])
 
-  // Validate and set currentFactoryId if needed
   useEffect(() => {
     if (factories.length > 0) {
       const isValid = factories.some((f) => f.id === currentFactoryId)
@@ -227,7 +219,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [factories, currentFactoryId])
 
-  // 2. Fetch Operational Data (Scoped to Factory)
   const fetchOperationalData = useCallback(async () => {
     if (!user?.id || !currentFactoryId) {
       setRawMaterials([])
@@ -286,7 +277,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId])
 
-  // Initial fetch Global
   useEffect(() => {
     if (!user) {
       setFactories([])
@@ -297,7 +287,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchGlobalData().then(() => setConnectionStatus('online'))
   }, [user, fetchGlobalData])
 
-  // Fetch Operational Data when Factory Changes
   useEffect(() => {
     if (currentFactoryId) {
       fetchOperationalData()
@@ -308,8 +297,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user?.id) return
 
-    // Ensure unique channel name per user context, but stable across renders
-    const channelName = `factories-updates-${user.id}`
+    if (factoriesChannelRef.current) {
+      supabase.removeChannel(factoriesChannelRef.current)
+    }
+
+    // Use a unique channel name to prevent collisions
+    const uniqueId = Math.random().toString(36).substring(2, 9)
+    const channelName = `factories-updates-${user.id}-${uniqueId}`
 
     const channel = supabase
       .channel(channelName)
@@ -321,28 +315,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           table: 'factories',
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          console.log('Realtime update received (factories):', payload)
-          fetchGlobalData()
-        },
+        () => fetchGlobalData(),
       )
       .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          // Channel connected successfully
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error(
             `Realtime subscription error (factories) on channel ${channelName}:`,
             err,
           )
-        } else if (status === 'TIMED_OUT') {
-          console.error(
-            `Realtime subscription timeout (factories) on channel ${channelName}`,
-          )
         }
       })
 
+    factoriesChannelRef.current = channel
+
     return () => {
-      supabase.removeChannel(channel)
+      if (factoriesChannelRef.current) {
+        supabase.removeChannel(factoriesChannelRef.current)
+        factoriesChannelRef.current = null
+      }
     }
   }, [user?.id, fetchGlobalData])
 
@@ -350,7 +340,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
-    const channelName = `operational-data-${currentFactoryId}`
+    if (operationalChannelRef.current) {
+      supabase.removeChannel(operationalChannelRef.current)
+    }
+
+    // Use a unique channel name to prevent collisions
+    const uniqueId = Math.random().toString(36).substring(2, 9)
+    const channelName = `operational-data-${currentFactoryId}-${uniqueId}`
 
     const channel = supabase
       .channel(channelName)
@@ -407,34 +403,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('online')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(
-            `Realtime subscription error (operational) on channel ${channelName}:`,
-            err,
-          )
-          setConnectionStatus('error')
-        } else if (status === 'TIMED_OUT') {
-          console.error(
-            `Realtime subscription timeout (operational) on channel ${channelName}`,
-          )
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error(`Realtime subscription error on ${channelName}:`, err)
           setConnectionStatus('error')
         }
       })
 
+    operationalChannelRef.current = channel
+
     return () => {
-      supabase.removeChannel(channel)
+      if (operationalChannelRef.current) {
+        supabase.removeChannel(operationalChannelRef.current)
+        operationalChannelRef.current = null
+      }
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
 
-  // Removed manual checkThresholdsAndNotify since it is now handled by Database Trigger
-
-  // --- Action Handlers using Supabase ---
-
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
-    if (!currentFactoryId) {
-      console.error('No active factory selected')
-      return
-    }
+    if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({
       date: entry.date.toISOString(),
       supplier: entry.supplier,
@@ -445,8 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
-    if (error) console.error('Error adding raw material:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const updateRawMaterial = async (entry: RawMaterialEntry) => {
@@ -461,21 +446,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         notes: entry.notes,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating raw material:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const deleteRawMaterial = async (id: string) => {
     const { error } = await supabase.from('raw_materials').delete().eq('id', id)
-    if (error) console.error('Error deleting raw material:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const addProduction = async (entry: Omit<ProductionEntry, 'id'>) => {
-    if (!currentFactoryId) {
-      console.error('No active factory selected')
-      return
-    }
+    if (!currentFactoryId) return
     const { error } = await supabase.from('production').insert({
       date: entry.date.toISOString(),
       shift: entry.shift,
@@ -487,11 +467,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
-    if (error) {
-      console.error('Error adding production:', error)
-    } else {
-      fetchOperationalData()
-    }
+    if (!error) fetchOperationalData()
   }
 
   const updateProduction = async (entry: ProductionEntry) => {
@@ -507,24 +483,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         losses: entry.losses,
       })
       .eq('id', entry.id)
-    if (error) {
-      console.error('Error updating production:', error)
-    } else {
-      fetchOperationalData()
-    }
+    if (!error) fetchOperationalData()
   }
 
   const deleteProduction = async (id: string) => {
     const { error } = await supabase.from('production').delete().eq('id', id)
-    if (error) console.error('Error deleting production:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const addShipping = async (entry: Omit<ShippingEntry, 'id'>) => {
-    if (!currentFactoryId) {
-      console.error('No active factory selected')
-      return
-    }
+    if (!currentFactoryId) return
     const { error } = await supabase.from('shipping').insert({
       date: entry.date.toISOString(),
       client: entry.client,
@@ -535,8 +503,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
-    if (error) console.error('Error adding shipping:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const updateShipping = async (entry: ShippingEntry) => {
@@ -551,21 +518,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         doc_ref: entry.docRef,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating shipping:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const deleteShipping = async (id: string) => {
     const { error } = await supabase.from('shipping').delete().eq('id', id)
-    if (error) console.error('Error deleting shipping:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const addAcidityRecord = async (entry: Omit<AcidityEntry, 'id'>) => {
-    if (!currentFactoryId) {
-      console.error('No active factory selected')
-      return
-    }
+    if (!currentFactoryId) return
     const { error } = await supabase.from('acidity_records').insert({
       date: entry.date.toISOString(),
       time: entry.time,
@@ -578,8 +540,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
-    if (error) console.error('Error adding acidity record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const updateAcidityRecord = async (entry: AcidityEntry) => {
@@ -596,8 +557,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         notes: entry.notes,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating acidity record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const deleteAcidityRecord = async (id: string) => {
@@ -605,15 +565,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .from('acidity_records')
       .delete()
       .eq('id', id)
-    if (error) console.error('Error deleting acidity record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const addQualityRecord = async (entry: Omit<QualityEntry, 'id'>) => {
-    if (!currentFactoryId) {
-      console.error('No active factory selected')
-      return
-    }
+    if (!currentFactoryId) return
     const { error } = await supabase.from('quality_records').insert({
       date: entry.date.toISOString(),
       product: entry.product,
@@ -624,8 +580,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
-    if (error) console.error('Error adding quality record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const updateQualityRecord = async (entry: QualityEntry) => {
@@ -640,8 +595,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         notes: entry.notes,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating quality record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const deleteQualityRecord = async (id: string) => {
@@ -649,8 +603,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .from('quality_records')
       .delete()
       .eq('id', id)
-    if (error) console.error('Error deleting quality record:', error)
-    else fetchOperationalData()
+    if (!error) fetchOperationalData()
   }
 
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
@@ -661,8 +614,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       status: entry.status,
       user_id: user?.id,
     })
-    if (error) console.error('Error adding factory:', error)
-    else fetchGlobalData()
+    if (!error) fetchGlobalData()
   }
 
   const updateFactory = async (entry: Factory) => {
@@ -675,33 +627,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         status: entry.status,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating factory:', error)
-    else fetchGlobalData()
+    if (!error) fetchGlobalData()
   }
 
   const deleteFactory = async (id: string) => {
     const { error } = await supabase.from('factories').delete().eq('id', id)
-    if (error) console.error('Error deleting factory:', error)
-    else {
-      // If deleting current factory, switch to another if available
+    if (!error) {
       if (id === currentFactoryId) {
         const remaining = factories.filter((f) => f.id !== id)
-        if (remaining.length > 0) {
-          setCurrentFactoryId(remaining[0].id)
-        } else {
-          setCurrentFactoryId('')
-        }
+        setCurrentFactoryId(remaining.length > 0 ? remaining[0].id : '')
       }
       fetchGlobalData()
     }
   }
 
-  // --- Integration Handlers ---
-
   const updateProtheusConfig = async (config: ProtheusConfig) => {
-    // Optimistic update
     setProtheusConfig(config)
-
     const dataToUpsert = {
       base_url: config.baseUrl,
       client_id: config.clientId,
@@ -713,7 +654,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       is_active: config.isActive,
       user_id: user?.id,
     }
-
     if (config.id) {
       await supabase
         .from('integration_configs')
@@ -737,8 +677,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchGlobalData()
   }
 
-  // --- Notification Handlers ---
-
   const updateNotificationSettings = async (settings: NotificationSettings) => {
     setNotificationSettings(settings)
     setYieldTargets({
@@ -747,7 +685,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       farinheta: settings.farinhetaThreshold,
       total: settings.yieldThreshold,
     })
-
     const dataToUpsert = {
       email_enabled: settings.emailEnabled,
       sms_enabled: settings.smsEnabled,
@@ -755,7 +692,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       sebo_threshold: settings.seboThreshold,
       farinheta_threshold: settings.farinhetaThreshold,
       farinha_threshold: settings.farinhaThreshold,
-      fco_threshold: settings.fcoThreshold, // Update new column
+      fco_threshold: settings.fcoThreshold,
       notification_email: settings.notificationEmail,
       notification_phone: settings.notificationPhone,
       brevo_api_key: settings.brevoApiKey,
@@ -765,7 +702,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       smtp_password: settings.smtpPassword,
       user_id: user?.id,
     }
-
     if (settings.id) {
       await supabase
         .from('notification_settings')
@@ -794,8 +730,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       ...notificationSettings,
       seboThreshold: targets.sebo,
       farinhaThreshold: targets.fco,
-      fcoThreshold: targets.fco, // Sync both for compatibility
-      farinhetaThreshold: targets.farinheta,
+      fcoThreshold: targets.fco,
+      farinheta: targets.farinheta,
       yieldThreshold: targets.total,
     }
     await updateNotificationSettings(updatedSettings)
@@ -804,16 +740,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const testProtheusConnection = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('protheus-sync', {
-        body: {
-          action: 'test-connection',
-          config: protheusConfig,
-        },
+        body: { action: 'test-connection', config: protheusConfig },
       })
-
       if (error) throw error
       return { success: data.success, message: data.message }
     } catch (error: any) {
-      console.error('Test connection error:', error)
       return {
         success: false,
         message: error.message || 'Erro ao conectar com a Edge Function',
@@ -824,10 +755,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const syncProtheusData = async () => {
     try {
       await supabase.functions.invoke('protheus-sync', {
-        body: {
-          action: 'sync-data',
-          config: protheusConfig,
-        },
+        body: { action: 'sync-data', config: protheusConfig },
       })
       await fetchOperationalData()
     } catch (error) {
@@ -838,9 +766,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const clearAllData = async () => {
     if (!user) return
-
-    // Clear data from operational tables only for the current user
-    // RLS handles the isolation, but we explicit filter by user_id for safety
     await Promise.all([
       supabase.from('raw_materials').delete().eq('user_id', user.id),
       supabase.from('production').delete().eq('user_id', user.id),
@@ -848,18 +773,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('acidity_records').delete().eq('user_id', user.id),
       supabase.from('quality_records').delete().eq('user_id', user.id),
     ])
-
     fetchOperationalData()
   }
-
-  // Legacy/Mock functions
-  const addUserAccess = () => {}
-  const updateUserAccess = () => {}
-  const deleteUserAccess = () => {}
-  const login = () => {}
-  const checkPermission = () => true
-  const toggleDeveloperMode = () => {}
-  const setViewerMode = () => {}
 
   return (
     <DataContext.Provider
@@ -868,66 +783,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addRawMaterial,
         updateRawMaterial,
         deleteRawMaterial,
-
         production,
         addProduction,
         updateProduction,
         deleteProduction,
-
         shipping,
         addShipping,
         updateShipping,
         deleteShipping,
-
         acidityRecords,
         addAcidityRecord,
         updateAcidityRecord,
         deleteAcidityRecord,
-
         qualityRecords,
         addQualityRecord,
         updateQualityRecord,
         deleteQualityRecord,
-
         userAccessList,
-        addUserAccess,
-        updateUserAccess,
-        deleteUserAccess,
-
+        addUserAccess: () => {},
+        updateUserAccess: () => {},
+        deleteUserAccess: () => {},
         currentUser: null,
-        login,
-        checkPermission,
-
+        login: () => {},
+        checkPermission: () => true,
         factories,
         addFactory,
         updateFactory,
         deleteFactory,
-
         currentFactoryId,
         setCurrentFactoryId,
-
         dateRange,
         setDateRange,
-
         isDeveloperMode: false,
-        toggleDeveloperMode,
+        toggleDeveloperMode: () => {},
         isViewerMode: false,
-        setViewerMode,
-
+        setViewerMode: () => {},
         systemSettings,
         updateSystemSettings: setSystemSettings,
         yieldTargets,
         updateYieldTargets,
-
         protheusConfig,
         updateProtheusConfig,
         testProtheusConnection,
         lastProtheusSync,
         syncProtheusData,
-
         notificationSettings,
         updateNotificationSettings,
-
         connectionStatus,
         pendingOperationsCount: 0,
         clearAllData,
