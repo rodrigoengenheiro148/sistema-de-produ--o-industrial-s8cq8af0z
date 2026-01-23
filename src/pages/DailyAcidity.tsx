@@ -298,12 +298,12 @@ export default function DailyAcidity() {
                           </DropdownMenu>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 py-2 border-t border-b mb-3">
+                        <div className="grid grid-cols-3 gap-2 py-2 border-t border-b mb-3">
                           <div className="text-center">
                             <p className="text-xs text-muted-foreground">
                               Peso
                             </p>
-                            <p className="font-semibold text-lg">
+                            <p className="font-semibold text-base sm:text-lg">
                               {entry.weight.toLocaleString('pt-BR')} kg
                             </p>
                           </div>
@@ -311,8 +311,18 @@ export default function DailyAcidity() {
                             <p className="text-xs text-muted-foreground">
                               Volume
                             </p>
-                            <p className="font-semibold text-lg">
+                            <p className="font-semibold text-base sm:text-lg">
                               {entry.volume.toLocaleString('pt-BR')} L
+                            </p>
+                          </div>
+                          <div className="text-center border-l">
+                            <p className="text-xs text-muted-foreground">
+                              Acidez
+                            </p>
+                            <p className="font-semibold text-base sm:text-lg">
+                              {entry.acidity !== undefined
+                                ? entry.acidity.toLocaleString('pt-BR')
+                                : '-'}
                             </p>
                           </div>
                         </div>
@@ -343,6 +353,7 @@ export default function DailyAcidity() {
                   <TableHead>Responsável</TableHead>
                   <TableHead className="text-right">Peso (kg)</TableHead>
                   <TableHead className="text-right">Volume (L)</TableHead>
+                  <TableHead className="text-right">Acidez</TableHead>
                   <TableHead>Horários Real.</TableHead>
                   <TableHead>Observações</TableHead>
                   <TableHead className="w-[80px]">Ações</TableHead>
@@ -352,7 +363,7 @@ export default function DailyAcidity() {
                 {filteredRecords.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="text-center h-24 text-muted-foreground"
                     >
                       Nenhum registro encontrado no período.
@@ -386,6 +397,11 @@ export default function DailyAcidity() {
                         </TableCell>
                         <TableCell className="text-right font-mono">
                           {entry.volume.toLocaleString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {entry.acidity !== undefined
+                            ? entry.acidity.toLocaleString('pt-BR')
+                            : '-'}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {entry.performedTimes}

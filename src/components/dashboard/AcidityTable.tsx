@@ -30,6 +30,7 @@ export function AcidityTable({ data, onEdit }: AcidityTableProps) {
           <TableHead>Responsável</TableHead>
           <TableHead className="text-right">Peso (kg)</TableHead>
           <TableHead className="text-right">Volume (L)</TableHead>
+          <TableHead className="text-right">Acidez</TableHead>
           <TableHead>Horários Real.</TableHead>
           <TableHead>Observações</TableHead>
           {!isViewerMode && <TableHead className="w-[80px]">Ações</TableHead>}
@@ -39,7 +40,7 @@ export function AcidityTable({ data, onEdit }: AcidityTableProps) {
         {data.length === 0 ? (
           <TableRow>
             <TableCell
-              colSpan={!isViewerMode ? 9 : 8}
+              colSpan={!isViewerMode ? 10 : 9}
               className="text-center h-24 text-muted-foreground"
             >
               Nenhum registro encontrado no período.
@@ -64,6 +65,11 @@ export function AcidityTable({ data, onEdit }: AcidityTableProps) {
               </TableCell>
               <TableCell className="text-right font-mono">
                 {entry.volume.toLocaleString('pt-BR')}
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {entry.acidity !== undefined
+                  ? entry.acidity.toLocaleString('pt-BR')
+                  : '-'}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {entry.performedTimes}

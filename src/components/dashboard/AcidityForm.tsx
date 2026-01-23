@@ -23,6 +23,7 @@ const formSchema = z.object({
     .min(2, 'Responsável deve ter pelo menos 2 caracteres'),
   weight: z.coerce.number().min(0, 'Peso deve ser positivo'),
   volume: z.coerce.number().min(0, 'Volume deve ser positivo'),
+  acidity: z.coerce.number().min(0, 'Acidez deve ser positiva'),
   tank: z.string().min(1, 'Tanque é obrigatório'),
   performedTimes: z.string().min(1, 'Horários realizados são obrigatórios'),
   notes: z.string().optional(),
@@ -49,6 +50,7 @@ export function AcidityForm({
       responsible: initialData?.responsible || '',
       weight: initialData?.weight || 0,
       volume: initialData?.volume || 0,
+      acidity: initialData?.acidity || 0,
       tank: initialData?.tank || '',
       performedTimes: initialData?.performedTimes || '',
       notes: initialData?.notes || '',
@@ -63,6 +65,7 @@ export function AcidityForm({
       responsible: values.responsible,
       weight: values.weight,
       volume: values.volume,
+      acidity: values.acidity,
       tank: values.tank,
       performedTimes: values.performedTimes,
       notes: values.notes,
@@ -144,7 +147,7 @@ export function AcidityForm({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="weight"
@@ -164,6 +167,19 @@ export function AcidityForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Volume (L)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="acidity"
+            render={({ field }) => (
+              <FormItem className="col-span-2 sm:col-span-1">
+                <FormLabel>Acidez</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>

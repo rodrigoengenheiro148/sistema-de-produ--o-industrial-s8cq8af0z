@@ -42,6 +42,7 @@ export interface AcidityEntry {
   responsible: string
   weight: number
   volume: number
+  acidity: number
   tank: string
   performedTimes: string
   notes?: string
