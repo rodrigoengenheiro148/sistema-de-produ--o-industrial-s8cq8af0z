@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, LabelList } from 'recharts'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
   DialogContent,
@@ -29,30 +30,63 @@ import { cn } from '@/lib/utils'
 
 interface LossAnalysisChartProps {
   data: ProductionEntry[]
+  timeScale?: 'daily' | 'monthly'
   className?: string
 }
 
-export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
+export function LossAnalysisChart({
+  data,
+  timeScale = 'daily',
+  className,
+}: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
-    // Filter out entries with 0 losses and map to chart format
-    // Strict requirement: Bars with a value of 0 must not be displayed.
-    const processedData = data
-      .filter((p) => p.losses > 0)
-      .map((p) => ({
-        date: format(p.date, 'dd/MM'),
-        originalDate: p.date,
-        perdas: p.losses,
-        percentage: p.mpUsed > 0 ? (p.losses / p.mpUsed) * 100 : 0,
-      }))
-      // Ensure chronological order if not already sorted
-      .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
+    let processedData = []
+
+    if (timeScale === 'monthly') {
+      const monthlyData = new Map<string, any>()
+      data.forEach((p) => {
+        const dateKey = format(p.date, 'yyyy-MM')
+        const displayDate = format(p.date, 'MMM/yy', { locale: ptBR })
+
+        if (!monthlyData.has(dateKey)) {
+          monthlyData.set(dateKey, {
+            dateKey,
+            date: displayDate,
+            originalDate: p.date,
+            perdas: 0,
+            mp: 0,
+          })
+        }
+        const entry = monthlyData.get(dateKey)
+        entry.perdas += p.losses
+        entry.mp += p.mpUsed
+      })
+
+      processedData = Array.from(monthlyData.values())
+        .filter((d) => d.perdas > 0)
+        .map((d) => ({
+          ...d,
+          percentage: d.mp > 0 ? (d.perdas / d.mp) * 100 : 0,
+        }))
+        .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
+    } else {
+      processedData = data
+        .filter((p) => p.losses > 0)
+        .map((p) => ({
+          date: format(p.date, 'dd/MM'),
+          originalDate: p.date,
+          perdas: p.losses,
+          percentage: p.mpUsed > 0 ? (p.losses / p.mpUsed) * 100 : 0,
+        }))
+        .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
+    }
 
     const config: ChartConfig = {
       perdas: { label: 'Perdas', color: 'hsl(var(--destructive))' },
     }
 
     return { chartData: processedData, chartConfig: config }
-  }, [data])
+  }, [data, timeScale])
 
   if (!data || data.length === 0) {
     return (
@@ -60,7 +94,8 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         <CardHeader>
           <CardTitle>Análise de Perdas</CardTitle>
           <CardDescription>
-            Volume de quebra técnica e perdas por dia
+            Volume de quebra técnica e perdas{' '}
+            {timeScale === 'monthly' ? 'mensais' : 'diárias'}
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -103,7 +138,8 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
         <div>
           <CardTitle>Análise de Perdas</CardTitle>
           <CardDescription>
-            Volume de quebra técnica e perdas por dia ( &gt; 0kg )
+            Volume de quebra técnica e perdas{' '}
+            {timeScale === 'monthly' ? 'mensais' : 'diárias'} ( &gt; 0kg )
           </CardDescription>
         </div>
         <Dialog>
@@ -115,9 +151,12 @@ export function LossAnalysisChart({ data, className }: LossAnalysisChartProps) {
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Análise de Perdas</DialogTitle>
+              <DialogTitle>
+                Análise de Perdas (
+                {timeScale === 'monthly' ? 'Mensal' : 'Diário'})
+              </DialogTitle>
               <DialogDescription>
-                Visualização detalhada das perdas diárias com percentual.
+                Visualização detalhada das perdas com percentual.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">

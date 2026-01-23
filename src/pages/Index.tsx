@@ -21,6 +21,8 @@ import {
   Droplets,
   Bone,
   Wheat,
+  CalendarDays,
+  CalendarRange,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -54,6 +56,11 @@ export default function Dashboard() {
   // Visual feedback state
   const [highlight, setHighlight] = useState(false)
   const isFirstRender = useRef(true)
+
+  // View Mode for Overview Charts (Daily vs Monthly)
+  const [overviewTimeScale, setOverviewTimeScale] = useState<
+    'daily' | 'monthly'
+  >('daily')
 
   // Trigger visual highlight when data updates
   useEffect(() => {
@@ -427,6 +434,30 @@ export default function Dashboard() {
             </Card>
           </div>
 
+          {/* Time Scale Filter for Charts */}
+          <div className="flex justify-end">
+            <div className="bg-muted/50 p-1 rounded-md flex items-center">
+              <Button
+                variant={overviewTimeScale === 'daily' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setOverviewTimeScale('daily')}
+              >
+                <CalendarDays className="h-3.5 w-3.5 mr-1" />
+                Diário
+              </Button>
+              <Button
+                variant={overviewTimeScale === 'monthly' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setOverviewTimeScale('monthly')}
+              >
+                <CalendarRange className="h-3.5 w-3.5 mr-1" />
+                Mensal
+              </Button>
+            </div>
+          </div>
+
           {/* Combined Row: Gauge + Raw Material */}
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-7">
             <YieldGaugeChart
@@ -446,14 +477,21 @@ export default function Dashboard() {
               data={filteredProduction}
               isMobile={isMobile}
               className="col-span-1 md:col-span-2 lg:col-span-4"
+              timeScale={overviewTimeScale}
             />
             <LossAnalysisChart
               data={filteredProduction}
               className="col-span-1 md:col-span-2 lg:col-span-3"
+              timeScale={overviewTimeScale}
             />
           </div>
 
-          <RevenueChart data={filteredShipping} isMobile={isMobile} />
+          <RevenueChart
+            data={filteredShipping}
+            productionData={filteredProduction}
+            timeScale={overviewTimeScale}
+            isMobile={isMobile}
+          />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">

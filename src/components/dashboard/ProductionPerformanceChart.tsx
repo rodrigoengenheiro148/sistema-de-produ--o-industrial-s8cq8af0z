@@ -24,6 +24,7 @@ import {
   LabelList,
 } from 'recharts'
 import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
   DialogContent,
@@ -37,22 +38,56 @@ import { Maximize2 } from 'lucide-react'
 
 interface ProductionPerformanceChartProps {
   data: ProductionEntry[]
+  timeScale?: 'daily' | 'monthly'
   isMobile?: boolean
   className?: string
 }
 
 export function ProductionPerformanceChart({
   data,
+  timeScale = 'daily',
   isMobile = false,
   className,
 }: ProductionPerformanceChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
-    const processedData = data.map((p) => ({
-      date: format(p.date, 'dd/MM'),
-      originalDate: p.date,
-      producao: p.seboProduced + p.fcoProduced + p.farinhetaProduced,
-      mp: p.mpUsed,
-    }))
+    let processedData = []
+
+    if (timeScale === 'monthly') {
+      const monthlyData = new Map<string, any>()
+
+      data.forEach((p) => {
+        const dateKey = format(p.date, 'yyyy-MM')
+        const displayDate = format(p.date, 'MMM/yy', { locale: ptBR })
+
+        if (!monthlyData.has(dateKey)) {
+          monthlyData.set(dateKey, {
+            dateKey,
+            date: displayDate,
+            originalDate: p.date, // Approx, just for sorting
+            producao: 0,
+            mp: 0,
+          })
+        }
+
+        const entry = monthlyData.get(dateKey)
+        entry.producao += p.seboProduced + p.fcoProduced + p.farinhetaProduced
+        entry.mp += p.mpUsed
+      })
+
+      processedData = Array.from(monthlyData.values()).sort((a, b) =>
+        a.dateKey.localeCompare(b.dateKey),
+      )
+    } else {
+      // Daily
+      processedData = data
+        .map((p) => ({
+          date: format(p.date, 'dd/MM'),
+          originalDate: p.date,
+          producao: p.seboProduced + p.fcoProduced + p.farinhetaProduced,
+          mp: p.mpUsed,
+        }))
+        .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
+    }
 
     const config: ChartConfig = {
       producao: { label: 'Produção Total', color: 'hsl(var(--chart-1))' },
@@ -60,7 +95,7 @@ export function ProductionPerformanceChart({
     }
 
     return { chartData: processedData, chartConfig: config }
-  }, [data])
+  }, [data, timeScale])
 
   if (!data || data.length === 0) {
     return (
@@ -96,7 +131,7 @@ export function ProductionPerformanceChart({
           tickLine={false}
           axisLine={false}
           width={isMobile ? 30 : 50}
-          tickFormatter={(value) => `${value / 1000}k`}
+          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
@@ -146,7 +181,9 @@ export function ProductionPerformanceChart({
         <div>
           <CardTitle>Desempenho de Produção</CardTitle>
           <CardDescription>
-            Comparativo entre MP processada e produtos gerados
+            {timeScale === 'monthly'
+              ? 'Volumes acumulados mensais'
+              : 'Comparativo diário de processamento'}
           </CardDescription>
         </div>
         <Dialog>
@@ -158,7 +195,10 @@ export function ProductionPerformanceChart({
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Desempenho de Produção</DialogTitle>
+              <DialogTitle>
+                Desempenho de Produção (
+                {timeScale === 'monthly' ? 'Mensal' : 'Diário'})
+              </DialogTitle>
               <DialogDescription>
                 Visualização detalhada do processamento de MP e produção total.
               </DialogDescription>
