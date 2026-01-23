@@ -4,7 +4,6 @@ import React, {
   useState,
   useEffect,
   useCallback,
-  useRef,
 } from 'react'
 import {
   RawMaterialEntry,
@@ -68,6 +67,25 @@ const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
   return new Date(dateStr)
 }
 
+// Map database response to application types
+const mapData = (data: any[]) => {
+  return data.map((item) => ({
+    ...item,
+    // Use safe date parsing to prevent off-by-one-day errors
+    date: parseDateSafe(item.date),
+    createdAt: item.created_at ? new Date(item.created_at) : undefined,
+    // Map database snake_case columns to camelCase if needed
+    mpUsed: item.mp_used,
+    seboProduced: item.sebo_produced,
+    fcoProduced: item.fco_produced,
+    farinhetaProduced: item.farinheta_produced,
+    unitPrice: item.unit_price,
+    docRef: item.doc_ref,
+    performedTimes: item.performed_times,
+    factoryId: item.factory_id,
+  }))
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -121,25 +139,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<ConnectionStatus>('offline')
   const [lastProtheusSync, setLastProtheusSync] = useState<Date | null>(null)
 
-  // Map database response to application types
-  const mapData = (data: any[]) => {
-    return data.map((item) => ({
-      ...item,
-      // Use safe date parsing to prevent off-by-one-day errors
-      date: parseDateSafe(item.date),
-      createdAt: item.created_at ? new Date(item.created_at) : undefined,
-      // Map database snake_case columns to camelCase if needed
-      mpUsed: item.mp_used,
-      seboProduced: item.sebo_produced,
-      fcoProduced: item.fco_produced,
-      farinhetaProduced: item.farinheta_produced,
-      unitPrice: item.unit_price,
-      docRef: item.doc_ref,
-      performedTimes: item.performed_times,
-      factoryId: item.factory_id,
-    }))
-  }
-
   // 1. Fetch Global Settings & Factories
   const fetchGlobalData = useCallback(async () => {
     if (!user) return
@@ -153,7 +152,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             .select('*')
             .limit(1)
             .maybeSingle(),
-          // @ts-expect-error - notification_settings table columns are created in migrations
           supabase
             .from('notification_settings')
             .select('*')
@@ -164,14 +162,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (fact) {
         const mappedFactories = mapData(fact)
         setFactories(mappedFactories)
-
-        // Ensure currentFactoryId is valid
-        if (mappedFactories.length > 0) {
-          const isValid = mappedFactories.some((f) => f.id === currentFactoryId)
-          if (!isValid || !currentFactoryId) {
-            setCurrentFactoryId(mappedFactories[0].id)
-          }
-        }
       }
 
       if (integration) {
@@ -219,7 +209,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error('Error fetching global data:', error)
     }
-  }, [user, currentFactoryId])
+  }, [user])
+
+  // Validate and set currentFactoryId if needed
+  useEffect(() => {
+    if (factories.length > 0) {
+      const isValid = factories.some((f) => f.id === currentFactoryId)
+      if (!isValid || !currentFactoryId) {
+        setCurrentFactoryId(factories[0].id)
+      }
+    }
+  }, [factories, currentFactoryId])
 
   // 2. Fetch Operational Data (Scoped to Factory)
   const fetchOperationalData = useCallback(async () => {
@@ -310,13 +310,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           event: '*',
           schema: 'public',
           table: 'factories',
+          filter: `user_id=eq.${user.id}`,
         },
         () => fetchGlobalData(),
       )
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR') {
           console.error(
-            'Realtime subscription error (factories): CHANNEL_ERROR',
+            'Realtime subscription error (factories): CHANNEL_ERROR. Check RLS and Publication.',
           )
         }
       })
@@ -752,26 +753,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (settings.id) {
-      // @ts-expect-error - notification_settings table is created in a migration
       await supabase
         .from('notification_settings')
         .update(dataToUpsert)
         .eq('id', settings.id)
     } else {
-      // @ts-expect-error - notification_settings table is created in a migration
       const { data: existing } = await supabase
         .from('notification_settings')
         .select('id')
         .eq('user_id', user?.id)
         .maybeSingle()
       if (existing) {
-        // @ts-expect-error - notification_settings table is created in a migration
         await supabase
           .from('notification_settings')
           .update(dataToUpsert)
           .eq('id', existing.id)
       } else {
-        // @ts-expect-error - notification_settings table is created in a migration
         await supabase.from('notification_settings').insert(dataToUpsert)
       }
     }
