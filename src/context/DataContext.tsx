@@ -314,10 +314,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         () => fetchGlobalData(),
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR') {
           console.error(
-            'Realtime subscription error (factories): CHANNEL_ERROR. Check RLS and Publication.',
+            'Realtime subscription error (factories):',
+            err?.message || 'Unknown error. Check RLS and Publication.',
           )
         }
       })
@@ -331,8 +332,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user || !currentFactoryId) return
 
+    const channelName = `operational-data-${currentFactoryId}`
     const channel = supabase
-      .channel('db-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -387,7 +389,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('online')
         } else if (status === 'CHANNEL_ERROR') {
-          console.error(`Realtime subscription error: ${status}`, err)
+          console.error(
+            'Realtime subscription error (operational):',
+            err?.message || 'Unknown error',
+          )
           setConnectionStatus('error')
         }
       })
