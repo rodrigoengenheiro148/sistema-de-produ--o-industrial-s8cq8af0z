@@ -105,6 +105,12 @@ export interface NotificationSettings {
   farinhaThreshold: number
   notificationEmail: string
   notificationPhone: string
+  // Brevo / SMTP Integration
+  brevoApiKey?: string
+  smtpHost?: string
+  smtpPort?: number
+  smtpUser?: string
+  smtpPassword?: string
 }
 
 export interface Factory {

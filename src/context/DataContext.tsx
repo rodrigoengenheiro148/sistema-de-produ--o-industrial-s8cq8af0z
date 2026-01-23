@@ -49,6 +49,11 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   farinhaThreshold: 0,
   notificationEmail: '',
   notificationPhone: '',
+  brevoApiKey: '',
+  smtpHost: '',
+  smtpPort: 587,
+  smtpUser: '',
+  smtpPassword: '',
 }
 
 // Helper to safely parse dates, forcing local noon for date-only strings to avoid timezone shifts
@@ -202,6 +207,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           farinhaThreshold: notifications.farinha_threshold || 0,
           notificationEmail: notifications.notification_email || '',
           notificationPhone: notifications.notification_phone || '',
+          brevoApiKey: notifications.brevo_api_key || '',
+          smtpHost: notifications.smtp_host || '',
+          smtpPort: notifications.smtp_port || 587,
+          smtpUser: notifications.smtp_user || '',
+          smtpPassword: notifications.smtp_password || '',
         }
         setNotificationSettings(settings)
 
@@ -282,6 +292,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user, fetchData])
 
+  const checkThresholdsAndNotify = async (
+    entry: Omit<ProductionEntry, 'id'>,
+  ) => {
+    // Only invoke edge function if we have basic notification settings enabled
+    // The edge function will handle the granular threshold logic
+    if (notificationSettings.emailEnabled || notificationSettings.smsEnabled) {
+      try {
+        await supabase.functions.invoke('send-brevo-alert', {
+          body: {
+            productionData: entry,
+          },
+        })
+      } catch (err) {
+        console.error('Failed to invoke alert function:', err)
+      }
+    }
+  }
+
   // --- Action Handlers using Supabase ---
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
@@ -328,7 +356,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       losses: entry.losses,
       user_id: user?.id,
     })
-    if (error) console.error('Error adding production:', error)
+    if (error) {
+      console.error('Error adding production:', error)
+    } else {
+      // Trigger alert check
+      checkThresholdsAndNotify(entry)
+    }
   }
 
   const updateProduction = async (entry: ProductionEntry) => {
@@ -344,7 +377,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         losses: entry.losses,
       })
       .eq('id', entry.id)
-    if (error) console.error('Error updating production:', error)
+    if (error) {
+      console.error('Error updating production:', error)
+    } else {
+      // Trigger alert check
+      checkThresholdsAndNotify(entry)
+    }
   }
 
   const deleteProduction = async (id: string) => {
@@ -553,6 +591,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       farinha_threshold: settings.farinhaThreshold,
       notification_email: settings.notificationEmail,
       notification_phone: settings.notificationPhone,
+      brevo_api_key: settings.brevoApiKey,
+      smtp_host: settings.smtpHost,
+      smtp_port: settings.smtpPort,
+      smtp_user: settings.smtpUser,
+      smtp_password: settings.smtpPassword,
       user_id: user?.id,
     }
 

@@ -26,6 +26,9 @@ import {
   Phone,
   Target,
   Lock,
+  Globe,
+  Key,
+  Database,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -272,9 +275,10 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="alerts" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="alerts">Alertas & Metas</TabsTrigger>
-          <TabsTrigger value="connection">Conexão API</TabsTrigger>
+          <TabsTrigger value="integrations">Integrações</TabsTrigger>
+          <TabsTrigger value="connection">Conexão ERP</TabsTrigger>
           <TabsTrigger value="system">Sistema</TabsTrigger>
           <TabsTrigger value="danger">Zona de Perigo</TabsTrigger>
         </TabsList>
@@ -480,11 +484,120 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="integrations" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" /> Brevo Integration
+              </CardTitle>
+              <CardDescription>
+                Configuração para envio de mensagens externas via Brevo
+                (Sendinblue).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Key className="h-4 w-4" /> Credenciais da API
+                </h3>
+                <div className="grid gap-2">
+                  <Label htmlFor="brevo-api-key">Brevo API Key</Label>
+                  <Input
+                    id="brevo-api-key"
+                    type="password"
+                    placeholder="xkeysib-..."
+                    value={localNotifications.brevoApiKey || ''}
+                    onChange={(e) =>
+                      setLocalNotifications({
+                        ...localNotifications,
+                        brevoApiKey: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Chave necessária para envio de SMS e E-mails transacionais.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4" /> Configuração SMTP (Opcional)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="smtp-host">SMTP Host</Label>
+                    <Input
+                      id="smtp-host"
+                      placeholder="smtp-relay.brevo.com"
+                      value={localNotifications.smtpHost || ''}
+                      onChange={(e) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          smtpHost: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="smtp-port">SMTP Port</Label>
+                    <Input
+                      id="smtp-port"
+                      type="number"
+                      placeholder="587"
+                      value={localNotifications.smtpPort || 587}
+                      onChange={(e) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          smtpPort: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="smtp-user">SMTP Username</Label>
+                    <Input
+                      id="smtp-user"
+                      placeholder="seu-email@dominio.com"
+                      value={localNotifications.smtpUser || ''}
+                      onChange={(e) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          smtpUser: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="smtp-password">SMTP Password</Label>
+                    <Input
+                      id="smtp-password"
+                      type="password"
+                      value={localNotifications.smtpPassword || ''}
+                      onChange={(e) =>
+                        setLocalNotifications({
+                          ...localNotifications,
+                          smtpPassword: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t p-6">
+              <Button onClick={handleSaveNotifications}>
+                <Save className="mr-2 h-4 w-4" /> Salvar Integração
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="connection" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Server className="h-5 w-5" /> Configuração do Servidor
+                <Database className="h-5 w-5" /> Configuração do ERP
               </CardTitle>
               <CardDescription>
                 Configure a conexão com o ERP Protheus ou API externa.
@@ -612,7 +725,9 @@ export default function Settings() {
         <TabsContent value="system" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Preferências Gerais</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" /> Preferências Gerais
+              </CardTitle>
               <CardDescription>
                 Ajuste os parâmetros de exibição e cálculo.
               </CardDescription>
