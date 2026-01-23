@@ -36,6 +36,8 @@ import {
   User,
   CheckCircle2,
   LayoutGrid,
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 import { FactoryForm } from '@/components/FactoryForm'
 import { Factory } from '@/lib/types'
@@ -44,8 +46,13 @@ import { useToast } from '@/hooks/use-toast'
 import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Factories() {
-  const { factories, deleteFactory, currentFactoryId, setCurrentFactoryId } =
-    useData()
+  const {
+    factories,
+    deleteFactory,
+    currentFactoryId,
+    setCurrentFactoryId,
+    connectionStatus,
+  } = useData()
   const { toast } = useToast()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -124,10 +131,37 @@ export default function Factories() {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            Minhas Fábricas
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Building2 className="h-6 w-6 text-primary" />
+              Minhas Fábricas
+            </h2>
+            {connectionStatus === 'online' && (
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200 gap-1"
+              >
+                <Wifi className="h-3 w-3" /> Online
+              </Badge>
+            )}
+            {connectionStatus === 'syncing' && (
+              <Badge
+                variant="outline"
+                className="bg-blue-50 text-blue-700 border-blue-200 gap-1 animate-pulse"
+              >
+                <Wifi className="h-3 w-3" /> Sincronizando
+              </Badge>
+            )}
+            {(connectionStatus === 'offline' ||
+              connectionStatus === 'error') && (
+              <Badge
+                variant="outline"
+                className="bg-red-50 text-red-700 border-red-200 gap-1"
+              >
+                <WifiOff className="h-3 w-3" /> Offline
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground">
             Gerencie as unidades fabris integradas ao sistema.
           </p>

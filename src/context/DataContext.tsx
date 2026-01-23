@@ -297,13 +297,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user?.id) return
 
-    if (factoriesChannelRef.current) {
-      supabase.removeChannel(factoriesChannelRef.current)
+    // Clean up existing subscription properly
+    const cleanup = async () => {
+      if (factoriesChannelRef.current) {
+        await supabase.removeChannel(factoriesChannelRef.current)
+        factoriesChannelRef.current = null
+      }
     }
 
-    // Use a unique channel name to prevent collisions
-    const uniqueId = Math.random().toString(36).substring(2, 9)
-    const channelName = `factories-updates-${user.id}-${uniqueId}`
+    cleanup()
+
+    const channelName = `factories-global-${user.id}`
 
     const channel = supabase
       .channel(channelName)
@@ -315,9 +319,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           table: 'factories',
           filter: `user_id=eq.${user.id}`,
         },
-        () => fetchGlobalData(),
+        (payload) => {
+          console.log('Factories Realtime Update:', payload)
+          fetchGlobalData()
+        },
       )
       .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to factories changes')
+        }
         if (status === 'CHANNEL_ERROR') {
           console.error(
             `Realtime subscription error (factories) on channel ${channelName}:`,
