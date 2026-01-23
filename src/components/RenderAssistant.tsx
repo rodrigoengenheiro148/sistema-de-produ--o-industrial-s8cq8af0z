@@ -34,7 +34,7 @@ export function RenderAssistant() {
       id: 'welcome',
       role: 'assistant',
       content:
-        'Olá! Eu sou o **Render**, seu especialista em produção industrial. Posso ajudar com rendimentos, perdas, faturamento e projeções. O que deseja saber?',
+        'Olá! Eu sou o **Render**, seu especialista em produção industrial. Agora posso verificar **estoques**, **acidez**, **correlações** e até **dados de mercado**. O que deseja saber?',
       timestamp: new Date(),
     },
   ])
@@ -185,17 +185,22 @@ export function RenderAssistant() {
   return (
     <div
       className={cn(
-        'fixed right-4 z-50 transition-all duration-500 ease-apple',
+        'fixed right-4 z-50 transition-all duration-500 ease-apple flex flex-col',
         isMinimized ? 'bottom-4 w-80' : 'bottom-4 w-[90vw] sm:w-[400px]',
       )}
       onMouseMove={handleUserActivity}
       onClick={handleUserActivity}
       onKeyDown={handleUserActivity}
     >
-      <Card className="shadow-2xl border-primary/20 overflow-hidden flex flex-col max-h-[85vh] bg-white/95 dark:bg-card/95 backdrop-blur-sm">
+      <Card
+        className={cn(
+          'shadow-2xl border-primary/20 overflow-hidden flex flex-col bg-white/95 dark:bg-card/95 backdrop-blur-sm transition-all duration-300',
+          isMinimized ? 'h-auto' : 'h-[600px] max-h-[85vh]',
+        )}
+      >
         <CardHeader
           className={cn(
-            'flex flex-row items-center justify-between space-y-0 p-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground cursor-pointer transition-all',
+            'flex flex-row items-center justify-between space-y-0 p-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground cursor-pointer transition-all shrink-0',
             isMinimized ? 'rounded-lg' : 'rounded-t-lg',
           )}
           onClick={() => setIsMinimized(!isMinimized)}
@@ -267,10 +272,10 @@ export function RenderAssistant() {
         {!isMinimized && (
           <>
             <ScrollArea
-              className="flex-1 h-[450px] p-4 bg-slate-50 dark:bg-black/20"
+              className="flex-1 p-4 bg-slate-50 dark:bg-black/20 min-h-0"
               ref={scrollRef}
             >
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
@@ -280,7 +285,7 @@ export function RenderAssistant() {
                     )}
                   >
                     {msg.role === 'assistant' && (
-                      <Avatar className="h-6 w-6 mr-2 mt-1">
+                      <Avatar className="h-6 w-6 mr-2 mt-1 shrink-0">
                         <AvatarImage src="https://img.usecurling.com/p/128/128?q=humanoid%20robot%20mascot&style=3d" />
                         <AvatarFallback>R</AvatarFallback>
                       </Avatar>
@@ -321,7 +326,7 @@ export function RenderAssistant() {
                 )}
               </div>
             </ScrollArea>
-            <div className="p-3 bg-background border-t">
+            <div className="p-3 bg-background border-t shrink-0">
               <form
                 onSubmit={handleSendMessage}
                 className="flex items-center gap-2"
@@ -354,7 +359,7 @@ export function RenderAssistant() {
               </form>
               <div className="text-[10px] text-center text-muted-foreground mt-2 flex items-center justify-center gap-1">
                 <Sparkles className="h-3 w-3 text-yellow-500" />
-                <span>IA conectada ao Supabase em tempo real</span>
+                <span>IA conectada ao Supabase + Edge</span>
               </div>
             </div>
           </>

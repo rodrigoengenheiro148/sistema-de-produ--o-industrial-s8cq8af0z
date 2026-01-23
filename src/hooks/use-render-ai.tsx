@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useData } from '@/context/DataContext'
+import { supabase } from '@/lib/supabase/client'
 import {
   isSameDay,
   isThisMonth,
@@ -7,8 +8,7 @@ import {
   startOfMonth,
   endOfMonth,
   format,
-  isWithinInterval,
-  subMonths,
+  differenceInDays,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -18,11 +18,14 @@ type Intent =
   | 'production'
   | 'raw_material'
   | 'quality'
-  | 'inventory'
+  | 'acidity_specific'
+  | 'inventory_realtime'
   | 'shipping'
   | 'financial'
   | 'losses'
   | 'projection'
+  | 'correlation'
+  | 'external_search'
   | 'help'
   | 'unknown'
 
@@ -46,6 +49,39 @@ export function useRenderAI() {
   const formatCurrency = (val: number) =>
     val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const formatNumber = (val: number) => val.toLocaleString('pt-BR')
+
+  const calculateStock = () => {
+    // MP Balance
+    const mpIn = rawMaterials.reduce((acc, curr) => acc + curr.quantity, 0)
+    const mpOut = production.reduce((acc, curr) => acc + curr.mpUsed, 0)
+    const mpStock = mpIn - mpOut
+
+    // Sebo Balance
+    const seboIn = production.reduce((acc, curr) => acc + curr.seboProduced, 0)
+    const seboOut = shipping
+      .filter((s) => s.product === 'Sebo')
+      .reduce((acc, curr) => acc + curr.quantity, 0)
+    const seboStock = seboIn - seboOut
+
+    // FCO Balance
+    const fcoIn = production.reduce((acc, curr) => acc + curr.fcoProduced, 0)
+    const fcoOut = shipping
+      .filter((s) => s.product === 'FCO')
+      .reduce((acc, curr) => acc + curr.quantity, 0)
+    const fcoStock = fcoIn - fcoOut
+
+    // Farinheta Balance
+    const farinhetaIn = production.reduce(
+      (acc, curr) => acc + curr.farinhetaProduced,
+      0,
+    )
+    const farinhetaOut = shipping
+      .filter((s) => s.product === 'Farinheta')
+      .reduce((acc, curr) => acc + curr.quantity, 0)
+    const farinhetaStock = farinhetaIn - farinhetaOut
+
+    return { mpStock, seboStock, fcoStock, farinhetaStock }
+  }
 
   const processQuery = async (query: string): Promise<string> => {
     // Simulate AI processing delay
@@ -72,88 +108,128 @@ export function useRenderAI() {
       if (
         q.includes('mês') ||
         q.includes('mes') ||
-        q.includes('passado') === false
+        (q.includes('passado') === false && !q.includes('semana'))
       ) {
         return {
           data: data.filter((item) => isThisMonth(item[dateField])),
           label: 'deste mês',
         }
       }
-      // Default to "Recent/Today" if no period specified but context implies current
       return {
         data: data.filter((item) => isSameDay(item[dateField], now)),
-        label: 'de hoje', // Default assumption
+        label: 'recente (hoje)',
       }
     }
 
     // --- INTENT DETECTION ---
     let intent: Intent = 'unknown'
 
+    // External / Edge Function Triggers
     if (
+      q.includes('externo') ||
+      q.includes('mercado') ||
+      q.includes('preço') ||
+      q.includes('cotação') ||
+      q.includes('norma') ||
+      q.includes('lei') ||
+      q.includes('clima') ||
+      q.includes('google')
+    ) {
+      intent = 'external_search'
+    } else if (
       q.includes('olá') ||
       q.includes('oi') ||
       q.includes('bom dia') ||
       q.includes('boa tarde')
-    )
+    ) {
       intent = 'greeting'
-    else if (q.includes('ajuda') || q.includes('help') || q.includes('menu'))
+    } else if (
+      q.includes('ajuda') ||
+      q.includes('help') ||
+      q.includes('menu')
+    ) {
       intent = 'help'
-    else if (
+    } else if (
       q.includes('fábrica') ||
       q.includes('unidade') ||
       q.includes('filial')
-    )
+    ) {
       intent = 'factories'
-    else if (
+    } else if (
+      (q.includes('relação') || q.includes('influencia')) &&
+      (q.includes('acidez') || q.includes('qualidade')) &&
+      (q.includes('produção') ||
+        q.includes('rendimento') ||
+        q.includes('perda'))
+    ) {
+      intent = 'correlation'
+    } else if (
       q.includes('perda') ||
       q.includes('quebra') ||
       q.includes('desperdício')
-    )
+    ) {
       intent = 'losses'
-    else if (
+    } else if (
       q.includes('projeção') ||
       q.includes('previsão') ||
-      q.includes('futuro') ||
-      q.includes('estimativa')
-    )
+      q.includes('futuro')
+    ) {
       intent = 'projection'
-    else if (
+    } else if (
       q.includes('faturamento') ||
       q.includes('receita') ||
       q.includes('venda') ||
-      q.includes('vendas') ||
-      q.includes('dinheiro')
-    )
-      intent = 'financial' // "vendas" can be shipping or money, grouping as financial/shipping
-    else if (
+      q.includes('financeiro')
+    ) {
+      intent = 'financial'
+    } else if (
       q.includes('expedição') ||
       q.includes('carga') ||
-      q.includes('carregamento')
-    )
+      q.includes('enviado')
+    ) {
       intent = 'shipping'
-    else if (
+    } else if (
+      q.includes('acidez') &&
+      (q.includes('tanque') ||
+        q.includes('responsável') ||
+        q.includes('medição') ||
+        q.includes('hoje') ||
+        q.includes('ontem'))
+    ) {
+      intent = 'acidity_specific'
+    } else if (
       q.includes('produção') ||
       q.includes('rendimento') ||
       q.includes('produzido')
-    )
+    ) {
       intent = 'production'
-    else if (q.includes('entrada') || q.includes('matéria') || q.includes('mp'))
+    } else if (
+      q.includes('entrada') ||
+      q.includes('matéria') ||
+      q.includes('mp')
+    ) {
       intent = 'raw_material'
-    else if (
+    } else if (
       q.includes('qualidade') ||
-      q.includes('acidez') ||
-      q.includes('proteína')
-    )
+      q.includes('proteína') ||
+      q.includes('análise')
+    ) {
       intent = 'quality'
-    else if (q.includes('estoque')) intent = 'inventory'
+    } else if (
+      q.includes('estoque') ||
+      q.includes('saldo') ||
+      q.includes('armazenado')
+    ) {
+      intent = 'inventory_realtime'
+    }
 
-    // Context fallback (Basic)
+    // Context fallback
     if (intent === 'unknown' && lastIntent) {
       if (
         q.includes('e') ||
         q.includes('mais') ||
         q.includes('detalhe') ||
-        q.length < 10
+        q.length < 15
       ) {
         intent = lastIntent
       }
@@ -163,20 +239,149 @@ export function useRenderAI() {
 
     // --- RESPONSES ---
 
+    if (intent === 'external_search') {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'render-search',
+          {
+            body: { query },
+          },
+        )
+        if (error) throw error
+        return data.answer || 'Não consegui obter uma resposta externa válida.'
+      } catch (e) {
+        console.error(e)
+        return 'Desculpe, não consegui conectar à minha base de conhecimento externa no momento.'
+      }
+    }
+
     if (intent === 'greeting') {
-      return `Olá! Sou o **Render**, seu assistente de inteligência industrial.
-Estou conectado ao banco de dados da fábrica **${currentFactory?.name || 'Principal'}**.
-Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer *projeções de vendas*. Como posso ser útil?`
+      return `Olá! Sou o **Render**, seu assistente avançado.
+Estou conectado à unidade **${currentFactory?.name || 'Principal'}**.
+Agora posso responder sobre:
+• **Estoques em Tempo Real** (MP, Sebo, FCO)
+• **Análises de Acidez** detalhadas por tanque
+• **Consultas Externas** (Mercado, Normas)
+• **Correlações** (ex: Acidez vs Rendimento)
+Como posso ajudar hoje?`
     }
 
     if (intent === 'help') {
-      return `Eu sou especialista no sistema de produção. Tente me perguntar:
-• **Financeiro:** "Qual o faturamento deste mês?" ou "Projeção de vendas"
-• **Produção:** "Como está o rendimento hoje?" ou "Houve perdas ontem?"
-• **Qualidade:** "Qual a acidez média do FCO?"
-• **Logística:** "O que foi expedido hoje?"`
+      return `Aqui estão exemplos do que posso fazer:
+• **Estoque:** "Qual o saldo atual de Sebo?"
+• **Acidez:** "Como estava a acidez do Tanque 1 ontem?"
+• **Externo:** "Preço do sebo no mercado" ou "Norma IN 34"
+• **Correlação:** "A acidez influenciou o rendimento?"
+• **Geral:** "Faturamento do mês", "Perdas ontem"`
     }
 
+    if (intent === 'inventory_realtime') {
+      const stock = calculateStock()
+      return `**📦 Posição de Estoque Atual:**\n
+• **Matéria-Prima:** ${formatNumber(stock.mpStock)} kg
+• **Sebo:** ${formatNumber(stock.seboStock)} kg
+• **FCO (Farinha):** ${formatNumber(stock.fcoStock)} kg
+• **Farinheta:** ${formatNumber(stock.farinhetaStock)} kg
+\n*Valores calculados com base nas entradas, produção e expedição registradas.*`
+    }
+
+    if (intent === 'acidity_specific') {
+      const { data: filtered, label } = getPeriodData(acidityRecords)
+      if (filtered.length === 0)
+        return `Não encontrei medições de acidez nos tanques ${label}.`
+
+      const avgWeight =
+        filtered.reduce((acc, c) => acc + c.weight, 0) / filtered.length
+      const avgVol =
+        filtered.reduce((acc, c) => acc + c.volume, 0) / filtered.length
+      const responsibles = [
+        ...new Set(filtered.map((r) => r.responsible)),
+      ].join(', ')
+      const tanks = [...new Set(filtered.map((r) => r.tank))].join(', ')
+
+      // Group by tank
+      const byTank = filtered.reduce(
+        (acc, curr) => {
+          if (!acc[curr.tank]) acc[curr.tank] = []
+          acc[curr.tank].push(curr.weight)
+          return acc
+        },
+        {} as Record<string, number[]>,
+      )
+
+      let details = ''
+      for (const [tank, weights] of Object.entries(byTank)) {
+        const tankAvg = weights.reduce((a, b) => a + b, 0) / weights.length
+        details += `\n• **${tank}:** Média ${tankAvg.toFixed(2)} kg`
+      }
+
+      return `**🧪 Análise de Acidez (Tanques) ${label}:**\n
+📊 **Total de Medições:** ${filtered.length}
+👥 **Responsáveis:** ${responsibles}
+🛢️ **Tanques Monitorados:** ${tanks}
+⚖️ **Médias Gerais:** Peso ${avgWeight.toFixed(2)} kg | Vol ${avgVol.toFixed(2)} L
+${details ? `\n**Detalhes por Tanque:**${details}` : ''}`
+    }
+
+    if (intent === 'correlation') {
+      // Correlation logic: Check if days with high acidity (quality records) had low yield
+      const dataPoints = production
+        .map((prod) => {
+          const qual = qualityRecords.find((q) => isSameDay(q.date, prod.date))
+          if (!qual) return null
+          const yieldVal =
+            prod.mpUsed > 0
+              ? ((prod.seboProduced +
+                  prod.fcoProduced +
+                  prod.farinhetaProduced) /
+                  prod.mpUsed) *
+                100
+              : 0
+          return {
+            date: prod.date,
+            yield: yieldVal,
+            acidity: qual.acidity,
+          }
+        })
+        .filter((item) => item !== null) as {
+        yield: number
+        acidity: number
+        date: Date
+      }[]
+
+      if (dataPoints.length < 3)
+        return 'Não tenho dados suficientes (Produção + Qualidade no mesmo dia) para estabelecer uma correlação confiável.'
+
+      // Simple checks
+      const highAcidity = dataPoints.filter((d) => d.acidity > 5) // Assumption > 5 is high
+      const avgYieldHighAcid =
+        highAcidity.length > 0
+          ? highAcidity.reduce((acc, c) => acc + c.yield, 0) /
+            highAcidity.length
+          : 0
+
+      const lowAcidity = dataPoints.filter((d) => d.acidity <= 5)
+      const avgYieldLowAcid =
+        lowAcidity.length > 0
+          ? lowAcidity.reduce((acc, c) => acc + c.yield, 0) / lowAcidity.length
+          : 0
+
+      let conclusion = ''
+      if (highAcidity.length === 0) {
+        conclusion = 'Não houve dias com acidez crítica (>5%) para comparação.'
+      } else if (avgYieldLowAcid > avgYieldHighAcid) {
+        conclusion = `📉 **Tendência Negativa:** Dias com acidez mais baixa tiveram rendimento médio de **${avgYieldLowAcid.toFixed(1)}%**, enquanto dias de acidez alta caíram para **${avgYieldHighAcid.toFixed(1)}%**.`
+      } else {
+        conclusion =
+          '⚖️ **Sem Correlação Clara:** O rendimento manteve-se estável independentemente das variações de acidez registradas no período.'
+      }
+
+      return `**🔗 Análise de Correlação (Acidez x Rendimento):**\n
+${conclusion}\n
+*Base de dados: ${dataPoints.length} dias cruzados.*`
+    }
+
+    // Reuse existing logic blocks
     if (intent === 'factories') {
       if (q.includes('listar') || q.includes('todas')) {
         return `As unidades conectadas são: ${factories.map((f) => f.name).join(', ')}.`
@@ -209,7 +414,6 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
     }
 
     if (intent === 'projection') {
-      // Simple projection algorithm: Avg daily sales (last 30 days) * remaining days in month or next 30 days
       const last30Days = subDays(new Date(), 30)
       const recentSales = shipping.filter((s) => s.date >= last30Days)
 
@@ -221,22 +425,16 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
         0,
       )
       const totalQty = recentSales.reduce((acc, s) => acc + s.quantity, 0)
-      const daysWithSales = new Set(
-        recentSales.map((s) => s.date.toISOString().split('T')[0]),
-      ).size
-      const effectiveDays = Math.max(daysWithSales, 1)
-
-      const avgDailyRevenue = totalRevenue / 30 // Using 30 for monthly pace
+      const avgDailyRevenue = totalRevenue / 30
       const avgDailyQty = totalQty / 30
 
-      // Project for next 30 days
       const projRevenue = avgDailyRevenue * 30
       const projQty = avgDailyQty * 30
 
-      return `**🔮 Projeção para os Próximos 30 Dias**\n(Baseada na média histórica recente)\n
+      return `**🔮 Projeção para os Próximos 30 Dias**\n
 💰 **Faturamento Estimado:** ${formatCurrency(projRevenue)}
 📦 **Volume Estimado:** ${formatNumber(Math.round(projQty))} kg
-\n*Nota: Esta é uma estimativa baseada na média diária de R$ ${formatCurrency(avgDailyRevenue)} dos últimos 30 dias.*`
+\n*Nota: Estimativa baseada na média diária dos últimos 30 dias.*`
     }
 
     if (intent === 'financial' || intent === 'shipping') {
@@ -251,7 +449,6 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
       )
       const totalVolume = filtered.reduce((acc, s) => acc + s.quantity, 0)
 
-      // Breakdown by product
       const byProduct = filtered.reduce(
         (acc, curr) => {
           acc[curr.product] =
@@ -296,7 +493,7 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
 
       return `**🏭 Produção ${label}:**\n
 📊 **Rendimento Global:** ${yieldVal.toFixed(2)}% (Meta: ${target}%) ${evaluation}
-📥 **Matéria-Prima Processada:** ${formatNumber(mp)} kg
+📥 **MP Processada:** ${formatNumber(mp)} kg
 📤 **Produção Total:** ${formatNumber(totalOutput)} kg\n
 • Sebo: ${formatNumber(sebo)} kg
 • FCO: ${formatNumber(fco)} kg
@@ -313,7 +510,7 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
 
       return `**🚛 Recebimento MP ${label}:**\n
 📦 **Total Recebido:** ${formatNumber(total)} kg
-🏢 **Fornecedores:** ${supplierCount} distintos neste período.`
+🏢 **Fornecedores:** ${supplierCount} distintos.`
     }
 
     if (intent === 'quality') {
@@ -324,15 +521,14 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
       const fcoRecords = filtered.filter(
         (f) => f.product === 'FCO' || f.product === 'Farinha',
       )
-      let response = `**🧪 Qualidade ${label}:**\n`
+      let response = `**🧪 Qualidade (Produto Final) ${label}:**\n`
 
       if (fcoRecords.length > 0) {
         const avgAcid =
           fcoRecords.reduce((acc, c) => acc + c.acidity, 0) / fcoRecords.length
         response += `\n🦴 **FCO/Farinha:**\n• Acidez Média: ${avgAcid.toFixed(2)}%\n• Amostras: ${fcoRecords.length}`
         if (avgAcid > systemSettings.productionGoal / 10000) {
-          // Dummy logic for threshold comparison
-          response += ` (⚠️ Atenção à acidez)`
+          response += ` (⚠️ Atenção)`
         }
       } else {
         response += '\nSem análises de FCO/Farinha no período.'
@@ -341,15 +537,11 @@ Posso analisar *rendimentos*, *perdas*, *faturamento*, *qualidade* e até fazer 
       return response
     }
 
-    if (intent === 'inventory') {
-      return 'Para consultar o saldo atual detalhado de estoque, por favor acesse o menu **Gestão de Estoque**. Posso ajudar com informações sobre *Entradas* ou *Expedição* se preferir.'
-    }
-
-    return `Desculpe, ainda estou aprendendo. Tente perguntar sobre:
-- "Rendimento de hoje"
-- "Faturamento do mês"
-- "Houve perdas ontem?"
-- "Projeção de vendas"`
+    return `Desculpe, não entendi. Tente perguntar sobre:
+- "Estoque de Sebo"
+- "Acidez do tanque 1"
+- "Rendimento vs Acidez"
+- "Preço do sebo no mercado" (Busca Externa)`
   }
 
   return { processQuery }
