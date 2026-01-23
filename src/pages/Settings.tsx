@@ -25,6 +25,7 @@ import {
   Mail,
   Phone,
   Target,
+  Lock,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -57,6 +58,10 @@ export default function Settings() {
   const { toast } = useToast()
   const navigate = useNavigate()
 
+  // Authorization State
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
+
   const [config, setConfig] = useState(protheusConfig)
   const [testing, setTesting] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
@@ -64,7 +69,6 @@ export default function Settings() {
   const [localNotifications, setLocalNotifications] =
     useState<NotificationSettings>(notificationSettings)
 
-  // Sync state with context when context updates
   useEffect(() => {
     setLocalNotifications(notificationSettings)
   }, [notificationSettings])
@@ -72,6 +76,67 @@ export default function Settings() {
   useEffect(() => {
     setConfig(protheusConfig)
   }, [protheusConfig])
+
+  const handleAuthorize = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (passwordInput === '16071997') {
+      setIsAuthorized(true)
+      toast({
+        title: 'Acesso Permitido',
+        description: 'Você agora tem acesso às configurações.',
+      })
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Acesso Negado',
+        description: 'Senha incorreta.',
+      })
+      setPasswordInput('')
+    }
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh] container mx-auto p-4">
+        <Card className="w-full max-w-md shadow-lg border-primary/20">
+          <CardHeader className="text-center space-y-2">
+            <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit mb-2">
+              <Lock className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Área Protegida</CardTitle>
+            <CardDescription>
+              Insira a senha de administrador para acessar as configurações do
+              sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAuthorize} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha de Acesso</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="text-center text-lg tracking-widest"
+                  autoFocus
+                />
+              </div>
+              <Button type="submit" className="w-full" size="lg">
+                Acessar Configurações
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="justify-center border-t pt-4">
+            <Button variant="link" onClick={() => navigate('/')}>
+              Voltar ao Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
 
   const handleSaveConnection = async () => {
     updateProtheusConfig(config)
@@ -111,7 +176,6 @@ export default function Settings() {
   }
 
   const handleSaveNotifications = async () => {
-    // Validation
     if (
       localNotifications.yieldThreshold < 0 ||
       localNotifications.seboThreshold < 0 ||
@@ -406,10 +470,6 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  * Você será notificado se o rendimento diário cair abaixo
-                  destes valores.
-                </p>
               </div>
             </CardContent>
             <CardFooter className="border-t p-6">
@@ -468,9 +528,9 @@ export default function Settings() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password-field">Senha</Label>
                   <Input
-                    id="password"
+                    id="password-field"
                     type="password"
                     value={config.password}
                     onChange={(e) =>

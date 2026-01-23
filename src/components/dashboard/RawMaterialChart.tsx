@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { RawMaterialEntry } from '@/lib/types'
+import { useMemo, useState } from 'react'
+import { useData } from '@/context/DataContext'
 import {
   Card,
   CardContent,
@@ -7,15 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartConfig,
-} from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
 import {
   Dialog,
   DialogContent,
@@ -25,247 +16,392 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2 } from 'lucide-react'
+import {
+  Maximize2,
+  Calendar as CalendarIcon,
+  Filter,
+  Check,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, isSameDay, getMonth, getYear } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { RawMaterialChartViz } from './RawMaterialChartViz'
+import { ChartConfig } from '@/components/ui/chart'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 
 interface RawMaterialChartProps {
-  data: RawMaterialEntry[]
+  data: any[] // We accept data prop for compatibility but might override it with useData for local filtering
   className?: string
   isMobile?: boolean
 }
 
 export function RawMaterialChart({
-  data,
   className,
   isMobile = false,
 }: RawMaterialChartProps) {
-  // Process data for the chart
+  const { rawMaterials } = useData()
+
+  // State for Filters
+  const [filterMode, setFilterMode] = useState<'daily' | 'supplier'>('daily')
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    format(new Date(), 'yyyy-MM'),
+  )
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
+
+  // Controls state
+  const [openSupplier, setOpenSupplier] = useState(false)
+
+  // Available Data Source
+  // If we have a specific local date filter, we MUST use the full rawMaterials dataset
+  // otherwise we can respect the filtered data passed via props (if consistent) or just use rawMaterials filtered by global range.
+  // To avoid confusion, let's derive our working dataset.
+
+  // 1. Determine base dataset and time range
+  // If selectedDate is set -> Filter for that day
+  // If no selectedDate, use selectedMonth -> Filter for that month
+
+  const workingData = useMemo(() => {
+    let filtered = rawMaterials
+
+    // Date Filtering
+    if (selectedDate) {
+      filtered = filtered.filter((item) => isSameDay(item.date, selectedDate))
+    } else if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number)
+      filtered = filtered.filter(
+        (item) =>
+          getYear(item.date) === year && getMonth(item.date) + 1 === month,
+      )
+    }
+
+    // Supplier Filtering
+    if (selectedSuppliers.length > 0) {
+      filtered = filtered.filter((item) =>
+        selectedSuppliers.includes(item.supplier),
+      )
+    }
+
+    return filtered.sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [rawMaterials, selectedDate, selectedMonth, selectedSuppliers])
+
+  // Get unique lists for controls
+  const allSuppliers = useMemo(() => {
+    return Array.from(new Set(rawMaterials.map((item) => item.supplier))).sort()
+  }, [rawMaterials])
+
+  const allTypes = useMemo(() => {
+    return Array.from(new Set(rawMaterials.map((item) => item.type))).sort()
+  }, [rawMaterials])
+
+  // Process data for Chart
   const { chartData, chartConfig } = useMemo(() => {
-    // Get unique product types (for stacks)
-    const productTypes = Array.from(
-      new Set(data.map((item) => item.type)),
-    ).sort()
-
-    // Group data by supplier
-    const supplierMap = new Map<string, any>()
-
-    data.forEach((item) => {
-      // Normalize supplier name to avoid duplicates due to spacing
-      const supplierName = item.supplier.trim()
-
-      if (!supplierMap.has(supplierName)) {
-        supplierMap.set(supplierName, {
-          supplier: supplierName,
-          _breakdown: {}, // Map to store entries by type for tooltip details
-          total: 0, // Track total for sorting if needed
-        })
-      }
-      const entry = supplierMap.get(supplierName)
-
-      // Sum quantity per type
-      entry[item.type] = (entry[item.type] || 0) + item.quantity
-
-      // Update total
-      entry.total += item.quantity
-
-      // Store entry for breakdown
-      if (!entry._breakdown[item.type]) {
-        entry._breakdown[item.type] = []
-      }
-      entry._breakdown[item.type].push(item)
-    })
-
-    // Convert map to array and sort by supplier name alphabetically
-    const processedData = Array.from(supplierMap.values()).sort((a, b) =>
-      a.supplier.localeCompare(b.supplier),
-    )
-
-    // Generate config with themes
     const config: ChartConfig = {}
-    productTypes.forEach((type, index) => {
-      // Cycle through chart colors 1-5
-      const colorVar = `hsl(var(--chart-${(index % 5) + 1}))`
+
+    // Assign colors to Types
+    allTypes.forEach((type, index) => {
       config[type] = {
         label: type,
-        color: colorVar,
+        color: `hsl(var(--chart-${(index % 5) + 1}))`,
       }
     })
 
-    return { chartData: processedData, chartConfig: config }
-  }, [data])
+    if (filterMode === 'daily') {
+      // Group by Date
+      const dateMap = new Map<string, any>()
 
-  if (!data || data.length === 0) {
-    return (
-      <Card
-        className={cn('col-span-full shadow-sm border-primary/10', className)}
-      >
-        <CardHeader>
-          <CardTitle>Entrada de MP por Fornecedor</CardTitle>
-          <CardDescription>
-            Volume total recebido por fornecedor e tipo de material
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado disponível para o período selecionado.
-        </CardContent>
-      </Card>
+      workingData.forEach((item) => {
+        const dateKey = format(item.date, 'yyyy-MM-dd')
+        if (!dateMap.has(dateKey)) {
+          dateMap.set(dateKey, {
+            dateKey,
+            displayDate: format(item.date, 'dd/MM'),
+            fullDate: item.date,
+            total: 0,
+          })
+        }
+        const entry = dateMap.get(dateKey)
+        entry[item.type] = (entry[item.type] || 0) + item.quantity
+        entry.total += item.quantity
+      })
+
+      // Fill missing days if showing a month view?
+      // For now, show days with data.
+      return {
+        chartData: Array.from(dateMap.values()).sort((a, b) =>
+          a.dateKey.localeCompare(b.dateKey),
+        ),
+        chartConfig: config,
+      }
+    } else {
+      // Supplier View (Aggregate)
+      const supplierMap = new Map<string, any>()
+
+      workingData.forEach((item) => {
+        const supplier = item.supplier
+        if (!supplierMap.has(supplier)) {
+          supplierMap.set(supplier, {
+            supplier,
+            total: 0,
+          })
+        }
+        const entry = supplierMap.get(supplier)
+        entry[item.type] = (entry[item.type] || 0) + item.quantity
+        entry.total += item.quantity
+      })
+
+      return {
+        chartData: Array.from(supplierMap.values()).sort(
+          (a, b) => b.total - a.total,
+        ),
+        chartConfig: config,
+      }
+    }
+  }, [workingData, filterMode, allTypes])
+
+  // Handling Date Selection
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date)
+    // If selecting a date, we might want to ensure the month selector reflects it, but keeping them independent is easier.
+  }
+
+  const toggleSupplier = (supplier: string) => {
+    setSelectedSuppliers((prev) =>
+      prev.includes(supplier)
+        ? prev.filter((s) => s !== supplier)
+        : [...prev, supplier],
     )
   }
 
-  const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
-    <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart
-        data={chartData}
-        margin={{ top: 20, left: isMobile ? 0 : 20, right: 10 }}
-        layout={isMobile ? 'vertical' : 'horizontal'}
-      >
-        <CartesianGrid
-          vertical={!isMobile}
-          horizontal={isMobile}
-          strokeDasharray="3 3"
-        />
-        {isMobile ? (
-          <>
-            <XAxis type="number" hide />
-            <YAxis
-              dataKey="supplier"
-              type="category"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fontSize: 11, width: 100 }}
-              width={100}
-            />
-          </>
-        ) : (
-          <>
-            <XAxis
-              dataKey="supplier"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => `${value / 1000}k`}
-            />
-          </>
-        )}
-        <ChartTooltip
-          cursor={{ fill: 'transparent' }}
-          content={
-            <ChartTooltipContent
-              className="w-auto min-w-[200px] max-w-[300px]"
-              formatter={(value, name, item) => {
-                const type = name as string
-                // item.payload is the chart data entry (supplierMap value)
-                const entry = item.payload
-                const breakdown = entry._breakdown?.[type] as
-                  | RawMaterialEntry[]
-                  | undefined
+  // Generate Month Options (Last 12 months)
+  const monthOptions = useMemo(() => {
+    const options = []
+    const today = new Date()
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+      options.push({
+        value: format(d, 'yyyy-MM'),
+        label: format(d, 'MMMM yyyy', { locale: ptBR }),
+      })
+    }
+    return options
+  }, [])
 
-                // Sort breakdown by date descending
-                const sortedBreakdown = breakdown
-                  ? [...breakdown].sort(
-                      (a, b) => b.date.getTime() - a.date.getTime(),
-                    )
-                  : []
-
-                return (
-                  <div className="flex flex-col gap-2 w-full">
-                    <div className="flex w-full justify-between gap-2 items-center border-b pb-1 mb-1 border-border/50">
-                      <span className="text-muted-foreground font-semibold">
-                        {name}
-                      </span>
-                      <span className="font-mono font-bold">
-                        {Number(value).toLocaleString('pt-BR')} kg
-                      </span>
-                    </div>
-                    {sortedBreakdown.length > 0 && (
-                      <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto pr-1">
-                        {sortedBreakdown.map((record, idx) => (
-                          <div
-                            key={record.id || idx}
-                            className="flex justify-between gap-4 text-xs"
-                          >
-                            <span className="text-muted-foreground">
-                              {format(record.date, 'dd/MM/yyyy')}
-                            </span>
-                            <span className="font-mono text-foreground/80">
-                              {record.quantity.toLocaleString('pt-BR')} kg
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              }}
-            />
-          }
-        />
-        <ChartLegend content={<ChartLegendContent />} />
-        {Object.keys(chartConfig).map((productType) => (
-          <Bar
-            key={productType}
-            dataKey={productType}
-            fill={chartConfig[productType].color}
-            radius={isMobile ? [0, 4, 4, 0] : [4, 4, 0, 0]}
-            stackId="a"
-            maxBarSize={50}
-          >
-            {!isMobile && (
-              <LabelList
-                dataKey={productType}
-                position="inside"
-                className="fill-white font-bold"
-                style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.8)' }}
-                fontSize={11}
-                formatter={(value: any) =>
-                  value > 0 ? `${(value / 1000).toFixed(0)}k` : ''
-                }
-              />
-            )}
-          </Bar>
-        ))}
-      </BarChart>
-    </ChartContainer>
+  const ChartContentWrapper = ({ height }: { height?: string }) => (
+    <RawMaterialChartViz
+      data={chartData}
+      config={chartConfig}
+      isMobile={isMobile}
+      height={height}
+      layout={filterMode}
+    />
   )
 
   return (
     <Card
       className={cn('col-span-full shadow-sm border-primary/10', className)}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle>Entrada de MP por Fornecedor</CardTitle>
-          <CardDescription>
-            Volume total recebido por fornecedor e tipo de material
-          </CardDescription>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Maximize2 className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">Expandir</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Entrada de MP por Fornecedor</DialogTitle>
-              <DialogDescription>
-                Detalhamento do volume recebido por fornecedor e produto.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 w-full min-h-0 py-4">
-              <ChartContent height="h-full" />
+      <CardHeader className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle>Entrada de MP</CardTitle>
+            <CardDescription>Volume recebido por tipo e data</CardDescription>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View Toggle */}
+            <div className="flex items-center bg-secondary/50 rounded-md p-1">
+              <Button
+                variant={filterMode === 'daily' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setFilterMode('daily')}
+              >
+                Diário
+              </Button>
+              <Button
+                variant={filterMode === 'supplier' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setFilterMode('supplier')}
+              >
+                Fornecedor
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Detalhamento de Entradas</DialogTitle>
+                  <DialogDescription>
+                    Visualização expandida com filtros aplicados.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 w-full min-h-0 py-4">
+                  <ChartContentWrapper height="h-full" />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-2 items-center pt-1">
+          {/* Date Filters */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-8 text-xs justify-start text-left font-normal',
+                  !selectedDate && 'text-muted-foreground',
+                )}
+              >
+                <CalendarIcon className="mr-2 h-3 w-3" />
+                {selectedDate
+                  ? format(selectedDate, 'dd/MM/yyyy')
+                  : 'Filtrar Dia'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="h-8 w-[140px] text-xs">
+              <SelectValue placeholder="Selecione o Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map((opt) => (
+                <SelectItem
+                  key={opt.value}
+                  value={opt.value}
+                  className="text-xs"
+                >
+                  <span className="capitalize">{opt.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Supplier Multi-Select */}
+          <Popover open={openSupplier} onOpenChange={setOpenSupplier}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-dashed"
+              >
+                <Filter className="mr-2 h-3 w-3" />
+                Fornecedores
+                {selectedSuppliers.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 h-5 px-1 text-[10px]"
+                  >
+                    {selectedSuppliers.length}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Buscar fornecedor..." />
+                <CommandList>
+                  <CommandEmpty>Não encontrado.</CommandEmpty>
+                  <CommandGroup className="max-h-[200px] overflow-auto">
+                    {allSuppliers.map((supplier) => (
+                      <CommandItem
+                        key={supplier}
+                        value={supplier}
+                        onSelect={() => toggleSupplier(supplier)}
+                      >
+                        <div
+                          className={cn(
+                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                            selectedSuppliers.includes(supplier)
+                              ? 'bg-primary text-primary-foreground'
+                              : 'opacity-50 [&_svg]:invisible',
+                          )}
+                        >
+                          <Check className="h-3 w-3" />
+                        </div>
+                        {supplier}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                  {selectedSuppliers.length > 0 && (
+                    <>
+                      <CommandSeparator />
+                      <CommandGroup>
+                        <CommandItem
+                          onSelect={() => setSelectedSuppliers([])}
+                          className="justify-center text-center"
+                        >
+                          Limpar filtros
+                        </CommandItem>
+                      </CommandGroup>
+                    </>
+                  )}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {selectedDate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs text-muted-foreground"
+              onClick={() => setSelectedDate(undefined)}
+            >
+              Limpar Dia
+            </Button>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="pt-4">
-        <ChartContent height={isMobile ? 'h-[400px]' : 'h-[350px]'} />
+      <CardContent className="pt-2">
+        {chartData.length > 0 ? (
+          <ChartContentWrapper height={isMobile ? 'h-[400px]' : 'h-[350px]'} />
+        ) : (
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
+            Nenhum dado encontrado para os filtros selecionados.
+          </div>
+        )}
       </CardContent>
     </Card>
   )
