@@ -24,6 +24,7 @@ import {
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { RealtimeChannel } from '@supabase/supabase-js'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -302,8 +303,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user) return
 
+    // Ensure unique channel name to avoid conflicts and stale subscriptions
+    const channelName = `factories-updates-${user.id}-${Date.now()}`
+
     const channel = supabase
-      .channel('factories-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -317,8 +321,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .subscribe((status, err) => {
         if (status === 'CHANNEL_ERROR') {
           console.error(
-            'Realtime subscription error (factories):',
-            err?.message || 'Unknown error. Check RLS and Publication.',
+            `Realtime subscription error (factories) on channel ${channelName}:`,
+            err,
+          )
+        } else if (status === 'TIMED_OUT') {
+          console.error(
+            `Realtime subscription timeout (factories) on channel ${channelName}`,
           )
         }
       })
@@ -332,7 +340,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user || !currentFactoryId) return
 
-    const channelName = `operational-data-${currentFactoryId}`
+    // Ensure unique channel name for operational data as well
+    const channelName = `operational-data-${currentFactoryId}-${Date.now()}`
+
     const channel = supabase
       .channel(channelName)
       .on(
@@ -390,8 +400,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           setConnectionStatus('online')
         } else if (status === 'CHANNEL_ERROR') {
           console.error(
-            'Realtime subscription error (operational):',
-            err?.message || 'Unknown error',
+            `Realtime subscription error (operational) on channel ${channelName}:`,
+            err,
+          )
+          setConnectionStatus('error')
+        } else if (status === 'TIMED_OUT') {
+          console.error(
+            `Realtime subscription timeout (operational) on channel ${channelName}`,
           )
           setConnectionStatus('error')
         }
