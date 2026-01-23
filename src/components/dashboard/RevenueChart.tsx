@@ -45,10 +45,19 @@ import {
   Users,
   ArrowUpRight,
   ArrowDownRight,
+  Filter,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -61,6 +70,16 @@ interface RevenueChartProps {
     previous: number
     percentage: number
   }
+  activeFilter?: string[]
+  onFilterChange?: (filters: string[]) => void
+}
+
+const PRODUCT_COLORS: Record<string, string> = {
+  Sebo: 'hsl(var(--chart-1))',
+  FCO: 'hsl(var(--chart-2))',
+  Farinha: 'hsl(var(--chart-2))',
+  Farinheta: 'hsl(var(--chart-3))',
+  'Matéria-Prima': 'hsl(var(--chart-4))',
 }
 
 export function RevenueChart({
@@ -70,8 +89,29 @@ export function RevenueChart({
   isMobile = false,
   className,
   forecastMetrics,
+  activeFilter = ['Sebo', 'FCO', 'Farinheta'],
+  onFilterChange,
 }: RevenueChartProps) {
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
+
+  // Local state for filter if not controlled
+  const [localFilter, setLocalFilter] = useState<string[]>([
+    'Sebo',
+    'FCO',
+    'Farinheta',
+  ])
+  const currentFilter = onFilterChange ? activeFilter : localFilter
+  const handleFilterChange = (val: string) => {
+    const newFilter = currentFilter.includes(val)
+      ? currentFilter.filter((f) => f !== val)
+      : [...currentFilter, val]
+
+    if (onFilterChange) {
+      onFilterChange(newFilter)
+    } else {
+      setLocalFilter(newFilter)
+    }
+  }
 
   const {
     chartData,
@@ -81,19 +121,20 @@ export function RevenueChart({
     maxRevenue,
     maxDate,
     totalForecast,
+    calculatedForecastTotal,
   } = useMemo(() => {
     // 1. Calculate Average Unit Prices from Shipping Data (to apply to Production)
+    // We calculate this BEFORE filtering to ensure prices are stable
     const prices: Record<string, number> = {}
     const counts: Record<string, number> = {}
 
     data.forEach((s) => {
       const product = s.product
-      // Normalize product names if needed or use as is
       if (!prices[product]) {
         prices[product] = 0
         counts[product] = 0
       }
-      prices[product] += s.unitPrice * s.quantity // Weighted sum
+      prices[product] += s.unitPrice * s.quantity
       counts[product] += s.quantity
     })
 
@@ -107,9 +148,14 @@ export function RevenueChart({
     let globalTotal = 0
     let globalForecast = 0
 
-    // 2. Process Shipping Data (Actual Revenue)
+    // 2. Process Shipping Data (Actual Revenue) - Apply Filter
     data.forEach((s) => {
       if (!s.date) return
+      // Filter Logic:
+      // If filtering by product, strictly check product name
+      // If filtering by client, we still might want to restrict by product if that's the intent of the "Material Filter".
+      // The user story implies filtering the *materials* (products) regardless of view.
+      if (!currentFilter.includes(s.product)) return
 
       let dateKey: string
       let displayDate: string
@@ -146,7 +192,7 @@ export function RevenueChart({
       entry.totalRevenue += revenue
     })
 
-    // 3. Process Production Data (Forecast Revenue)
+    // 3. Process Production Data (Forecast Revenue) - Apply Filter
     productionData.forEach((p) => {
       if (!p.date) return
 
@@ -176,11 +222,16 @@ export function RevenueChart({
 
       const entry = dateMap.get(dateKey)
 
-      // Calculate potential value
-      const seboValue = p.seboProduced * (avgPrices['Sebo'] || 0)
-      const fcoValue =
-        p.fcoProduced * (avgPrices['FCO'] || avgPrices['Farinha'] || 0)
-      const farinhetaValue = p.farinhetaProduced * (avgPrices['Farinheta'] || 0)
+      // Calculate potential value based strictly on filtered products
+      const seboValue = currentFilter.includes('Sebo')
+        ? p.seboProduced * (avgPrices['Sebo'] || 0)
+        : 0
+      const fcoValue = currentFilter.includes('FCO')
+        ? p.fcoProduced * (avgPrices['FCO'] || avgPrices['Farinha'] || 0)
+        : 0
+      const farinhetaValue = currentFilter.includes('Farinheta')
+        ? p.farinhetaProduced * (avgPrices['Farinheta'] || 0)
+        : 0
 
       const dailyForecast = seboValue + fcoValue + farinhetaValue
       entry.forecastRevenue += dailyForecast
@@ -212,18 +263,24 @@ export function RevenueChart({
       },
     }
 
-    // Assign colors based on index or specific mapping if needed
+    // Assign colors
     sortedKeys.forEach((key, index) => {
-      config[key] = {
-        label: key,
-        color: `hsl(var(--chart-${(index % 5) + 1}))`,
+      if (groupBy === 'product' && PRODUCT_COLORS[key]) {
+        config[key] = {
+          label: key,
+          color: PRODUCT_COLORS[key],
+        }
+      } else {
+        config[key] = {
+          label: key,
+          color: `hsl(var(--chart-${(index % 5) + 1}))`,
+        }
       }
     })
 
-    // Fallback config if no keys
-    if (Object.keys(config).length === 1) {
-      // Only forecast
-      config['revenue'] = { label: 'Receita', color: 'hsl(var(--primary))' }
+    // Fallback config if no keys but we want to show something (e.g. just forecast)
+    if (sortedKeys.length === 0) {
+      config['empty'] = { label: 'Sem dados', color: 'transparent' }
     }
 
     return {
@@ -235,8 +292,9 @@ export function RevenueChart({
       maxRevenue: max,
       maxDate: mDate,
       totalForecast: globalForecast,
+      calculatedForecastTotal: globalForecast, // To compare/replace forecastMetrics.total if needed
     }
-  }, [data, productionData, groupBy, timeScale])
+  }, [data, productionData, groupBy, timeScale, currentFilter])
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -254,25 +312,17 @@ export function RevenueChart({
       maximumFractionDigits: 1,
     }).format(value)
 
-  if ((!data || data.length === 0) && productionData.length === 0) {
-    return (
-      <Card className={cn('shadow-sm border-primary/10', className)}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-primary" />
-            Receita {timeScale === 'monthly' ? 'Mensal' : 'Diária'}
-          </CardTitle>
-          <CardDescription>
-            Acompanhamento do faturamento{' '}
-            {timeScale === 'monthly' ? 'mensal' : 'diário'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado de faturamento ou produção disponível.
-        </CardContent>
-      </Card>
-    )
-  }
+  // Determine which metrics to display.
+  // If we are filtering, we should likely use our internally calculated total
+  // OR rely on the parent updating `forecastMetrics`.
+  // The user story says "The 'Previsão de Faturamento' header value must recalculate automatically".
+  // Assuming the parent (Index.tsx) is doing the math and passing it down via forecastMetrics.total.
+  // However, we can use our local calculation to be safe or if parent logic is complex.
+  // Let's use the prop if available, but if we suspect the prop isn't filtered (e.g. if we are using local state), use local.
+  // Since we are lifting state to Index.tsx, forecastMetrics.total SHOULD be correct from parent.
+  // But let's fallback to calculatedForecastTotal if specific prop logic isn't aligned.
+  // Actually, let's trust the prop `forecastMetrics.total` if provided, assuming parent updates it.
+  const displayTotalForecast = forecastMetrics?.total ?? calculatedForecastTotal
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
@@ -402,6 +452,43 @@ export function RevenueChart({
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-center">
+            {/* Material Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="hidden xs:inline text-xs">Materiais</span>
+                  {currentFilter.length < 3 && (
+                    <Badge variant="secondary" className="h-5 px-1 text-[10px]">
+                      {currentFilter.length}
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Filtrar Materiais</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={currentFilter.includes('Sebo')}
+                  onCheckedChange={() => handleFilterChange('Sebo')}
+                >
+                  Sebo
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={currentFilter.includes('FCO')}
+                  onCheckedChange={() => handleFilterChange('FCO')}
+                >
+                  FCO
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={currentFilter.includes('Farinheta')}
+                  onCheckedChange={() => handleFilterChange('Farinheta')}
+                >
+                  Farinheta
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Tabs
               value={groupBy}
               onValueChange={(v) => setGroupBy(v as 'product' | 'client')}
@@ -453,7 +540,7 @@ export function RevenueChart({
                   <div>
                     Projeção Total (Período):{' '}
                     <span className="font-medium text-foreground">
-                      {formatCurrency(totalForecast)}
+                      {formatCurrency(displayTotalForecast)}
                     </span>
                   </div>
                 </div>
@@ -471,7 +558,7 @@ export function RevenueChart({
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-bold font-mono text-foreground">
-                  {formatCurrency(forecastMetrics.total)}
+                  {formatCurrency(displayTotalForecast)}
                 </span>
                 {forecastMetrics.previous > 0 && (
                   <Badge
@@ -497,7 +584,8 @@ export function RevenueChart({
                 )}
               </div>
               <span className="text-[10px] text-muted-foreground mt-1">
-                Inclui faturamento realizado + estoque excedente
+                Inclui faturamento realizado + estoque excedente (Filtro:{' '}
+                {currentFilter.join(', ') || 'Nenhum'})
               </span>
             </div>
             <div className="hidden sm:flex flex-col items-end">
@@ -512,7 +600,13 @@ export function RevenueChart({
         )}
       </CardHeader>
       <CardContent className="pt-2 flex-1 min-h-0">
-        <ChartContent />
+        {chartData.length > 0 || totalForecast > 0 ? (
+          <ChartContent />
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
+            Selecione ao menos um material para visualizar os dados.
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm border-t bg-muted/5 pt-4">
         {maxRevenue > 0 ? (
@@ -529,7 +623,7 @@ export function RevenueChart({
           </div>
         ) : (
           <div className="text-xs text-muted-foreground">
-            Sem faturamento registrado no período.
+            Sem faturamento registrado para os filtros selecionados.
           </div>
         )}
       </CardFooter>

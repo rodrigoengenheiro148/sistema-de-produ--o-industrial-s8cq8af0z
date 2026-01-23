@@ -84,6 +84,13 @@ export default function Dashboard() {
     'daily' | 'monthly'
   >('daily')
 
+  // Filter state for Revenue Chart (Lifted State)
+  const [revenueFilter, setRevenueFilter] = useState<string[]>([
+    'Sebo',
+    'FCO',
+    'Farinheta',
+  ])
+
   // Trigger visual highlight when data updates
   useEffect(() => {
     if (isFirstRender.current) {
@@ -152,11 +159,10 @@ export default function Dashboard() {
   const { totalForecast, comparisonPercentage, previousTotalRevenue } =
     useMemo(() => {
       // 1. Current Period Stats (Actual Revenue + Surplus Production Value)
-      // Actual Revenue (Current Period)
-      const currentRevenue = filteredShipping.reduce(
-        (acc, curr) => acc + curr.quantity * curr.unitPrice,
-        0,
-      )
+      // Actual Revenue (Current Period) - Filtered by Products
+      const currentRevenue = filteredShipping
+        .filter((s) => revenueFilter.includes(s.product))
+        .reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0)
 
       // Calculate Production Totals (Current Period)
       const currentProductionTotals = filteredProduction.reduce(
@@ -169,21 +175,19 @@ export default function Dashboard() {
         {} as Record<string, number>,
       )
 
-      // Calculate Shipping Totals (Current Period)
-      const currentShippingTotals = filteredShipping.reduce(
-        (acc, curr) => {
-          acc[curr.product] = (acc[curr.product] || 0) + curr.quantity
-          return acc
-        },
-        {} as Record<string, number>,
-      )
-
       // Calculate Surplus Value: (Produced - Shipped) * AvgPrice, if positive
       let surplusValue = 0
       const products = ['Sebo', 'FCO', 'Farinheta']
       products.forEach((prod) => {
+        if (!revenueFilter.includes(prod)) return // Skip if not filtered
+
         const produced = currentProductionTotals[prod] || 0
-        const shipped = currentShippingTotals[prod] || 0
+
+        // Calculate shipped quantity for this specific product in the current period
+        const shippedQty = filteredShipping
+          .filter((s) => s.product === prod)
+          .reduce((acc, s) => acc + s.quantity, 0)
+
         // Handle potential FCO/Farinha naming differences in price map
         const price =
           avgPrices[prod] ||
@@ -192,8 +196,8 @@ export default function Dashboard() {
           avgPrices['Farinheta'] ||
           0
 
-        if (produced > shipped) {
-          surplusValue += (produced - shipped) * price
+        if (produced > shippedQty) {
+          surplusValue += (produced - shippedQty) * price
         }
       })
 
@@ -208,7 +212,10 @@ export default function Dashboard() {
         const prevTo = subDays(dateRange.to, duration)
 
         const prevShipping = shipping.filter(
-          (s) => s.date >= prevFrom && s.date <= prevTo,
+          (s) =>
+            s.date >= prevFrom &&
+            s.date <= prevTo &&
+            revenueFilter.includes(s.product),
         )
         prevRevenue = prevShipping.reduce(
           (acc, s) => acc + s.quantity * s.unitPrice,
@@ -226,7 +233,14 @@ export default function Dashboard() {
         comparisonPercentage: percentage,
         previousTotalRevenue: prevRevenue,
       }
-    }, [filteredShipping, filteredProduction, avgPrices, dateRange, shipping])
+    }, [
+      filteredShipping,
+      filteredProduction,
+      avgPrices,
+      dateRange,
+      shipping,
+      revenueFilter,
+    ])
 
   // Acidity KPI (Total processed volume checked)
   const totalAcidityVolume = filteredAcidity.reduce(
@@ -600,6 +614,8 @@ export default function Dashboard() {
               previous: previousTotalRevenue,
               percentage: comparisonPercentage,
             }}
+            activeFilter={revenueFilter}
+            onFilterChange={setRevenueFilter}
           />
         </TabsContent>
 
