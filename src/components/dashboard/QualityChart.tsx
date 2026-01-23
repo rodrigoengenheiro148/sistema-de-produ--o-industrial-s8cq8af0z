@@ -34,11 +34,11 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile'
 
 interface QualityChartProps {
-  title: string
+  title?: string
   data: any[]
-  mean: number
-  stdDev: number
-  unit: string
+  mean?: number
+  stdDev?: number
+  unit?: string
 }
 
 const chartConfig: ChartConfig = {
@@ -48,15 +48,19 @@ const chartConfig: ChartConfig = {
 }
 
 export function QualityChart({
-  title,
-  data,
-  mean,
-  stdDev,
-  unit,
+  title = 'Controle de Qualidade',
+  data = [],
+  mean = 0,
+  stdDev = 0,
+  unit = '',
 }: QualityChartProps) {
   const isMobile = useIsMobile()
 
-  if (data.length === 0) {
+  // Defensive programming: Ensure numeric values
+  const safeMean = typeof mean === 'number' && !isNaN(mean) ? mean : 0
+  const safeStdDev = typeof stdDev === 'number' && !isNaN(stdDev) ? stdDev : 0
+
+  if (!data || data.length === 0) {
     return (
       <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10 text-muted-foreground text-sm p-4 text-center">
         Sem dados suficientes.
@@ -64,8 +68,8 @@ export function QualityChart({
     )
   }
 
-  const lowerBound = Math.max(0, mean - stdDev)
-  const upperBound = mean + stdDev
+  const lowerBound = Math.max(0, safeMean - safeStdDev)
+  const upperBound = safeMean + safeStdDev
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
@@ -88,13 +92,16 @@ export function QualityChart({
           axisLine={false}
           width={isMobile ? 30 : 40}
           fontSize={isMobile ? 10 : 12}
-          tickFormatter={(val) => `${val.toFixed(1)}`}
+          tickFormatter={(val) => {
+            if (typeof val !== 'number' || isNaN(val)) return '0.0'
+            return val.toFixed(1)
+          }}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
 
         <ReferenceLine
-          y={mean}
+          y={safeMean}
           stroke="hsl(var(--muted-foreground))"
           strokeDasharray="3 3"
         />
@@ -139,7 +146,7 @@ export function QualityChart({
         <div className="flex flex-col space-y-1.5">
           <CardTitle className="text-base">{title}</CardTitle>
           <CardDescription className="text-xs sm:text-sm">
-            Tendência e Desvio Padrão (σ = {stdDev.toFixed(2)})
+            Tendência e Desvio Padrão (σ = {safeStdDev.toFixed(2)})
           </CardDescription>
         </div>
         <Dialog>
@@ -153,7 +160,7 @@ export function QualityChart({
             <DialogHeader>
               <DialogTitle>{title}</DialogTitle>
               <DialogDescription>
-                Tendência e Desvio Padrão (σ = {stdDev.toFixed(2)})
+                Tendência e Desvio Padrão (σ = {safeStdDev.toFixed(2)})
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">

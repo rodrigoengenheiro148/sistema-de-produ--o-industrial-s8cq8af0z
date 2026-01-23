@@ -95,6 +95,41 @@ export default function Quality() {
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
+  // Calculate statistics and prepare data for the chart
+  // Defaulting to Acidity as the primary metric for the chart
+  const chartData = [...filteredRecords]
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .map((item, index, array) => {
+      const val = item.acidity
+      // Simple 3-point moving average
+      let ma = val
+      if (index >= 2) {
+        ma =
+          (array[index].acidity +
+            array[index - 1].acidity +
+            array[index - 2].acidity) /
+          3
+      }
+      return {
+        ...item,
+        dateStr: format(item.date, 'dd/MM'),
+        value: val,
+        valueMA: ma,
+      }
+    })
+
+  const acidityValues = chartData.map((d) => d.acidity)
+  const meanAcidity =
+    acidityValues.length > 0
+      ? acidityValues.reduce((a, b) => a + b, 0) / acidityValues.length
+      : 0
+  const variance =
+    acidityValues.length > 0
+      ? acidityValues.reduce((a, b) => a + Math.pow(b - meanAcidity, 2), 0) /
+        acidityValues.length
+      : 0
+  const stdDevAcidity = Math.sqrt(variance)
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -136,7 +171,13 @@ export default function Quality() {
         </Dialog>
       </div>
 
-      <QualityChart data={filteredRecords} />
+      <QualityChart
+        title="Controle de Acidez"
+        data={chartData}
+        mean={meanAcidity}
+        stdDev={stdDevAcidity}
+        unit="%"
+      />
 
       <Card>
         <CardHeader>
