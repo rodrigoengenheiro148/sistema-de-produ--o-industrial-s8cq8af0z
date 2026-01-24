@@ -297,20 +297,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user?.id) return
 
-    // Clean up existing subscription properly
-    const cleanup = async () => {
-      if (factoriesChannelRef.current) {
-        await supabase.removeChannel(factoriesChannelRef.current)
-        factoriesChannelRef.current = null
-      }
-    }
-
-    cleanup()
-
     const channelName = `factories-global-${user.id}`
+    const channel = supabase.channel(channelName)
 
-    const channel = supabase
-      .channel(channelName)
+    channel
       .on(
         'postgres_changes',
         {
@@ -339,8 +329,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     factoriesChannelRef.current = channel
 
     return () => {
-      if (factoriesChannelRef.current) {
-        supabase.removeChannel(factoriesChannelRef.current)
+      supabase.removeChannel(channel)
+      if (factoriesChannelRef.current === channel) {
         factoriesChannelRef.current = null
       }
     }
@@ -350,16 +340,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
-    if (operationalChannelRef.current) {
-      supabase.removeChannel(operationalChannelRef.current)
-    }
+    const channelName = `operational-data-${currentFactoryId}`
+    const channel = supabase.channel(channelName)
 
-    // Use a unique channel name to prevent collisions
-    const uniqueId = Math.random().toString(36).substring(2, 9)
-    const channelName = `operational-data-${currentFactoryId}-${uniqueId}`
-
-    const channel = supabase
-      .channel(channelName)
+    channel
       .on(
         'postgres_changes',
         {
@@ -422,8 +406,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     operationalChannelRef.current = channel
 
     return () => {
-      if (operationalChannelRef.current) {
-        supabase.removeChannel(operationalChannelRef.current)
+      supabase.removeChannel(channel)
+      if (operationalChannelRef.current === channel) {
         operationalChannelRef.current = null
       }
     }
