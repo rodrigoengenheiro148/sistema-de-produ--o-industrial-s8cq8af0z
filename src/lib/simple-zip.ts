@@ -1,6 +1,7 @@
 /**
  * A minimal ZIP file generator for the browser.
  * Creates uncompressed ZIP archives.
+ * Now supports UTF-8 filenames via flag 0x0800.
  */
 
 const crc32 = (r: number, v: Uint8Array) => {
@@ -54,7 +55,8 @@ export class SimpleZip {
 
       view.setUint32(0, 0x04034b50, true) // Signature
       view.setUint16(4, 0x000a, true) // Version needed
-      view.setUint16(6, 0x0000, true) // Flags
+      // Flags: Bit 11 (0x0800) sets UTF-8 encoding for filenames
+      view.setUint16(6, 0x0800, true)
       view.setUint16(8, 0x0000, true) // Compression (0 = Store)
       view.setUint16(10, 0x0000, true) // Time (placeholder)
       view.setUint16(12, 0x0000, true) // Date (placeholder)
@@ -73,7 +75,8 @@ export class SimpleZip {
       cdView.setUint32(0, 0x02014b50, true) // Signature
       cdView.setUint16(4, 0x000a, true) // Version made by
       cdView.setUint16(6, 0x000a, true) // Version needed
-      cdView.setUint16(8, 0x0000, true) // Flags
+      // Flags: Bit 11 (0x0800) sets UTF-8 encoding for filenames
+      cdView.setUint16(8, 0x0800, true)
       cdView.setUint16(10, 0x0000, true) // Compression
       cdView.setUint16(12, 0x0000, true) // Time
       cdView.setUint16(14, 0x0000, true) // Date

@@ -5,15 +5,94 @@ import { SimpleZip } from '@/lib/simple-zip'
 interface TableDefinition {
   name: string
   fileName: string
+  columns: string[]
 }
 
 const TABLES: TableDefinition[] = [
-  { name: 'production', fileName: 'producao.csv' },
-  { name: 'shipping', fileName: 'expedicao.csv' },
-  { name: 'quality_records', fileName: 'qualidade.csv' },
-  { name: 'acidity_records', fileName: 'acidez.csv' },
-  { name: 'raw_materials', fileName: 'materia_prima.csv' },
-  { name: 'factories', fileName: 'fabricas.csv' },
+  {
+    name: 'production',
+    fileName: 'producao.csv',
+    columns: [
+      'id',
+      'date',
+      'shift',
+      'mp_used',
+      'sebo_produced',
+      'fco_produced',
+      'farinheta_produced',
+      'losses',
+      'factory_id',
+      'created_at',
+    ],
+  },
+  {
+    name: 'shipping',
+    fileName: 'expedicao.csv',
+    columns: [
+      'id',
+      'date',
+      'client',
+      'product',
+      'quantity',
+      'unit_price',
+      'doc_ref',
+      'factory_id',
+      'created_at',
+    ],
+  },
+  {
+    name: 'quality_records',
+    fileName: 'qualidade.csv',
+    columns: [
+      'id',
+      'date',
+      'product',
+      'acidity',
+      'protein',
+      'responsible',
+      'notes',
+      'factory_id',
+      'created_at',
+    ],
+  },
+  {
+    name: 'acidity_records',
+    fileName: 'acidez.csv',
+    columns: [
+      'id',
+      'date',
+      'time',
+      'responsible',
+      'weight',
+      'volume',
+      'acidity',
+      'tank',
+      'performed_times',
+      'notes',
+      'factory_id',
+      'created_at',
+    ],
+  },
+  {
+    name: 'raw_materials',
+    fileName: 'materia_prima.csv',
+    columns: [
+      'id',
+      'date',
+      'supplier',
+      'type',
+      'quantity',
+      'unit',
+      'notes',
+      'factory_id',
+      'created_at',
+    ],
+  },
+  {
+    name: 'factories',
+    fileName: 'fabricas.csv',
+    columns: ['id', 'name', 'location', 'manager', 'status', 'created_at'],
+  },
 ]
 
 const escapeCsvField = (value: any): string => {
@@ -25,6 +104,18 @@ const escapeCsvField = (value: any): string => {
 
   if (value instanceof Date) {
     stringValue = format(value, 'yyyy-MM-dd HH:mm:ss')
+  } else if (typeof value === 'string') {
+    // Check if it's an ISO date
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+      const d = new Date(value)
+      if (!isNaN(d.getTime())) {
+        stringValue = format(d, 'yyyy-MM-dd HH:mm:ss')
+      } else {
+        stringValue = value
+      }
+    } else {
+      stringValue = value
+    }
   } else if (typeof value === 'object') {
     try {
       stringValue = JSON.stringify(value)
@@ -43,19 +134,16 @@ const escapeCsvField = (value: any): string => {
   return stringValue
 }
 
-const convertToCsv = (data: any[]): string => {
+const convertToCsv = (data: any[], columns: string[]): string => {
+  // Always generate header row based on defined columns
+  const headerRow = columns.map((h) => `"${h}"`).join(',')
+
   if (!data || data.length === 0) {
-    return ''
+    return headerRow
   }
 
-  // Get headers from the first object, excluding internal or sensitive fields if needed
-  // We exclude 'user_id' as per user story recommendation
-  const headers = Object.keys(data[0]).filter((key) => key !== 'user_id')
-
-  const headerRow = headers.map((h) => `"${h}"`).join(',')
-
   const rows = data.map((row) => {
-    return headers.map((header) => escapeCsvField(row[header])).join(',')
+    return columns.map((col) => escapeCsvField(row[col])).join(',')
   })
 
   return [headerRow, ...rows].join('\n')
@@ -77,7 +165,7 @@ export const fetchAndZipCsvData = async () => {
 
       return {
         fileName: table.fileName,
-        csvContent: convertToCsv(data || []),
+        csvContent: convertToCsv(data || [], table.columns),
       }
     }),
   )
