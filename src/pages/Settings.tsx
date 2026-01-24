@@ -45,6 +45,7 @@ import {
 import { NotificationSettings } from '@/lib/types'
 import { DataExport } from '@/components/settings/DataExport'
 import { PowerBIExport } from '@/components/settings/PowerBIExport'
+import { ExcelExport } from '@/components/settings/ExcelExport'
 
 export default function Settings() {
   const {
@@ -788,6 +789,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="data" className="space-y-4">
+          <ExcelExport />
           <DataExport />
           <PowerBIExport />
         </TabsContent>
