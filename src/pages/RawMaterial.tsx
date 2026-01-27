@@ -27,6 +27,7 @@ import {
   CalendarIcon,
   Package,
   Lock,
+  MoreVertical,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -49,9 +50,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreVertical } from 'lucide-react'
 import { isRecordLocked } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
+import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 
 export default function RawMaterial() {
   const { rawMaterials, deleteRawMaterial, dateRange } = useData()
@@ -121,38 +122,42 @@ export default function RawMaterial() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              className="gap-2"
-              onClick={() => setEditingItem(undefined)}
-              size={isMobile ? 'sm' : 'default'}
-            >
-              <Plus className="h-4 w-4" /> {isMobile ? 'Nova' : 'Nova Entrada'}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingItem
-                  ? 'Atualize os detalhes do registro selecionado.'
-                  : 'Insira os detalhes do recebimento de matéria-prima.'}
-              </DialogDescription>
-            </DialogHeader>
-            <RawMaterialForm
-              initialData={editingItem}
-              onSuccess={() => setIsOpen(false)}
-              onCancel={() => setIsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <RawMaterialImportDialog />
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                className="gap-2 flex-1 sm:flex-none"
+                onClick={() => setEditingItem(undefined)}
+                size={isMobile ? 'default' : 'default'}
+              >
+                <Plus className="h-4 w-4" />{' '}
+                {isMobile ? 'Nova' : 'Nova Entrada'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingItem ? 'Editar Entrada' : 'Registrar Entrada'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingItem
+                    ? 'Atualize os detalhes do registro selecionado.'
+                    : 'Insira os detalhes do recebimento de matéria-prima.'}
+                </DialogDescription>
+              </DialogHeader>
+              <RawMaterialForm
+                initialData={editingItem}
+                onSuccess={() => setIsOpen(false)}
+                onCancel={() => setIsOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>

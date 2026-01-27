@@ -109,10 +109,9 @@ export interface NotificationSettings {
   seboThreshold: number
   farinhetaThreshold: number
   farinhaThreshold: number
-  fcoThreshold?: number // Added for FCO
+  fcoThreshold?: number
   notificationEmail: string
   notificationPhone: string
-  // Brevo / SMTP Integration
   brevoApiKey?: string
   smtpHost?: string
   smtpPort?: number
@@ -155,6 +154,9 @@ export interface DataContextType {
   qualityRecords: QualityEntry[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
+  bulkAddRawMaterials: (
+    entries: Omit<RawMaterialEntry, 'id'>[],
+  ) => Promise<void>
   updateRawMaterial: (entry: RawMaterialEntry) => void
   deleteRawMaterial: (id: string) => void
 
@@ -193,7 +195,6 @@ export interface DataContextType {
   dateRange: DateRange
   setDateRange: (range: DateRange) => void
 
-  // Deprecated/Legacy flags mapping to roles
   isDeveloperMode: boolean
   toggleDeveloperMode: () => void
   isViewerMode: boolean

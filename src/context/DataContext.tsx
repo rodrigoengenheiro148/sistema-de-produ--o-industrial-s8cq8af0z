@@ -428,6 +428,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const bulkAddRawMaterials = async (
+    entries: Omit<RawMaterialEntry, 'id'>[],
+  ) => {
+    if (!currentFactoryId || !user?.id) return
+
+    const dbEntries = entries.map((entry) => ({
+      date: entry.date.toISOString(),
+      supplier: entry.supplier,
+      type: entry.type,
+      quantity: entry.quantity,
+      unit: entry.unit,
+      notes: entry.notes,
+      user_id: user.id,
+      factory_id: currentFactoryId,
+    }))
+
+    const { error } = await supabase.from('raw_materials').insert(dbEntries)
+
+    if (error) {
+      throw error
+    } else {
+      fetchOperationalData()
+    }
+  }
+
   const updateRawMaterial = async (entry: RawMaterialEntry) => {
     const { error } = await supabase
       .from('raw_materials')
@@ -777,6 +802,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         rawMaterials,
         addRawMaterial,
+        bulkAddRawMaterials,
         updateRawMaterial,
         deleteRawMaterial,
         production,

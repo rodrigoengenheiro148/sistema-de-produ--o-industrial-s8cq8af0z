@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
 import { RawMaterialEntry } from '@/lib/types'
 import { DialogFooter } from '@/components/ui/dialog'
+import { RAW_MATERIAL_TYPES, MEASUREMENT_UNITS } from '@/lib/constants'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -161,16 +162,11 @@ export function RawMaterialForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Ossos">Ossos</SelectItem>
-                  <SelectItem value="Vísceras">Vísceras</SelectItem>
-                  <SelectItem value="VISCERAS DE PEIXE">
-                    VISCERAS DE PEIXE
-                  </SelectItem>
-                  <SelectItem value="MUXIBA">MUXIBA</SelectItem>
-                  <SelectItem value="Sangue">Sangue</SelectItem>
-                  <SelectItem value="Misto">Misto</SelectItem>
-                  <SelectItem value="Despojo">Despojo</SelectItem>
-                  <SelectItem value="Barrigada">Barrigada</SelectItem>
+                  {RAW_MATERIAL_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -207,10 +203,11 @@ export function RawMaterialForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="L">Litros</SelectItem>
-                    <SelectItem value="un">Unidades</SelectItem>
-                    <SelectItem value="ton">Toneladas</SelectItem>
+                    {MEASUREMENT_UNITS.map((unit) => (
+                      <SelectItem key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
