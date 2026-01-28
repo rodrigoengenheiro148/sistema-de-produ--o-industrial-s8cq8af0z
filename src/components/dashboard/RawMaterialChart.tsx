@@ -50,6 +50,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { RAW_MATERIAL_TYPES } from '@/lib/constants'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface RawMaterialChartProps {
   data: any[] // We accept data prop for compatibility but might override it with useData for local filtering
@@ -70,6 +80,7 @@ export function RawMaterialChart({
     format(new Date(), 'yyyy-MM'),
   )
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([])
 
   // Controls state
   const [openSupplier, setOpenSupplier] = useState(false)
@@ -104,8 +115,19 @@ export function RawMaterialChart({
       )
     }
 
+    // Type Filtering
+    if (selectedTypes.length > 0) {
+      filtered = filtered.filter((item) => selectedTypes.includes(item.type))
+    }
+
     return filtered.sort((a, b) => a.date.getTime() - b.date.getTime())
-  }, [rawMaterials, selectedDate, selectedMonth, selectedSuppliers])
+  }, [
+    rawMaterials,
+    selectedDate,
+    selectedMonth,
+    selectedSuppliers,
+    selectedTypes,
+  ])
 
   // Get unique lists for controls
   const allSuppliers = useMemo(() => {
@@ -192,6 +214,12 @@ export function RawMaterialChart({
       prev.includes(supplier)
         ? prev.filter((s) => s !== supplier)
         : [...prev, supplier],
+    )
+  }
+
+  const toggleType = (type: string) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     )
   }
 
@@ -317,6 +345,52 @@ export function RawMaterialChart({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Type Multi-Select */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-dashed"
+              >
+                <Filter className="mr-2 h-3 w-3" />
+                Tipos
+                {selectedTypes.length > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-2 h-5 px-1 text-[10px]"
+                  >
+                    {selectedTypes.length}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Filtrar por Tipo</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {RAW_MATERIAL_TYPES.map((type) => (
+                <DropdownMenuCheckboxItem
+                  key={type}
+                  checked={selectedTypes.includes(type)}
+                  onCheckedChange={() => toggleType(type)}
+                >
+                  {type}
+                </DropdownMenuCheckboxItem>
+              ))}
+              {selectedTypes.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => setSelectedTypes([])}
+                    className="justify-center text-center"
+                  >
+                    Limpar Filtro
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Supplier Multi-Select */}
           <Popover open={openSupplier} onOpenChange={setOpenSupplier}>

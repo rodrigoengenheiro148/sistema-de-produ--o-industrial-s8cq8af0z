@@ -7,6 +7,7 @@ export const RAW_MATERIAL_TYPES = [
   'Misto',
   'Despojo',
   'Barrigada',
+  'COURO BOVINO',
 ] as const
 
 export const MEASUREMENT_UNITS = [
