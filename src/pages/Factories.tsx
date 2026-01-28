@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -64,10 +63,20 @@ export default function Factories() {
   // Security Gate State
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  const [securityTitle, setSecurityTitle] = useState('Área Segura')
+  const [securityDescription, setSecurityDescription] = useState(
+    'Esta ação requer autorização de nível gerencial. Digite a senha para continuar.',
+  )
 
   // Always require password for factory modification actions
-  const handleSecureAction = (action: () => void) => {
+  const handleSecureAction = (
+    action: () => void,
+    title: string = 'Área Segura',
+    description: string = 'Esta ação requer autorização de nível gerencial. Digite a senha para continuar.',
+  ) => {
     setPendingAction(() => action)
+    setSecurityTitle(title)
+    setSecurityDescription(description)
     setSecurityOpen(true)
   }
 
@@ -78,8 +87,14 @@ export default function Factories() {
   }
 
   const handleCreate = () => {
-    setEditingFactory(undefined)
-    setIsDialogOpen(true)
+    handleSecureAction(
+      () => {
+        setEditingFactory(undefined)
+        setIsDialogOpen(true)
+      },
+      'Nova Fábrica',
+      'Para adicionar uma nova fábrica, é necessário autorização. Digite a senha.',
+    )
   }
 
   const handleEditClick = (factory: Factory) => {
@@ -166,12 +181,12 @@ export default function Factories() {
             Gerencie as unidades fabris integradas ao sistema.
           </p>
         </div>
+
+        <Button onClick={handleCreate} className="gap-2">
+          <Plus className="h-4 w-4" /> Nova Fábrica
+        </Button>
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleCreate} className="gap-2">
-              <Plus className="h-4 w-4" /> Nova Fábrica
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
@@ -300,8 +315,8 @@ export default function Factories() {
         isOpen={securityOpen}
         onOpenChange={setSecurityOpen}
         onSuccess={handleSecuritySuccess}
-        title="Área Segura"
-        description="Esta ação requer autorização de nível gerencial. Digite a senha para continuar."
+        title={securityTitle}
+        description={securityDescription}
       />
     </div>
   )
