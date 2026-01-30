@@ -18,7 +18,8 @@ import {
   NotificationSettings,
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { isSameDay } from 'date-fns'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -29,6 +30,8 @@ interface OverviewCardsProps {
   notificationSettings: NotificationSettings
 }
 
+const TARGET_FLOW_RATE = 7.125
+
 export function OverviewCards({
   rawMaterials,
   production,
@@ -37,6 +40,14 @@ export function OverviewCards({
   downtimeRecords,
   notificationSettings,
 }: OverviewCardsProps) {
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    // Update current time every minute to refresh calculations
+    const interval = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
   const metrics = useMemo(() => {
     // 1. Entrada MP (Total Raw Material)
     const totalRawMaterial = rawMaterials.reduce(
@@ -77,9 +88,10 @@ export function OverviewCards({
         const [endH, endM] = record.endTime.split(':').map(Number)
         endMinutes = endH * 60 + endM
       } else {
-        // If no end time, assume until now (for today) or skip if strictly historical calculation needed
-        // For simplicity in overview, we might skip open records or assume current time if it's today
-        const now = new Date()
+        // If no end time, use current time (now)
+        // We assume "real-time" tracking applies primarily to today's records
+        // But to ensure dynamic reduction works for any open record displayed,
+        // we use current time.
         endMinutes = now.getHours() * 60 + now.getMinutes()
       }
 
@@ -96,10 +108,12 @@ export function OverviewCards({
     const totalCookingHours = totalCookingMinutes / 60
     const usefulHours = Math.max(0, totalCookingHours - totalDowntimeHours)
 
-    // Use mpUsed from production for processed tons, or rawMaterials quantity if production data is missing
+    // Use mpUsed from production for processed tons (primary source as per AC),
+    // or rawMaterials quantity if production data is missing (fallback for real-time tracking of input batches)
     const totalProcessedTons =
       mpUsedForYield > 0 ? mpUsedForYield / 1000 : totalRawMaterial / 1000
 
+    // Calculation Formula: Processed Mass (tons) / Elapsed Time (hours)
     const flowRate = usefulHours > 0 ? totalProcessedTons / usefulHours : 0
 
     // 6. Specific Yields
@@ -135,7 +149,14 @@ export function OverviewCards({
       fcoYield,
       farinhetaYield,
     }
-  }, [rawMaterials, production, shipping, cookingTimeRecords, downtimeRecords])
+  }, [
+    rawMaterials,
+    production,
+    shipping,
+    cookingTimeRecords,
+    downtimeRecords,
+    now,
+  ])
 
   const formatCurrency = (val: number) => {
     if (val >= 1000000) {
@@ -231,10 +252,15 @@ export function OverviewCards({
                 t/h
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {metrics.totalProcessedTons.toFixed(1)}t em{' '}
-              {metrics.usefulHours.toFixed(1)}h úteis
-            </p>
+            <div className="flex flex-col gap-0.5 mt-1">
+              <p className="text-xs text-muted-foreground">
+                {metrics.totalProcessedTons.toFixed(1)}t em{' '}
+                {metrics.usefulHours.toFixed(1)}h úteis
+              </p>
+              <p className="text-xs font-medium text-muted-foreground/80">
+                Meta: {TARGET_FLOW_RATE.toFixed(3)} t/h
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
