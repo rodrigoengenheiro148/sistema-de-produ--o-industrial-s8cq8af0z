@@ -60,6 +60,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function DailyAcidity() {
   const {
@@ -81,6 +82,13 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Security Gate State
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false)
+  const [securityAction, setSecurityAction] = useState<{
+    type: 'edit' | 'delete'
+    item: AcidityEntry
+  } | null>(null)
 
   // Realtime subscription for Acidity Records
   useEffect(() => {
@@ -139,8 +147,35 @@ export default function DailyAcidity() {
   }
 
   function handleEditClick(entry: AcidityEntry) {
-    setEditingRecord(entry)
-    setIsEditOpen(true)
+    if (canEditRecord(entry.createdAt)) {
+      setEditingRecord(entry)
+      setIsEditOpen(true)
+    } else {
+      setSecurityAction({ type: 'edit', item: entry })
+      setIsSecurityOpen(true)
+    }
+  }
+
+  function handleDeleteClick(entry: AcidityEntry) {
+    if (canEditRecord(entry.createdAt)) {
+      setDeleteId(entry.id)
+    } else {
+      setSecurityAction({ type: 'delete', item: entry })
+      setIsSecurityOpen(true)
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setIsSecurityOpen(false)
+    if (securityAction) {
+      if (securityAction.type === 'edit') {
+        setEditingRecord(securityAction.item)
+        setIsEditOpen(true)
+      } else if (securityAction.type === 'delete') {
+        setDeleteId(securityAction.item.id)
+      }
+      setSecurityAction(null)
+    }
   }
 
   function handleDelete() {
@@ -245,10 +280,7 @@ export default function DailyAcidity() {
                                     <Lock className="h-3 w-3 text-muted-foreground/50" />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>
-                                      Registro bloqueado para edição (limite de
-                                      5 min excedido)
-                                    </p>
+                                    <p>Edição requer senha</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
@@ -257,15 +289,11 @@ export default function DailyAcidity() {
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger
-                              asChild
-                              disabled={!isEditable && !isMobile}
-                            >
+                            <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                disabled={!isEditable}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
@@ -277,7 +305,7 @@ export default function DailyAcidity() {
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => setDeleteId(entry.id)}
+                                onClick={() => handleDeleteClick(entry)}
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -375,7 +403,7 @@ export default function DailyAcidity() {
                                   <Lock className="h-3 w-3 text-muted-foreground/50" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Bloqueado (excedeu 5 min)</p>
+                                  <p>Edição requer senha</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -412,11 +440,8 @@ export default function DailyAcidity() {
                             size="icon"
                             onClick={() => handleEditClick(entry)}
                             title={
-                              isEditable
-                                ? 'Editar'
-                                : 'Edição bloqueada após 5 minutos'
+                              isEditable ? 'Editar' : 'Edição requer senha'
                             }
-                            disabled={!isEditable}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -428,8 +453,7 @@ export default function DailyAcidity() {
                                 ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
                                 : 'text-muted-foreground'
                             }
-                            onClick={() => setDeleteId(entry.id)}
-                            disabled={!isEditable}
+                            onClick={() => handleDeleteClick(entry)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -481,6 +505,14 @@ export default function DailyAcidity() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={isSecurityOpen}
+        onOpenChange={setIsSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+        title="Proteção de Registro"
+        description="Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+      />
     </div>
   )
 }

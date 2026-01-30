@@ -57,6 +57,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Quality() {
   const { qualityRecords, deleteQualityRecord, dateRange } = useData()
@@ -69,9 +70,43 @@ export default function Quality() {
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const handleEdit = (item: QualityEntry) => {
-    setEditingItem(item)
-    setIsOpen(true)
+  // Security Gate State
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false)
+  const [securityAction, setSecurityAction] = useState<{
+    type: 'edit' | 'delete'
+    item: QualityEntry
+  } | null>(null)
+
+  const handleEditClick = (item: QualityEntry) => {
+    if (canEditRecord(item.createdAt)) {
+      setEditingItem(item)
+      setIsOpen(true)
+    } else {
+      setSecurityAction({ type: 'edit', item })
+      setIsSecurityOpen(true)
+    }
+  }
+
+  const handleDeleteClick = (item: QualityEntry) => {
+    if (canEditRecord(item.createdAt)) {
+      setDeleteId(item.id)
+    } else {
+      setSecurityAction({ type: 'delete', item })
+      setIsSecurityOpen(true)
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setIsSecurityOpen(false)
+    if (securityAction) {
+      if (securityAction.type === 'edit') {
+        setEditingItem(securityAction.item)
+        setIsOpen(true)
+      } else if (securityAction.type === 'delete') {
+        setDeleteId(securityAction.item.id)
+      }
+      setSecurityAction(null)
+    }
   }
 
   const handleDelete = () => {
@@ -235,37 +270,31 @@ export default function Quality() {
                                     <Lock className="h-3 w-3 text-muted-foreground/50" />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Bloqueado (excedeu 5 min)</p>
+                                    <p>Edição requer senha</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger
-                              asChild
-                              disabled={!isEditable && !isMobile}
-                            >
+                            <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
-                                disabled={!isEditable}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => handleEdit(entry)}
-                                disabled={!isEditable}
+                                onClick={() => handleEditClick(entry)}
                               >
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => setDeleteId(entry.id)}
+                                onClick={() => handleDeleteClick(entry)}
                                 className="text-red-600 focus:text-red-600"
-                                disabled={!isEditable}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                               </DropdownMenuItem>
@@ -344,7 +373,7 @@ export default function Quality() {
                                   <Lock className="h-3 w-3 text-muted-foreground/50" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Bloqueado (excedeu 5 min)</p>
+                                  <p>Edição requer senha</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -381,8 +410,7 @@ export default function Quality() {
                                 ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
                                 : 'h-8 w-8 text-muted-foreground'
                             }
-                            onClick={() => handleEdit(entry)}
-                            disabled={!isEditable}
+                            onClick={() => handleEditClick(entry)}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -394,8 +422,7 @@ export default function Quality() {
                                 ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
                                 : 'h-8 w-8 text-muted-foreground'
                             }
-                            onClick={() => setDeleteId(entry.id)}
-                            disabled={!isEditable}
+                            onClick={() => handleDeleteClick(entry)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -429,6 +456,14 @@ export default function Quality() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SecurityGate
+        isOpen={isSecurityOpen}
+        onOpenChange={setIsSecurityOpen}
+        onSuccess={handleSecuritySuccess}
+        title="Proteção de Registro"
+        description="Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+      />
     </div>
   )
 }
