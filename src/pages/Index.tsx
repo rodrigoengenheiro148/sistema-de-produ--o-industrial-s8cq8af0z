@@ -131,20 +131,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="hourly-production" className="space-y-4">
+      <Tabs defaultValue="overview" className="space-y-4">
         <div className="no-print overflow-x-auto pb-2 scrollbar-hide">
           <TabsList className="bg-muted/50 w-full sm:w-auto flex">
+            <TabsTrigger
+              value="overview"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Visão Geral
+            </TabsTrigger>
             <TabsTrigger
               value="yields"
               className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               Rendimentos Detalhados
-            </TabsTrigger>
-            <TabsTrigger
-              value="hourly-production"
-              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-            >
-              Produção Horária
             </TabsTrigger>
             <TabsTrigger
               value="quality"
@@ -155,12 +155,7 @@ export default function Dashboard() {
           </TabsList>
         </div>
 
-        <TabsContent value="yields" className="space-y-4">
-          <YieldBarChart data={filteredProduction} isMobile={isMobile} />
-          <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
-        </TabsContent>
-
-        <TabsContent value="hourly-production" className="space-y-4">
+        <TabsContent value="overview" className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-semibold tracking-tight">
@@ -172,6 +167,11 @@ export default function Dashboard() {
             <ProductivityCard />
             <HourlyThroughput />
           </div>
+        </TabsContent>
+
+        <TabsContent value="yields" className="space-y-4">
+          <YieldBarChart data={filteredProduction} isMobile={isMobile} />
+          <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">

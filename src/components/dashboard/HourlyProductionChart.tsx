@@ -28,9 +28,8 @@ export function HourlyProductionChart({ className }: { className?: string }) {
   }, [])
 
   const chartData = useMemo(() => {
-    const today = new Date()
+    const today = now // Use current state to ensure day consistency across refreshes
     const records = cookingTimeRecords.filter((r) => isSameDay(r.date, today))
-    // We use created_at from downtime records to approximate the hourly impact
     const downtimes = downtimeRecords.filter((r) => isSameDay(r.date, today))
 
     const data = []
@@ -42,6 +41,7 @@ export function HourlyProductionChart({ className }: { className?: string }) {
 
       let activeMinutes = 0
 
+      // Calculate shift overlap
       records.forEach((rec) => {
         const startParts = rec.startTime.split(':').map(Number)
         const startMins = startParts[0] * 60 + startParts[1]
@@ -67,17 +67,35 @@ export function HourlyProductionChart({ className }: { className?: string }) {
         }
       })
 
-      // Downtime Subtraction (Best Effort based on creation time)
+      // Calculate Downtime Subtraction with proper spanning logic
+      let downtimeMinutesInHour = 0
       downtimes.forEach((dt) => {
         if (dt.createdAt) {
-          const dtDate = new Date(dt.createdAt)
-          // Only subtract if the downtime was logged within this hour
-          if (dtDate.getHours() === h) {
-            const dtMins = dt.durationHours * 60
-            activeMinutes = Math.max(0, activeMinutes - dtMins)
+          // dt.createdAt is a Date object mapped in context
+          const dtStart = dt.createdAt
+          const dtEnd = new Date(
+            dtStart.getTime() + dt.durationHours * 60 * 60 * 1000,
+          )
+
+          // Define current hour boundaries as Date objects
+          const hourStart = new Date(today)
+          hourStart.setHours(h, 0, 0, 0)
+
+          const hourEnd = new Date(today)
+          hourEnd.setHours(h + 1, 0, 0, 0)
+
+          // Calculate intersection
+          const start = Math.max(dtStart.getTime(), hourStart.getTime())
+          const end = Math.min(dtEnd.getTime(), hourEnd.getTime())
+
+          if (end > start) {
+            const overlapMinutes = (end - start) / (1000 * 60)
+            downtimeMinutesInHour += overlapMinutes
           }
         }
       })
+
+      activeMinutes = Math.max(0, activeMinutes - downtimeMinutesInHour)
 
       data.push({
         hour: `${h.toString().padStart(2, '0')}:00`,
