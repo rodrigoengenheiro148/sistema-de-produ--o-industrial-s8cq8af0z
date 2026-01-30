@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -54,7 +54,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { canEditRecord } from '@/lib/security'
-import { supabase } from '@/lib/supabase/client'
 import {
   Tooltip,
   TooltipContent,
@@ -69,8 +68,6 @@ export default function DailyAcidity() {
     updateAcidityRecord,
     deleteAcidityRecord,
     dateRange,
-    refreshOperationalData,
-    currentFactoryId,
   } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -89,41 +86,6 @@ export default function DailyAcidity() {
     type: 'edit' | 'delete'
     item: AcidityEntry
   } | null>(null)
-
-  // Realtime subscription for Acidity Records
-  useEffect(() => {
-    if (!currentFactoryId) return
-
-    const channel = supabase
-      .channel(`daily-acidity-${currentFactoryId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'acidity_records',
-          filter: `factory_id=eq.${currentFactoryId}`,
-        },
-        () => {
-          refreshOperationalData()
-        },
-      )
-      .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('Realtime subscription error (Acidity):', err)
-          toast({
-            title: 'Erro de Conexão',
-            description:
-              'Falha ao conectar com o servidor de tempo real. Atualize a página.',
-            variant: 'destructive',
-          })
-        }
-      })
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [currentFactoryId, refreshOperationalData, toast])
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
