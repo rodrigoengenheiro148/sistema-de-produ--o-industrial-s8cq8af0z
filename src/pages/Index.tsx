@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { CalendarIcon, ClipboardCheck, Clock } from 'lucide-react'
+import { CalendarIcon, ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
@@ -16,19 +16,26 @@ import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
-import { HourlyThroughput } from '@/components/dashboard/HourlyThroughput'
-import { ProductivityCard } from '@/components/dashboard/ProductivityCard'
-import { HourlyProductionChart } from '@/components/dashboard/HourlyProductionChart'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OverviewCards } from '@/components/dashboard/OverviewCards'
+import { LoadForecast } from '@/components/dashboard/LoadForecast'
+import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
+import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import { useMemo } from 'react'
 
 export default function Dashboard() {
   const {
     production,
+    rawMaterials,
+    shipping,
+    cookingTimeRecords,
+    downtimeRecords,
     qualityRecords,
     dateRange,
     setDateRange,
     factories,
     currentFactoryId,
+    notificationSettings,
   } = useData()
   const isMobile = useIsMobile()
 
@@ -43,11 +50,40 @@ export default function Dashboard() {
     })
   }
 
-  const filteredProduction = production
-    .filter((p) => filterByDate(p.date))
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-
-  const filteredQuality = qualityRecords.filter((q) => filterByDate(q.date))
+  // Memoize filtered data to prevent unnecessary re-renders
+  const {
+    filteredProduction,
+    filteredRawMaterials,
+    filteredShipping,
+    filteredCookingTime,
+    filteredDowntime,
+    filteredQuality,
+  } = useMemo(() => {
+    return {
+      filteredProduction: production
+        .filter((p) => filterByDate(p.date))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      filteredRawMaterials: rawMaterials
+        .filter((r) => filterByDate(r.date))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      filteredShipping: shipping
+        .filter((s) => filterByDate(s.date))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      filteredCookingTime: cookingTimeRecords.filter((c) =>
+        filterByDate(c.date),
+      ),
+      filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
+      filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
+    }
+  }, [
+    production,
+    rawMaterials,
+    shipping,
+    cookingTimeRecords,
+    downtimeRecords,
+    qualityRecords,
+    dateRange,
+  ])
 
   // Quality KPIs (Averages)
   const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
@@ -155,17 +191,34 @@ export default function Dashboard() {
           </TabsList>
         </div>
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold tracking-tight">
-              Monitoramento em Tempo Real
-            </h3>
-          </div>
-          <HourlyProductionChart className="min-h-[500px]" />
+        <TabsContent value="overview" className="space-y-6">
+          <OverviewCards
+            rawMaterials={filteredRawMaterials}
+            production={filteredProduction}
+            shipping={filteredShipping}
+            cookingTimeRecords={filteredCookingTime}
+            downtimeRecords={filteredDowntime}
+            notificationSettings={notificationSettings}
+          />
+
+          <LoadForecast
+            rawMaterials={filteredRawMaterials}
+            production={filteredProduction}
+            referenceDate={dateRange.to || new Date()}
+          />
+
           <div className="grid gap-4 md:grid-cols-2">
-            <ProductivityCard />
-            <HourlyThroughput />
+            <ProductionPerformanceChart
+              data={filteredProduction}
+              isMobile={isMobile}
+              timeScale="daily"
+            />
+            <RevenueChart
+              data={filteredShipping}
+              productionData={filteredProduction}
+              isMobile={isMobile}
+              timeScale="daily"
+            />
           </div>
         </TabsContent>
 

@@ -12,22 +12,42 @@ import {
 } from 'lucide-react'
 import { isSameDay, isSameMonth, isSameYear } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { ProductionEntry, RawMaterialEntry } from '@/lib/types'
 
-export function LoadForecast() {
-  const { rawMaterials, production } = useData()
+interface LoadForecastProps {
+  rawMaterials?: RawMaterialEntry[]
+  production?: ProductionEntry[]
+  referenceDate?: Date
+}
 
-  // State to track current time for midnight reset
-  const [now, setNow] = useState(new Date())
+export function LoadForecast({
+  rawMaterials: propRawMaterials,
+  production: propProduction,
+  referenceDate,
+}: LoadForecastProps) {
+  const contextData = useData()
 
-  // Update 'now' every minute to ensure the day rolls over automatically
+  // Use props if available (for filtering support), otherwise fallback to context (full data)
+  const rawMaterials = propRawMaterials || contextData.rawMaterials
+  const production = propProduction || contextData.production
+
+  // State to track current time for midnight reset if no reference date provided
+  const [now, setNow] = useState(referenceDate || new Date())
+
+  // Update 'now' only if we are in "live" mode (no reference date provided)
   useEffect(() => {
+    if (referenceDate) {
+      setNow(referenceDate)
+      return
+    }
+
     const timer = setInterval(() => {
       setNow(new Date())
     }, 60000)
     return () => clearInterval(timer)
-  }, [])
+  }, [referenceDate])
 
-  // 1. Calculate Average Yields from History
+  // 1. Calculate Average Yields from History (Using the provided production dataset)
   const yields = useMemo(() => {
     // Default / Fallback values as per requirements
     const defaults = {
@@ -58,6 +78,8 @@ export function LoadForecast() {
   }, [production])
 
   // 2. Calculate MP Inputs (Daily & Monthly)
+  // Logic: "Daily" refers to the Reference Date (or Today)
+  // "Monthly" refers to the Month of the Reference Date
   const { dailyMp, monthlyMp } = useMemo(() => {
     let daily = 0
     let monthly = 0
@@ -190,33 +212,35 @@ export function LoadForecast() {
   }
 
   return (
-    <div className="space-y-4 animate-fade-in-up">
-      <div className="flex items-center gap-2">
-        <Package className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold tracking-tight">
-          Previsão de Cargas (Bags)
-        </h3>
-      </div>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        <ForecastCard
-          title="Sebo"
-          icon={Droplets}
-          yieldPct={yields.sebo}
-          colorStyle={{ color: 'hsl(var(--chart-1))' }}
-        />
-        <ForecastCard
-          title="FCO / Farinha"
-          icon={Bone}
-          yieldPct={yields.fco}
-          colorStyle={{ color: 'hsl(var(--chart-2))' }}
-        />
-        <ForecastCard
-          title="Farinheta"
-          icon={Wheat}
-          yieldPct={yields.farinheta}
-          colorStyle={{ color: 'hsl(var(--chart-3))' }}
-        />
-      </div>
-    </div>
+    <Card className="shadow-sm border-primary/10">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Package className="h-5 w-5 text-primary" />
+          <CardTitle>Previsão de Cargas (Bags)</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          <ForecastCard
+            title="Sebo"
+            icon={Droplets}
+            yieldPct={yields.sebo}
+            colorStyle={{ color: 'hsl(var(--chart-1))' }}
+          />
+          <ForecastCard
+            title="FCO / Farinha"
+            icon={Bone}
+            yieldPct={yields.fco}
+            colorStyle={{ color: 'hsl(var(--chart-2))' }}
+          />
+          <ForecastCard
+            title="Farinheta"
+            icon={Wheat}
+            yieldPct={yields.farinheta}
+            colorStyle={{ color: 'hsl(var(--chart-3))' }}
+          />
+        </div>
+      </CardContent>
+    </Card>
   )
 }
