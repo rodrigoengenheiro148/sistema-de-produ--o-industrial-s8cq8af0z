@@ -42,6 +42,8 @@ export default function DashboardLayout() {
         return 'Unidades Fabris'
       case '/settings':
         return 'Configurações do Sistema'
+      case '/gestao/estoque-sebo':
+        return 'Estoque de Sebo Bovino'
       default:
         return 'Grupo BR Render'
     }
@@ -60,7 +62,6 @@ export default function DashboardLayout() {
                 <h1 className="text-base md:text-lg font-bold text-primary tracking-tight leading-tight truncate">
                   {getTitle()}
                 </h1>
-                {/* Factory name moved to Sidebar for better context switching, keeping breadcrumb style here if needed */}
                 {currentFactory && location.pathname !== '/fabricas' && (
                   <p className="text-xs text-muted-foreground hidden sm:block truncate">
                     {currentFactory.name}
@@ -95,7 +96,6 @@ export default function DashboardLayout() {
             </div>
           </div>
         </header>
-        {/* Adjusted padding bottom to account for MobileNav */}
         <main className="flex-1 overflow-auto p-4 md:p-6 bg-secondary/30 pb-24 md:pb-6">
           <Outlet />
         </main>

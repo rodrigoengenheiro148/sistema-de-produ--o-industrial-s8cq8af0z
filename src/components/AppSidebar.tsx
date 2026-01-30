@@ -10,6 +10,7 @@ import {
   Building2,
   ClipboardCheck,
   LineChart,
+  Database,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -29,7 +30,7 @@ import logoBrRender from '@/assets/logotipo-br-render.png'
 import { UserSwitcher } from '@/components/UserSwitcher'
 import { FactorySwitcher } from '@/components/FactorySwitcher'
 
-const items = [
+const operationalItems = [
   {
     title: 'Dashboard',
     url: '/',
@@ -82,6 +83,14 @@ const items = [
   },
 ]
 
+const managementItems = [
+  {
+    title: 'Estoque de Sebo',
+    url: '/gestao/estoque-sebo',
+    icon: Database,
+  },
+]
+
 export function AppSidebar() {
   const location = useLocation()
 
@@ -99,10 +108,46 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Operacional</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {operationalItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
+                    className="w-full"
+                  >
+                    <Link to={item.url} className="flex items-center gap-3">
+                      <item.icon
+                        className={cn(
+                          'h-4 w-4 transition-colors',
+                          location.pathname === item.url
+                            ? 'text-sidebar-primary'
+                            : 'text-muted-foreground',
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          location.pathname === item.url &&
+                            'font-semibold text-sidebar-primary',
+                        )}
+                      >
+                        {item.title}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>Gestão</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {managementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

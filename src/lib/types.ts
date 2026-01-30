@@ -62,6 +62,25 @@ export interface QualityEntry {
   createdAt?: Date
 }
 
+export interface SeboInventoryRecord {
+  id?: string
+  factoryId: string
+  userId: string
+  date: Date
+  tankNumber?: string
+  quantityLt: number
+  quantityKg: number
+  acidity?: number
+  moisture?: number
+  impurity?: number
+  soaps?: number
+  iodine?: number
+  label?: string
+  category: 'tank' | 'extra'
+  description?: string
+  createdAt?: Date
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined

@@ -13,6 +13,7 @@ import Shipping from './pages/Shipping'
 import Settings from './pages/Settings'
 import Factories from './pages/Factories'
 import AdvancedReports from './pages/AdvancedReports'
+import SeboInventory from './pages/gestao/SeboInventory'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import AuthPage from './pages/Auth'
@@ -52,9 +53,13 @@ const App = () => (
               />
               <Route path="/estoque" element={<Inventory />} />
               <Route path="/expedicao" element={<Shipping />} />
-              <Route path="/access-denied" element={<AccessDenied />} />
               <Route path="/fabricas" element={<Factories />} />
               <Route path="/settings" element={<Settings />} />
+
+              {/* Gestão Routes */}
+              <Route path="/gestao/estoque-sebo" element={<SeboInventory />} />
+
+              <Route path="/access-denied" element={<AccessDenied />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
