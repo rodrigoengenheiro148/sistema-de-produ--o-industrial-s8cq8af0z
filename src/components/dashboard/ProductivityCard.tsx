@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Timer } from 'lucide-react'
@@ -11,10 +11,16 @@ interface ProductivityCardProps {
 
 export function ProductivityCard({ className }: ProductivityCardProps) {
   const { rawMaterials, cookingTimeRecords, downtimeRecords } = useData()
+  const [now, setNow] = useState(new Date())
+
+  // Update current time every minute to keep calculations fresh for running processes
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   const metrics = useMemo(() => {
     // 1. Filter Data by Current Date (Today)
-    // We strictly use the current day for this KPI to show real-time daily efficiency
     const today = new Date()
     const filterFn = (d: Date) => isSameDay(d, today)
 
@@ -25,7 +31,6 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const filteredDowntime = downtimeRecords.filter((r) => filterFn(r.date))
 
     // 2. Total Raw Material (kg -> tons)
-    // Sum quantity from raw_materials for today
     const totalRawMaterialKg = filteredRawMaterials.reduce(
       (acc, curr) => acc + (Number(curr.quantity) || 0),
       0,
@@ -33,7 +38,6 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const totalRawMaterialTons = totalRawMaterialKg / 1000
 
     // 3. Total Downtime (hours)
-    // Sum duration_hours from downtime_records for today
     const totalDowntimeHours = filteredDowntime.reduce(
       (acc, curr) => acc + (Number(curr.durationHours) || 0),
       0,
@@ -41,8 +45,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     // 4. Total Cooking Time (hours)
     // Helper to parse HH:mm or HH:mm:ss to minutes
-    // We use manual parsing to be robust against different DB time formats
-    const getMinutes = (timeStr: string) => {
+    const getMinutes = (timeStr: string | null) => {
       if (!timeStr) return 0
       const parts = timeStr.split(':')
       if (parts.length < 2) return 0
@@ -55,12 +58,22 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     let totalElapsedMinutes = 0
     filteredCookingTimes.forEach((record) => {
       const start = getMinutes(record.startTime)
-      const end = getMinutes(record.endTime)
+      let end
+
+      if (record.endTime) {
+        end = getMinutes(record.endTime)
+      } else {
+        // Use current time for ongoing processes
+        end = now.getHours() * 60 + now.getMinutes()
+      }
 
       let diff = end - start
       // Handle crossover (next day) if end time is smaller than start time
       // This assumes a shift within 24h period (e.g., 23:00 -> 02:00)
       if (diff < 0) diff += 24 * 60
+
+      // If just started or future time (system clock diff), ensure non-negative
+      if (diff < 0) diff = 0
 
       totalElapsedMinutes += diff
     })
@@ -73,8 +86,9 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     // 6. Productivity (t/h)
     // Avoid division by zero: if effective hours is 0, productivity is 0
+    // Use raw material tons
     const productivity =
-      effectiveHours > 0 ? totalRawMaterialTons / effectiveHours : 0
+      effectiveHours > 0.01 ? totalRawMaterialTons / effectiveHours : 0
 
     // Ensure we never return NaN/undefined values for UI
     return {
@@ -84,7 +98,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
         ? totalRawMaterialTons
         : 0,
     }
-  }, [rawMaterials, cookingTimeRecords, downtimeRecords])
+  }, [rawMaterials, cookingTimeRecords, downtimeRecords, now])
 
   return (
     <Card className={cn(className)}>

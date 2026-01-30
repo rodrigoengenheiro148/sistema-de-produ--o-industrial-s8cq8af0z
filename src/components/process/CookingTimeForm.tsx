@@ -23,18 +23,36 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { Trash2, Clock } from 'lucide-react'
+import { Trash2, Clock, PlayCircle, StopCircle, Check } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { CookingTimeRecord } from '@/lib/types'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
   startTime: z.string().min(1, 'Hora Início é obrigatória'),
-  endTime: z.string().min(1, 'Hora Fim é obrigatória'),
+  endTime: z.string().optional().or(z.literal('')),
 })
 
 export function CookingTimeForm() {
-  const { addCookingTimeRecord, cookingTimeRecords, deleteCookingTimeRecord } =
-    useData()
+  const {
+    addCookingTimeRecord,
+    cookingTimeRecords,
+    deleteCookingTimeRecord,
+    updateCookingTimeRecord,
+  } = useData()
   const { toast } = useToast()
+  const [finishingRecord, setFinishingRecord] =
+    useState<CookingTimeRecord | null>(null)
+  const [finishTime, setFinishTime] = useState('')
+  const [openDialog, setOpenDialog] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,14 +70,16 @@ export function CookingTimeForm() {
     addCookingTimeRecord({
       date: dateObj,
       startTime: values.startTime,
-      endTime: values.endTime,
+      endTime: values.endTime || null, // Convert empty string to null
       userId: '', // handled by context/auth
       factoryId: '', // handled by context
     })
 
     toast({
       title: 'Registro salvo',
-      description: 'Tempo de cozimento adicionado com sucesso.',
+      description: values.endTime
+        ? 'Tempo de cozimento adicionado.'
+        : 'Processo iniciado com sucesso.',
     })
 
     form.reset({
@@ -67,6 +87,31 @@ export function CookingTimeForm() {
       startTime: '',
       endTime: '',
     })
+  }
+
+  const handleFinish = () => {
+    if (finishingRecord && finishTime) {
+      updateCookingTimeRecord({
+        ...finishingRecord,
+        endTime: finishTime,
+      })
+      setOpenDialog(false)
+      setFinishingRecord(null)
+      setFinishTime('')
+      toast({
+        title: 'Processo finalizado',
+        description: 'Hora de término registrada com sucesso.',
+      })
+    }
+  }
+
+  const openFinishDialog = (record: CookingTimeRecord) => {
+    setFinishingRecord(record)
+    // Default to current time for convenience
+    const now = new Date()
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    setFinishTime(timeStr)
+    setOpenDialog(true)
   }
 
   // Filter recently added records for display (e.g. current day)
@@ -127,7 +172,7 @@ export function CookingTimeForm() {
               name="endTime"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>Hora Fim</FormLabel>
+                  <FormLabel>Hora Fim (Opcional)</FormLabel>
                   <FormControl>
                     <Input type="time" {...field} />
                   </FormControl>
@@ -155,9 +200,36 @@ export function CookingTimeForm() {
                 displayedRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell>
-                      {record.startTime} - {record.endTime}
+                      <div className="flex items-center gap-2">
+                        {record.endTime ? (
+                          <>
+                            <StopCircle className="h-4 w-4 text-muted-foreground" />
+                            <span>
+                              {record.startTime} - {record.endTime}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle className="h-4 w-4 text-green-500 animate-pulse" />
+                            <span className="font-medium text-green-600">
+                              {record.startTime} - Em andamento
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      {!record.endTime && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1 text-xs"
+                          onClick={() => openFinishDialog(record)}
+                        >
+                          <Check className="h-3 w-3" />
+                          Finalizar
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -173,6 +245,40 @@ export function CookingTimeForm() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Finish Dialog */}
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Finalizar Processo</DialogTitle>
+              <DialogDescription>
+                Informe a hora de término para encerrar este ciclo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Hora Início: {finishingRecord?.startTime}</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="finish-time">Hora Fim</Label>
+                <Input
+                  id="finish-time"
+                  type="time"
+                  value={finishTime}
+                  onChange={(e) => setFinishTime(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <Button
+                onClick={handleFinish}
+                className="w-full"
+                disabled={!finishTime}
+              >
+                Confirmar Término
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

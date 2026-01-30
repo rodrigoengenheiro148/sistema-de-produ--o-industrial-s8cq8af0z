@@ -87,7 +87,7 @@ export interface CookingTimeRecord {
   userId: string
   date: Date
   startTime: string
-  endTime: string
+  endTime: string | null
   createdAt?: Date
 }
 
@@ -218,6 +218,7 @@ export interface DataContextType {
   deleteQualityRecord: (id: string) => void
 
   addCookingTimeRecord: (entry: Omit<CookingTimeRecord, 'id'>) => void
+  updateCookingTimeRecord: (entry: CookingTimeRecord) => void
   deleteCookingTimeRecord: (id: string) => void
 
   addDowntimeRecord: (entry: Omit<DowntimeRecord, 'id'>) => void

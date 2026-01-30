@@ -606,6 +606,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const updateCookingTimeRecord = async (entry: CookingTimeRecord) => {
+    const { error } = await supabase
+      .from('cooking_time_records')
+      .update({
+        date: entry.date.toISOString(),
+        start_time: entry.startTime,
+        end_time: entry.endTime,
+      })
+      .eq('id', entry.id)
+    if (!error) fetchOperationalData()
+  }
+
   const deleteCookingTimeRecord = async (id: string) => {
     const { error } = await supabase
       .from('cooking_time_records')
@@ -832,6 +844,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteQualityRecord,
         cookingTimeRecords,
         addCookingTimeRecord,
+        updateCookingTimeRecord,
         deleteCookingTimeRecord,
         downtimeRecords,
         addDowntimeRecord,
