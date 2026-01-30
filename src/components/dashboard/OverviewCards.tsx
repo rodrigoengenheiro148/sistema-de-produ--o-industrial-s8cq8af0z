@@ -19,7 +19,6 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo, useState, useEffect } from 'react'
-import { isSameDay } from 'date-fns'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -100,21 +99,15 @@ export function OverviewCards({
       totalCookingMinutes += diff
     })
 
-    const totalDowntimeHours = downtimeRecords.reduce(
-      (acc, curr) => acc + curr.durationHours,
-      0,
-    )
-
     const totalCookingHours = totalCookingMinutes / 60
-    const usefulHours = Math.max(0, totalCookingHours - totalDowntimeHours)
 
-    // Use mpUsed from production for processed tons (primary source as per AC),
-    // or rawMaterials quantity if production data is missing (fallback for real-time tracking of input batches)
-    const totalProcessedTons =
-      mpUsedForYield > 0 ? mpUsedForYield / 1000 : totalRawMaterial / 1000
+    // Use total raw material for throughput calculation
+    const totalProcessedTons = totalRawMaterial / 1000
 
     // Calculation Formula: Processed Mass (tons) / Elapsed Time (hours)
-    const flowRate = usefulHours > 0 ? totalProcessedTons / usefulHours : 0
+    // Based on aggregated raw materials and total cooking time
+    const flowRate =
+      totalCookingHours > 0 ? totalProcessedTons / totalCookingHours : 0
 
     // 6. Specific Yields
     const seboProduced = production.reduce(
@@ -144,7 +137,7 @@ export function OverviewCards({
       totalRevenue,
       flowRate,
       totalProcessedTons,
-      usefulHours,
+      usefulHours: totalCookingHours,
       seboYield,
       fcoYield,
       farinhetaYield,
@@ -154,7 +147,7 @@ export function OverviewCards({
     production,
     shipping,
     cookingTimeRecords,
-    downtimeRecords,
+    // downtimeRecords is intentionally unused for flow rate calculation based on requirements
     now,
   ])
 
