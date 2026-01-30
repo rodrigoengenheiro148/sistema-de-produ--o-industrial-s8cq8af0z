@@ -83,18 +83,24 @@ const mapData = (data: any[]) => {
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
     factoryId: item.factory_id,
-    // New fields mapping
     startTime: item.start_time,
     endTime: item.end_time,
     durationHours: item.duration_hours,
   }))
 }
 
+export const useData = () => {
+  const context = useContext(DataContext)
+  if (context === undefined) {
+    throw new Error('useData must be used within a DataProvider')
+  }
+  return context
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const { user } = useAuth()
-  const factoriesChannelRef = useRef<RealtimeChannel | null>(null)
   const operationalChannelRef = useRef<RealtimeChannel | null>(null)
 
   const [currentFactoryId, setCurrentFactoryId] = useState<string>(() => {
@@ -319,7 +325,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
-  // Realtime Subscriptions (Operational)
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
@@ -402,8 +407,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
-
-  // CRUD Operations
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
