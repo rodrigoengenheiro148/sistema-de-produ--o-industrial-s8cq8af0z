@@ -48,7 +48,6 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     )
 
     // 4. Total Cooking Time (hours)
-    // Helper to parse HH:mm or HH:mm:ss to minutes
     const getMinutes = (timeStr: string | null) => {
       if (!timeStr) return 0
       const parts = timeStr.split(':')
@@ -72,11 +71,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       }
 
       let diff = end - start
-      // Handle crossover (next day) if end time is smaller than start time
-      // This assumes a shift within 24h period (e.g., 23:00 -> 02:00)
       if (diff < 0) diff += 24 * 60
-
-      // If just started or future time (system clock diff), ensure non-negative
       if (diff < 0) diff = 0
 
       totalElapsedMinutes += diff
@@ -84,30 +79,38 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     const totalElapsedHours = totalElapsedMinutes / 60
 
-    // 5. Useful Hours (Effective Time) = Elapsed - Downtime
-    // Protect against negative time if downtime exceeds elapsed
+    // 5. Useful Hours
     const usefulHours = Math.max(0, totalElapsedHours - totalDowntimeHours)
 
-    // 6. Calculate Processed and Remaining Material based on Fixed Flow Rate
-    // Processed = Flow Rate * Useful Hours
+    // 6. Calculate Processed
     const calculatedProcessedTons = usefulHours * FIXED_FLOW_RATE
-
-    // Cap Processed at Total Raw Material
-    // The Quantity Produced value must never exceed the Total MP for the day.
     const processedTons = Math.min(
       calculatedProcessedTons,
       totalRawMaterialTons,
     )
-
-    // Remaining = Total - Processed (Cannot be negative)
     const remainingTons = Math.max(0, totalRawMaterialTons - processedTons)
 
     return {
       processedTons,
       remainingTons,
       totalRawMaterialTons,
+      processedKg: processedTons * 1000,
     }
   }, [rawMaterials, cookingTimeRecords, downtimeRecords, now])
+
+  // Formatting Logic based on Acceptance Criteria
+  // If calculated value (kg) is between 0 and 999 -> unit kg/M
+  // If calculated value (kg) is 1.000 or higher -> unit t/h (displaying tons)
+  let displayValue: string
+  let displayUnit: string
+
+  if (metrics.processedKg < 1000) {
+    displayValue = metrics.processedKg.toFixed(2)
+    displayUnit = 'kg/M'
+  } else {
+    displayValue = metrics.processedTons.toFixed(2)
+    displayUnit = 't/h'
+  }
 
   return (
     <Card className={cn(className)}>
@@ -118,8 +121,11 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
         <Timer className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {metrics.processedTons.toFixed(2)} t
+        <div className="text-2xl font-bold flex items-baseline gap-1">
+          {displayValue}{' '}
+          <span className="text-sm font-medium text-muted-foreground">
+            {displayUnit}
+          </span>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {metrics.remainingTons.toFixed(2)}t restantes de{' '}

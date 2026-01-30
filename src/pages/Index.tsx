@@ -16,7 +16,6 @@ import {
   Factory as FactoryIcon,
   PieChart,
   DollarSign,
-  FlaskConical,
   ClipboardCheck,
   Droplets,
   Bone,
@@ -39,6 +38,7 @@ import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { HourlyThroughput } from '@/components/dashboard/HourlyThroughput'
 import { ProductivityCard } from '@/components/dashboard/ProductivityCard'
+import { HourlyProductionChart } from '@/components/dashboard/HourlyProductionChart'
 import { ShippingEntry } from '@/lib/types'
 
 // Helper to get average prices from full history to ensure stability
@@ -177,7 +177,6 @@ export default function Dashboard() {
   const { totalForecast, comparisonPercentage, previousTotalRevenue } =
     useMemo(() => {
       // 1. Current Period Stats (Actual Revenue + Surplus Production Value)
-      // Actual Revenue (Current Period) - Filtered by Products AND Clients
       const currentRevenue = filteredShipping
         .filter((s) => revenueFilter.includes(s.product))
         .filter(
@@ -185,7 +184,6 @@ export default function Dashboard() {
         )
         .reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0)
 
-      // Calculate Production Totals (Current Period)
       const currentProductionTotals = filteredProduction.reduce(
         (acc, curr) => {
           acc['Sebo'] = (acc['Sebo'] || 0) + curr.seboProduced
@@ -196,20 +194,16 @@ export default function Dashboard() {
         {} as Record<string, number>,
       )
 
-      // Calculate Surplus Value: (Produced - Shipped) * AvgPrice, if positive
       let surplusValue = 0
       const products = ['Sebo', 'FCO', 'Farinheta']
       products.forEach((prod) => {
-        if (!revenueFilter.includes(prod)) return // Skip if not filtered by product
+        if (!revenueFilter.includes(prod)) return
 
         const produced = currentProductionTotals[prod] || 0
-
-        // Calculate GLOBAL shipped quantity for this specific product in the current period
         const shippedQty = filteredShipping
           .filter((s) => s.product === prod)
           .reduce((acc, s) => acc + s.quantity, 0)
 
-        // Handle potential FCO/Farinha naming differences in price map
         const price =
           avgPrices[prod] ||
           avgPrices['Farinha'] ||
@@ -227,9 +221,7 @@ export default function Dashboard() {
       // 2. Previous Period Stats
       let prevRevenue = 0
       if (dateRange.from && dateRange.to) {
-        // Calculate the previous period with the same duration
         const duration = differenceInDays(dateRange.from, dateRange.to)
-        // Correct previous period logic: subtract duration from 'from'
         const prevFrom = subDays(dateRange.from, Math.abs(duration) + 1)
         const prevTo = subDays(dateRange.to, Math.abs(duration) + 1)
 
@@ -265,12 +257,6 @@ export default function Dashboard() {
       revenueFilter,
       clientFilter,
     ])
-
-  // Acidity KPI (Total processed volume checked)
-  const totalAcidityVolume = filteredAcidity.reduce(
-    (acc, curr) => acc + curr.volume,
-    0,
-  )
 
   // Quality KPIs (Averages)
   const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
@@ -318,16 +304,13 @@ export default function Dashboard() {
   const yieldFarinheta =
     totalMPUsada > 0 ? (totalFarinheta / totalMPUsada) * 100 : 0
 
-  // Helper for conditional coloring based on targets
   const getYieldColorClass = (value: number, target: number) => {
-    // If no data (0), stay neutral or handle as needed. Assuming 0 is bad if target > 0.
     if (value === 0 && target > 0) return 'text-destructive'
     return value >= target
       ? 'text-green-600 dark:text-green-500'
       : 'text-destructive'
   }
 
-  // Dynamic classes for visual feedback
   const highlightClass = highlight
     ? 'ring-2 ring-primary bg-primary/5 shadow-md scale-[1.01] transition-all duration-300'
     : 'transition-all duration-700'
@@ -495,6 +478,11 @@ export default function Dashboard() {
                 highlightClass,
               )}
             />
+          </div>
+
+          {/* New Overview Section: Hourly Production */}
+          <div className="grid gap-4">
+            <HourlyProductionChart />
           </div>
 
           {/* Yields Summary Cards for Overview */}
