@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   LineChart,
   Database,
+  Timer,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -88,6 +89,11 @@ const managementItems = [
     title: 'Estoque de Sebo',
     url: '/gestao/estoque-sebo',
     icon: Database,
+  },
+  {
+    title: 'Tempos de Processo',
+    url: '/gestao/processo',
+    icon: Timer,
   },
 ]
 

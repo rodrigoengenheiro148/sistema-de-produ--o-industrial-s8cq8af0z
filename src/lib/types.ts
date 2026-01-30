@@ -81,6 +81,26 @@ export interface SeboInventoryRecord {
   createdAt?: Date
 }
 
+export interface CookingTimeRecord {
+  id: string
+  factoryId: string
+  userId: string
+  date: Date
+  startTime: string
+  endTime: string
+  createdAt?: Date
+}
+
+export interface DowntimeRecord {
+  id: string
+  factoryId: string
+  userId: string
+  date: Date
+  durationHours: number
+  reason: string
+  createdAt?: Date
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined
@@ -171,6 +191,8 @@ export interface DataContextType {
   shipping: ShippingEntry[]
   acidityRecords: AcidityEntry[]
   qualityRecords: QualityEntry[]
+  cookingTimeRecords: CookingTimeRecord[]
+  downtimeRecords: DowntimeRecord[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (
@@ -194,6 +216,12 @@ export interface DataContextType {
   addQualityRecord: (entry: Omit<QualityEntry, 'id'>) => void
   updateQualityRecord: (entry: QualityEntry) => void
   deleteQualityRecord: (id: string) => void
+
+  addCookingTimeRecord: (entry: Omit<CookingTimeRecord, 'id'>) => void
+  deleteCookingTimeRecord: (id: string) => void
+
+  addDowntimeRecord: (entry: Omit<DowntimeRecord, 'id'>) => void
+  deleteDowntimeRecord: (id: string) => void
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

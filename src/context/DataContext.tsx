@@ -21,6 +21,8 @@ import {
   ConnectionStatus,
   YieldTargets,
   NotificationSettings,
+  CookingTimeRecord,
+  DowntimeRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -81,6 +83,10 @@ const mapData = (data: any[]) => {
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
     factoryId: item.factory_id,
+    // New fields mapping
+    startTime: item.start_time,
+    endTime: item.end_time,
+    durationHours: item.duration_hours,
   }))
 }
 
@@ -106,6 +112,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [shipping, setShipping] = useState<ShippingEntry[]>([])
   const [acidityRecords, setAcidityRecords] = useState<AcidityEntry[]>([])
   const [qualityRecords, setQualityRecords] = useState<QualityEntry[]>([])
+  const [cookingTimeRecords, setCookingTimeRecords] = useState<
+    CookingTimeRecord[]
+  >([])
+  const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
 
@@ -226,6 +236,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setShipping([])
       setAcidityRecords([])
       setQualityRecords([])
+      setCookingTimeRecords([])
+      setDowntimeRecords([])
       return
     }
 
@@ -236,6 +248,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: ship },
         { data: acid },
         { data: qual },
+        { data: cooking },
+        { data: downtime },
       ] = await Promise.all([
         supabase
           .from('raw_materials')
@@ -262,6 +276,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('*')
           .eq('factory_id', currentFactoryId)
           .order('date', { ascending: false }),
+        supabase
+          .from('cooking_time_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
+          .from('downtime_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -269,6 +293,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (ship) setShipping(mapData(ship))
       if (acid) setAcidityRecords(mapData(acid))
       if (qual) setQualityRecords(mapData(qual))
+      if (cooking) setCookingTimeRecords(mapData(cooking))
+      if (downtime) setDowntimeRecords(mapData(downtime))
 
       setLastProtheusSync(new Date())
     } catch (error) {
@@ -293,64 +319,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
-  // Realtime Subscriptions (Global - Factories)
-  useEffect(() => {
-    if (!user?.id) return
-
-    const channelName = `factories-global-${user.id}`
-    const channel = supabase.channel(channelName)
-
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'factories',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Factories Realtime Update:', payload)
-          fetchGlobalData()
-        },
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to factories changes')
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error(
-            `Realtime subscription error (factories) on channel ${channelName}:`,
-            err?.message || err || status,
-          )
-        }
-      })
-
-    factoriesChannelRef.current = channel
-
-    return () => {
-      supabase.removeChannel(channel)
-      if (factoriesChannelRef.current === channel) {
-        factoriesChannelRef.current = null
-      }
-    }
-  }, [user?.id, fetchGlobalData])
-
-  // Realtime Subscriptions (Operational - Scoped to Factory)
+  // Realtime Subscriptions (Operational)
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
-    // Validating UUID format for currentFactoryId to avoid subscription errors with invalid IDs
-    // This regex checks for a standard UUID format
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(currentFactoryId)) {
-      console.warn(
-        'Invalid Factory ID format for subscription:',
-        currentFactoryId,
-      )
-      return
-    }
+    if (!uuidRegex.test(currentFactoryId)) return
 
     const channelName = `operational-data-${currentFactoryId}`
     const channel = supabase.channel(channelName)
@@ -391,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         {
           event: '*',
           schema: 'public',
-          table: 'acidity_records',
+          table: 'cooking_time_records',
           filter: `factory_id=eq.${currentFactoryId}`,
         },
         () => fetchOperationalData(),
@@ -401,7 +376,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         {
           event: '*',
           schema: 'public',
-          table: 'quality_records',
+          table: 'downtime_records',
           filter: `factory_id=eq.${currentFactoryId}`,
         },
         () => fetchOperationalData(),
@@ -409,11 +384,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('online')
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          // Robust error handling to avoid "undefined" in logs
+        } else if (status === 'CHANNEL_ERROR') {
           console.error(
             `Realtime subscription error on ${channelName}:`,
-            err?.message || err || status,
+            err?.message,
           )
           setConnectionStatus('error')
         }
@@ -428,6 +402,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
+
+  // CRUD Operations
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
@@ -448,7 +424,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     entries: Omit<RawMaterialEntry, 'id'>[],
   ) => {
     if (!currentFactoryId || !user?.id) return
-
     const dbEntries = entries.map((entry) => ({
       date: entry.date.toISOString(),
       supplier: entry.supplier,
@@ -459,14 +434,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       user_id: user.id,
       factory_id: currentFactoryId,
     }))
-
     const { error } = await supabase.from('raw_materials').insert(dbEntries)
-
-    if (error) {
-      throw error
-    } else {
-      fetchOperationalData()
-    }
+    if (error) throw error
+    else fetchOperationalData()
   }
 
   const updateRawMaterial = async (entry: RawMaterialEntry) => {
@@ -643,6 +613,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const addCookingTimeRecord = async (entry: Omit<CookingTimeRecord, 'id'>) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('cooking_time_records').insert({
+      date: entry.date.toISOString(),
+      start_time: entry.startTime,
+      end_time: entry.endTime,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteCookingTimeRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('cooking_time_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
+  const addDowntimeRecord = async (entry: Omit<DowntimeRecord, 'id'>) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('downtime_records').insert({
+      date: entry.date.toISOString(),
+      duration_hours: entry.durationHours,
+      reason: entry.reason,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteDowntimeRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('downtime_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -809,6 +819,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('shipping').delete().eq('user_id', user.id),
       supabase.from('acidity_records').delete().eq('user_id', user.id),
       supabase.from('quality_records').delete().eq('user_id', user.id),
+      supabase.from('cooking_time_records').delete().eq('user_id', user.id),
+      supabase.from('downtime_records').delete().eq('user_id', user.id),
     ])
     fetchOperationalData()
   }
@@ -837,6 +849,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addQualityRecord,
         updateQualityRecord,
         deleteQualityRecord,
+        cookingTimeRecords,
+        addCookingTimeRecord,
+        deleteCookingTimeRecord,
+        downtimeRecords,
+        addDowntimeRecord,
+        deleteDowntimeRecord,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},
@@ -876,10 +894,4 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       {children}
     </DataContext.Provider>
   )
-}
-
-export const useData = () => {
-  const context = useContext(DataContext)
-  if (!context) throw new Error('useData must be used within a DataProvider')
-  return context
 }

@@ -38,6 +38,7 @@ import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { HourlyThroughput } from '@/components/dashboard/HourlyThroughput'
+import { ProductivityCard } from '@/components/dashboard/ProductivityCard'
 import { ShippingEntry } from '@/lib/types'
 
 // Helper to get average prices from full history to ensure stability
@@ -196,8 +197,6 @@ export default function Dashboard() {
       )
 
       // Calculate Surplus Value: (Produced - Shipped) * AvgPrice, if positive
-      // NOTE: Surplus Inventory should be calculated against GLOBAL shipments, not just filtered clients.
-      // If we use filtered clients, we artificially create a huge surplus because we ignore shipments to other clients.
       let surplusValue = 0
       const products = ['Sebo', 'FCO', 'Farinheta']
       products.forEach((prod) => {
@@ -490,24 +489,12 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-            <Card
+            <ProductivityCard
               className={cn(
                 'border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-4 xl:col-span-1',
                 highlightClass,
               )}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Vol. Acidez Analisado
-                </CardTitle>
-                <FlaskConical className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalAcidityVolume.toLocaleString('pt-BR')} L
-                </div>
-              </CardContent>
-            </Card>
+            />
           </div>
 
           {/* Yields Summary Cards for Overview */}
