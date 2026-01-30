@@ -13,7 +13,7 @@ import {
   ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, LabelList } from 'recharts'
+import { BarChart, Bar, CartesianGrid, XAxis, LabelList, YAxis } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -31,12 +31,14 @@ import { cn } from '@/lib/utils'
 interface LossAnalysisChartProps {
   data: ProductionEntry[]
   timeScale?: 'daily' | 'monthly'
+  isMobile?: boolean
   className?: string
 }
 
 export function LossAnalysisChart({
   data,
   timeScale = 'daily',
+  isMobile = false,
   className,
 }: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
@@ -107,7 +109,10 @@ export function LossAnalysisChart({
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart data={chartData} margin={{ top: 20 }}>
+      <BarChart
+        data={chartData}
+        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+      >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="date"
@@ -115,6 +120,16 @@ export function LossAnalysisChart({
           axisLine={false}
           tickMargin={8}
           minTickGap={32}
+          fontSize={isMobile ? 10 : 12}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          width={isMobile ? 30 : 50}
+          fontSize={isMobile ? 10 : 12}
+          tickFormatter={(value) =>
+            value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value
+          }
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="perdas" fill="var(--color-perdas)" radius={[4, 4, 0, 0]}>
@@ -123,7 +138,7 @@ export function LossAnalysisChart({
             position="top"
             offset={8}
             className="fill-foreground font-bold"
-            fontSize={11}
+            fontSize={isMobile ? 9 : 11}
             formatter={(value: number) =>
               value > 0 ? `${value.toFixed(1)}%` : ''
             }

@@ -21,6 +21,7 @@ import { OverviewCards } from '@/components/dashboard/OverviewCards'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
+import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { useMemo } from 'react'
 
 export default function Dashboard() {
@@ -220,6 +221,12 @@ export default function Dashboard() {
               timeScale="daily"
             />
           </div>
+
+          <LossAnalysisChart
+            data={filteredProduction}
+            isMobile={isMobile}
+            timeScale="daily"
+          />
         </TabsContent>
 
         <TabsContent value="yields" className="space-y-4">
