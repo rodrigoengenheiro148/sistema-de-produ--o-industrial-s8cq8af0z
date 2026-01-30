@@ -325,9 +325,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
+  // Realtime Subscription Setup
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
+    // Validation for valid UUID to avoid postgres syntax errors
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(currentFactoryId)) return
@@ -335,68 +337,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     const channelName = `operational-data-${currentFactoryId}`
     const channel = supabase.channel(channelName)
 
-    channel
-      .on(
+    // List of tables to subscribe to
+    // We include all tables that populate the dashboard metrics
+    const tables = [
+      'raw_materials',
+      'production',
+      'shipping',
+      'acidity_records',
+      'quality_records',
+      'cooking_time_records',
+      'downtime_records',
+    ]
+
+    // Initialize subscriptions
+    tables.forEach((table) => {
+      channel.on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'raw_materials',
+          table: table,
           filter: `factory_id=eq.${currentFactoryId}`,
         },
         () => fetchOperationalData(),
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'production',
-          filter: `factory_id=eq.${currentFactoryId}`,
-        },
-        () => fetchOperationalData(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shipping',
-          filter: `factory_id=eq.${currentFactoryId}`,
-        },
-        () => fetchOperationalData(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'cooking_time_records',
-          filter: `factory_id=eq.${currentFactoryId}`,
-        },
-        () => fetchOperationalData(),
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'downtime_records',
-          filter: `factory_id=eq.${currentFactoryId}`,
-        },
-        () => fetchOperationalData(),
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          setConnectionStatus('online')
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(
-            `Realtime subscription error on ${channelName}:`,
-            err?.message,
-          )
-          setConnectionStatus('error')
-        }
-      })
+    })
+
+    channel.subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        setConnectionStatus('online')
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error(
+          `Realtime subscription error on ${channelName}:`,
+          err?.message || err || 'Unknown error',
+        )
+        // We set it to error but don't disrupt the user if data was loaded
+        setConnectionStatus('error')
+      }
+    })
 
     operationalChannelRef.current = channel
 
