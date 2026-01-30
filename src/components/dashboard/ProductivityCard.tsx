@@ -13,6 +13,9 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
   const { rawMaterials, cookingTimeRecords, downtimeRecords } = useData()
   const [now, setNow] = useState(new Date())
 
+  // Fixed flow rate as per requirements (7.125 t/h)
+  const FIXED_FLOW_RATE = 7.125
+
   // Update current time every minute to keep calculations fresh for running processes
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000)
@@ -80,23 +83,28 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     const totalElapsedHours = totalElapsedMinutes / 60
 
-    // 5. Effective Time = Elapsed - Downtime
-    // Protect against negative time if downtime exceeds elapsed (data anomaly protection)
-    const effectiveHours = Math.max(0, totalElapsedHours - totalDowntimeHours)
+    // 5. Useful Hours (Effective Time) = Elapsed - Downtime
+    // Protect against negative time if downtime exceeds elapsed
+    const usefulHours = Math.max(0, totalElapsedHours - totalDowntimeHours)
 
-    // 6. Productivity (t/h)
-    // Avoid division by zero: if effective hours is 0, productivity is 0
-    // Use raw material tons
-    const productivity =
-      effectiveHours > 0.01 ? totalRawMaterialTons / effectiveHours : 0
+    // 6. Calculate Processed and Remaining Material based on Fixed Flow Rate
+    // Processed = Flow Rate * Useful Hours
+    const processedTons = usefulHours * FIXED_FLOW_RATE
 
-    // Ensure we never return NaN/undefined values for UI
+    // Remaining = Total - Processed (Cannot be negative)
+    const remainingTons = Math.max(0, totalRawMaterialTons - processedTons)
+
+    // 7. Productivity (t/h) to display
+    // If there is any useful processing time (active or past), we display the fixed flow rate
+    // as the machine operating speed. If no processing has occurred, display 0.
+    const displayProductivity = usefulHours > 0 ? FIXED_FLOW_RATE : 0
+
     return {
-      productivity: Number.isFinite(productivity) ? productivity : 0,
-      effectiveHours: Number.isFinite(effectiveHours) ? effectiveHours : 0,
-      totalRawMaterialTons: Number.isFinite(totalRawMaterialTons)
-        ? totalRawMaterialTons
-        : 0,
+      productivity: displayProductivity,
+      usefulHours,
+      totalRawMaterialTons,
+      processedTons,
+      remainingTons,
     }
   }, [rawMaterials, cookingTimeRecords, downtimeRecords, now])
 
@@ -110,11 +118,11 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {metrics.productivity.toFixed(2)} t/h
+          {metrics.productivity.toFixed(3)} t/h
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {metrics.totalRawMaterialTons.toFixed(1)}t em{' '}
-          {metrics.effectiveHours.toFixed(1)}h úteis
+          {metrics.remainingTons.toFixed(2)}t restantes de{' '}
+          {metrics.totalRawMaterialTons.toFixed(2)}t
         </p>
       </CardContent>
     </Card>
