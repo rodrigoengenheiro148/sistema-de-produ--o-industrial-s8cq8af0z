@@ -47,8 +47,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { isRecordLocked } from '@/lib/security'
-import { SecurityGate } from '@/components/SecurityGate'
+import { canEditRecord } from '@/lib/security'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function Production() {
   const { production, deleteProduction, dateRange } = useData()
@@ -59,28 +63,6 @@ export default function Production() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  // Security Gate State
-  const [securityOpen, setSecurityOpen] = useState(false)
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
-
-  const handleProtectedAction = (
-    date: Date | undefined,
-    action: () => void,
-  ) => {
-    if (isRecordLocked(date)) {
-      setPendingAction(() => action)
-      setSecurityOpen(true)
-    } else {
-      action()
-    }
-  }
-
-  const handleSecuritySuccess = () => {
-    setSecurityOpen(false)
-    if (pendingAction) pendingAction()
-    setPendingAction(null)
-  }
 
   const handleEdit = (item: ProductionEntry) => {
     setEditingItem(item)
@@ -158,7 +140,7 @@ export default function Production() {
                 </div>
               ) : (
                 filteredProduction.map((entry) => {
-                  const isLocked = isRecordLocked(entry.date)
+                  const isEditable = canEditRecord(entry.createdAt)
                   return (
                     <Card key={entry.id} className="shadow-sm border">
                       <CardContent className="p-4">
@@ -166,8 +148,15 @@ export default function Production() {
                           <div className="space-y-1">
                             <span className="font-semibold text-lg text-primary flex items-center gap-2">
                               {format(entry.date, 'dd/MM/yyyy')}
-                              {isLocked && (
-                                <Lock className="h-4 w-4 text-muted-foreground/50" />
+                              {!isEditable && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Lock className="h-4 w-4 text-muted-foreground/50" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Bloqueado (excedeu 5 min)</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                             </span>
                             <div className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit">
@@ -175,32 +164,30 @@ export default function Production() {
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger
+                              asChild
+                              disabled={!isEditable && !isMobile}
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
+                                disabled={!isEditable}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    handleEdit(entry),
-                                  )
-                                }
+                                onClick={() => handleEdit(entry)}
+                                disabled={!isEditable}
                               >
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    setDeleteId(entry.id),
-                                  )
-                                }
+                                onClick={() => setDeleteId(entry.id)}
                                 className="text-red-600 focus:text-red-600"
+                                disabled={!isEditable}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                               </DropdownMenuItem>
@@ -284,7 +271,7 @@ export default function Production() {
                   </TableRow>
                 ) : (
                   filteredProduction.map((entry) => {
-                    const isLocked = isRecordLocked(entry.date)
+                    const isEditable = canEditRecord(entry.createdAt)
                     return (
                       <TableRow
                         key={entry.id}
@@ -293,8 +280,15 @@ export default function Production() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {format(entry.date, 'dd/MM/yyyy')}
-                            {isLocked && (
-                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            {!isEditable && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Bloqueado (excedeu 5 min)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -318,24 +312,26 @@ export default function Production() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                handleEdit(entry),
-                              )
+                            className={
+                              isEditable
+                                ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
+                                : 'h-8 w-8 text-muted-foreground'
                             }
+                            onClick={() => handleEdit(entry)}
+                            disabled={!isEditable}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                setDeleteId(entry.id),
-                              )
+                            className={
+                              isEditable
+                                ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
+                                : 'h-8 w-8 text-muted-foreground'
                             }
+                            onClick={() => setDeleteId(entry.id)}
+                            disabled={!isEditable}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -369,12 +365,6 @@ export default function Production() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <SecurityGate
-        isOpen={securityOpen}
-        onOpenChange={setSecurityOpen}
-        onSuccess={handleSecuritySuccess}
-      />
     </div>
   )
 }

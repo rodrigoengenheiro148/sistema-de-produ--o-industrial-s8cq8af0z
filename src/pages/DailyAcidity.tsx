@@ -53,9 +53,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { isRecordLocked } from '@/lib/security'
-import { SecurityGate } from '@/components/SecurityGate'
+import { canEditRecord } from '@/lib/security'
 import { supabase } from '@/lib/supabase/client'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function DailyAcidity() {
   const {
@@ -77,10 +81,6 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  // Security Gate State
-  const [securityOpen, setSecurityOpen] = useState(false)
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
   // Realtime subscription for Acidity Records
   useEffect(() => {
@@ -116,24 +116,6 @@ export default function DailyAcidity() {
       supabase.removeChannel(channel)
     }
   }, [currentFactoryId, refreshOperationalData, toast])
-
-  const handleProtectedAction = (
-    date: Date | undefined,
-    action: () => void,
-  ) => {
-    if (isRecordLocked(date)) {
-      setPendingAction(() => action)
-      setSecurityOpen(true)
-    } else {
-      action()
-    }
-  }
-
-  const handleSecuritySuccess = () => {
-    setSecurityOpen(false)
-    if (pendingAction) pendingAction()
-    setPendingAction(null)
-  }
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
@@ -240,7 +222,7 @@ export default function DailyAcidity() {
                 </div>
               ) : (
                 filteredRecords.map((entry) => {
-                  const isLocked = isRecordLocked(entry.date)
+                  const isEditable = canEditRecord(entry.createdAt)
                   return (
                     <Card key={entry.id} className="shadow-sm border">
                       <CardContent className="p-4">
@@ -257,39 +239,45 @@ export default function DailyAcidity() {
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <CalendarIcon className="h-3 w-3" />
                               {format(entry.date, 'dd/MM/yyyy')}
-                              {isLocked && (
-                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              {!isEditable && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      Registro bloqueado para edição (limite de
+                                      5 min excedido)
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                               <Clock className="h-3 w-3 ml-1" />
                               {entry.time}
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger
+                              asChild
+                              disabled={!isEditable && !isMobile}
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
+                                disabled={!isEditable}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    handleEditClick(entry),
-                                  )
-                                }
+                                onClick={() => handleEditClick(entry)}
                               >
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    setDeleteId(entry.id),
-                                  )
-                                }
+                                onClick={() => setDeleteId(entry.id)}
                                 className="text-red-600 focus:text-red-600"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -323,6 +311,7 @@ export default function DailyAcidity() {
                               {entry.acidity !== undefined
                                 ? entry.acidity.toLocaleString('pt-BR')
                                 : '-'}
+                              %
                             </p>
                           </div>
                         </div>
@@ -371,7 +360,7 @@ export default function DailyAcidity() {
                   </TableRow>
                 ) : (
                   filteredRecords.map((entry) => {
-                    const isLocked = isRecordLocked(entry.date)
+                    const isEditable = canEditRecord(entry.createdAt)
                     return (
                       <TableRow
                         key={entry.id}
@@ -380,8 +369,15 @@ export default function DailyAcidity() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {format(entry.date, 'dd/MM/yyyy')}
-                            {isLocked && (
-                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            {!isEditable && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Bloqueado (excedeu 5 min)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -402,6 +398,7 @@ export default function DailyAcidity() {
                           {entry.acidity !== undefined
                             ? entry.acidity.toLocaleString('pt-BR')
                             : '-'}
+                          %
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {entry.performedTimes}
@@ -413,24 +410,26 @@ export default function DailyAcidity() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                handleEditClick(entry),
-                              )
+                            onClick={() => handleEditClick(entry)}
+                            title={
+                              isEditable
+                                ? 'Editar'
+                                : 'Edição bloqueada após 5 minutos'
                             }
-                            title="Editar"
+                            disabled={!isEditable}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                setDeleteId(entry.id),
-                              )
+                            className={
+                              isEditable
+                                ? 'text-red-500 hover:text-red-600 hover:bg-red-50'
+                                : 'text-muted-foreground'
                             }
+                            onClick={() => setDeleteId(entry.id)}
+                            disabled={!isEditable}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -482,12 +481,6 @@ export default function DailyAcidity() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <SecurityGate
-        isOpen={securityOpen}
-        onOpenChange={setSecurityOpen}
-        onSuccess={handleSecuritySuccess}
-      />
     </div>
   )
 }

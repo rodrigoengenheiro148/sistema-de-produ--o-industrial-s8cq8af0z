@@ -51,8 +51,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { isRecordLocked } from '@/lib/security'
-import { SecurityGate } from '@/components/SecurityGate'
+import { canEditRecord } from '@/lib/security'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function Quality() {
   const { qualityRecords, deleteQualityRecord, dateRange } = useData()
@@ -64,28 +68,6 @@ export default function Quality() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  // Security Gate State
-  const [securityOpen, setSecurityOpen] = useState(false)
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
-
-  const handleProtectedAction = (
-    date: Date | undefined,
-    action: () => void,
-  ) => {
-    if (isRecordLocked(date)) {
-      setPendingAction(() => action)
-      setSecurityOpen(true)
-    } else {
-      action()
-    }
-  }
-
-  const handleSecuritySuccess = () => {
-    setSecurityOpen(false)
-    if (pendingAction) pendingAction()
-    setPendingAction(null)
-  }
 
   const handleEdit = (item: QualityEntry) => {
     setEditingItem(item)
@@ -121,7 +103,6 @@ export default function Quality() {
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   // Calculate statistics and prepare data for the chart
-  // Defaulting to Acidity as the primary metric for the chart
   const chartData = [...filteredRecords]
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .map((item, index, array) => {
@@ -230,7 +211,7 @@ export default function Quality() {
                 </div>
               ) : (
                 filteredRecords.map((entry) => {
-                  const isLocked = isRecordLocked(entry.date)
+                  const isEditable = canEditRecord(entry.createdAt)
                   return (
                     <Card key={entry.id} className="shadow-sm border">
                       <CardContent className="p-4">
@@ -248,38 +229,43 @@ export default function Quality() {
                             </Badge>
                             <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                               {format(entry.date, 'dd/MM/yyyy')}
-                              {isLocked && (
-                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                              {!isEditable && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Bloqueado (excedeu 5 min)</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               )}
                             </div>
                           </div>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger
+                              asChild
+                              disabled={!isEditable && !isMobile}
+                            >
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 w-8 p-0"
+                                disabled={!isEditable}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    handleEdit(entry),
-                                  )
-                                }
+                                onClick={() => handleEdit(entry)}
+                                disabled={!isEditable}
                               >
                                 <Pencil className="mr-2 h-4 w-4" /> Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
-                                    setDeleteId(entry.id),
-                                  )
-                                }
+                                onClick={() => setDeleteId(entry.id)}
                                 className="text-red-600 focus:text-red-600"
+                                disabled={!isEditable}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
                               </DropdownMenuItem>
@@ -343,7 +329,7 @@ export default function Quality() {
                   </TableRow>
                 ) : (
                   filteredRecords.map((entry) => {
-                    const isLocked = isRecordLocked(entry.date)
+                    const isEditable = canEditRecord(entry.createdAt)
                     return (
                       <TableRow
                         key={entry.id}
@@ -352,8 +338,15 @@ export default function Quality() {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                             {format(entry.date, 'dd/MM/yyyy')}
-                            {isLocked && (
-                              <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            {!isEditable && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Bloqueado (excedeu 5 min)</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
@@ -383,24 +376,26 @@ export default function Quality() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                handleEdit(entry),
-                              )
+                            className={
+                              isEditable
+                                ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
+                                : 'h-8 w-8 text-muted-foreground'
                             }
+                            onClick={() => handleEdit(entry)}
+                            disabled={!isEditable}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() =>
-                              handleProtectedAction(entry.date, () =>
-                                setDeleteId(entry.id),
-                              )
+                            className={
+                              isEditable
+                                ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
+                                : 'h-8 w-8 text-muted-foreground'
                             }
+                            onClick={() => setDeleteId(entry.id)}
+                            disabled={!isEditable}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -434,12 +429,6 @@ export default function Quality() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <SecurityGate
-        isOpen={securityOpen}
-        onOpenChange={setSecurityOpen}
-        onSuccess={handleSecuritySuccess}
-      />
     </div>
   )
 }

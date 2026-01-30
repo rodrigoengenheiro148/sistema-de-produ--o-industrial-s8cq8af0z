@@ -74,8 +74,8 @@ export function AcidityChart({ data }: AcidityChartProps) {
         label: 'Peso (kg)',
         color: 'hsl(var(--chart-1))',
       },
-      volume: {
-        label: 'Volume (L)',
+      acidity: {
+        label: 'Acidez (%)',
         color: 'hsl(var(--chart-2))',
       },
     }
@@ -89,7 +89,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
         <CardHeader>
           <CardTitle>Evolução das Medições</CardTitle>
           <CardDescription>
-            Tendência dos valores de Peso e Volume ao longo do tempo
+            Tendência dos valores de Peso e Acidez ao longo do tempo
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -122,12 +122,26 @@ export function AcidityChart({ data }: AcidityChartProps) {
           tickMargin={8}
           fontSize={isMobile ? 10 : 12}
         />
+        {/* Left Axis for Weight */}
         <YAxis
+          yAxisId="left"
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          width={isMobile ? 30 : 40}
+          width={isMobile ? 35 : 45}
           fontSize={isMobile ? 10 : 12}
+          orientation="left"
+        />
+        {/* Right Axis for Acidity */}
+        <YAxis
+          yAxisId="right"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={isMobile ? 25 : 35}
+          fontSize={isMobile ? 10 : 12}
+          orientation="right"
+          unit="%"
         />
         <ChartTooltip
           cursor={false}
@@ -135,6 +149,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
         />
         <ChartLegend content={<ChartLegendContent />} />
         <Line
+          yAxisId="left"
           dataKey="weight"
           type="monotone"
           stroke="var(--color-weight)"
@@ -155,12 +170,13 @@ export function AcidityChart({ data }: AcidityChartProps) {
           />
         </Line>
         <Line
-          dataKey="volume"
+          yAxisId="right"
+          dataKey="acidity"
           type="monotone"
-          stroke="var(--color-volume)"
+          stroke="var(--color-acidity)"
           strokeWidth={2}
           dot={{
-            fill: 'var(--color-volume)',
+            fill: 'var(--color-acidity)',
             r: 4,
           }}
           activeDot={{
@@ -172,6 +188,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
             offset={12}
             className="fill-foreground font-medium"
             fontSize={isMobile ? 9 : 12}
+            formatter={(value: any) => `${Number(value).toFixed(1)}%`}
           />
         </Line>
       </LineChart>
@@ -184,7 +201,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
         <div>
           <CardTitle>Evolução das Medições</CardTitle>
           <CardDescription>
-            Tendência dos valores de Peso e Volume ao longo do tempo
+            Tendência dos valores de Peso e Acidez ao longo do tempo
           </CardDescription>
         </div>
         <Dialog>
@@ -198,7 +215,7 @@ export function AcidityChart({ data }: AcidityChartProps) {
             <DialogHeader>
               <DialogTitle>Evolução das Medições</DialogTitle>
               <DialogDescription>
-                Visualização detalhada da tendência de peso e volume.
+                Visualização detalhada da tendência de peso e acidez.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
