@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -12,196 +12,166 @@ import {
 } from 'lucide-react'
 import { isSameDay, isSameMonth, isSameYear } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { ProductionEntry, RawMaterialEntry } from '@/lib/types'
 
 interface LoadForecastProps {
-  rawMaterials?: RawMaterialEntry[]
-  production?: ProductionEntry[]
   referenceDate?: Date
+  className?: string
 }
 
-export function LoadForecast({
-  rawMaterials: propRawMaterials,
-  production: propProduction,
-  referenceDate,
-}: LoadForecastProps) {
-  const contextData = useData()
+export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
+  const { production } = useData()
+  const targetDate = referenceDate || new Date()
 
-  // Use props if available (for filtering support), otherwise fallback to context (full data)
-  const rawMaterials = propRawMaterials || contextData.rawMaterials
-  const production = propProduction || contextData.production
-
-  // State to track current time for midnight reset if no reference date provided
-  const [now, setNow] = useState(referenceDate || new Date())
-
-  // Update 'now' only if we are in "live" mode (no reference date provided)
-  useEffect(() => {
-    if (referenceDate) {
-      setNow(referenceDate)
-      return
+  const { daily, monthly } = useMemo(() => {
+    const dailyStats = {
+      sebo: { produced: 0, mp: 0 },
+      fco: { produced: 0, mp: 0 },
+      farinheta: { produced: 0, mp: 0 },
+    }
+    const monthlyStats = {
+      sebo: { produced: 0, mp: 0 },
+      fco: { produced: 0, mp: 0 },
+      farinheta: { produced: 0, mp: 0 },
     }
 
-    const timer = setInterval(() => {
-      setNow(new Date())
-    }, 60000)
-    return () => clearInterval(timer)
-  }, [referenceDate])
+    production.forEach((p) => {
+      const pDate = p.date // Date object from context mapData
 
-  // 1. Calculate Average Yields from History (Using the provided production dataset)
-  const yields = useMemo(() => {
-    // Default / Fallback values as per requirements
-    const defaults = {
-      sebo: 28.5,
-      fco: 26.39,
-      farinheta: 3.47,
-    }
+      // Check Monthly (Same Month and Year)
+      if (isSameMonth(pDate, targetDate) && isSameYear(pDate, targetDate)) {
+        monthlyStats.sebo.produced += p.seboProduced
+        monthlyStats.sebo.mp += p.mpUsed
+        monthlyStats.fco.produced += p.fcoProduced
+        monthlyStats.fco.mp += p.mpUsed
+        monthlyStats.farinheta.produced += p.farinhetaProduced
+        monthlyStats.farinheta.mp += p.mpUsed
 
-    if (!production || production.length === 0) return defaults
-
-    const totals = production.reduce(
-      (acc, curr) => ({
-        mp: acc.mp + curr.mpUsed,
-        sebo: acc.sebo + curr.seboProduced,
-        fco: acc.fco + curr.fcoProduced,
-        farinheta: acc.farinheta + curr.farinhetaProduced,
-      }),
-      { mp: 0, sebo: 0, fco: 0, farinheta: 0 },
-    )
-
-    if (totals.mp === 0) return defaults
-
-    return {
-      sebo: (totals.sebo / totals.mp) * 100,
-      fco: (totals.fco / totals.mp) * 100,
-      farinheta: (totals.farinheta / totals.mp) * 100,
-    }
-  }, [production])
-
-  // 2. Calculate MP Inputs (Daily & Monthly)
-  // Logic: "Daily" refers to the Reference Date (or Today)
-  // "Monthly" refers to the Month of the Reference Date
-  const { dailyMp, monthlyMp } = useMemo(() => {
-    let daily = 0
-    let monthly = 0
-
-    rawMaterials.forEach((rm) => {
-      const rmDate = rm.date // rm.date is a Date object from context mapData
-      if (isSameYear(rmDate, now) && isSameMonth(rmDate, now)) {
-        monthly += rm.quantity
-        if (isSameDay(rmDate, now)) {
-          daily += rm.quantity
+        // Check Daily (Same Day)
+        if (isSameDay(pDate, targetDate)) {
+          dailyStats.sebo.produced += p.seboProduced
+          dailyStats.sebo.mp += p.mpUsed
+          dailyStats.fco.produced += p.fcoProduced
+          dailyStats.fco.mp += p.mpUsed
+          dailyStats.farinheta.produced += p.farinhetaProduced
+          dailyStats.farinheta.mp += p.mpUsed
         }
       }
     })
 
-    return { dailyMp: daily, monthlyMp: monthly }
-  }, [rawMaterials, now])
+    return { daily: dailyStats, monthly: monthlyStats }
+  }, [production, targetDate])
 
-  // Helper to format numbers (Decimal for Kg)
-  const fmt = (n: number) =>
-    n.toLocaleString('pt-BR', {
-      maximumFractionDigits: 2,
+  const formatNumber = (val: number) =>
+    val.toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     })
 
-  // Helper to format numbers (Integer for Bags)
-  const fmtInt = (n: number) =>
-    n.toLocaleString('pt-BR', {
-      maximumFractionDigits: 0,
+  const formatInteger = (val: number) =>
+    val.toLocaleString('pt-BR', {
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })
 
-  // Render Card Component
+  const calculateYield = (produced: number, mp: number) =>
+    mp > 0 ? (produced / mp) * 100 : 0
+
   const ForecastCard = ({
     title,
     icon: Icon,
-    yieldPct,
-    colorStyle,
-    className,
+    colorClass,
+    dailyData,
+    monthlyData,
   }: {
     title: string
     icon: any
-    yieldPct: number
-    colorStyle: React.CSSProperties
-    className?: string
+    colorClass: string
+    dailyData: { produced: number; mp: number }
+    monthlyData: { produced: number; mp: number }
   }) => {
-    // Calculations
-    const dailyProdKg = dailyMp * (yieldPct / 100)
-    const dailyBags1450 = dailyProdKg / 1450
-    const dailyBags1500 = dailyProdKg / 1500
+    const dailyYield = calculateYield(dailyData.produced, dailyData.mp)
 
-    const monthlyProdKg = monthlyMp * (yieldPct / 100)
-    const monthlyBags1450 = monthlyProdKg / 1450
-    const monthlyBags1500 = monthlyProdKg / 1500
+    // Daily Bags (Rounded to nearest integer)
+    const dailyBags1450 = Math.round(dailyData.produced / 1450)
+    const dailyBags1500 = Math.round(dailyData.produced / 1500)
+
+    // Monthly Bags (Raw number for formatting)
+    const monthlyBags1450 = monthlyData.produced / 1450
+    const monthlyBags1500 = monthlyData.produced / 1500
 
     return (
-      <Card className={cn('shadow-sm border-primary/10 bg-card/50', className)}>
+      <Card className="shadow-sm border-primary/10">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             {title}
           </CardTitle>
-          <Icon className="h-4 w-4" style={colorStyle} />
+          <Icon className={cn('h-4 w-4', colorClass)} />
         </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          {/* Daily Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-3 w-3 text-primary" />
-              <span className="text-xs font-semibold uppercase text-muted-foreground">
-                Previsão Diária (Bags)
+        <CardContent className="space-y-6 pt-4">
+          {/* Daily Forecast */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Calendar className={cn('h-3.5 w-3.5', colorClass)} />
+              <span className="text-xs font-semibold uppercase text-muted-foreground tracking-tight">
+                PREVISÃO DIÁRIA (BAGS)
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
-                <div className="text-[10px] text-muted-foreground mb-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded border bg-card p-3 text-center shadow-sm">
+                <div className="text-[10px] text-muted-foreground mb-1 font-medium">
                   Bag 1450kg
                 </div>
-                <div className="text-lg font-bold text-foreground">
-                  {fmtInt(dailyBags1450)}
+                <div className="text-xl font-bold tracking-tight">
+                  {dailyBags1450}
                 </div>
               </div>
-              <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
-                <div className="text-[10px] text-muted-foreground mb-1">
+              <div className="rounded border bg-card p-3 text-center shadow-sm">
+                <div className="text-[10px] text-muted-foreground mb-1 font-medium">
                   Bag 1500kg
                 </div>
-                <div className="text-lg font-bold text-foreground">
-                  {fmtInt(dailyBags1500)}
+                <div className="text-xl font-bold tracking-tight">
+                  {dailyBags1500}
                 </div>
               </div>
             </div>
-            <div className="text-[10px] text-center mt-1 text-muted-foreground">
+            <div className="text-[11px] text-center text-muted-foreground">
               Prod. Estimada:{' '}
-              <span className="font-medium">{fmt(dailyProdKg)} kg</span>
-              <span className="mx-1">•</span>
-              Rendimento: {yieldPct.toFixed(2)}%
+              <span className="font-medium text-foreground">
+                {formatNumber(dailyData.produced)} kg
+              </span>
+              <span className="mx-1.5">•</span>
+              Rendimento:{' '}
+              <span className="font-medium text-foreground">
+                {dailyYield.toFixed(2)}%
+              </span>
             </div>
           </div>
 
-          <Separator className="my-2" />
+          <Separator />
 
-          {/* Monthly Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <CalendarDays className="h-3 w-3 text-primary" />
-              <span className="text-xs font-semibold uppercase text-muted-foreground">
-                Previsão Mensal (Cargas/Bags)
+          {/* Monthly Forecast */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays className={cn('h-3.5 w-3.5', colorClass)} />
+              <span className="text-xs font-semibold uppercase text-muted-foreground tracking-tight">
+                PREVISÃO MENSAL (CARGAS/BAGS)
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
-                <div className="text-[10px] text-muted-foreground mb-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded border bg-card p-3 text-center shadow-sm">
+                <div className="text-[10px] text-muted-foreground mb-1 font-medium">
                   Bag 1450kg
                 </div>
-                <div className="text-base font-bold text-foreground">
-                  {fmtInt(monthlyBags1450)}
+                <div className="text-xl font-bold tracking-tight">
+                  {formatInteger(monthlyBags1450)}
                 </div>
               </div>
-              <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
-                <div className="text-[10px] text-muted-foreground mb-1">
+              <div className="rounded border bg-card p-3 text-center shadow-sm">
+                <div className="text-[10px] text-muted-foreground mb-1 font-medium">
                   Bag 1500kg
                 </div>
-                <div className="text-base font-bold text-foreground">
-                  {fmtInt(monthlyBags1500)}
+                <div className="text-xl font-bold tracking-tight">
+                  {formatInteger(monthlyBags1500)}
                 </div>
               </div>
             </div>
@@ -212,32 +182,35 @@ export function LoadForecast({
   }
 
   return (
-    <Card className="shadow-sm border-primary/10">
-      <CardHeader>
+    <Card className={cn('shadow-sm border-primary/10', className)}>
+      <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-primary" />
           <CardTitle>Previsão de Cargas (Bags)</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           <ForecastCard
             title="Sebo"
             icon={Droplets}
-            yieldPct={yields.sebo}
-            colorStyle={{ color: 'hsl(var(--chart-1))' }}
+            colorClass="text-emerald-600"
+            dailyData={daily.sebo}
+            monthlyData={monthly.sebo}
           />
           <ForecastCard
             title="FCO / Farinha"
             icon={Bone}
-            yieldPct={yields.fco}
-            colorStyle={{ color: 'hsl(var(--chart-2))' }}
+            colorClass="text-amber-500"
+            dailyData={daily.fco}
+            monthlyData={monthly.fco}
           />
           <ForecastCard
             title="Farinheta"
             icon={Wheat}
-            yieldPct={yields.farinheta}
-            colorStyle={{ color: 'hsl(var(--chart-3))' }}
+            colorClass="text-emerald-600"
+            dailyData={daily.farinheta}
+            monthlyData={monthly.farinheta}
           />
         </div>
       </CardContent>

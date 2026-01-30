@@ -221,6 +221,8 @@ export default function Dashboard() {
             notificationSettings={notificationSettings}
           />
 
+          <LoadForecast referenceDate={dateRange.to || new Date()} />
+
           <div className="grid gap-4 md:grid-cols-3">
             <YieldGaugeChart
               value={currentYield}
@@ -240,12 +242,6 @@ export default function Dashboard() {
           <RawMaterialCompositionChart
             data={filteredRawMaterials}
             isMobile={isMobile}
-          />
-
-          <LoadForecast
-            rawMaterials={filteredRawMaterials}
-            production={filteredProduction}
-            referenceDate={dateRange.to || new Date()}
           />
 
           <div className="grid gap-4 md:grid-cols-2">
