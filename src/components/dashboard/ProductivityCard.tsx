@@ -24,7 +24,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
   const metrics = useMemo(() => {
     // 1. Filter Data by Current Date (Today)
-    const today = new Date()
+    const today = now
     const filterFn = (d: Date) => isSameDay(d, today)
 
     // Data from context is already filtered by factory_id
@@ -35,6 +35,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const filteredDowntime = downtimeRecords.filter((r) => filterFn(r.date))
 
     // 2. Total Raw Material (kg -> tons)
+    // Goal is to process all entered raw material
     const totalRawMaterialKg = filteredRawMaterials.reduce(
       (acc, curr) => acc + (Number(curr.quantity) || 0),
       0,
@@ -71,7 +72,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       }
 
       let diff = end - start
-      if (diff < 0) diff += 24 * 60
+      if (diff < 0) diff += 24 * 60 // Handle day crossover
       if (diff < 0) diff = 0
 
       totalElapsedMinutes += diff
@@ -79,14 +80,15 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     const totalElapsedHours = totalElapsedMinutes / 60
 
-    // 5. Useful Hours
+    // 5. Useful Hours (Total Time - Downtime)
     const usefulHours = Math.max(0, totalElapsedHours - totalDowntimeHours)
 
     // 6. Calculate Processed
     const calculatedProcessedTons = usefulHours * FIXED_FLOW_RATE
+    // Ensure we don't display more processed than available raw material (if data is slightly off)
     const processedTons = Math.min(
       calculatedProcessedTons,
-      totalRawMaterialTons,
+      totalRawMaterialTons > 0 ? totalRawMaterialTons : calculatedProcessedTons,
     )
     const remainingTons = Math.max(0, totalRawMaterialTons - processedTons)
 
@@ -100,7 +102,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
   // Formatting Logic based on Acceptance Criteria
   // If calculated value (kg) is between 0 and 999 -> unit kg/M
-  // If calculated value (kg) is 1.000 or higher -> unit t/h (displaying tons)
+  // If calculated value (kg) is 1,000 or higher -> unit t/h
   let displayValue: string
   let displayUnit: string
 

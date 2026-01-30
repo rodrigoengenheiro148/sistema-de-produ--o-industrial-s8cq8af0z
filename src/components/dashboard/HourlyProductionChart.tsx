@@ -33,6 +33,7 @@ export function HourlyProductionChart({ className }: { className?: string }) {
     const downtimes = downtimeRecords.filter((r) => isSameDay(r.date, today))
 
     const data = []
+    // Flow rate: 7.125 tons/hour
     const tonsPerMinute = 7.125 / 60
 
     for (let h = 0; h < 24; h++) {
@@ -51,8 +52,15 @@ export function HourlyProductionChart({ className }: { className?: string }) {
           const endParts = rec.endTime.split(':').map(Number)
           endMins = endParts[0] * 60 + endParts[1]
         } else {
-          // If no end time, assume it goes until now (if current time)
-          endMins = now.getHours() * 60 + now.getMinutes()
+          // If no end time, assume it goes until now (if current time is later)
+          const currentMins = now.getHours() * 60 + now.getMinutes()
+          // Only use current time if it's actually today and later than start
+          if (isSameDay(new Date(rec.date), now) && currentMins > startMins) {
+            endMins = currentMins
+          } else {
+            // If viewing future/past where now doesn't apply, this logic handles current active shifts
+            endMins = startMins // Or some other fallback, but 'now' is correct for real-time
+          }
         }
 
         // Handle day crossover (e.g. 23:00 to 02:00)
@@ -67,17 +75,16 @@ export function HourlyProductionChart({ className }: { className?: string }) {
         }
       })
 
-      // Calculate Downtime Subtraction with proper spanning logic
+      // Calculate Downtime Subtraction
       let downtimeMinutesInHour = 0
       downtimes.forEach((dt) => {
         if (dt.createdAt) {
-          // dt.createdAt is a Date object mapped in context
-          const dtStart = dt.createdAt
+          const dtStart = new Date(dt.createdAt)
           const dtEnd = new Date(
             dtStart.getTime() + dt.durationHours * 60 * 60 * 1000,
           )
 
-          // Define current hour boundaries as Date objects
+          // Define current hour boundaries as Date objects relative to today
           const hourStart = new Date(today)
           hourStart.setHours(h, 0, 0, 0)
 
@@ -115,6 +122,9 @@ export function HourlyProductionChart({ className }: { className?: string }) {
 
   const formatValue = (valueInTons: number) => {
     const valueInKg = valueInTons * 1000
+    // Formatting logic as per acceptance criteria:
+    // 0-999 -> kg/M
+    // >= 1000 -> t/h
     if (valueInKg < 1000) {
       return `${valueInKg.toFixed(0)} kg/M`
     }
