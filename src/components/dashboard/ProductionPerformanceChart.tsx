@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, TrendingUp } from 'lucide-react'
 
 interface ProductionPerformanceChartProps {
   data: ProductionEntry[]
@@ -56,7 +56,7 @@ export function ProductionPerformanceChart({
           monthlyData.set(dateKey, {
             dateKey,
             date: displayDate,
-            originalDate: p.date, // Approx, just for sorting
+            originalDate: p.date,
             producao: 0,
             mp: 0,
           })
@@ -75,6 +75,7 @@ export function ProductionPerformanceChart({
       processedData = data
         .map((p) => ({
           date: format(p.date, 'dd/MM'),
+          fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
           originalDate: p.date,
           producao: p.seboProduced + p.fcoProduced + p.farinhetaProduced,
           mp: p.mpUsed,
@@ -83,8 +84,14 @@ export function ProductionPerformanceChart({
     }
 
     const config: ChartConfig = {
-      producao: { label: 'Produção Total', color: 'hsl(var(--chart-1))' },
-      mp: { label: 'MP Processada', color: 'hsl(var(--chart-2))' },
+      producao: {
+        label: 'Produção Total',
+        color: '#166534', // Dark Green (emerald-800)
+      },
+      mp: {
+        label: 'MP Processada',
+        color: '#f59e0b', // Amber/Yellow (amber-500)
+      },
     }
 
     return { chartData: processedData, chartConfig: config }
@@ -95,9 +102,7 @@ export function ProductionPerformanceChart({
       <Card className={`shadow-sm border-primary/10 ${className}`}>
         <CardHeader>
           <CardTitle>Desempenho de Produção</CardTitle>
-          <CardDescription>
-            Comparativo entre MP processada e produtos gerados
-          </CardDescription>
+          <CardDescription>Comparativo diário de processamento</CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
           Nenhum dado disponível.
@@ -119,15 +124,24 @@ export function ProductionPerformanceChart({
           axisLine={false}
           tickMargin={8}
           minTickGap={32}
+          fontSize={isMobile ? 10 : 12}
         />
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={isMobile ? 30 : 50}
+          width={isMobile ? 35 : 50}
           tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+          fontSize={isMobile ? 10 : 12}
         />
         <ChartTooltip
-          content={<ChartTooltipContent indicator="line" />}
+          content={
+            <ChartTooltipContent
+              indicator="line"
+              labelFormatter={(value, payload) =>
+                payload[0]?.payload?.fullDate || value
+              }
+            />
+          }
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
         />
         <ChartLegend content={<ChartLegendContent />} />
@@ -156,13 +170,12 @@ export function ProductionPerformanceChart({
   return (
     <Card className={`shadow-sm border-primary/10 ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div>
-          <CardTitle>Desempenho de Produção</CardTitle>
-          <CardDescription>
-            {timeScale === 'monthly'
-              ? 'Volumes acumulados mensais'
-              : 'Comparativo diário de processamento'}
-          </CardDescription>
+        <div className="space-y-1">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Desempenho de Produção
+          </CardTitle>
+          <CardDescription>Comparativo diário de processamento</CardDescription>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -173,10 +186,7 @@ export function ProductionPerformanceChart({
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>
-                Desempenho de Produção (
-                {timeScale === 'monthly' ? 'Mensal' : 'Diário'})
-              </DialogTitle>
+              <DialogTitle>Desempenho de Produção</DialogTitle>
               <DialogDescription>
                 Visualização detalhada do processamento de MP e produção total.
               </DialogDescription>

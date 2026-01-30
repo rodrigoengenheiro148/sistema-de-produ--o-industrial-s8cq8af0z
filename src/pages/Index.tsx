@@ -22,6 +22,8 @@ import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
+import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
+import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { useMemo } from 'react'
 
 export default function Dashboard() {
@@ -113,6 +115,23 @@ export default function Dashboard() {
         farinhetaQuality.length
       : 0
 
+  // Calculate Yield for Gauge
+  const { currentYield, yieldTarget } = useMemo(() => {
+    const totalMp = filteredProduction.reduce(
+      (acc, curr) => acc + curr.mpUsed,
+      0,
+    )
+    const totalProduced = filteredProduction.reduce(
+      (acc, curr) =>
+        acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced,
+      0,
+    )
+    const yieldVal = totalMp > 0 ? (totalProduced / totalMp) * 100 : 0
+    const target = notificationSettings.yieldThreshold || 58.0
+
+    return { currentYield: yieldVal, yieldTarget: target }
+  }, [filteredProduction, notificationSettings])
+
   return (
     <div id="dashboard-content" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -202,6 +221,27 @@ export default function Dashboard() {
             notificationSettings={notificationSettings}
           />
 
+          <div className="grid gap-4 md:grid-cols-3">
+            <YieldGaugeChart
+              value={currentYield}
+              target={yieldTarget}
+              className="h-full"
+            />
+            <div className="md:col-span-2">
+              <ProductionPerformanceChart
+                data={filteredProduction}
+                isMobile={isMobile}
+                timeScale="daily"
+                className="h-full"
+              />
+            </div>
+          </div>
+
+          <RawMaterialCompositionChart
+            data={filteredRawMaterials}
+            isMobile={isMobile}
+          />
+
           <LoadForecast
             rawMaterials={filteredRawMaterials}
             production={filteredProduction}
@@ -209,24 +249,18 @@ export default function Dashboard() {
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <ProductionPerformanceChart
-              data={filteredProduction}
-              isMobile={isMobile}
-              timeScale="daily"
-            />
             <RevenueChart
               data={filteredShipping}
               productionData={filteredProduction}
               isMobile={isMobile}
               timeScale="daily"
             />
+            <LossAnalysisChart
+              data={filteredProduction}
+              isMobile={isMobile}
+              timeScale="daily"
+            />
           </div>
-
-          <LossAnalysisChart
-            data={filteredProduction}
-            isMobile={isMobile}
-            timeScale="daily"
-          />
         </TabsContent>
 
         <TabsContent value="yields" className="space-y-4">

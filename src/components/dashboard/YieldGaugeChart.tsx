@@ -37,37 +37,30 @@ export function YieldGaugeChart({
   const safeTarget = Math.min(Math.max(target, 0), MAX_VALUE)
 
   // Determine status color and text
-  // Red: < 90% of target | Amber: 90%-99% of target | Green: >= 100% of target
+  // Red: Below Target | Green: Equal or Above Target
   const getStatus = (val: number, tgt: number) => {
-    // Use the raw value for status comparison to ensure accuracy even if capped visually
     if (val >= tgt)
       return {
-        color: '#10b981',
-        label: 'Superou a Meta',
+        color: '#10b981', // emerald-500
+        label: 'SUPEROU A META',
         gradient: 'url(#gradient-success)',
         textClass: 'text-emerald-600',
-      } // Emerald-500
-    if (val >= tgt * 0.9)
-      return {
-        color: '#f59e0b',
-        label: 'Próximo da Meta',
-        gradient: 'url(#gradient-warning)',
-        textClass: 'text-amber-500',
-      } // Amber-500
+        bgClass:
+          'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+      }
     return {
-      color: '#ef4444',
-      label: 'Abaixo da Meta',
+      color: '#ef4444', // red-500
+      label: 'ABAIXO DA META',
       gradient: 'url(#gradient-danger)',
       textClass: 'text-red-500',
-    } // Red-500
+      bgClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    }
   }
 
-  // Use raw value for status calculation, but safe values for visual rendering
+  // Use raw value for status comparison
   const status = getStatus(value, target)
 
   // Chart Data Layers
-  // Layer 1: The Gauge Value (colored) + Transparent remainder
-  // Ensure we use safeValue to never exceed 100% visually
   const data = useMemo(
     () => [
       { name: 'Atual', value: safeValue },
@@ -76,13 +69,12 @@ export function YieldGaugeChart({
     [safeValue],
   )
 
-  // Layer 2: The Background Track (grey)
+  // Background Track
   const trackData = [{ name: 'Track', value: 100 }]
 
   // Angles for absolute positioning (-90deg to 90deg scale)
   const calculateAngle = (val: number) => (val / MAX_VALUE) * 180 - 90
 
-  // Needle and target also respect the 100% cap
   const needleAngle = calculateAngle(safeValue)
   const targetAngle = calculateAngle(safeTarget)
 
@@ -106,10 +98,6 @@ export function YieldGaugeChart({
               <linearGradient id="gradient-success" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#34d399" />
                 <stop offset="100%" stopColor="#059669" />
-              </linearGradient>
-              <linearGradient id="gradient-warning" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#fbbf24" />
-                <stop offset="100%" stopColor="#d97706" />
               </linearGradient>
               <linearGradient id="gradient-danger" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#f87171" />
@@ -184,7 +172,7 @@ export function YieldGaugeChart({
           </PieChart>
         </ChartContainer>
 
-        {/* Target Indicator (Dashed Line & Triangle) */}
+        {/* Target Indicator */}
         <div
           className="absolute bottom-0 left-1/2 w-0.5 h-[105%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out"
           style={{ transform: `rotate(${targetAngle}deg)` }}
@@ -198,16 +186,14 @@ export function YieldGaugeChart({
           className="absolute bottom-0 left-1/2 h-full w-[2px] pointer-events-none origin-bottom flex items-end justify-center transition-transform duration-1000 ease-out"
           style={{ transform: `rotate(${needleAngle}deg)` }}
         >
-          {/* Needle Body */}
           <div className="h-[95%] w-1.5 bg-foreground rounded-t-full shadow-lg relative">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-b from-foreground to-transparent opacity-50" />
           </div>
         </div>
 
-        {/* Needle Pivot (Center Hub) */}
+        {/* Needle Pivot */}
         <div className="absolute bottom-0 left-1/2 w-4 h-4 -translate-x-1/2 translate-y-1/2 bg-foreground rounded-full border-[3px] border-background shadow-md z-10" />
 
-        {/* Corner Labels */}
         <div className="absolute bottom-1 left-1 text-[10px] font-medium text-muted-foreground/60 select-none">
           0%
         </div>
@@ -237,12 +223,8 @@ export function YieldGaugeChart({
 
         <div
           className={cn(
-            'mt-2 text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded',
-            status.color === '#10b981'
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-              : status.color === '#f59e0b'
-                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+            'mt-2 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded',
+            status.bgClass,
           )}
         >
           {status.label}
@@ -298,8 +280,7 @@ export function YieldGaugeChart({
               <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <p>
                 Este indicador reflete a relação entre a matéria-prima
-                processada e o produto final gerado. Mantenha o ponteiro na zona
-                verde para garantir a máxima eficiência operacional.
+                processada e o produto final gerado.
               </p>
             </div>
           </DialogContent>
