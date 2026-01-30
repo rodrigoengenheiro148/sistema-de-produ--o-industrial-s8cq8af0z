@@ -40,11 +40,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { SecurityGate } from '@/components/SecurityGate'
 
 export default function Yields() {
   const { production, dateRange, yieldTargets, updateYieldTargets } = useData()
@@ -55,6 +55,7 @@ export default function Yields() {
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isSecurityOpen, setIsSecurityOpen] = useState(false)
   const [editTargets, setEditTargets] = useState(yieldTargets)
 
   const handleOpenChange = (open: boolean) => {
@@ -62,6 +63,12 @@ export default function Yields() {
     if (open) {
       setEditTargets(yieldTargets)
     }
+  }
+
+  const handleSecuritySuccess = () => {
+    setIsSecurityOpen(false)
+    setEditTargets(yieldTargets)
+    setIsDialogOpen(true)
   }
 
   const handleSaveTargets = () => {
@@ -191,17 +198,25 @@ export default function Yields() {
           </p>
         </div>
 
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 w-full sm:w-auto"
+          onClick={() => setIsSecurityOpen(true)}
+        >
+          <Settings className="h-4 w-4" />
+          Configurar Metas
+        </Button>
+
+        <SecurityGate
+          isOpen={isSecurityOpen}
+          onOpenChange={setIsSecurityOpen}
+          onSuccess={handleSecuritySuccess}
+          title="Acesso Restrito"
+          description="Insira a senha para configurar as metas operacionais."
+        />
+
         <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 w-full sm:w-auto"
-            >
-              <Settings className="h-4 w-4" />
-              Configurar Metas
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Configuração de Metas</DialogTitle>

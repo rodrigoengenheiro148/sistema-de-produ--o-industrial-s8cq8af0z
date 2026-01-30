@@ -747,12 +747,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const updateYieldTargets = async (targets: YieldTargets) => {
-    const updatedSettings = {
+    const updatedSettings: NotificationSettings = {
       ...notificationSettings,
       seboThreshold: targets.sebo,
       farinhaThreshold: targets.fco,
       fcoThreshold: targets.fco,
-      farinheta: targets.farinheta,
+      farinhetaThreshold: targets.farinheta,
       yieldThreshold: targets.total,
     }
     await updateNotificationSettings(updatedSettings)
