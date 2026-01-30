@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { format, isWithinInterval, subDays, differenceInDays } from 'date-fns'
+import { format, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -10,118 +8,31 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import {
-  CalendarIcon,
-  TrendingUp,
-  Factory as FactoryIcon,
-  PieChart,
-  DollarSign,
-  ClipboardCheck,
-  Droplets,
-  Bone,
-  Wheat,
-  CalendarDays,
-  CalendarRange,
-  Clock,
-} from 'lucide-react'
+import { CalendarIcon, ClipboardCheck, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RawMaterialChart } from '@/components/dashboard/RawMaterialChart'
-import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
-import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
-import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
-import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
-import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { HourlyThroughput } from '@/components/dashboard/HourlyThroughput'
 import { ProductivityCard } from '@/components/dashboard/ProductivityCard'
 import { HourlyProductionChart } from '@/components/dashboard/HourlyProductionChart'
-import { ShippingEntry } from '@/lib/types'
-
-// Helper to get average prices from full history to ensure stability
-const getAveragePrices = (shippingData: ShippingEntry[]) => {
-  const totals = shippingData.reduce(
-    (acc, curr) => {
-      if (!acc[curr.product]) acc[curr.product] = { quantity: 0, value: 0 }
-      acc[curr.product].quantity += curr.quantity
-      acc[curr.product].value += curr.quantity * curr.unitPrice
-      return acc
-    },
-    {} as Record<string, { quantity: number; value: number }>,
-  )
-
-  const avgPrices: Record<string, number> = {}
-  Object.keys(totals).forEach((key) => {
-    avgPrices[key] =
-      totals[key].quantity > 0 ? totals[key].value / totals[key].quantity : 0
-  })
-  return avgPrices
-}
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Dashboard() {
   const {
-    rawMaterials,
     production,
-    shipping,
-    acidityRecords,
     qualityRecords,
     dateRange,
     setDateRange,
     factories,
     currentFactoryId,
-    yieldTargets,
   } = useData()
   const isMobile = useIsMobile()
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-
-  // Visual feedback state
-  const [highlight, setHighlight] = useState(false)
-  const isFirstRender = useRef(true)
-
-  // View Mode for Overview Charts (Daily vs Monthly)
-  const [overviewTimeScale, setOverviewTimeScale] = useState<
-    'daily' | 'monthly'
-  >('daily')
-
-  // Filter state for Revenue Chart (Lifted State)
-  const [revenueFilter, setRevenueFilter] = useState<string[]>([
-    'Sebo',
-    'FCO',
-    'Farinheta',
-  ])
-
-  // Client Filter for Revenue Chart
-  const [clientFilter, setClientFilter] = useState<string[]>([])
-
-  // Get unique clients for filter
-  const allClients = useMemo(() => {
-    return Array.from(new Set(shipping.map((s) => s.client))).sort()
-  }, [shipping])
-
-  // Trigger visual highlight when data updates
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-
-    setHighlight(true)
-    const timer = setTimeout(() => setHighlight(false), 2000)
-
-    return () => clearTimeout(timer)
-  }, [
-    rawMaterials,
-    production,
-    shipping,
-    acidityRecords,
-    qualityRecords,
-    yieldTargets,
-  ])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {
@@ -136,128 +47,7 @@ export default function Dashboard() {
     .filter((p) => filterByDate(p.date))
     .sort((a, b) => a.date.getTime() - b.date.getTime())
 
-  const filteredRawMaterials = rawMaterials.filter((r) => filterByDate(r.date))
-  const filteredShipping = shipping
-    .filter((s) => filterByDate(s.date))
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-  const filteredAcidity = acidityRecords.filter((a) => filterByDate(a.date))
   const filteredQuality = qualityRecords.filter((q) => filterByDate(q.date))
-
-  // Data passed to chart (Date Filtered + Client Filtered)
-  // We filter by client here so the chart only shows data for selected clients.
-  const chartShippingData = useMemo(() => {
-    if (clientFilter.length === 0) return filteredShipping
-    return filteredShipping.filter((s) => clientFilter.includes(s.client))
-  }, [filteredShipping, clientFilter])
-
-  // KPIs General
-  const totalEntradaMP = filteredRawMaterials.reduce(
-    (acc, curr) => acc + curr.quantity,
-    0,
-  )
-  const totalProducao = filteredProduction.reduce(
-    (acc, curr) =>
-      acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced,
-    0,
-  )
-  const totalMPUsada = filteredProduction.reduce(
-    (acc, curr) => acc + curr.mpUsed,
-    0,
-  )
-  const rendimentoGeral =
-    totalMPUsada > 0 ? (totalProducao / totalMPUsada) * 100 : 0
-
-  const totalRevenue = filteredShipping.reduce(
-    (acc, curr) => acc + curr.quantity * curr.unitPrice,
-    0,
-  )
-
-  // --- Forecast & Comparison Logic ---
-  const avgPrices = useMemo(() => getAveragePrices(shipping), [shipping])
-
-  const { totalForecast, comparisonPercentage, previousTotalRevenue } =
-    useMemo(() => {
-      // 1. Current Period Stats (Actual Revenue + Surplus Production Value)
-      const currentRevenue = filteredShipping
-        .filter((s) => revenueFilter.includes(s.product))
-        .filter(
-          (s) => clientFilter.length === 0 || clientFilter.includes(s.client),
-        )
-        .reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0)
-
-      const currentProductionTotals = filteredProduction.reduce(
-        (acc, curr) => {
-          acc['Sebo'] = (acc['Sebo'] || 0) + curr.seboProduced
-          acc['FCO'] = (acc['FCO'] || 0) + curr.fcoProduced
-          acc['Farinheta'] = (acc['Farinheta'] || 0) + curr.farinhetaProduced
-          return acc
-        },
-        {} as Record<string, number>,
-      )
-
-      let surplusValue = 0
-      const products = ['Sebo', 'FCO', 'Farinheta']
-      products.forEach((prod) => {
-        if (!revenueFilter.includes(prod)) return
-
-        const produced = currentProductionTotals[prod] || 0
-        const shippedQty = filteredShipping
-          .filter((s) => s.product === prod)
-          .reduce((acc, s) => acc + s.quantity, 0)
-
-        const price =
-          avgPrices[prod] ||
-          avgPrices['Farinha'] ||
-          avgPrices['FCO'] ||
-          avgPrices['Farinheta'] ||
-          0
-
-        if (produced > shippedQty) {
-          surplusValue += (produced - shippedQty) * price
-        }
-      })
-
-      const totalForecast = currentRevenue + surplusValue
-
-      // 2. Previous Period Stats
-      let prevRevenue = 0
-      if (dateRange.from && dateRange.to) {
-        const duration = differenceInDays(dateRange.from, dateRange.to)
-        const prevFrom = subDays(dateRange.from, Math.abs(duration) + 1)
-        const prevTo = subDays(dateRange.to, Math.abs(duration) + 1)
-
-        const prevShipping = shipping.filter(
-          (s) =>
-            s.date >= prevFrom &&
-            s.date <= prevTo &&
-            revenueFilter.includes(s.product) &&
-            (clientFilter.length === 0 || clientFilter.includes(s.client)),
-        )
-        prevRevenue = prevShipping.reduce(
-          (acc, s) => acc + s.quantity * s.unitPrice,
-          0,
-        )
-      }
-
-      const percentage =
-        prevRevenue > 0
-          ? ((totalForecast - prevRevenue) / prevRevenue) * 100
-          : 0
-
-      return {
-        totalForecast,
-        comparisonPercentage: percentage,
-        previousTotalRevenue: prevRevenue,
-      }
-    }, [
-      filteredShipping,
-      filteredProduction,
-      avgPrices,
-      dateRange,
-      shipping,
-      revenueFilter,
-      clientFilter,
-    ])
 
   // Quality KPIs (Averages)
   const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
@@ -285,36 +75,6 @@ export default function Dashboard() {
       ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) /
         farinhetaQuality.length
       : 0
-
-  // Individual Yields Totals
-  const totalSebo = filteredProduction.reduce(
-    (acc, curr) => acc + curr.seboProduced,
-    0,
-  )
-  const totalFCO = filteredProduction.reduce(
-    (acc, curr) => acc + curr.fcoProduced,
-    0,
-  )
-  const totalFarinheta = filteredProduction.reduce(
-    (acc, curr) => acc + curr.farinhetaProduced,
-    0,
-  )
-
-  const yieldSebo = totalMPUsada > 0 ? (totalSebo / totalMPUsada) * 100 : 0
-  const yieldFCO = totalMPUsada > 0 ? (totalFCO / totalMPUsada) * 100 : 0
-  const yieldFarinheta =
-    totalMPUsada > 0 ? (totalFarinheta / totalMPUsada) * 100 : 0
-
-  const getYieldColorClass = (value: number, target: number) => {
-    if (value === 0 && target > 0) return 'text-destructive'
-    return value >= target
-      ? 'text-green-600 dark:text-green-500'
-      : 'text-destructive'
-  }
-
-  const highlightClass = highlight
-    ? 'ring-2 ring-primary bg-primary/5 shadow-md scale-[1.01] transition-all duration-300'
-    : 'transition-all duration-700'
 
   return (
     <div id="dashboard-content" className="space-y-6">
@@ -371,21 +131,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-4">
+      <Tabs defaultValue="hourly-production" className="space-y-4">
         <div className="no-print overflow-x-auto pb-2 scrollbar-hide">
           <TabsList className="bg-muted/50 w-full sm:w-auto flex">
-            <TabsTrigger
-              value="overview"
-              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-            >
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger
-              value="quality"
-              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
-            >
-              Qualidade
-            </TabsTrigger>
             <TabsTrigger
               value="yields"
               className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -398,245 +146,32 @@ export default function Dashboard() {
             >
               Produção Horária
             </TabsTrigger>
+            <TabsTrigger
+              value="quality"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Qualidade
+            </TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="overview" className="space-y-4">
-          {/* Main KPIs */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-            <Card
-              className={cn(
-                'border-l-4 border-l-chart-2 shadow-sm hover:shadow-md transition-shadow',
-                highlightClass,
-              )}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Entrada MP
-                </CardTitle>
-                <FactoryIcon className="h-4 w-4 text-chart-2" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalEntradaMP.toLocaleString('pt-BR')} kg
-                </div>
-              </CardContent>
-            </Card>
-            <Card
-              className={cn(
-                'border-l-4 border-l-primary shadow-sm hover:shadow-md transition-shadow',
-                highlightClass,
-              )}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Produção
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalProducao.toLocaleString('pt-BR')} kg
-                </div>
-              </CardContent>
-            </Card>
-            <Card
-              className={cn(
-                'border-l-4 border-l-chart-3 shadow-sm hover:shadow-md transition-shadow',
-                highlightClass,
-              )}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Rendimento Geral
-                </CardTitle>
-                <PieChart className="h-4 w-4 text-chart-3" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {rendimentoGeral.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
-            <Card
-              className={cn(
-                'border-l-4 border-l-green-600 shadow-sm hover:shadow-md transition-shadow',
-                highlightClass,
-              )}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Faturamento
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold truncate">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                    notation: 'compact',
-                  }).format(totalRevenue)}
-                </div>
-              </CardContent>
-            </Card>
-            <ProductivityCard
-              className={cn(
-                'border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-4 xl:col-span-1',
-                highlightClass,
-              )}
-            />
-          </div>
 
-          {/* New Overview Section: Hourly Production */}
-          <div className="grid gap-4">
-            <HourlyProductionChart />
-          </div>
+        <TabsContent value="yields" className="space-y-4">
+          <YieldBarChart data={filteredProduction} isMobile={isMobile} />
+          <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
+        </TabsContent>
 
-          {/* Yields Summary Cards for Overview */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            <Card className="shadow-sm border-primary/10 bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Rendimento Sebo
-                </CardTitle>
-                <Droplets
-                  className="h-3.5 w-3.5"
-                  style={{ color: 'hsl(var(--chart-1))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={cn(
-                    'text-xl font-bold',
-                    getYieldColorClass(yieldSebo, yieldTargets.sebo),
-                  )}
-                >
-                  {yieldSebo.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-primary/10 bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Rendimento FCO
-                </CardTitle>
-                <Bone
-                  className="h-3.5 w-3.5"
-                  style={{ color: 'hsl(var(--chart-2))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={cn(
-                    'text-xl font-bold',
-                    getYieldColorClass(yieldFCO, yieldTargets.fco),
-                  )}
-                >
-                  {yieldFCO.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-sm border-primary/10 bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
-                  Rendimento Farinheta
-                </CardTitle>
-                <Wheat
-                  className="h-3.5 w-3.5"
-                  style={{ color: 'hsl(var(--chart-3))' }}
-                />
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={cn(
-                    'text-xl font-bold',
-                    getYieldColorClass(yieldFarinheta, yieldTargets.farinheta),
-                  )}
-                >
-                  {yieldFarinheta.toFixed(2)}%
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="hourly-production" className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold tracking-tight">
+              Monitoramento em Tempo Real
+            </h3>
           </div>
-
-          {/* Load Forecast Widget */}
-          <div className="mt-4 mb-4">
-            <LoadForecast />
-          </div>
-
-          {/* Hourly Throughput Widget */}
-          <div className="mt-4 mb-4">
+          <HourlyProductionChart className="min-h-[500px]" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <ProductivityCard />
             <HourlyThroughput />
           </div>
-
-          {/* Time Scale Filter for Charts */}
-          <div className="flex justify-end">
-            <div className="bg-muted/50 p-1 rounded-md flex items-center">
-              <Button
-                variant={overviewTimeScale === 'daily' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setOverviewTimeScale('daily')}
-              >
-                <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                Diário
-              </Button>
-              <Button
-                variant={overviewTimeScale === 'monthly' ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 px-3 text-xs"
-                onClick={() => setOverviewTimeScale('monthly')}
-              >
-                <CalendarRange className="h-3.5 w-3.5 mr-1" />
-                Mensal
-              </Button>
-            </div>
-          </div>
-
-          {/* Combined Row: Gauge + Raw Material */}
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-7">
-            <YieldGaugeChart
-              value={rendimentoGeral}
-              target={yieldTargets.total}
-              className="col-span-1 md:col-span-1 lg:col-span-2 min-h-[400px]"
-            />
-            <RawMaterialChart
-              data={filteredRawMaterials}
-              className="col-span-1 md:col-span-2 lg:col-span-5"
-              isMobile={isMobile}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <ProductionPerformanceChart
-              data={filteredProduction}
-              isMobile={isMobile}
-              className="col-span-1 md:col-span-2 lg:col-span-4"
-              timeScale={overviewTimeScale}
-            />
-            <LossAnalysisChart
-              data={filteredProduction}
-              className="col-span-1 md:col-span-2 lg:col-span-3"
-              timeScale={overviewTimeScale}
-            />
-          </div>
-
-          <RevenueChart
-            data={chartShippingData}
-            productionData={filteredProduction}
-            timeScale={overviewTimeScale}
-            isMobile={isMobile}
-            forecastMetrics={{
-              total: totalForecast,
-              previous: previousTotalRevenue,
-              percentage: comparisonPercentage,
-            }}
-            activeFilter={revenueFilter}
-            onFilterChange={setRevenueFilter}
-            clientFilter={clientFilter}
-            onClientFilterChange={setClientFilter}
-            allClients={allClients}
-          />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">
@@ -692,25 +227,6 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="yields" className="space-y-4">
-          <YieldBarChart data={filteredProduction} isMobile={isMobile} />
-          <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
-        </TabsContent>
-
-        <TabsContent value="hourly-production" className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-5 w-5 text-primary" />
-            <h3 className="text-lg font-semibold tracking-tight">
-              Monitoramento em Tempo Real
-            </h3>
-          </div>
-          <HourlyProductionChart className="min-h-[500px]" />
-          <div className="grid gap-4 md:grid-cols-2">
-            <ProductivityCard />
-            <HourlyThroughput />
           </div>
         </TabsContent>
       </Tabs>
