@@ -75,11 +75,18 @@ export function LoadForecast() {
     return { dailyMp: daily, monthlyMp: monthly }
   }, [rawMaterials, now])
 
-  // Helper to format numbers
+  // Helper to format numbers (Decimal for Kg)
   const fmt = (n: number) =>
     n.toLocaleString('pt-BR', {
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
+    })
+
+  // Helper to format numbers (Integer for Bags)
+  const fmtInt = (n: number) =>
+    n.toLocaleString('pt-BR', {
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
     })
 
   // Render Card Component
@@ -128,7 +135,7 @@ export function LoadForecast() {
                   Bag 1450kg
                 </div>
                 <div className="text-lg font-bold text-foreground">
-                  {fmt(dailyBags1450)}
+                  {fmtInt(dailyBags1450)}
                 </div>
               </div>
               <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
@@ -136,7 +143,7 @@ export function LoadForecast() {
                   Bag 1500kg
                 </div>
                 <div className="text-lg font-bold text-foreground">
-                  {fmt(dailyBags1500)}
+                  {fmtInt(dailyBags1500)}
                 </div>
               </div>
             </div>
@@ -164,7 +171,7 @@ export function LoadForecast() {
                   Bag 1450kg
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  {fmt(monthlyBags1450)}
+                  {fmtInt(monthlyBags1450)}
                 </div>
               </div>
               <div className="bg-background/50 p-2 rounded border text-center hover:bg-background/80 transition-colors">
@@ -172,7 +179,7 @@ export function LoadForecast() {
                   Bag 1500kg
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  {fmt(monthlyBags1500)}
+                  {fmtInt(monthlyBags1500)}
                 </div>
               </div>
             </div>
