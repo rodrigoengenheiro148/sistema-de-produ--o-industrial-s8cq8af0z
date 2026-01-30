@@ -1,5 +1,5 @@
 import { useData } from '@/context/DataContext'
-import { format, isWithinInterval } from 'date-fns'
+import { format, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -24,7 +24,7 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 export default function Dashboard() {
   const {
@@ -43,6 +43,33 @@ export default function Dashboard() {
   const isMobile = useIsMobile()
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
+
+  // Track current day to auto-update context when day changes
+  const [today, setToday] = useState(new Date())
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date()
+      if (now.getDate() !== today.getDate()) {
+        setToday(now)
+      }
+    }, 60000) // Check every minute
+    return () => clearInterval(timer)
+  }, [today])
+
+  // Determine effective date for forecast
+  // If the selected range includes Today, we prioritize Today for the forecast
+  // Otherwise we use the end date of the range
+  const effectiveForecastDate = useMemo(() => {
+    if (dateRange.from && dateRange.to) {
+      if (
+        isWithinInterval(today, { start: dateRange.from, end: dateRange.to })
+      ) {
+        return today
+      }
+      return dateRange.to
+    }
+    return dateRange.to || today
+  }, [dateRange, today])
 
   // Filter data based on date range
   const filterByDate = (date: Date) => {
@@ -221,7 +248,7 @@ export default function Dashboard() {
             notificationSettings={notificationSettings}
           />
 
-          <LoadForecast referenceDate={dateRange.to || new Date()} />
+          <LoadForecast referenceDate={effectiveForecastDate} />
 
           <div className="grid gap-4 md:grid-cols-3">
             <YieldGaugeChart

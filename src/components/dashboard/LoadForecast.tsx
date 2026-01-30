@@ -49,6 +49,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     // 1. Calculate Daily Raw Material Input
     // Sum quantity from raw_materials table for the current factory and date
     // Note: useData already filters rawMaterials by currentFactoryId on fetch
+    // but we need to filter by the specific date for the forecast
     const dailyMp = rawMaterials
       .filter((r) => isSameDay(r.date, targetDate))
       .reduce((acc, curr) => acc + curr.quantity, 0)
@@ -59,6 +60,8 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
       const estProdTons = estProdKg / 1000
 
       // Bag counts (Math.floor)
+      // Bags 1450kg: (Est. Prod * 1000) / 1450
+      // Bags 1500kg: (Est. Prod * 1000) / 1500
       const bags1450 = Math.floor(estProdKg / 1450)
       const bags1500 = Math.floor(estProdKg / 1500)
 
