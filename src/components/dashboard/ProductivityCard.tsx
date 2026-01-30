@@ -27,6 +27,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const today = new Date()
     const filterFn = (d: Date) => isSameDay(d, today)
 
+    // Data from context is already filtered by factory_id
     const filteredRawMaterials = rawMaterials.filter((r) => filterFn(r.date))
     const filteredCookingTimes = cookingTimeRecords.filter((r) =>
       filterFn(r.date),
@@ -89,22 +90,22 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     // 6. Calculate Processed and Remaining Material based on Fixed Flow Rate
     // Processed = Flow Rate * Useful Hours
-    const processedTons = usefulHours * FIXED_FLOW_RATE
+    const calculatedProcessedTons = usefulHours * FIXED_FLOW_RATE
+
+    // Cap Processed at Total Raw Material
+    // The Quantity Produced value must never exceed the Total MP for the day.
+    const processedTons = Math.min(
+      calculatedProcessedTons,
+      totalRawMaterialTons,
+    )
 
     // Remaining = Total - Processed (Cannot be negative)
     const remainingTons = Math.max(0, totalRawMaterialTons - processedTons)
 
-    // 7. Productivity (t/h) to display
-    // If there is any useful processing time (active or past), we display the fixed flow rate
-    // as the machine operating speed. If no processing has occurred, display 0.
-    const displayProductivity = usefulHours > 0 ? FIXED_FLOW_RATE : 0
-
     return {
-      productivity: displayProductivity,
-      usefulHours,
-      totalRawMaterialTons,
       processedTons,
       remainingTons,
+      totalRawMaterialTons,
     }
   }, [rawMaterials, cookingTimeRecords, downtimeRecords, now])
 
@@ -112,13 +113,13 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     <Card className={cn(className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Tempo de Cozimento (t/h)
+          Volume Processado
         </CardTitle>
         <Timer className="h-4 w-4 text-primary" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {metrics.productivity.toFixed(3)} t/h
+          {metrics.processedTons.toFixed(2)} t
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {metrics.remainingTons.toFixed(2)}t restantes de{' '}
