@@ -37,6 +37,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
+import { HourlyThroughput } from '@/components/dashboard/HourlyThroughput'
 import { ShippingEntry } from '@/lib/types'
 
 // Helper to get average prices from full history to ensure stability
@@ -579,6 +580,11 @@ export default function Dashboard() {
           {/* Load Forecast Widget */}
           <div className="mt-4 mb-4">
             <LoadForecast />
+          </div>
+
+          {/* Hourly Throughput Widget */}
+          <div className="mt-4 mb-4">
+            <HourlyThroughput />
           </div>
 
           {/* Time Scale Filter for Charts */}
