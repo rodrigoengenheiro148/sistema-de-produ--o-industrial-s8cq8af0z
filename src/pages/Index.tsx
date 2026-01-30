@@ -22,6 +22,7 @@ import {
   Wheat,
   CalendarDays,
   CalendarRange,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -391,6 +392,12 @@ export default function Dashboard() {
             >
               Rendimentos Detalhados
             </TabsTrigger>
+            <TabsTrigger
+              value="hourly-production"
+              className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              Produção Horária
+            </TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="space-y-4">
@@ -691,6 +698,20 @@ export default function Dashboard() {
         <TabsContent value="yields" className="space-y-4">
           <YieldBarChart data={filteredProduction} isMobile={isMobile} />
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
+        </TabsContent>
+
+        <TabsContent value="hourly-production" className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold tracking-tight">
+              Monitoramento em Tempo Real
+            </h3>
+          </div>
+          <HourlyProductionChart className="min-h-[500px]" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <ProductivityCard />
+            <HourlyThroughput />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

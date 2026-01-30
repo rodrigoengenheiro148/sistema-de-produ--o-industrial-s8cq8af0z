@@ -81,7 +81,7 @@ export function HourlyProductionChart({ className }: { className?: string }) {
 
       data.push({
         hour: `${h.toString().padStart(2, '0')}:00`,
-        volume: activeMinutes * tonsPerMinute,
+        volume: Math.max(0, activeMinutes * tonsPerMinute),
       })
     }
 
@@ -90,10 +90,18 @@ export function HourlyProductionChart({ className }: { className?: string }) {
 
   const config = {
     volume: {
-      label: 'Volume (t)',
+      label: 'Volume',
       color: 'hsl(var(--primary))',
     },
   } satisfies ChartConfig
+
+  const formatValue = (valueInTons: number) => {
+    const valueInKg = valueInTons * 1000
+    if (valueInKg < 1000) {
+      return `${valueInKg.toFixed(0)} kg/M`
+    }
+    return `${valueInTons.toFixed(1)} t/h`
+  }
 
   return (
     <Card className={cn('shadow-sm border-primary/10', className)}>
@@ -104,7 +112,7 @@ export function HourlyProductionChart({ className }: { className?: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={config} className="h-[250px] w-full">
+        <ChartContainer config={config} className="h-[300px] w-full">
           <BarChart
             data={chartData}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -122,11 +130,16 @@ export function HourlyProductionChart({ className }: { className?: string }) {
               tickLine={false}
               axisLine={false}
               fontSize={12}
-              tickFormatter={(val) => `${val.toFixed(1)}t`}
+              tickFormatter={formatValue}
+              width={60}
             />
             <ChartTooltip
               cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-              content={<ChartTooltipContent />}
+              content={
+                <ChartTooltipContent
+                  formatter={(value) => formatValue(Number(value))}
+                />
+              }
             />
             <Bar
               dataKey="volume"
