@@ -318,10 +318,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (status === 'SUBSCRIBED') {
           console.log('Successfully subscribed to factories changes')
         }
-        if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.error(
             `Realtime subscription error (factories) on channel ${channelName}:`,
-            err,
+            err?.message || err || status,
           )
         }
       })
@@ -339,6 +339,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   // Realtime Subscriptions (Operational - Scoped to Factory)
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
+
+    // Validating UUID format for currentFactoryId to avoid subscription errors with invalid IDs
+    // This regex checks for a standard UUID format
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(currentFactoryId)) {
+      console.warn(
+        'Invalid Factory ID format for subscription:',
+        currentFactoryId,
+      )
+      return
+    }
 
     const channelName = `operational-data-${currentFactoryId}`
     const channel = supabase.channel(channelName)
@@ -398,7 +410,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (status === 'SUBSCRIBED') {
           setConnectionStatus('online')
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error(`Realtime subscription error on ${channelName}:`, err)
+          // Robust error handling to avoid "undefined" in logs
+          console.error(
+            `Realtime subscription error on ${channelName}:`,
+            err?.message || err || status,
+          )
           setConnectionStatus('error')
         }
       })
