@@ -10,28 +10,15 @@ import {
 import { Separator } from '@/components/ui/separator'
 import {
   Package,
-  CalendarDays,
+  Clock,
   Droplets,
   Bone,
   Wheat,
-  Clock,
-  Info,
   Scale,
+  Info,
 } from 'lucide-react'
-import {
-  isSameDay,
-  isSameMonth,
-  isSameYear,
-  getDaysInMonth,
-  getDate,
-} from 'date-fns'
+import { isSameDay } from 'date-fns'
 import { cn } from '@/lib/utils'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 interface LoadForecastProps {
   referenceDate?: Date
@@ -39,92 +26,59 @@ interface LoadForecastProps {
 }
 
 export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
-  const { production, rawMaterials, yieldTargets } = useData()
+  const { rawMaterials } = useData()
   const targetDate = referenceDate || new Date()
 
-  // Constants
-  const BAGS_PER_HOUR = 4 // 1 bag every 15 mins
+  // Constants defined in Acceptance Criteria
   const SHIFT_HOURS = 16 // 2 shifts of 8h
-  const DAILY_BAG_CAPACITY = BAGS_PER_HOUR * SHIFT_HOURS // 64 bags
+  const BAGS_PER_HOUR = 4 // 1 bag every 15 mins
+  const THEORETICAL_CAPACITY = BAGS_PER_HOUR * SHIFT_HOURS // 64 bags/day
+
+  // Flow Rates (Fixed as per AC)
+  const FLOW_RATE_1450 = 5.8 // t/h
+  const FLOW_RATE_1500 = 6.0 // t/h
+
+  // Yield Factors (Fixed as per AC)
+  const YIELD_FACTORS = {
+    sebo: 0.15, // 15%
+    fco: 0.2, // 20%
+    farinheta: 0.05, // 5%
+  }
 
   const { forecasts } = useMemo(() => {
-    // 1. Daily MP Input (Raw Material for the selected date)
-    let dailyMp = rawMaterials
+    // 1. Calculate Daily Raw Material Input
+    // Sum quantity from raw_materials table for the current factory and date
+    // Note: useData already filters rawMaterials by currentFactoryId on fetch
+    const dailyMp = rawMaterials
       .filter((r) => isSameDay(r.date, targetDate))
       .reduce((acc, curr) => acc + curr.quantity, 0)
 
-    // Fallback: Check production MP if raw materials not entered but production is
-    // This handles scenarios where production is logged directly without raw material entries
-    const productionMp = production
-      .filter((p) => isSameDay(p.date, targetDate))
-      .reduce((acc, curr) => acc + curr.mpUsed, 0)
+    const calculateMetrics = (yieldFactor: number) => {
+      // Est. Prod (kg) = Total Raw Material * Yield Factor
+      const estProdKg = dailyMp * yieldFactor
+      const estProdTons = estProdKg / 1000
 
-    if (dailyMp === 0 && productionMp > 0) {
-      dailyMp = productionMp
-    }
-
-    // 2. Monthly Stats for Projection
-    const monthlyStats = {
-      sebo: 0,
-      fco: 0,
-      farinheta: 0,
-    }
-
-    // Filter production for current month/year of target date
-    const monthProduction = production.filter(
-      (p) => isSameMonth(p.date, targetDate) && isSameYear(p.date, targetDate),
-    )
-
-    monthProduction.forEach((p) => {
-      monthlyStats.sebo += p.seboProduced
-      monthlyStats.fco += p.fcoProduced
-      monthlyStats.farinheta += p.farinhetaProduced
-    })
-
-    // Calculate projection factor
-    const daysInMonth = getDaysInMonth(targetDate)
-    const dayOfMonth = getDate(targetDate)
-
-    // Simple projection: (Current Total / Days Passed) * Total Days in Month
-    // We use Math.max(1, dayOfMonth) to avoid division by zero
-    const projectionFactor = daysInMonth / Math.max(1, dayOfMonth)
-
-    const calculateMetrics = (yieldPct: number, monthlyTotal: number) => {
-      // Daily Forecast based on Today's MP and Yield Target
-      // formula: MP * (Yield / 100)
-      const dailyForecastKg = dailyMp * (yieldPct / 100)
-
-      // Monthly Projection based on actuals so far + trend
-      // If we are looking at past months (dayOfMonth == daysInMonth), factor is 1 (actuals)
-      const monthlyProjectedKg = monthlyTotal * projectionFactor
+      // Bag counts (Math.floor)
+      const bags1450 = Math.floor(estProdKg / 1450)
+      const bags1500 = Math.floor(estProdKg / 1500)
 
       return {
-        daily: {
-          kg: dailyForecastKg,
-          bags1450: Math.round(dailyForecastKg / 1450),
-          bags1500: Math.round(dailyForecastKg / 1500),
-        },
-        monthly: {
-          kg: monthlyProjectedKg,
-          bags1450: Math.round(monthlyProjectedKg / 1450),
-          bags1500: Math.round(monthlyProjectedKg / 1500),
-        },
+        estProdTons,
+        bags1450,
+        bags1500,
       }
     }
 
     return {
       forecasts: {
-        sebo: calculateMetrics(yieldTargets.sebo, monthlyStats.sebo),
-        fco: calculateMetrics(yieldTargets.fco, monthlyStats.fco), // FCO (Farinha)
-        farinheta: calculateMetrics(
-          yieldTargets.farinheta,
-          monthlyStats.farinheta,
-        ),
+        sebo: calculateMetrics(YIELD_FACTORS.sebo),
+        fco: calculateMetrics(YIELD_FACTORS.fco),
+        farinheta: calculateMetrics(YIELD_FACTORS.farinheta),
       },
     }
-  }, [production, rawMaterials, yieldTargets, targetDate])
+  }, [rawMaterials, targetDate])
 
-  const MaterialForecastCard = ({
+  const ForecastCard = ({
     title,
     icon: Icon,
     colorClass,
@@ -136,15 +90,11 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     colorClass: string
     bgClass: string
     data: {
-      daily: { kg: number; bags1450: number; bags1500: number }
-      monthly: { kg: number; bags1450: number; bags1500: number }
+      estProdTons: number
+      bags1450: number
+      bags1500: number
     }
   }) => {
-    // Cadence Calculations (Theoretical)
-    // Per acceptance criteria: 4 bags/h * weight
-    const rate1450 = BAGS_PER_HOUR * 1.45 // t/h
-    const rate1500 = BAGS_PER_HOUR * 1.5 // t/h
-
     return (
       <div
         className={cn(
@@ -152,139 +102,90 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
         )}
       >
         {/* Header */}
-        <div className={cn('p-3 flex items-center gap-2 border-b', bgClass)}>
+        <div className={cn('p-4 flex items-center gap-3 border-b', bgClass)}>
           <div
-            className={cn(
-              'p-1.5 rounded-full bg-white/90 shadow-sm',
-              colorClass,
-            )}
+            className={cn('p-2 rounded-full bg-white/90 shadow-sm', colorClass)}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
           </div>
-          <span className="font-semibold text-sm">{title}</span>
+          <span className="font-bold text-base">{title}</span>
         </div>
 
-        <div className="p-4 space-y-4 flex-1">
+        <div className="p-5 space-y-6 flex-1">
           {/* Cadence Section */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              <Clock className="h-3 w-3" />
-              Cadência (16h)
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <Clock className="h-3.5 w-3.5" />
+              Cadência ({SHIFT_HOURS}H)
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="bg-muted/40 p-2 rounded border border-border/50 text-center cursor-help transition-colors hover:bg-muted/60">
-                      <div className="text-[10px] text-muted-foreground font-medium mb-0.5">
-                        Flow 1450kg
-                      </div>
-                      <div className="text-sm font-bold text-foreground">
-                        {rate1450.toFixed(2)}{' '}
-                        <span className="text-[10px] font-normal text-muted-foreground">
-                          t/h
-                        </span>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      Base: 4 bags/h (1 a cada 15min)
-                      <br />x 1450kg
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="bg-muted/40 p-2 rounded border border-border/50 text-center cursor-help transition-colors hover:bg-muted/60">
-                      <div className="text-[10px] text-muted-foreground font-medium mb-0.5">
-                        Flow 1500kg
-                      </div>
-                      <div className="text-sm font-bold text-foreground">
-                        {rate1500.toFixed(2)}{' '}
-                        <span className="text-[10px] font-normal text-muted-foreground">
-                          t/h
-                        </span>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">
-                      Base: 4 bags/h (1 a cada 15min)
-                      <br />x 1500kg
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center">
+                <div className="text-[11px] text-muted-foreground font-medium mb-1">
+                  Flow 1450kg
+                </div>
+                <div className="text-base font-bold text-foreground">
+                  {FLOW_RATE_1450.toFixed(2)}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    t/h
+                  </span>
+                </div>
+              </div>
+              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center">
+                <div className="text-[11px] text-muted-foreground font-medium mb-1">
+                  Flow 1500kg
+                </div>
+                <div className="text-base font-bold text-foreground">
+                  {FLOW_RATE_1500.toFixed(2)}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    t/h
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="text-[10px] text-center text-muted-foreground flex items-center justify-center gap-1 bg-muted/20 py-1 rounded">
-              <Info className="h-3 w-3" /> Cap. Teórica:{' '}
-              <strong>{DAILY_BAG_CAPACITY} bags/dia</strong>
+            <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 bg-muted/20 py-1.5 rounded-md">
+              <Info className="h-3.5 w-3.5" /> Cap. Teórica:{' '}
+              <strong>{THEORETICAL_CAPACITY} bags/dia</strong>
             </div>
           </div>
 
           <Separator />
 
-          {/* Daily Forecast */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              <Scale className="h-3 w-3" />
+          {/* Daily Forecast Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <Scale className="h-3.5 w-3.5" />
               Previsão Hoje (Bags)
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col items-center p-2 rounded bg-primary/5 border border-primary/10">
-                <span className="text-lg font-bold text-primary leading-none mb-1">
-                  {data.daily.bags1450}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
+                <span
+                  className={cn(
+                    'text-2xl font-bold leading-none mb-1.5',
+                    colorClass,
+                  )}
+                >
+                  {data.bags1450}
                 </span>
-                <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                  1450kg
-                </span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded bg-primary/5 border border-primary/10">
-                <span className="text-lg font-bold text-primary leading-none mb-1">
-                  {data.daily.bags1500}
-                </span>
-                <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                  1500kg
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
+                  1450KG
                 </span>
               </div>
-            </div>
-            <div className="text-[10px] text-right text-muted-foreground">
-              Est. Prod: {(data.daily.kg / 1000).toFixed(1)}t
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Monthly Forecast */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              <CalendarDays className="h-3 w-3" />
-              Projeção Mês (Bags)
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col items-center p-2 rounded bg-muted/30 border border-border/50">
-                <span className="text-lg font-bold text-foreground leading-none mb-1">
-                  {data.monthly.bags1450}
+              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
+                <span
+                  className={cn(
+                    'text-2xl font-bold leading-none mb-1.5',
+                    colorClass,
+                  )}
+                >
+                  {data.bags1500}
                 </span>
-                <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                  1450kg
-                </span>
-              </div>
-              <div className="flex flex-col items-center p-2 rounded bg-muted/30 border border-border/50">
-                <span className="text-lg font-bold text-foreground leading-none mb-1">
-                  {data.monthly.bags1500}
-                </span>
-                <span className="text-[9px] text-muted-foreground uppercase font-semibold">
-                  1500kg
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
+                  1500KG
                 </span>
               </div>
             </div>
-            <div className="text-[10px] text-right text-muted-foreground">
-              Est. Total: {(data.monthly.kg / 1000).toFixed(1)}t
+            <div className="text-xs text-right text-muted-foreground font-medium mt-1">
+              Est. Prod: {data.estProdTons.toFixed(1)}t
             </div>
           </div>
         </div>
@@ -298,34 +199,34 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-primary" />
           <div>
-            <CardTitle>Previsão de Cargas (Logística)</CardTitle>
+            <CardTitle>Planejamento de Produção & Logística</CardTitle>
             <CardDescription>
-              Planejamento de bags e cadência de produção (16h)
+              Previsão de bags baseada na entrada de matéria-prima do dia
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
-          <MaterialForecastCard
+        <div className="grid gap-6 md:grid-cols-3">
+          <ForecastCard
             title="Sebo"
             icon={Droplets}
-            colorClass="text-emerald-600"
-            bgClass="bg-emerald-50 dark:bg-emerald-900/20"
+            colorClass="text-emerald-600 dark:text-emerald-400"
+            bgClass="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30"
             data={forecasts.sebo}
           />
-          <MaterialForecastCard
+          <ForecastCard
             title="Farinha (FCO)"
             icon={Bone}
-            colorClass="text-amber-600"
-            bgClass="bg-amber-50 dark:bg-amber-900/20"
+            colorClass="text-amber-600 dark:text-amber-400"
+            bgClass="bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30"
             data={forecasts.fco}
           />
-          <MaterialForecastCard
+          <ForecastCard
             title="Farinheta"
             icon={Wheat}
-            colorClass="text-orange-600"
-            bgClass="bg-orange-50 dark:bg-orange-900/20"
+            colorClass="text-orange-600 dark:text-orange-400"
+            bgClass="bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30"
             data={forecasts.farinheta}
           />
         </div>
