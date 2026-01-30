@@ -3,28 +3,20 @@ import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isSameDay } from 'date-fns'
 
 interface ProductivityCardProps {
   className?: string
 }
 
 export function ProductivityCard({ className }: ProductivityCardProps) {
-  const { rawMaterials, cookingTimeRecords, downtimeRecords, dateRange } =
-    useData()
+  const { rawMaterials, cookingTimeRecords, downtimeRecords } = useData()
 
   const metrics = useMemo(() => {
-    // 1. Filter Data by Date Range
-    // The dashboard usually sets a date range. We filter all operational data by this range.
-    const filterFn = (d: Date) => {
-      if (!dateRange.from) return false
-      const from = new Date(dateRange.from)
-      from.setHours(0, 0, 0, 0)
-      const to = dateRange.to ? new Date(dateRange.to) : new Date(from)
-      to.setHours(23, 59, 59, 999)
-
-      const target = new Date(d)
-      return target >= from && target <= to
-    }
+    // 1. Filter Data by Current Date (Today)
+    // We strictly use the current day for this KPI to show real-time daily efficiency
+    const today = new Date()
+    const filterFn = (d: Date) => isSameDay(d, today)
 
     const filteredRawMaterials = rawMaterials.filter((r) => filterFn(r.date))
     const filteredCookingTimes = cookingTimeRecords.filter((r) =>
@@ -33,6 +25,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const filteredDowntime = downtimeRecords.filter((r) => filterFn(r.date))
 
     // 2. Total Raw Material (kg -> tons)
+    // Sum quantity from raw_materials for today
     const totalRawMaterialKg = filteredRawMaterials.reduce(
       (acc, curr) => acc + (Number(curr.quantity) || 0),
       0,
@@ -40,6 +33,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const totalRawMaterialTons = totalRawMaterialKg / 1000
 
     // 3. Total Downtime (hours)
+    // Sum duration_hours from downtime_records for today
     const totalDowntimeHours = filteredDowntime.reduce(
       (acc, curr) => acc + (Number(curr.durationHours) || 0),
       0,
@@ -65,7 +59,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
       let diff = end - start
       // Handle crossover (next day) if end time is smaller than start time
-      // This assumes a shift within 24h period
+      // This assumes a shift within 24h period (e.g., 23:00 -> 02:00)
       if (diff < 0) diff += 24 * 60
 
       totalElapsedMinutes += diff
@@ -82,15 +76,15 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const productivity =
       effectiveHours > 0 ? totalRawMaterialTons / effectiveHours : 0
 
-    // Ensure we never return NaN
+    // Ensure we never return NaN/undefined values for UI
     return {
-      productivity: isFinite(productivity) ? productivity : 0,
-      effectiveHours: isFinite(effectiveHours) ? effectiveHours : 0,
-      totalRawMaterialTons: isFinite(totalRawMaterialTons)
+      productivity: Number.isFinite(productivity) ? productivity : 0,
+      effectiveHours: Number.isFinite(effectiveHours) ? effectiveHours : 0,
+      totalRawMaterialTons: Number.isFinite(totalRawMaterialTons)
         ? totalRawMaterialTons
         : 0,
     }
-  }, [rawMaterials, cookingTimeRecords, downtimeRecords, dateRange])
+  }, [rawMaterials, cookingTimeRecords, downtimeRecords])
 
   return (
     <Card className={cn(className)}>
