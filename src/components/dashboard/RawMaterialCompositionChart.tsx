@@ -84,9 +84,7 @@ export function RawMaterialCompositionChart({
       }
 
       const entry = groupedData.get(dateKey)
-      // Normalize item type match (case insensitive if needed, but assuming exact match from DB based on requirements)
-      // We check if item.type is one of our categories, otherwise maybe group in 'Outros' or ignore
-      // Requirement lists specific categories, so we assume data fits or we stick to exact matches.
+      // Normalize item type match
       const category = CATEGORIES.find(
         (c) => c.toLowerCase() === item.type.toLowerCase(),
       )
@@ -150,11 +148,26 @@ export function RawMaterialCompositionChart({
         />
         <ChartTooltip
           cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
-          content={
-            <ChartTooltipContent
-              labelFormatter={(value, payload) => payload[0]?.payload?.fullDate}
-            />
-          }
+          content={(props) => {
+            const { payload, active } = props
+            if (!active || !payload) return null
+
+            // Filter out items with 0 or null value
+            const filteredPayload = payload.filter(
+              (item: any) => item.value > 0,
+            )
+
+            // If no data to show, hide tooltip
+            if (filteredPayload.length === 0) return null
+
+            return (
+              <ChartTooltipContent
+                {...props}
+                payload={filteredPayload}
+                labelFormatter={(_, p) => p[0]?.payload?.fullDate}
+              />
+            )
+          }}
         />
         <ChartLegend
           content={<ChartLegendContent />}
