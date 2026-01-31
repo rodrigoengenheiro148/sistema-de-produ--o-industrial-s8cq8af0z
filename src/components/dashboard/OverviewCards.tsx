@@ -4,7 +4,6 @@ import {
   TrendingUp,
   PieChart,
   DollarSign,
-  Activity,
   Droplets,
   Bone,
   Wheat,
@@ -19,6 +18,7 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo, useState, useEffect } from 'react'
+import { ProductivityCard } from './ProductivityCard'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -37,6 +37,8 @@ export function OverviewCards({
   downtimeRecords,
   notificationSettings,
 }: OverviewCardsProps) {
+  // We keep 'now' here only for other cards if needed,
+  // though ProductivityCard now handles its own timer.
   const [now, setNow] = useState(new Date())
 
   useEffect(() => {
@@ -51,7 +53,6 @@ export function OverviewCards({
       (acc, curr) => acc + curr.quantity,
       0,
     )
-    const totalRawMaterialTons = totalRawMaterial / 1000
 
     // 2. Produção (Total Production)
     const totalProduction = production.reduce(
@@ -74,35 +75,7 @@ export function OverviewCards({
       0,
     )
 
-    // 5. Produtividade (t/h)
-    // Formula: (Sum of Raw Material Quantity) / (Total Cooking Hours)
-    // Total Cooking Hours = Sum of duration of all records
-    let totalCookingMinutes = 0
-    cookingTimeRecords.forEach((record) => {
-      const [startH, startM] = record.startTime.split(':').map(Number)
-      const startMinutes = startH * 60 + startM
-
-      let endMinutes
-      if (record.endTime) {
-        const [endH, endM] = record.endTime.split(':').map(Number)
-        endMinutes = endH * 60 + endM
-      } else {
-        // If no end time, use current time (now)
-        endMinutes = now.getHours() * 60 + now.getMinutes()
-      }
-
-      let diff = endMinutes - startMinutes
-      if (diff < 0) diff += 24 * 60 // Handle midnight crossing
-      totalCookingMinutes += diff
-    })
-
-    const totalCookingHours = totalCookingMinutes / 60
-
-    // Calculate productivity (tons/hour)
-    const productivity =
-      totalCookingHours > 0 ? totalRawMaterialTons / totalCookingHours : 0
-
-    // 6. Specific Yields
+    // 5. Specific Yields
     const seboProduced = production.reduce(
       (acc, curr) => acc + curr.seboProduced,
       0,
@@ -128,21 +101,11 @@ export function OverviewCards({
       totalProduction,
       generalYield,
       totalRevenue,
-      productivity,
-      totalRawMaterialTons,
-      totalCookingHours,
       seboYield,
       fcoYield,
       farinhetaYield,
     }
-  }, [
-    rawMaterials,
-    production,
-    shipping,
-    cookingTimeRecords,
-    // downtimeRecords unused for this specific metric logic as per requirements
-    now,
-  ])
+  }, [rawMaterials, production, shipping, cookingTimeRecords, now])
 
   const formatCurrency = (val: number) => {
     if (val >= 1000000) {
@@ -252,28 +215,8 @@ export function OverviewCards({
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Produtividade (t/h)
-            </CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold">
-              {metrics.productivity.toFixed(2)}{' '}
-              <span className="text-sm font-normal text-muted-foreground">
-                t/h
-              </span>
-            </div>
-            <div className="flex flex-col gap-0.5 mt-1">
-              <p className="text-xs text-muted-foreground">
-                {metrics.totalRawMaterialTons.toFixed(1)}t em{' '}
-                {metrics.totalCookingHours.toFixed(1)}h
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Real-Time Productivity Card */}
+        <ProductivityCard className="border-l-4 border-l-blue-500 shadow-sm" />
       </div>
 
       {/* Yield Detail Cards */}
