@@ -409,8 +409,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
 
-  // ... (Other Add/Update/Delete functions for other entities remain similar)
-
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({
@@ -425,7 +423,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     })
     if (!error) fetchOperationalData()
   }
-  // ... (keeping raw materials functions short for brevity but assume they are there as per original file)
+
   const bulkAddRawMaterials = async (
     entries: Omit<RawMaterialEntry, 'id'>[],
   ) => {
@@ -696,6 +694,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       rice_husk: entry.riceHusk,
       wood_chips: entry.woodChips,
       steam_consumption: entry.steamConsumption,
+      meter_start: entry.meterStart,
+      meter_end: entry.meterEnd,
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
@@ -712,6 +712,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         rice_husk: entry.riceHusk,
         wood_chips: entry.woodChips,
         steam_consumption: entry.steamConsumption,
+        meter_start: entry.meterStart,
+        meter_end: entry.meterEnd,
       })
       .eq('id', entry.id)
     if (!error) fetchOperationalData()

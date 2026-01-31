@@ -1,0 +1,2 @@
+ALTER TABLE steam_control_records ADD COLUMN IF NOT EXISTS meter_start NUMERIC DEFAULT 0;
+ALTER TABLE steam_control_records ADD COLUMN IF NOT EXISTS meter_end NUMERIC DEFAULT 0;

@@ -10,6 +10,8 @@ export const mapSteamRecord = (item: any): SteamControlRecord => ({
   riceHusk: Number(item.rice_husk) || 0,
   woodChips: Number(item.wood_chips) || 0,
   steamConsumption: Number(item.steam_consumption) || 0,
+  meterStart: Number(item.meter_start) || 0,
+  meterEnd: Number(item.meter_end) || 0,
   factoryId: item.factory_id,
   userId: item.user_id,
   createdAt: new Date(item.created_at),
@@ -42,14 +44,11 @@ export const saveSteamRecord = async (
     rice_husk: record.riceHusk,
     wood_chips: record.woodChips,
     steam_consumption: record.steamConsumption,
+    meter_start: record.meterStart,
+    meter_end: record.meterEnd,
     factory_id: record.factoryId,
     user_id: record.userId,
   }
-
-  // If ID exists, we update. If not, we insert.
-  // We can use upsert if we rely on the UNIQUE constraint (date, factory_id).
-  // However, the prompt implies "Editing records older than 5 minutes" requires checks.
-  // The service just saves. The UI/Context handles the permission check.
 
   if (record.id) {
     const { data, error } = await supabase

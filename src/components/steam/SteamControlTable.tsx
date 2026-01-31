@@ -22,7 +22,6 @@ import {
 import { SteamControlForm } from './SteamControlForm'
 import { SteamControlRecord } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
 
 export function SteamControlTable() {
   const { steamRecords, rawMaterials, deleteSteamRecord, dateRange } = useData()
@@ -75,23 +74,36 @@ export function SteamControlTable() {
         .filter((rm) => isSameDay(rm.date, record.date))
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
+      // Biomass Adjustment Logic: Soy, Rice, Chips * 1.7. Firewood is as is.
       const biomassTotal =
-        record.soyWaste + record.firewood + record.riceHusk + record.woodChips
+        record.soyWaste * 1.7 +
+        record.riceHusk * 1.7 +
+        record.woodChips * 1.7 +
+        record.firewood
 
       return {
         ...record,
         mpEntry,
         biomassTotal,
         // Ratios (handling division by zero)
-        cavacoVsVapor: record.steamConsumption
-          ? record.woodChips / record.steamConsumption
+        // Cavacos vs Toneladas Vapor: Consumo Vapor / TOTAL
+        cavacoVsVapor: biomassTotal
+          ? record.steamConsumption / biomassTotal
           : 0,
+
+        // MPs vs Vapor: Entrada MP / Consumo Vapor
         mpVsVapor: record.steamConsumption
           ? mpEntry / record.steamConsumption
           : 0,
-        mpVsCavaco: record.woodChips ? mpEntry / record.woodChips : 0,
-        cavacoVsMp: mpEntry ? record.woodChips / mpEntry : 0, // M3 vs MP's
-        vaporVsMp: mpEntry ? record.steamConsumption / mpEntry : 0,
+
+        // MPs m³ Cavaco: Entrada MP / TOTAL
+        mpVsCavaco: biomassTotal ? mpEntry / biomassTotal : 0,
+
+        // Toneladas Vapor vs MPs: (TOTAL / Entrada MP) * 1000
+        vaporVsMp: mpEntry ? (biomassTotal / mpEntry) * 1000 : 0,
+
+        // Tons vs MPs: (Consumo Vapor / Entrada MP) * 1000
+        tonsVsMp: mpEntry ? (record.steamConsumption / mpEntry) * 1000 : 0,
       }
     })
   }, [steamRecords, rawMaterials, dateRange])
@@ -119,18 +131,20 @@ export function SteamControlTable() {
       },
     )
 
-    // Weighted averages for ratios based on the sums
+    // Ratios based on the sums
     return {
       ...sums,
-      cavacoVsVapor: sums.steamConsumption
-        ? sums.woodChips / sums.steamConsumption
+      cavacoVsVapor: sums.biomassTotal
+        ? sums.steamConsumption / sums.biomassTotal
         : 0,
       mpVsVapor: sums.steamConsumption
         ? sums.mpEntry / sums.steamConsumption
         : 0,
-      mpVsCavaco: sums.woodChips ? sums.mpEntry / sums.woodChips : 0,
-      cavacoVsMp: sums.mpEntry ? sums.woodChips / sums.mpEntry : 0,
-      vaporVsMp: sums.mpEntry ? sums.steamConsumption / sums.mpEntry : 0,
+      mpVsCavaco: sums.biomassTotal ? sums.mpEntry / sums.biomassTotal : 0,
+      vaporVsMp: sums.mpEntry ? (sums.biomassTotal / sums.mpEntry) * 1000 : 0,
+      tonsVsMp: sums.mpEntry
+        ? (sums.steamConsumption / sums.mpEntry) * 1000
+        : 0,
     }
   }, [tableData])
 
@@ -141,16 +155,16 @@ export function SteamControlTable() {
     })
   const formatRatio = (num: number) =>
     num === 0
-      ? '#DIV/0!'
+      ? '-'
       : num.toLocaleString('pt-BR', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
-        }) // Or 0,00 based on preference, user story mentioned #DIV/0!
+        })
 
   return (
     <div className="space-y-4">
       <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[1200px]">
+        <Table className="min-w-[1400px]">
           <TableHeader>
             <TableRow className="bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30">
               <TableHead className="font-bold text-green-900 dark:text-green-100 min-w-[100px]">
@@ -172,25 +186,25 @@ export function SteamControlTable() {
                 CAVACO
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30">
-                TOTAL
+                TOTAL (AJUSTADO)
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 CONSUMO VAPOR
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
-                CAVACO VS TONS VAPOR
+                CAVACOS VS TONELADAS VAPOR
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
-                MP'S VS TONS VAPOR
+                MPs VS VAPOR
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
-                MP'S VS M³ CAVACO
+                MPs m³ CAVACO
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
-                M³ VS MP'S
+                TONELADAS VAPOR VS MPs
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
-                TONS VAPOR VS MP'S
+                TONS VS MPs
               </TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
@@ -251,10 +265,10 @@ export function SteamControlTable() {
                       {formatRatio(row.mpVsCavaco)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs">
-                      {formatRatio(row.cavacoVsMp)}
+                      {formatRatio(row.vaporVsMp)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs">
-                      {formatRatio(row.vaporVsMp)}
+                      {formatRatio(row.tonsVsMp)}
                     </TableCell>
 
                     <TableCell className="flex items-center gap-1">
@@ -324,10 +338,10 @@ export function SteamControlTable() {
                   {formatRatio(totals.mpVsCavaco)}
                 </TableCell>
                 <TableCell className="text-right text-xs">
-                  {formatRatio(totals.cavacoVsMp)}
+                  {formatRatio(totals.vaporVsMp)}
                 </TableCell>
                 <TableCell className="text-right text-xs">
-                  {formatRatio(totals.vaporVsMp)}
+                  {formatRatio(totals.tonsVsMp)}
                 </TableCell>
                 <TableCell></TableCell>
               </TableRow>

@@ -21,6 +21,8 @@ import { SteamControlRecord } from '@/lib/types'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
+  meterStart: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  meterEnd: z.coerce.number().min(0, 'Valor deve ser positivo'),
   soyWaste: z.coerce.number().min(0, 'Valor deve ser positivo'),
   firewood: z.coerce.number().min(0, 'Valor deve ser positivo'),
   riceHusk: z.coerce.number().min(0, 'Valor deve ser positivo'),
@@ -48,6 +50,8 @@ export function SteamControlForm({
       date: initialData
         ? format(initialData.date, 'yyyy-MM-dd')
         : format(new Date(), 'yyyy-MM-dd'),
+      meterStart: initialData?.meterStart || 0,
+      meterEnd: initialData?.meterEnd || 0,
       soyWaste: initialData?.soyWaste || 0,
       firewood: initialData?.firewood || 0,
       riceHusk: initialData?.riceHusk || 0,
@@ -57,6 +61,15 @@ export function SteamControlForm({
   })
 
   const selectedDateStr = form.watch('date')
+  const meterStart = form.watch('meterStart')
+  const meterEnd = form.watch('meterEnd')
+
+  // Auto-calculate steam consumption based on meter readings
+  useEffect(() => {
+    if (meterEnd >= meterStart && meterEnd > 0) {
+      form.setValue('steamConsumption', meterEnd - meterStart)
+    }
+  }, [meterStart, meterEnd, form])
 
   const calculatedMpEntry = useMemo(() => {
     if (!selectedDateStr) return 0
@@ -73,6 +86,8 @@ export function SteamControlForm({
       updateSteamRecord({
         ...initialData,
         date: dateObj,
+        meterStart: values.meterStart,
+        meterEnd: values.meterEnd,
         soyWaste: values.soyWaste,
         firewood: values.firewood,
         riceHusk: values.riceHusk,
@@ -86,6 +101,8 @@ export function SteamControlForm({
     } else {
       addSteamRecord({
         date: dateObj,
+        meterStart: values.meterStart,
+        meterEnd: values.meterEnd,
         soyWaste: values.soyWaste,
         firewood: values.firewood,
         riceHusk: values.riceHusk,
@@ -142,6 +159,34 @@ export function SteamControlForm({
                   Soma das matérias-primas do dia selecionado.
                 </p>
               </FormItem>
+
+              <FormField
+                control={form.control}
+                name="meterStart"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Medidor Início</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="meterEnd"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Medidor Fim</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -205,14 +250,15 @@ export function SteamControlForm({
                 render={({ field }) => (
                   <FormItem className="md:col-span-2">
                     <FormLabel className="text-primary font-bold">
-                      Consumo Vapor (Tons)
+                      Consumo Vapor (Calculado)
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.01"
-                        className="border-primary/30 bg-primary/5"
+                        className="border-primary/30 bg-primary/5 font-bold"
                         {...field}
+                        readOnly={meterEnd > 0 || meterStart > 0}
                       />
                     </FormControl>
                     <FormMessage />

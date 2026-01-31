@@ -111,6 +111,8 @@ export interface SteamControlRecord {
   riceHusk: number
   woodChips: number
   steamConsumption: number
+  meterStart?: number
+  meterEnd?: number
   factoryId: string
   userId?: string
   createdAt?: Date
