@@ -1,5 +1,6 @@
 import { CookingTimeForm } from '@/components/process/CookingTimeForm'
 import { DowntimeManager } from '@/components/process/DowntimeManager'
+import { HourlyProductionEfficiencyChart } from '@/components/process/HourlyProductionEfficiencyChart'
 
 export default function ProcessManagement() {
   return (
@@ -17,6 +18,9 @@ export default function ProcessManagement() {
       <div className="grid gap-6 md:grid-cols-2">
         <CookingTimeForm />
         <DowntimeManager />
+        <div className="md:col-span-2">
+          <HourlyProductionEfficiencyChart />
+        </div>
       </div>
     </div>
   )
