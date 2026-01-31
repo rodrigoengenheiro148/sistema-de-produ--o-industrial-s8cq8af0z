@@ -23,11 +23,13 @@ import {
   NotificationSettings,
   CookingTimeRecord,
   DowntimeRecord,
+  SteamControlRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import { mapSteamRecord } from '@/services/steamControl'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -130,6 +132,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     CookingTimeRecord[]
   >([])
   const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
+  const [steamRecords, setSteamRecords] = useState<SteamControlRecord[]>([])
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
 
@@ -252,6 +255,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setQualityRecords([])
       setCookingTimeRecords([])
       setDowntimeRecords([])
+      setSteamRecords([])
       return
     }
 
@@ -264,6 +268,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: qual },
         { data: cooking },
         { data: downtime },
+        { data: steam },
       ] = await Promise.all([
         supabase
           .from('raw_materials')
@@ -300,6 +305,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('*')
           .eq('factory_id', currentFactoryId)
           .order('date', { ascending: false }),
+        supabase
+          .from('steam_control_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -309,6 +319,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (qual) setQualityRecords(mapData(qual))
       if (cooking) setCookingTimeRecords(mapData(cooking))
       if (downtime) setDowntimeRecords(mapData(downtime))
+      if (steam) setSteamRecords(steam.map(mapSteamRecord))
 
       setLastProtheusSync(new Date())
     } catch (error) {
@@ -358,6 +369,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'quality_records',
       'cooking_time_records',
       'downtime_records',
+      'steam_control_records',
     ]
 
     tables.forEach((table) => {
@@ -397,6 +409,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, fetchOperationalData])
 
+  // ... (Other Add/Update/Delete functions for other entities remain similar)
+
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({
@@ -411,7 +425,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     })
     if (!error) fetchOperationalData()
   }
-
+  // ... (keeping raw materials functions short for brevity but assume they are there as per original file)
   const bulkAddRawMaterials = async (
     entries: Omit<RawMaterialEntry, 'id'>[],
   ) => {
@@ -673,6 +687,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const addSteamRecord = async (entry: Omit<SteamControlRecord, 'id'>) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('steam_control_records').insert({
+      date: entry.date.toISOString(),
+      soy_waste: entry.soyWaste,
+      firewood: entry.firewood,
+      rice_husk: entry.riceHusk,
+      wood_chips: entry.woodChips,
+      steam_consumption: entry.steamConsumption,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const updateSteamRecord = async (entry: SteamControlRecord) => {
+    const { error } = await supabase
+      .from('steam_control_records')
+      .update({
+        date: entry.date.toISOString(),
+        soy_waste: entry.soyWaste,
+        firewood: entry.firewood,
+        rice_husk: entry.riceHusk,
+        wood_chips: entry.woodChips,
+        steam_consumption: entry.steamConsumption,
+      })
+      .eq('id', entry.id)
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteSteamRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('steam_control_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -841,6 +893,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('quality_records').delete().eq('user_id', user.id),
       supabase.from('cooking_time_records').delete().eq('user_id', user.id),
       supabase.from('downtime_records').delete().eq('user_id', user.id),
+      supabase.from('steam_control_records').delete().eq('user_id', user.id),
     ])
     fetchOperationalData()
   }
@@ -877,6 +930,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addDowntimeRecord,
         updateDowntimeRecord,
         deleteDowntimeRecord,
+        steamRecords,
+        addSteamRecord,
+        updateSteamRecord,
+        deleteSteamRecord,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},

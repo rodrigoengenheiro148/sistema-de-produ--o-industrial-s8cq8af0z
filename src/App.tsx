@@ -15,6 +15,7 @@ import Factories from './pages/Factories'
 import AdvancedReports from './pages/AdvancedReports'
 import SeboInventory from './pages/gestao/SeboInventory'
 import ProcessManagement from './pages/gestao/ProcessManagement'
+import SteamControl from './pages/gestao/SteamControl'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import AuthPage from './pages/Auth'
@@ -60,6 +61,7 @@ const App = () => (
               {/* Gestão Routes */}
               <Route path="/gestao/estoque-sebo" element={<SeboInventory />} />
               <Route path="/gestao/processo" element={<ProcessManagement />} />
+              <Route path="/gestao/vapor" element={<SteamControl />} />
 
               <Route path="/access-denied" element={<AccessDenied />} />
             </Route>

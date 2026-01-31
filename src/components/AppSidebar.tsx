@@ -12,6 +12,7 @@ import {
   LineChart,
   Database,
   Timer,
+  Flame,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -94,6 +95,11 @@ const managementItems = [
     title: 'Tempos de Processo',
     url: '/gestao/processo',
     icon: Timer,
+  },
+  {
+    title: 'Controle de Vapor',
+    url: '/gestao/vapor',
+    icon: Flame,
   },
 ]
 

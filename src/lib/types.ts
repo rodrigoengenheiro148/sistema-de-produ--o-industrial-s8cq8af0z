@@ -103,6 +103,19 @@ export interface DowntimeRecord {
   createdAt?: Date
 }
 
+export interface SteamControlRecord {
+  id: string
+  date: Date
+  soyWaste: number
+  firewood: number
+  riceHusk: number
+  woodChips: number
+  steamConsumption: number
+  factoryId: string
+  userId?: string
+  createdAt?: Date
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined
@@ -195,6 +208,7 @@ export interface DataContextType {
   qualityRecords: QualityEntry[]
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
+  steamRecords: SteamControlRecord[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (
@@ -226,6 +240,10 @@ export interface DataContextType {
   addDowntimeRecord: (entry: Omit<DowntimeRecord, 'id'>) => void
   updateDowntimeRecord: (entry: DowntimeRecord) => void
   deleteDowntimeRecord: (id: string) => void
+
+  addSteamRecord: (entry: Omit<SteamControlRecord, 'id'>) => void
+  updateSteamRecord: (entry: SteamControlRecord) => void
+  deleteSteamRecord: (id: string) => void
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void
