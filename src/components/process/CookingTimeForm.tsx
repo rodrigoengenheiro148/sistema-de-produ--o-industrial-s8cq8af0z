@@ -23,17 +23,25 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { Trash2, Clock, PlayCircle, StopCircle, Check } from 'lucide-react'
+import {
+  Trash2,
+  Clock,
+  PlayCircle,
+  StopCircle,
+  Check,
+  Lock,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { CookingTimeRecord } from '@/lib/types'
+import { shouldRequireAuth } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -53,6 +61,28 @@ export function CookingTimeForm() {
     useState<CookingTimeRecord | null>(null)
   const [finishTime, setFinishTime] = useState('')
   const [openDialog, setOpenDialog] = useState(false)
+
+  // Security Gate
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    createdAt: Date | undefined,
+    action: () => void,
+  ) => {
+    if (shouldRequireAuth(createdAt)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -197,50 +227,64 @@ export function CookingTimeForm() {
                   </TableCell>
                 </TableRow>
               ) : (
-                displayedRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {record.endTime ? (
-                          <>
-                            <StopCircle className="h-4 w-4 text-muted-foreground" />
-                            <span>
-                              {record.startTime} - {record.endTime}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <PlayCircle className="h-4 w-4 text-green-500 animate-pulse" />
-                            <span className="font-medium text-green-600">
-                              {record.startTime} - Em andamento
-                            </span>
-                          </>
+                displayedRecords.map((record) => {
+                  const isLocked = shouldRequireAuth(record.createdAt)
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {record.endTime ? (
+                            <>
+                              <StopCircle className="h-4 w-4 text-muted-foreground" />
+                              <span>
+                                {record.startTime} - {record.endTime}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="h-4 w-4 text-green-500 animate-pulse" />
+                              <span className="font-medium text-green-600">
+                                {record.startTime} - Em andamento
+                              </span>
+                            </>
+                          )}
+                          {isLocked && (
+                            <Lock className="h-3 w-3 text-muted-foreground/50 ml-1" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right flex items-center justify-end gap-2">
+                        {!record.endTime && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 text-xs"
+                            onClick={() =>
+                              handleProtectedAction(record.createdAt, () =>
+                                openFinishDialog(record),
+                              )
+                            }
+                          >
+                            <Check className="h-3 w-3" />
+                            Finalizar
+                          </Button>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right flex items-center justify-end gap-2">
-                      {!record.endTime && (
                         <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1 text-xs"
-                          onClick={() => openFinishDialog(record)}
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            handleProtectedAction(record.createdAt, () =>
+                              deleteCookingTimeRecord(record.id),
+                            )
+                          }
+                          className="h-8 w-8 text-destructive hover:text-destructive/90"
                         >
-                          <Check className="h-3 w-3" />
-                          Finalizar
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteCookingTimeRecord(record.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive/90"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
@@ -279,6 +323,12 @@ export function CookingTimeForm() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <SecurityGate
+          isOpen={securityOpen}
+          onOpenChange={setSecurityOpen}
+          onSuccess={handleSecuritySuccess}
+        />
       </CardContent>
     </Card>
   )

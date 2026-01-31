@@ -3,8 +3,23 @@ import { differenceInHours, differenceInMinutes } from 'date-fns'
 export const BYPASS_PASSWORD = '16071997'
 
 /**
- * Checks if a record is locked based on the business date (legacy logic).
+ * Checks if a record requires authentication to be modified.
+ * Returns true if the record was created more than 5 minutes ago.
+ */
+export function shouldRequireAuth(
+  createdAt: Date | string | undefined | null,
+): boolean {
+  if (!createdAt) return true // Treat records without timestamp as locked/legacy
+  const createdDate =
+    typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+  const now = new Date()
+  return differenceInMinutes(now, createdDate) > 5
+}
+
+/**
+ * Legacy logic: Checks if a record is locked based on the business date.
  * Returns true if the record date is more than 24 hours ago.
+ * Kept for backward compatibility or different business rules.
  */
 export function isRecordLocked(
   date: Date | string | undefined | null,
@@ -23,10 +38,5 @@ export function isRecordLocked(
 export function canEditRecord(
   createdAt: Date | string | undefined | null,
 ): boolean {
-  if (!createdAt) return false
-  const createdDate =
-    typeof createdAt === 'string' ? new Date(createdAt) : createdAt
-  const now = new Date()
-  // Allow editing only if created within the last 5 minutes
-  return differenceInMinutes(now, createdDate) <= 5
+  return !shouldRequireAuth(createdAt)
 }

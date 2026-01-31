@@ -44,8 +44,10 @@ import {
   StopCircle,
   PlayCircle,
   Timer,
+  Lock,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { shouldRequireAuth } from '@/lib/security'
+import { SecurityGate } from '@/components/SecurityGate'
 
 const manualFormSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -64,6 +66,28 @@ export function DowntimeManager() {
   const [isOpen, setIsOpen] = useState(false)
   const [now, setNow] = useState(new Date())
   const [stopReason, setStopReason] = useState('')
+
+  // Security Gate
+  const [securityOpen, setSecurityOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  const handleProtectedAction = (
+    createdAt: Date | undefined,
+    action: () => void,
+  ) => {
+    if (shouldRequireAuth(createdAt)) {
+      setPendingAction(() => action)
+      setSecurityOpen(true)
+    } else {
+      action()
+    }
+  }
+
+  const handleSecuritySuccess = () => {
+    setSecurityOpen(false)
+    if (pendingAction) pendingAction()
+    setPendingAction(null)
+  }
 
   // Update timer every second
   useEffect(() => {
@@ -139,29 +163,42 @@ export function DowntimeManager() {
     const durationSeconds = differenceInSeconds(endTime, startTime)
     const durationHours = durationSeconds / 3600
 
-    updateDowntimeRecord({
-      ...activeDowntime,
-      endTime,
-      durationHours,
-      reason: stopReason || activeDowntime.reason,
-    })
+    // Finishing an active stop is an edit action, so it should be protected if running for > 5 min
+    // However, usually "Stop" is active so it's fresh? No, it could be running for hours.
+    // The requirement says "editing or deleting records". Finishing is an edit.
+    // If it's been running for > 5 min, should it require password to stop?
+    // Probably yes, to prevent accidental stops of long processes?
+    // Or maybe not, because you are *ending* it now.
+    // "If the record was created more than 5 minutes ago". Yes, activeDowntime.createdAt matters.
 
-    toast({
-      title: 'Parada Finalizada',
-      description: `Tempo total de parada: ${durationHours.toFixed(2)} horas.`,
+    handleProtectedAction(activeDowntime.createdAt, () => {
+      updateDowntimeRecord({
+        ...activeDowntime,
+        endTime,
+        durationHours,
+        reason: stopReason || activeDowntime.reason,
+      })
+
+      toast({
+        title: 'Parada Finalizada',
+        description: `Tempo total de parada: ${durationHours.toFixed(2)} horas.`,
+      })
+      setStopReason('')
     })
-    setStopReason('')
   }
 
   const handleUpdateReason = () => {
     if (!activeDowntime) return
-    updateDowntimeRecord({
-      ...activeDowntime,
-      reason: stopReason,
-    })
-    toast({
-      title: 'Motivo Atualizado',
-      description: 'O motivo da parada foi salvo.',
+
+    handleProtectedAction(activeDowntime.createdAt, () => {
+      updateDowntimeRecord({
+        ...activeDowntime,
+        reason: stopReason,
+      })
+      toast({
+        title: 'Motivo Atualizado',
+        description: 'O motivo da parada foi salvo.',
+      })
     })
   }
 
@@ -292,6 +329,9 @@ export function DowntimeManager() {
               <div>
                 <h4 className="font-semibold text-destructive flex items-center gap-2">
                   Parada em andamento
+                  {shouldRequireAuth(activeDowntime.createdAt) && (
+                    <Lock className="h-3 w-3" />
+                  )}
                 </h4>
                 <p className="text-2xl font-mono font-bold text-destructive">
                   {getElapsedString()}
@@ -348,27 +388,47 @@ export function DowntimeManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedRecords.map((record) => (
-                  <TableRow key={record.id}>
-                    <TableCell>{format(record.date, 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{record.durationHours.toFixed(2)} h</TableCell>
-                    <TableCell>{record.reason}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => deleteDowntimeRecord(record.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive/90"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                sortedRecords.map((record) => {
+                  const isLocked = shouldRequireAuth(record.createdAt)
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {format(record.date, 'dd/MM/yyyy')}
+                          {isLocked && (
+                            <Lock className="h-3 w-3 text-muted-foreground/50" />
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{record.durationHours.toFixed(2)} h</TableCell>
+                      <TableCell>{record.reason}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            handleProtectedAction(record.createdAt, () =>
+                              deleteDowntimeRecord(record.id),
+                            )
+                          }
+                          className="h-8 w-8 text-destructive hover:text-destructive/90"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
         </div>
+
+        <SecurityGate
+          isOpen={securityOpen}
+          onOpenChange={setSecurityOpen}
+          onSuccess={handleSecuritySuccess}
+        />
       </CardContent>
     </Card>
   )

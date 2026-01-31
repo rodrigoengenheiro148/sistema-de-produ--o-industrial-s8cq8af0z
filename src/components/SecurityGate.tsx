@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Lock } from 'lucide-react'
-import { BYPASS_PASSWORD } from '@/lib/security'
+import { Lock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 
 interface SecurityGateProps {
   isOpen: boolean
@@ -25,20 +25,37 @@ export function SecurityGate({
   isOpen,
   onOpenChange,
   onSuccess,
-  title = 'Proteção de Registro Histórico',
-  description = 'Este registro tem mais de 24 horas. Para editar ou excluir, informe a senha de liberação.',
+  title = 'Proteção de Registro',
+  description = 'Este registro foi criado há mais de 5 minutos. Para editar ou excluir, confirme sua senha.',
 }: SecurityGateProps) {
+  const { signIn, user } = useAuth()
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password === BYPASS_PASSWORD) {
-      setError(false)
-      setPassword('')
-      onSuccess()
-    } else {
+    setError(false)
+    setLoading(true)
+
+    try {
+      if (!user?.email) {
+        throw new Error('Usuário não identificado.')
+      }
+
+      const { error: signInError } = await signIn(user.email, password)
+
+      if (signInError) {
+        setError(true)
+      } else {
+        setPassword('')
+        onSuccess()
+      }
+    } catch (err) {
+      console.error(err)
       setError(true)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -64,7 +81,7 @@ export function SecurityGate({
           <div className="space-y-2">
             <Input
               type="password"
-              placeholder="Senha de liberação"
+              placeholder="Sua senha atual"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)
@@ -74,10 +91,11 @@ export function SecurityGate({
                 error && 'border-destructive focus-visible:ring-destructive',
               )}
               autoFocus
+              disabled={loading}
             />
             {error && (
               <p className="text-sm font-medium text-destructive">
-                Senha incorreta. Tente novamente.
+                Senha incorreta. Acesso negado.
               </p>
             )}
           </div>
@@ -86,10 +104,19 @@ export function SecurityGate({
               type="button"
               variant="outline"
               onClick={() => handleOpenChange(false)}
+              disabled={loading}
             >
               Cancelar
             </Button>
-            <Button type="submit">Confirmar</Button>
+            <Button type="submit" disabled={loading || !password}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificando
+                </>
+              ) : (
+                'Confirmar'
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

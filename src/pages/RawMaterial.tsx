@@ -58,7 +58,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { isRecordLocked } from '@/lib/security'
+import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
@@ -80,10 +80,10 @@ export default function RawMaterial() {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
   const handleProtectedAction = (
-    date: Date | undefined,
+    createdAt: Date | undefined,
     action: () => void,
   ) => {
-    if (isRecordLocked(date)) {
+    if (shouldRequireAuth(createdAt)) {
       setPendingAction(() => action)
       setSecurityOpen(true)
     } else {
@@ -220,7 +220,7 @@ export default function RawMaterial() {
                 </div>
               ) : (
                 filteredMaterials.map((entry) => {
-                  const isLocked = isRecordLocked(entry.date)
+                  const isLocked = shouldRequireAuth(entry.createdAt)
                   return (
                     <Card key={entry.id} className="shadow-sm border">
                       <CardContent className="p-4">
@@ -250,7 +250,7 @@ export default function RawMaterial() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
+                                  handleProtectedAction(entry.createdAt, () =>
                                     handleEdit(entry),
                                   )
                                 }
@@ -259,7 +259,7 @@ export default function RawMaterial() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  handleProtectedAction(entry.date, () =>
+                                  handleProtectedAction(entry.createdAt, () =>
                                     setDeleteId(entry.id),
                                   )
                                 }
@@ -319,7 +319,7 @@ export default function RawMaterial() {
                   </TableRow>
                 ) : (
                   filteredMaterials.map((entry) => {
-                    const isLocked = isRecordLocked(entry.date)
+                    const isLocked = shouldRequireAuth(entry.createdAt)
                     return (
                       <TableRow
                         key={entry.id}
@@ -352,7 +352,7 @@ export default function RawMaterial() {
                             size="icon"
                             className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
                             onClick={() =>
-                              handleProtectedAction(entry.date, () =>
+                              handleProtectedAction(entry.createdAt, () =>
                                 handleEdit(entry),
                               )
                             }
@@ -364,7 +364,7 @@ export default function RawMaterial() {
                             size="icon"
                             className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                             onClick={() =>
-                              handleProtectedAction(entry.date, () =>
+                              handleProtectedAction(entry.createdAt, () =>
                                 setDeleteId(entry.id),
                               )
                             }
