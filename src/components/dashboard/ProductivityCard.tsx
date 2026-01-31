@@ -10,12 +10,11 @@ interface ProductivityCardProps {
 }
 
 export function ProductivityCard({ className }: ProductivityCardProps) {
-  const { cookingTimeRecords, rawMaterials, currentFactoryId } = useData()
+  const { cookingTimeRecords, rawMaterials } = useData()
   const [now, setNow] = useState(new Date())
 
   // Fixed flow rate as per requirements (7.125 t/h)
   const FIXED_FLOW_RATE = 7.125
-  const FIXED_FLOW_RATE_KG = FIXED_FLOW_RATE * 1000
 
   // Update current time every second for the timer and real-time calculation
   useEffect(() => {
@@ -45,7 +44,6 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
     // Find the most recent record that is "open" (no endTime)
     // As per AC: "derived from the start_time of the most recent record... for the current day"
-    // We prioritize the active one.
     const active = sortedRecords.find((r) => !r.endTime)
 
     if (!active) return null
@@ -67,38 +65,38 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
   const metrics = useMemo(() => {
     if (!activeProcess) {
       return {
-        rateTph: 0,
-        rateKph: 0,
+        processedKg: 0,
         remainingKg: totalDailyInputKg,
         elapsedString: '00:00:00',
         isActive: false,
       }
     }
 
-    const secondsDiff = Math.max(
+    const elapsedSeconds = Math.max(
       0,
       differenceInSeconds(now, activeProcess.startDateTime),
     )
-    const hoursDiff = secondsDiff / 3600
+    const elapsedHours = elapsedSeconds / 3600
 
     // Calculate consumption: (Elapsed Time in Hours) * 7.125
-    // Formula: Remaining = Starting Daily Quantity - (7.125 t/h * elapsed_hours)
-    const consumedTons = hoursDiff * FIXED_FLOW_RATE
-    const consumedKg = consumedTons * 1000
-    const remainingKg = totalDailyInputKg - consumedKg
+    // This represents the Total Processed Raw Material in real-time
+    const processedTons = elapsedHours * FIXED_FLOW_RATE
+    const processedKg = processedTons * 1000
+
+    // Calculate Remaining: Starting Daily Quantity - Total Processed
+    const remainingKg = totalDailyInputKg - processedKg
 
     // Format timer string HH:mm:ss
-    const hh = Math.floor(secondsDiff / 3600)
+    const hh = Math.floor(elapsedSeconds / 3600)
       .toString()
       .padStart(2, '0')
-    const mm = Math.floor((secondsDiff % 3600) / 60)
+    const mm = Math.floor((elapsedSeconds % 3600) / 60)
       .toString()
       .padStart(2, '0')
-    const ss = (secondsDiff % 60).toString().padStart(2, '0')
+    const ss = (elapsedSeconds % 60).toString().padStart(2, '0')
 
     return {
-      rateTph: FIXED_FLOW_RATE,
-      rateKph: FIXED_FLOW_RATE_KG,
+      processedKg,
       remainingKg,
       elapsedString: `${hh}:${mm}:${ss}`,
       isActive: true,
@@ -107,21 +105,21 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
   // Formatting Logic based on Acceptance Criteria
 
-  // 1. Productivity Rate Metric (Main Value)
-  // If consumption rate is between 0 and 999 -> unit kg/h
-  // If consumption rate is 1,000 or above -> unit t/h
+  // 1. Main Value: Total Processed Raw Material
+  // If value is between 0 and 999 -> unit kg
+  // If value is 1,000 or above -> unit t (displayed as "t" for mass)
   let mainValue: string
   let mainUnit: string
 
-  const rateToDisplay = metrics.isActive ? metrics.rateKph : 0
+  const processedDisplay = metrics.processedKg
 
-  if (rateToDisplay < 1000) {
-    mainValue = rateToDisplay.toFixed(2)
-    mainUnit = 'kg/h'
+  if (processedDisplay < 1000) {
+    mainValue = processedDisplay.toFixed(0)
+    mainUnit = 'kg'
   } else {
     // Convert to tons for display
-    mainValue = (rateToDisplay / 1000).toFixed(2)
-    mainUnit = 't/h'
+    mainValue = (processedDisplay / 1000).toFixed(2)
+    mainUnit = 't'
   }
 
   // 2. Remaining Quantity Metric (Sub-text)
@@ -137,11 +135,12 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     remainingValue = remainingKgAbs.toFixed(0)
     remainingUnit = 'kg'
   } else {
-    remainingValue = (remainingKgAbs / 1000).toFixed(2) // usually 1 decimal place is good for subtext but let's match precision
+    remainingValue = (remainingKgAbs / 1000).toFixed(2)
     remainingUnit = 't'
   }
 
-  const remainingString = `${isNegative ? '-' : ''}${remainingValue}${remainingUnit}`
+  // Format: "Restante: [Value][Unit]" (e.g. "Restante: 55.90t")
+  const remainingString = `Restante: ${isNegative ? '-' : ''}${remainingValue}${remainingUnit}`
 
   return (
     <Card className={cn(className)}>
@@ -165,9 +164,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
         </div>
 
         <div className="flex flex-col gap-1 mt-1">
-          <p className="text-xs text-muted-foreground">
-            Restante: {remainingString}
-          </p>
+          <p className="text-xs text-muted-foreground">{remainingString}</p>
 
           <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground bg-muted/30 w-fit px-1.5 py-0.5 rounded">
             <Clock className="h-3 w-3" />
