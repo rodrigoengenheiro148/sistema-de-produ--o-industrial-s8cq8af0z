@@ -1,20 +1,19 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, Clock, AlertOctagon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { isSameDay, differenceInSeconds } from 'date-fns'
+import { isSameDay } from 'date-fns'
+import { calculateDailyMetrics } from '@/lib/process-calculations'
 
 interface ProductivityCardProps {
   className?: string
 }
 
 export function ProductivityCard({ className }: ProductivityCardProps) {
-  const { cookingTimeRecords, rawMaterials, downtimeRecords } = useData()
+  const { cookingTimeRecords, rawMaterials, downtimeRecords, production } =
+    useData()
   const [now, setNow] = useState(new Date())
-
-  // Fixed flow rate as per requirements (7.125 t/h)
-  const FIXED_FLOW_RATE = 7.125
 
   // Update current time every second
   useEffect(() => {
@@ -29,7 +28,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       .reduce((acc, curr) => acc + curr.quantity, 0)
   }, [rawMaterials, now])
 
-  // 2. Find Active Process
+  // 2. Find Active Process (for status indication)
   const activeProcess = useMemo(() => {
     const todaysRecords = cookingTimeRecords.filter((r) =>
       isSameDay(r.date, now),
@@ -52,107 +51,22 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     }
   }, [cookingTimeRecords, now])
 
-  // 3. Find Active Downtime
-  const activeDowntime = useMemo(() => {
-    return downtimeRecords.find((r) => r.startTime && !r.endTime)
-  }, [downtimeRecords])
-
-  // 4. Calculate Total Downtime Hours for the active process
-  const totalDowntimeHours = useMemo(() => {
-    if (!activeProcess) return 0
-
-    // Filter closed downtimes that happened today (or associated with current process context)
-    // We assume downtimes logged today are relevant to today's process
-    const relevantDowntimes = downtimeRecords.filter((r) =>
-      isSameDay(r.date, now),
-    )
-
-    let totalHours = 0
-
-    // Add closed downtimes
-    relevantDowntimes.forEach((d) => {
-      if (d.endTime || (!d.startTime && d.durationHours)) {
-        totalHours += d.durationHours
-      }
-    })
-
-    // Add current active downtime duration
-    if (activeDowntime && activeDowntime.startTime) {
-      const start = new Date(activeDowntime.startTime)
-      const currentDurationSeconds = Math.max(
-        0,
-        differenceInSeconds(now, start),
-      )
-      totalHours += currentDurationSeconds / 3600
-    }
-
-    return totalHours
-  }, [downtimeRecords, activeDowntime, now, activeProcess])
-
+  // 3. Calculate Metrics using Shared Logic
   const metrics = useMemo(() => {
-    if (!activeProcess) {
-      let remVal = totalDailyInputKg
-      let remUnit = 'kg'
-      if (Math.abs(remVal) >= 1000) {
-        remVal = remVal / 1000
-        remUnit = 't'
-      }
-
-      return {
-        processedValue: 0,
-        processedUnit: 'kg/h',
-        remainingValue: remVal,
-        remainingUnit: remUnit,
-        elapsedString: '00:00:00',
-        isActive: false,
-        isStopped: false,
-      }
-    }
-
-    // Total elapsed time since process start
-    const totalElapsedSeconds = Math.max(
-      0,
-      differenceInSeconds(now, activeProcess.startDateTime),
+    const dailyMetrics = calculateDailyMetrics(
+      now,
+      cookingTimeRecords,
+      downtimeRecords,
+      production,
+      now,
     )
-    const totalElapsedHours = totalElapsedSeconds / 3600
 
-    // Net Active Time = Total Elapsed - Total Downtime
-    const netActiveHours = Math.max(0, totalElapsedHours - totalDowntimeHours)
+    const remainingKg = totalDailyInputKg - dailyMetrics.totalConsumption
+    const isStopped =
+      !!activeProcess && downtimeRecords.some((d) => d.startTime && !d.endTime)
 
-    // Processed Amount = Net Active Time * Rate
-    const processedTons = netActiveHours * FIXED_FLOW_RATE
-    const processedKg = processedTons * 1000
-
-    // Remaining Logic
-    const remainingKg = totalDailyInputKg - processedKg
-
-    // Unit Logic
-    let mainValue: number
-    let mainUnit: string
-    if (processedKg < 1000) {
-      mainValue = processedKg
-      mainUnit = 'kg/h'
-    } else {
-      mainValue = processedTons
-      mainUnit = 't/h'
-    }
-
-    let remValue: number
-    let remUnit: string
-    const absRemaining = Math.abs(remainingKg)
-    if (absRemaining < 1000) {
-      remValue = remainingKg
-      remUnit = 'kg'
-    } else {
-      remValue = remainingKg / 1000
-      remUnit = 't'
-    }
-
-    // Timer formatting (Total Elapsed - Total Downtime) -> Net Process Time?
-    // Usually user wants to see the Net Working Time or just Total Elapsed?
-    // Requirement says: "The 'Elapsed Time' timer on the card must stop incrementing."
-    // This implies showing Net Active Time.
-    const netSeconds = Math.floor(netActiveHours * 3600)
+    // Format Active Time
+    const netSeconds = Math.floor(dailyMetrics.netActiveMinutes * 60)
     const hh = Math.floor(netSeconds / 3600)
       .toString()
       .padStart(2, '0')
@@ -161,35 +75,32 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       .padStart(2, '0')
     const ss = (netSeconds % 60).toString().padStart(2, '0')
 
+    // Determine values for display
+    let remainingVal = remainingKg
+    let remainingUnit = 'kg'
+    if (Math.abs(remainingKg) >= 1000) {
+      remainingVal = remainingKg / 1000
+      remainingUnit = 't'
+    }
+
     return {
-      processedValue: mainValue,
-      processedUnit: mainUnit,
-      remainingValue: remValue,
-      remainingUnit: remUnit,
+      rateVal: dailyMetrics.rateTon,
+      rateUnit: 't/h',
+      remainingVal,
+      remainingUnit,
       elapsedString: `${hh}:${mm}:${ss}`,
-      isActive: true,
-      isStopped: !!activeDowntime,
+      isActive: !!activeProcess,
+      isStopped,
+      totalConsumption: dailyMetrics.totalConsumption,
     }
   }, [
-    activeProcess,
     now,
+    cookingTimeRecords,
+    downtimeRecords,
+    production,
     totalDailyInputKg,
-    totalDowntimeHours,
-    activeDowntime,
+    activeProcess,
   ])
-
-  const formatNumber = (val: number, unit: string) => {
-    if (unit.includes('kg')) {
-      return val.toFixed(0)
-    }
-    return val.toFixed(2)
-  }
-
-  const mainDisplay = formatNumber(
-    metrics.processedValue,
-    metrics.processedUnit,
-  )
-  const remDisplay = formatNumber(metrics.remainingValue, metrics.remainingUnit)
 
   // Dynamic Styles
   const cardBgClass = metrics.isStopped
@@ -226,15 +137,15 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold flex items-baseline gap-1">
-          {mainDisplay}{' '}
+          {metrics.rateVal.toFixed(2)}{' '}
           <span className={cn('text-sm font-medium', subTextClass)}>
-            {metrics.processedUnit}
+            {metrics.rateUnit}
           </span>
         </div>
 
         <div className="flex flex-col gap-1 mt-1">
           <p className={cn('text-xs', subTextClass)}>
-            Restante: {remDisplay}
+            Restante: {metrics.remainingVal.toFixed(2)}
             {metrics.remainingUnit}
           </p>
 

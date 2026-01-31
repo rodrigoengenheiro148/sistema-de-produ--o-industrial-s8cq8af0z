@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -16,7 +16,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { format, isSameDay, addDays } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -28,59 +28,38 @@ import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { calculateDailyMetrics } from '@/lib/process-calculations'
 
 export function HourlyProductionEfficiencyChart() {
-  const { production, cookingTimeRecords } = useData()
+  const { production, cookingTimeRecords, downtimeRecords } = useData()
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [unit, setUnit] = useState<'kg' | 't'>('kg')
+  const [now, setNow] = useState(new Date())
+
+  // Update 'now' every minute to keep the "Active until now" logic fresh for today
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   const chartData = useMemo(() => {
-    // 1. Initialize timeline (minutes 0-1439 for the selected day)
-    // 0 = inactive, 1 = active
-    const activeMinutes = new Array(24 * 60).fill(0)
+    // 1. Calculate Daily Metrics using shared logic
+    const dailyMetrics = calculateDailyMetrics(
+      selectedDate,
+      cookingTimeRecords,
+      downtimeRecords,
+      production,
+      now,
+    )
 
-    // 2. Mark active periods from cooking records
-    // We look for records that overlap with the selected date
-    cookingTimeRecords.forEach((record) => {
-      // We only consider records belonging to the selected date
-      // to determine activity for this day's chart.
-      if (!isSameDay(record.date, selectedDate)) return
+    // 2. Calculate Rates per Minute (to distribute across active minutes)
+    // We avoid division by zero
+    const netMinutes = dailyMetrics.netActiveMinutes
+    const consumptionPerMinute =
+      netMinutes > 0 ? dailyMetrics.totalConsumption / netMinutes : 0
 
-      const [startH, startM] = record.startTime.split(':').map(Number)
-      const startTotalMins = startH * 60 + startM
-
-      let endTotalMins
-      if (record.endTime) {
-        const [endH, endM] = record.endTime.split(':').map(Number)
-        endTotalMins = endH * 60 + endM
-        // Handle overnight shift (e.g. 23:00 - 02:00)
-        // For the purpose of "Today's Chart", we clamp to 24:00 (1440 mins)
-        if (endTotalMins < startTotalMins) {
-          endTotalMins = 24 * 60 // Clamp to end of day
-        }
-      } else {
-        // If currently running
-        if (isSameDay(new Date(), selectedDate)) {
-          const now = new Date()
-          endTotalMins = now.getHours() * 60 + now.getMinutes()
-        } else {
-          // If past day and no end time, assume it ran until end of day (or data issue)
-          // We'll clamp to end of day
-          endTotalMins = 24 * 60
-        }
-      }
-
-      // Mark minutes as active
-      for (let i = startTotalMins; i < endTotalMins; i++) {
-        if (i < 1440) activeMinutes[i] = 1
-      }
-    })
-
-    const totalActiveMinutes = activeMinutes.filter((m) => m === 1).length
-
-    // 3. Calculate Daily Totals
-    // Filter production records for the selected date
-    const dailyProduction = production
+    // Also calculate production output for the "Produção" bar
+    const totalDailyProduction = production
       .filter((p) => isSameDay(p.date, selectedDate))
       .reduce((acc, curr) => {
         return (
@@ -90,25 +69,18 @@ export function HourlyProductionEfficiencyChart() {
           (curr.farinhetaProduced || 0)
         )
       }, 0)
-
-    const dailyConsumption = production
-      .filter((p) => isSameDay(p.date, selectedDate))
-      .reduce((acc, curr) => acc + (curr.mpUsed || 0), 0)
-
-    // 4. Calculate Rates (per minute)
-    // Distribute total daily production/consumption uniformly over active minutes
     const productionPerMinute =
-      totalActiveMinutes > 0 ? dailyProduction / totalActiveMinutes : 0
-    const consumptionPerMinute =
-      totalActiveMinutes > 0 ? dailyConsumption / totalActiveMinutes : 0
+      netMinutes > 0 ? totalDailyProduction / netMinutes : 0
 
-    // 5. Aggregate into Hours (00-23)
+    // 3. Aggregate into Hours (00-23)
     const data = []
     for (let h = 0; h < 24; h++) {
       let activeMinsInHour = 0
-      for (let m = 0; m < 60; m++) {
-        const minuteIndex = h * 60 + m
-        if (activeMinutes[minuteIndex] === 1) {
+      const startMin = h * 60
+      const endMin = (h + 1) * 60
+
+      for (let m = startMin; m < endMin; m++) {
+        if (dailyMetrics.activeMinutesArray[m] === 1) {
           activeMinsInHour++
         }
       }
@@ -130,8 +102,13 @@ export function HourlyProductionEfficiencyChart() {
       })
     }
 
-    return data
-  }, [production, cookingTimeRecords, selectedDate, unit])
+    return {
+      data,
+      hasActivity:
+        dailyMetrics.grossActiveMinutes > 0 ||
+        dailyMetrics.totalConsumption > 0,
+    }
+  }, [production, cookingTimeRecords, downtimeRecords, selectedDate, unit, now])
 
   const chartConfig = {
     production: {
@@ -191,16 +168,16 @@ export function HourlyProductionEfficiencyChart() {
         </div>
       </CardHeader>
       <CardContent>
-        {chartData.some((d) => d.production > 0 || d.consumption > 0) ? (
+        {chartData.hasActivity ? (
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={chartData} barGap={0}>
+            <BarChart accessibilityLayer data={chartData.data} barGap={0}>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="hour"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                interval={2} // Show every 3rd label (00, 03, 06...) to avoid clutter
+                interval={2}
               />
               <YAxis
                 tickLine={false}
@@ -225,8 +202,10 @@ export function HourlyProductionEfficiencyChart() {
           </ChartContainer>
         ) : (
           <div className="h-[300px] w-full flex flex-col gap-2 items-center justify-center text-muted-foreground border border-dashed rounded-md bg-muted/10">
-            <p>Nenhuma atividade registrada para esta data.</p>
-            <p className="text-xs">
+            <p className="font-medium">
+              Nenhuma atividade registrada para esta data.
+            </p>
+            <p className="text-sm">
               Certifique-se de registrar Tempos de Cozimento e Produção.
             </p>
           </div>
