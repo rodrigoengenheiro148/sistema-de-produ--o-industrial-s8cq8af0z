@@ -158,6 +158,34 @@ export function OverviewCards({
     return val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
   }
 
+  // Helper function to determine text color based on threshold
+  const getYieldColor = (
+    yieldValue: number,
+    threshold: number | undefined | null,
+  ) => {
+    // Null Safety: If a threshold is not defined (null/undefined/0), default to standard text color
+    if (threshold === null || threshold === undefined || threshold === 0) {
+      return 'text-foreground'
+    }
+
+    // Green if equal to or greater than threshold
+    if (yieldValue >= threshold) {
+      return 'text-green-600'
+    }
+
+    // Red if below threshold
+    return 'text-red-600'
+  }
+
+  // Resolve thresholds
+  const seboThreshold = notificationSettings.seboThreshold
+  // FCO falls back to farinhaThreshold if not set, consistent with DataContext logic
+  const fcoThreshold =
+    notificationSettings.fcoThreshold ||
+    notificationSettings.farinhaThreshold ||
+    0
+  const farinhetaThreshold = notificationSettings.farinhetaThreshold
+
   return (
     <div className="space-y-4">
       {/* Top 5 Metric Cards */}
@@ -261,9 +289,7 @@ export function OverviewCards({
             <div
               className={cn(
                 'text-2xl font-bold',
-                metrics.seboYield < notificationSettings.seboThreshold
-                  ? 'text-red-500'
-                  : 'text-foreground',
+                getYieldColor(metrics.seboYield, seboThreshold),
               )}
             >
               {metrics.seboYield.toFixed(2)}%
@@ -282,12 +308,7 @@ export function OverviewCards({
             <div
               className={cn(
                 'text-2xl font-bold',
-                metrics.fcoYield <
-                  (notificationSettings.fcoThreshold ||
-                    notificationSettings.farinhaThreshold ||
-                    0)
-                  ? 'text-red-500'
-                  : 'text-foreground',
+                getYieldColor(metrics.fcoYield, fcoThreshold),
               )}
             >
               {metrics.fcoYield.toFixed(2)}%
@@ -306,9 +327,7 @@ export function OverviewCards({
             <div
               className={cn(
                 'text-2xl font-bold',
-                metrics.farinhetaYield < notificationSettings.farinhetaThreshold
-                  ? 'text-red-500'
-                  : 'text-foreground',
+                getYieldColor(metrics.farinhetaYield, farinhetaThreshold),
               )}
             >
               {metrics.farinhetaYield.toFixed(2)}%
