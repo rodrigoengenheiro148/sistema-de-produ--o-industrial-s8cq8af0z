@@ -10,7 +10,7 @@ interface ProductivityCardProps {
 }
 
 export function ProductivityCard({ className }: ProductivityCardProps) {
-  const { cookingTimeRecords, rawMaterials } = useData()
+  const { cookingTimeRecords, rawMaterials, downtimeRecords } = useData()
   const [now, setNow] = useState(new Date())
 
   // Fixed flow rate as per requirements (7.125 t/h)
@@ -43,7 +43,6 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     })
 
     // Find the most recent record that is "open" (no endTime)
-    // As per AC: "derived from the start_time of the most recent record... for the current day"
     const active = sortedRecords.find((r) => !r.endTime)
 
     if (!active) return null
@@ -62,10 +61,18 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     }
   }, [cookingTimeRecords, now])
 
+  // Calculate Total Daily Downtime to adjust effective processing
+  const totalDowntimeHours = useMemo(() => {
+    return downtimeRecords
+      .filter((r) => isSameDay(r.date, now))
+      .reduce((acc, curr) => acc + curr.durationHours, 0)
+  }, [downtimeRecords, now])
+
   const metrics = useMemo(() => {
     if (!activeProcess) {
       return {
-        processedKg: 0,
+        rateValue: 0,
+        rateUnit: 'kg/h',
         remainingKg: totalDailyInputKg,
         elapsedString: '00:00:00',
         isActive: false,
@@ -78,13 +85,41 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     )
     const elapsedHours = elapsedSeconds / 3600
 
-    // Calculate consumption: (Elapsed Time in Hours) * 7.125
-    // This represents the Total Processed Raw Material in real-time
-    const processedTons = elapsedHours * FIXED_FLOW_RATE
-    const processedKg = processedTons * 1000
+    // Effective Process Time = Elapsed Time - Downtime
+    // This allows the rate to vary based on efficiency/downtime
+    const effectiveHours = Math.max(0, elapsedHours - totalDowntimeHours)
 
-    // Calculate Remaining: Starting Daily Quantity - Total Processed
+    // Calculate consumption: (Effective Time in Hours) * 7.125
+    let processedTons = effectiveHours * FIXED_FLOW_RATE
+    let processedKg = processedTons * 1000
+
+    // Clamp processed amount to Total Input (cannot process more than available)
+    if (processedKg > totalDailyInputKg) {
+      processedKg = totalDailyInputKg
+      processedTons = processedKg / 1000
+    }
+
+    // Calculate Remaining: Total Raw Material - Processed Raw Material
     const remainingKg = totalDailyInputKg - processedKg
+
+    // Calculate Productivity Rate (Throughput)
+    // Formula: (Total Raw Material - Remaining Raw Material) / (Elapsed Time in Hours)
+    // This equals: Processed / Elapsed Time
+    // We use elapsedHours (Wall Time) for the denominator to reflect true throughput
+    const rateTonsPerHour = elapsedHours > 0 ? processedTons / elapsedHours : 0
+    const rateKgPerHour = rateTonsPerHour * 1000
+
+    // Determine Units based on Rate
+    let rateValue: number
+    let rateUnit: string
+
+    if (rateKgPerHour < 1000) {
+      rateValue = rateKgPerHour
+      rateUnit = 'kg/h'
+    } else {
+      rateValue = rateTonsPerHour
+      rateUnit = 't/h'
+    }
 
     // Format timer string HH:mm:ss
     const hh = Math.floor(elapsedSeconds / 3600)
@@ -96,35 +131,29 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     const ss = (elapsedSeconds % 60).toString().padStart(2, '0')
 
     return {
-      processedKg,
+      rateValue,
+      rateUnit,
       remainingKg,
       elapsedString: `${hh}:${mm}:${ss}`,
       isActive: true,
     }
-  }, [activeProcess, now, totalDailyInputKg])
+  }, [activeProcess, now, totalDailyInputKg, totalDowntimeHours])
 
   // Formatting Logic based on Acceptance Criteria
 
-  // 1. Main Value: Total Processed Raw Material
-  // If value is between 0 and 999 -> unit kg
-  // If value is 1,000 or above -> unit t (displayed as "t" for mass)
+  // 1. Main Value: Processing Rate
   let mainValue: string
-  let mainUnit: string
 
-  const processedDisplay = metrics.processedKg
-
-  if (processedDisplay < 1000) {
-    mainValue = processedDisplay.toFixed(0)
-    mainUnit = 'kg'
+  if (metrics.rateUnit === 'kg/h') {
+    // Integer for kg/h
+    mainValue = metrics.rateValue.toFixed(0)
   } else {
-    // Convert to tons for display
-    mainValue = (processedDisplay / 1000).toFixed(2)
-    mainUnit = 't'
+    // 2 decimal places for t/h
+    mainValue = metrics.rateValue.toFixed(2)
   }
 
   // 2. Remaining Quantity Metric (Sub-text)
-  // If remaining quantity is between 0 and 999 -> kg
-  // If remaining quantity is 1,000 or above -> t
+  // Displayed as Mass (kg or t)
   let remainingValue: string
   let remainingUnit: string
 
@@ -146,7 +175,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     <Card className={cn(className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Produtividade (t/h)
+          Produtividade
         </CardTitle>
         <Activity
           className={cn(
@@ -159,7 +188,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
         <div className="text-2xl font-bold flex items-baseline gap-1">
           {mainValue}{' '}
           <span className="text-sm font-medium text-muted-foreground">
-            {mainUnit}
+            {metrics.rateUnit}
           </span>
         </div>
 
