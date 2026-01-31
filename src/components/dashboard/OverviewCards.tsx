@@ -4,7 +4,7 @@ import {
   TrendingUp,
   PieChart,
   DollarSign,
-  Clock,
+  Activity,
   Droplets,
   Bone,
   Wheat,
@@ -29,8 +29,6 @@ interface OverviewCardsProps {
   notificationSettings: NotificationSettings
 }
 
-const TARGET_FLOW_RATE = 7.125
-
 export function OverviewCards({
   rawMaterials,
   production,
@@ -42,7 +40,7 @@ export function OverviewCards({
   const [now, setNow] = useState(new Date())
 
   useEffect(() => {
-    // Update current time every minute to refresh calculations
+    // Update current time every minute to refresh calculations for open records
     const interval = setInterval(() => setNow(new Date()), 60000)
     return () => clearInterval(interval)
   }, [])
@@ -53,6 +51,7 @@ export function OverviewCards({
       (acc, curr) => acc + curr.quantity,
       0,
     )
+    const totalRawMaterialTons = totalRawMaterial / 1000
 
     // 2. Produção (Total Production)
     const totalProduction = production.reduce(
@@ -75,8 +74,9 @@ export function OverviewCards({
       0,
     )
 
-    // 5. Tempo de Cozimento (Flow Rate)
-    // Calculate total duration in hours from cooking records
+    // 5. Produtividade (t/h)
+    // Formula: (Sum of Raw Material Quantity) / (Total Cooking Hours)
+    // Total Cooking Hours = Sum of duration of all records
     let totalCookingMinutes = 0
     cookingTimeRecords.forEach((record) => {
       const [startH, startM] = record.startTime.split(':').map(Number)
@@ -88,9 +88,6 @@ export function OverviewCards({
         endMinutes = endH * 60 + endM
       } else {
         // If no end time, use current time (now)
-        // We assume "real-time" tracking applies primarily to today's records
-        // But to ensure dynamic reduction works for any open record displayed,
-        // we use current time.
         endMinutes = now.getHours() * 60 + now.getMinutes()
       }
 
@@ -101,13 +98,9 @@ export function OverviewCards({
 
     const totalCookingHours = totalCookingMinutes / 60
 
-    // Use total raw material for throughput calculation
-    const totalProcessedTons = totalRawMaterial / 1000
-
-    // Calculation Formula: Processed Mass (tons) / Elapsed Time (hours)
-    // Based on aggregated raw materials and total cooking time
-    const flowRate =
-      totalCookingHours > 0 ? totalProcessedTons / totalCookingHours : 0
+    // Calculate productivity (tons/hour)
+    const productivity =
+      totalCookingHours > 0 ? totalRawMaterialTons / totalCookingHours : 0
 
     // 6. Specific Yields
     const seboProduced = production.reduce(
@@ -135,9 +128,9 @@ export function OverviewCards({
       totalProduction,
       generalYield,
       totalRevenue,
-      flowRate,
-      totalProcessedTons,
-      usefulHours: totalCookingHours,
+      productivity,
+      totalRawMaterialTons,
+      totalCookingHours,
       seboYield,
       fcoYield,
       farinhetaYield,
@@ -147,7 +140,7 @@ export function OverviewCards({
     production,
     shipping,
     cookingTimeRecords,
-    // downtimeRecords is intentionally unused for flow rate calculation based on requirements
+    // downtimeRecords unused for this specific metric logic as per requirements
     now,
   ])
 
@@ -234,24 +227,21 @@ export function OverviewCards({
         <Card className="border-l-4 border-l-blue-500 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Tempo de Cozimento (t/h)
+              Produtividade (t/h)
             </CardTitle>
-            <Clock className="h-4 w-4 text-blue-500" />
+            <Activity className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-2xl font-bold">
-              {metrics.flowRate.toFixed(2)}{' '}
+              {metrics.productivity.toFixed(2)}{' '}
               <span className="text-sm font-normal text-muted-foreground">
                 t/h
               </span>
             </div>
             <div className="flex flex-col gap-0.5 mt-1">
               <p className="text-xs text-muted-foreground">
-                {metrics.totalProcessedTons.toFixed(1)}t em{' '}
-                {metrics.usefulHours.toFixed(1)}h úteis
-              </p>
-              <p className="text-xs font-medium text-muted-foreground/80">
-                Meta: {TARGET_FLOW_RATE.toFixed(3)} t/h
+                {metrics.totalRawMaterialTons.toFixed(1)}t em{' '}
+                {metrics.totalCookingHours.toFixed(1)}h
               </p>
             </div>
           </CardContent>
