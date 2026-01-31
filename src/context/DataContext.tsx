@@ -327,6 +327,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Realtime Subscription Setup
   useEffect(() => {
+    // Clean up previous subscription if exists before creating a new one
+    if (operationalChannelRef.current) {
+      supabase.removeChannel(operationalChannelRef.current)
+      operationalChannelRef.current = null
+    }
+
     if (!user?.id || !currentFactoryId) return
 
     // Validation for valid UUID to avoid postgres syntax errors
@@ -349,7 +355,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'downtime_records',
     ]
 
-    // Initialize subscriptions
+    // Initialize subscriptions with specific filter
     tables.forEach((table) => {
       channel.on(
         'postgres_changes',
@@ -371,16 +377,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           err?.message || err || 'Unknown error',
         )
-        // We set it to error but don't disrupt the user if data was loaded
+        // If we have an error, we keep 'error' status but we don't clear data
+        // The migration should fix this by enabling RLS and Publication
         setConnectionStatus('error')
+      } else if (status === 'TIMED_OUT') {
+        console.warn(`Realtime subscription timed out on ${channelName}`)
+        setConnectionStatus('error')
+      } else if (status === 'CLOSED') {
+        // Normal closure
       }
     })
 
     operationalChannelRef.current = channel
 
     return () => {
-      supabase.removeChannel(channel)
-      if (operationalChannelRef.current === channel) {
+      if (operationalChannelRef.current) {
+        supabase.removeChannel(operationalChannelRef.current)
         operationalChannelRef.current = null
       }
     }
