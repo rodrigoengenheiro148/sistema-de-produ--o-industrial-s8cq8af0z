@@ -27,7 +27,7 @@ const formSchema = z.object({
   firewood: z.coerce.number().min(0, 'Valor deve ser positivo'),
   riceHusk: z.coerce.number().min(0, 'Valor deve ser positivo'),
   woodChips: z.coerce.number().min(0, 'Valor deve ser positivo'),
-  steamConsumption: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  steamConsumption: z.coerce.number().optional(),
 })
 
 interface SteamControlFormProps {
@@ -66,9 +66,11 @@ export function SteamControlForm({
 
   // Auto-calculate steam consumption based on meter readings
   useEffect(() => {
-    if (meterEnd >= meterStart && meterEnd > 0) {
-      form.setValue('steamConsumption', meterEnd - meterStart)
-    }
+    // We allow calculation even if meterEnd < meterStart (negative) during typing,
+    // but practically we usually want meterEnd >= meterStart.
+    // However, if the user makes a mistake typing, we should still show the diff.
+    const diff = meterEnd - meterStart
+    form.setValue('steamConsumption', diff > 0 ? diff : 0)
   }, [meterStart, meterEnd, form])
 
   const calculatedMpEntry = useMemo(() => {
@@ -81,6 +83,11 @@ export function SteamControlForm({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const dateObj = new Date(`${values.date}T12:00:00`)
+    // Ensure steam consumption is strictly meterEnd - meterStart if positive, else 0 or user defined
+    const calculatedConsumption =
+      values.meterEnd >= values.meterStart
+        ? values.meterEnd - values.meterStart
+        : 0
 
     if (initialData) {
       updateSteamRecord({
@@ -92,7 +99,7 @@ export function SteamControlForm({
         firewood: values.firewood,
         riceHusk: values.riceHusk,
         woodChips: values.woodChips,
-        steamConsumption: values.steamConsumption,
+        steamConsumption: calculatedConsumption,
       })
       toast({
         title: 'Registro atualizado',
@@ -107,7 +114,7 @@ export function SteamControlForm({
         firewood: values.firewood,
         riceHusk: values.riceHusk,
         woodChips: values.woodChips,
-        steamConsumption: values.steamConsumption,
+        steamConsumption: calculatedConsumption,
         factoryId: '', // Handled by context
         userId: '', // Handled by context
       })
@@ -258,7 +265,7 @@ export function SteamControlForm({
                         step="0.01"
                         className="border-primary/30 bg-primary/5 font-bold"
                         {...field}
-                        readOnly={meterEnd > 0 || meterStart > 0}
+                        readOnly
                       />
                     </FormControl>
                     <FormMessage />

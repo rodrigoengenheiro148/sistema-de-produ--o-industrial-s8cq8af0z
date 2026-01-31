@@ -70,40 +70,41 @@ export function SteamControlTable() {
 
     // Map to include calculated fields
     return filtered.map((record) => {
+      // Entrada MP: Sum of raw materials for the day
       const mpEntry = rawMaterials
         .filter((rm) => isSameDay(rm.date, record.date))
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
-      // Biomass Adjustment Logic: Soy, Rice, Chips * 1.7. Firewood is as is.
+      // Total Biomass: (soy * 1.7) + (rice * 1.7) + (chips * 1.7) + firewood
       const biomassTotal =
         record.soyWaste * 1.7 +
         record.riceHusk * 1.7 +
         record.woodChips * 1.7 +
         record.firewood
 
+      // Consumo Vapor: Use stored value which is calculated as meterEnd - meterStart
+      const steamConsumption = record.steamConsumption
+
       return {
         ...record,
         mpEntry,
         biomassTotal,
-        // Ratios (handling division by zero)
-        // Cavacos vs Toneladas Vapor: Consumo Vapor / TOTAL
-        cavacoVsVapor: biomassTotal
-          ? record.steamConsumption / biomassTotal
+        // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Existing logic maintained for this column)
+        cavacoVsVapor: biomassTotal ? steamConsumption / biomassTotal : 0,
+
+        // MPs VS VAPOR: Entrada MP / Consumo Vapor
+        mpVsVapor: steamConsumption ? mpEntry / steamConsumption : 0,
+
+        // MPs m³ CAVACO: ((wood_chips * 1.7) + Entrada MP) / Total Biomass
+        mpVsCavaco: biomassTotal
+          ? (record.woodChips * 1.7 + mpEntry) / biomassTotal
           : 0,
 
-        // MPs vs Vapor: Entrada MP / Consumo Vapor
-        mpVsVapor: record.steamConsumption
-          ? mpEntry / record.steamConsumption
-          : 0,
+        // TONELADAS VAPOR VS MPs: (Consumo Vapor / Entrada MP) * 1000
+        vaporVsMp: mpEntry ? (steamConsumption / mpEntry) * 1000 : 0,
 
-        // MPs m³ Cavaco: Entrada MP / TOTAL
-        mpVsCavaco: biomassTotal ? mpEntry / biomassTotal : 0,
-
-        // Toneladas Vapor vs MPs: (TOTAL / Entrada MP) * 1000
-        vaporVsMp: mpEntry ? (biomassTotal / mpEntry) * 1000 : 0,
-
-        // Tons vs MPs: (Consumo Vapor / Entrada MP) * 1000
-        tonsVsMp: mpEntry ? (record.steamConsumption / mpEntry) * 1000 : 0,
+        // TONS VS MPs: (Consumo Vapor / Entrada MP) * 1000
+        tonsVsMp: mpEntry ? (steamConsumption / mpEntry) * 1000 : 0,
       }
     })
   }, [steamRecords, rawMaterials, dateRange])
@@ -119,6 +120,7 @@ export function SteamControlTable() {
         woodChips: acc.woodChips + curr.woodChips,
         biomassTotal: acc.biomassTotal + curr.biomassTotal,
         steamConsumption: acc.steamConsumption + curr.steamConsumption,
+        woodChipsNormalized: acc.woodChipsNormalized + curr.woodChips * 1.7,
       }),
       {
         mpEntry: 0,
@@ -128,6 +130,7 @@ export function SteamControlTable() {
         woodChips: 0,
         biomassTotal: 0,
         steamConsumption: 0,
+        woodChipsNormalized: 0,
       },
     )
 
@@ -140,8 +143,12 @@ export function SteamControlTable() {
       mpVsVapor: sums.steamConsumption
         ? sums.mpEntry / sums.steamConsumption
         : 0,
-      mpVsCavaco: sums.biomassTotal ? sums.mpEntry / sums.biomassTotal : 0,
-      vaporVsMp: sums.mpEntry ? (sums.biomassTotal / sums.mpEntry) * 1000 : 0,
+      mpVsCavaco: sums.biomassTotal
+        ? (sums.woodChipsNormalized + sums.mpEntry) / sums.biomassTotal
+        : 0,
+      vaporVsMp: sums.mpEntry
+        ? (sums.steamConsumption / sums.mpEntry) * 1000
+        : 0,
       tonsVsMp: sums.mpEntry
         ? (sums.steamConsumption / sums.mpEntry) * 1000
         : 0,
