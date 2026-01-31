@@ -98,6 +98,8 @@ export interface DowntimeRecord {
   date: Date
   durationHours: number
   reason: string
+  startTime?: Date
+  endTime?: Date
   createdAt?: Date
 }
 
@@ -222,6 +224,7 @@ export interface DataContextType {
   deleteCookingTimeRecord: (id: string) => void
 
   addDowntimeRecord: (entry: Omit<DowntimeRecord, 'id'>) => void
+  updateDowntimeRecord: (entry: DowntimeRecord) => void
   deleteDowntimeRecord: (id: string) => void
 
   userAccessList: UserAccessEntry[]

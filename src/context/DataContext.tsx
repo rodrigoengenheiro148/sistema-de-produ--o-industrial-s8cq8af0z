@@ -83,8 +83,16 @@ const mapData = (data: any[]) => {
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
     factoryId: item.factory_id,
-    startTime: item.start_time,
-    endTime: item.end_time,
+    startTime: item.start_time
+      ? typeof item.start_time === 'string' && item.start_time.includes('T')
+        ? new Date(item.start_time)
+        : item.start_time
+      : undefined,
+    endTime: item.end_time
+      ? typeof item.end_time === 'string' && item.end_time.includes('T')
+        ? new Date(item.end_time)
+        : item.end_time
+      : undefined,
     durationHours: item.duration_hours,
   }))
 }
@@ -327,7 +335,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Realtime Subscription Setup
   useEffect(() => {
-    // Clean up previous subscription if exists before creating a new one
     if (operationalChannelRef.current) {
       supabase.removeChannel(operationalChannelRef.current)
       operationalChannelRef.current = null
@@ -335,19 +342,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (!user?.id || !currentFactoryId) return
 
-    // Validation for valid UUID to avoid postgres syntax errors
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(currentFactoryId)) return
 
-    // Normalize ID for consistency
     const normalizedFactoryId = currentFactoryId.toLowerCase()
-
     const channelName = `operational-data-${normalizedFactoryId}`
     const channel = supabase.channel(channelName)
 
-    // List of tables to subscribe to
-    // We include all tables that populate the dashboard metrics
     const tables = [
       'raw_materials',
       'production',
@@ -358,7 +360,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'downtime_records',
     ]
 
-    // Initialize subscriptions with specific filter
     tables.forEach((table) => {
       channel.on(
         'postgres_changes',
@@ -380,14 +381,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           err?.message || err || 'Unknown error',
         )
-        // If we have an error, we keep 'error' status but we don't clear data
-        // The migration should fix this by enabling RLS and Publication
         setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
-        console.warn(`Realtime subscription timed out on ${channelName}`)
         setConnectionStatus('error')
-      } else if (status === 'CLOSED') {
-        // Normal closure
       }
     })
 
@@ -647,9 +643,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       date: entry.date.toISOString(),
       duration_hours: entry.durationHours,
       reason: entry.reason,
+      start_time: entry.startTime?.toISOString(),
+      end_time: entry.endTime?.toISOString(),
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
+    if (!error) fetchOperationalData()
+  }
+
+  const updateDowntimeRecord = async (entry: DowntimeRecord) => {
+    const { error } = await supabase
+      .from('downtime_records')
+      .update({
+        date: entry.date.toISOString(),
+        duration_hours: entry.durationHours,
+        reason: entry.reason,
+        start_time: entry.startTime?.toISOString(),
+        end_time: entry.endTime?.toISOString(),
+      })
+      .eq('id', entry.id)
     if (!error) fetchOperationalData()
   }
 
@@ -863,6 +875,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteCookingTimeRecord,
         downtimeRecords,
         addDowntimeRecord,
+        updateDowntimeRecord,
         deleteDowntimeRecord,
         userAccessList,
         addUserAccess: () => {},
