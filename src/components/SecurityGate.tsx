@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Lock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/hooks/use-auth'
+import { BYPASS_PASSWORD } from '@/lib/security'
 
 interface SecurityGateProps {
   isOpen: boolean
@@ -26,9 +26,8 @@ export function SecurityGate({
   onOpenChange,
   onSuccess,
   title = 'Proteção de Registro',
-  description = 'Este registro foi criado há mais de 5 minutos. Para editar ou excluir, confirme sua senha.',
+  description = 'Este registro foi criado há mais de 5 minutos. Para editar ou excluir, informe a senha administrativa.',
 }: SecurityGateProps) {
-  const { signIn, user } = useAuth()
   const [password, setPassword] = useState('')
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -39,17 +38,14 @@ export function SecurityGate({
     setLoading(true)
 
     try {
-      if (!user?.email) {
-        throw new Error('Usuário não identificado.')
-      }
+      // Simulate a small delay for better UX
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const { error: signInError } = await signIn(user.email, password)
-
-      if (signInError) {
-        setError(true)
-      } else {
+      if (password === BYPASS_PASSWORD) {
         setPassword('')
         onSuccess()
+      } else {
+        setError(true)
       }
     } catch (err) {
       console.error(err)
@@ -81,7 +77,7 @@ export function SecurityGate({
           <div className="space-y-2">
             <Input
               type="password"
-              placeholder="Sua senha atual"
+              placeholder="Senha administrativa"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)

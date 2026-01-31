@@ -163,14 +163,6 @@ export function DowntimeManager() {
     const durationSeconds = differenceInSeconds(endTime, startTime)
     const durationHours = durationSeconds / 3600
 
-    // Finishing an active stop is an edit action, so it should be protected if running for > 5 min
-    // However, usually "Stop" is active so it's fresh? No, it could be running for hours.
-    // The requirement says "editing or deleting records". Finishing is an edit.
-    // If it's been running for > 5 min, should it require password to stop?
-    // Probably yes, to prevent accidental stops of long processes?
-    // Or maybe not, because you are *ending* it now.
-    // "If the record was created more than 5 minutes ago". Yes, activeDowntime.createdAt matters.
-
     handleProtectedAction(activeDowntime.createdAt, () => {
       updateDowntimeRecord({
         ...activeDowntime,
