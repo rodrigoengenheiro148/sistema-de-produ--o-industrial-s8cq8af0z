@@ -340,7 +340,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(currentFactoryId)) return
 
-    const channelName = `operational-data-${currentFactoryId}`
+    // Normalize ID for consistency
+    const normalizedFactoryId = currentFactoryId.toLowerCase()
+
+    const channelName = `operational-data-${normalizedFactoryId}`
     const channel = supabase.channel(channelName)
 
     // List of tables to subscribe to
@@ -363,7 +366,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           event: '*',
           schema: 'public',
           table: table,
-          filter: `factory_id=eq.${currentFactoryId}`,
+          filter: `factory_id=eq.${normalizedFactoryId}`,
         },
         () => fetchOperationalData(),
       )
