@@ -389,12 +389,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (status === 'SUBSCRIBED') {
         setConnectionStatus('online')
       } else if (status === 'CHANNEL_ERROR') {
+        const errorMessage =
+          typeof err === 'object' && err !== null && 'message' in err
+            ? (err as any).message
+            : JSON.stringify(err) || 'Unknown error'
+
         console.error(
           `Realtime subscription error on ${channelName}:`,
-          err?.message || err || 'Unknown error',
+          errorMessage,
         )
         setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
+        console.error(`Realtime subscription timed out on ${channelName}`)
         setConnectionStatus('error')
       }
     })
