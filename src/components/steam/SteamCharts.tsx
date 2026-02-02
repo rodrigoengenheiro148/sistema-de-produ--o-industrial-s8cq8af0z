@@ -1,27 +1,28 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useData } from '@/context/DataContext'
-import { format, isSameDay } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { ChartConfig } from '@/components/ui/chart'
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  ChartConfig,
-} from '@/components/ui/chart'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts'
-import { Loader2 } from 'lucide-react'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { SteamChartCard, BarConfig } from '@/components/steam/SteamChartCard'
+
+interface ChartDefinition {
+  id: string
+  title: string
+  description: string
+  showLegend: boolean
+  bars: BarConfig[]
+}
 
 export function SteamCharts() {
   const { steamRecords, production, dateRange } = useData()
+  const [expandedChartId, setExpandedChartId] = useState<string | null>(null)
 
   const processedData = useMemo(() => {
     const dataMap = new Map<
@@ -118,10 +119,55 @@ export function SteamCharts() {
     },
   }
 
-  const formatNumber = (value: number) => {
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
-    return value.toFixed(0)
-  }
+  const charts: ChartDefinition[] = [
+    {
+      id: 'steam',
+      title: 'Consumo de Vapor',
+      description: 'Total diário (t)',
+      showLegend: false,
+      bars: [{ dataKey: 'steamConsumption' }],
+    },
+    {
+      id: 'cavacoVsVapor',
+      title: 'Cavacos vs. Toneladas Vapor',
+      description: 'Comparativo Diário',
+      showLegend: true,
+      bars: [{ dataKey: 'woodChips' }, { dataKey: 'steamConsumption' }],
+    },
+    {
+      id: 'mpVsVapor',
+      title: 'MPs vs. Vapor',
+      description: 'Relação MP e Consumo de Vapor',
+      showLegend: true,
+      bars: [{ dataKey: 'mpUsed' }, { dataKey: 'steamConsumption' }],
+    },
+    {
+      id: 'mpVsCavaco',
+      title: 'MPs vs. m³ Cavaco',
+      description: 'Relação MP e Combustível',
+      showLegend: true,
+      bars: [{ dataKey: 'mpUsed' }, { dataKey: 'woodChips' }],
+    },
+    {
+      id: 'vaporVsMp',
+      title: 'Vapor vs MPs',
+      description: 'Eficiência Vapor/Matéria-Prima',
+      showLegend: true,
+      bars: [{ dataKey: 'steamConsumption' }, { dataKey: 'mpUsed' }],
+    },
+    {
+      id: 'tonsVsMp',
+      title: 'Tons vs. MPs',
+      description: 'Produção Total vs Matéria-Prima',
+      showLegend: true,
+      bars: [
+        { dataKey: 'totalProduction', name: 'Tons (Produção)' },
+        { dataKey: 'mpUsed', name: 'MPs (Entrada)' },
+      ],
+    },
+  ]
+
+  const expandedChart = charts.find((c) => c.id === expandedChartId)
 
   if (processedData.length === 0) {
     return (
@@ -132,301 +178,50 @@ export function SteamCharts() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {/* Chart 1: Daily Steam Consumption */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Consumo de Vapor</CardTitle>
-          <CardDescription>Total diário (t)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="steamConsumption"
-                fill="var(--color-steamConsumption)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="steamConsumption"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {charts.map((chart) => (
+          <SteamChartCard
+            key={chart.id}
+            title={chart.title}
+            description={chart.description}
+            data={processedData}
+            config={chartConfig}
+            bars={chart.bars}
+            showLegend={chart.showLegend}
+            onExpand={() => setExpandedChartId(chart.id)}
+          />
+        ))}
+      </div>
 
-      {/* Chart 2: Wood Chips vs Steam */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cavacos vs. Toneladas Vapor</CardTitle>
-          <CardDescription>Comparativo Diário</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
+      <Dialog
+        open={!!expandedChartId}
+        onOpenChange={(open) => !open && setExpandedChartId(null)}
+      >
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col sm:rounded-xl">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-xl">
+              {expandedChart?.title}
+            </DialogTitle>
+            <DialogDescription>{expandedChart?.description}</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 w-full pt-2">
+            {expandedChart && (
+              <SteamChartCard
+                title={expandedChart.title}
+                description={expandedChart.description}
+                data={processedData}
+                config={chartConfig}
+                bars={expandedChart.bars}
+                showLegend={expandedChart.showLegend}
+                chartHeight="h-full"
+                className="h-full border-none shadow-none bg-transparent"
+                hideHeader
               />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="woodChips"
-                fill="var(--color-woodChips)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="woodChips"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-              <Bar
-                dataKey="steamConsumption"
-                fill="var(--color-steamConsumption)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="steamConsumption"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Chart 3: MPs vs Vapor */}
-      <Card>
-        <CardHeader>
-          <CardTitle>MPs vs. Vapor</CardTitle>
-          <CardDescription>Relação MP e Consumo de Vapor</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="mpUsed"
-                fill="var(--color-mpUsed)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="mpUsed"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-              <Bar
-                dataKey="steamConsumption"
-                fill="var(--color-steamConsumption)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="steamConsumption"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Chart 4: MPs vs m³ Cavaco */}
-      <Card>
-        <CardHeader>
-          <CardTitle>MPs vs. m³ Cavaco</CardTitle>
-          <CardDescription>Relação MP e Combustível</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="mpUsed"
-                fill="var(--color-mpUsed)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="mpUsed"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-              <Bar
-                dataKey="woodChips"
-                fill="var(--color-woodChips)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="woodChips"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Chart 5: Vapor vs MPs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Vapor vs MPs</CardTitle>
-          <CardDescription>Eficiência Vapor/Matéria-Prima</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="steamConsumption"
-                fill="var(--color-steamConsumption)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="steamConsumption"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-              <Bar
-                dataKey="mpUsed"
-                fill="var(--color-mpUsed)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="mpUsed"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Chart 6: Tons vs MPs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tons vs. MPs</CardTitle>
-          <CardDescription>Produção Total vs Matéria-Prima</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart
-              data={processedData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="displayDate"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar
-                dataKey="totalProduction"
-                name="Tons (Produção)"
-                fill="var(--color-totalProduction)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="totalProduction"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-              <Bar
-                dataKey="mpUsed"
-                name="MPs (Entrada)"
-                fill="var(--color-mpUsed)"
-                radius={[4, 4, 0, 0]}
-              >
-                <LabelList
-                  dataKey="mpUsed"
-                  position="top"
-                  formatter={formatNumber}
-                  className="fill-foreground text-xs"
-                />
-              </Bar>
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
