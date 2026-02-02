@@ -346,6 +346,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Realtime Subscription Setup
   useEffect(() => {
+    // Cleanup previous channel immediately
     if (operationalChannelRef.current) {
       supabase.removeChannel(operationalChannelRef.current)
       operationalChannelRef.current = null
@@ -353,9 +354,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (!user?.id || !currentFactoryId) return
 
+    // Strict validation of UUID for Factory ID to prevent subscription errors
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(currentFactoryId)) return
+    if (!uuidRegex.test(currentFactoryId)) {
+      console.warn('Invalid Factory ID for subscription:', currentFactoryId)
+      return
+    }
 
     const normalizedFactoryId = currentFactoryId.toLowerCase()
     const channelName = `operational-data-${normalizedFactoryId}`
@@ -398,7 +403,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
-        setConnectionStatus('error')
+        // We don't set global 'error' status here to avoid blocking the UI,
+        // but we might want to retry or alert.
+        // For now, keeping it 'online' if data was fetched initially,
+        // or 'error' if initial fetch failed.
       } else if (status === 'TIMED_OUT') {
         console.error(`Realtime subscription timed out on ${channelName}`)
         setConnectionStatus('error')
