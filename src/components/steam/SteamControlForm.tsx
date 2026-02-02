@@ -66,10 +66,12 @@ export function SteamControlForm({
 
   // Auto-calculate steam consumption based on meter readings
   useEffect(() => {
-    // We allow calculation even if meterEnd < meterStart (negative) during typing,
-    // but practically we usually want meterEnd >= meterStart.
-    // However, if the user makes a mistake typing, we should still show the diff.
+    // We update the calculated consumption field for visibility
     const diff = meterEnd - meterStart
+    // The table allows negative diffs, but for saving/form we usually default to 0 if negative
+    // unless the user really intends to submit bad data.
+    // We'll keep it as max(0, diff) for the 'steamConsumption' value storage,
+    // but the Table component calculates it dynamically as (End - Start).
     form.setValue('steamConsumption', diff > 0 ? diff : 0)
   }, [meterStart, meterEnd, form])
 

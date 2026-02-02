@@ -22,6 +22,7 @@ import {
 import { SteamControlForm } from './SteamControlForm'
 import { SteamControlRecord } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
 
 export function SteamControlTable() {
   const { steamRecords, rawMaterials, deleteSteamRecord, dateRange } = useData()
@@ -75,20 +76,26 @@ export function SteamControlTable() {
         .filter((rm) => isSameDay(rm.date, record.date))
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
-      // Total Biomass (Adjusted): (soy * 1.7) + (firewood * 1.0) + (rice * 1.7) + (chips * 1.7)
+      // Total Biomass (Adjusted) Calculation
+      // Formula: (Resíduos de Soja * 1.7) + (Palha de Arroz * 1.7) + (Cavaco * 1.7) + Lenha
       const biomassTotal =
         record.soyWaste * 1.7 +
-        record.firewood * 1.0 +
         record.riceHusk * 1.7 +
-        record.woodChips * 1.7
+        record.woodChips * 1.7 +
+        record.firewood
 
-      // Consumo Vapor
-      const steamConsumption = record.steamConsumption
+      // Steam Consumption Calculation based on Meters
+      // Formula: Medidor Fim - Medidor Início
+      const meterStart = record.meterStart || 0
+      const meterEnd = record.meterEnd || 0
+      const steamConsumption = meterEnd - meterStart
 
       return {
         ...record,
         mpEntry,
         biomassTotal,
+        steamConsumption, // Use calculated value for display
+
         // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Adjusted)
         cavacoVsVapor: biomassTotal ? steamConsumption / biomassTotal : 0,
 
@@ -194,7 +201,7 @@ export function SteamControlTable() {
               </TableHead>
               <TableHead
                 className="font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30"
-                title="(Resíduos Soja * 1.7) + (Lenha * 1.0) + (Palha Arroz * 1.7) + (Cavaco * 1.7)"
+                title="(Resíduos Soja * 1.7) + (Lenha) + (Palha Arroz * 1.7) + (Cavaco * 1.7)"
               >
                 TOTAL (AJUSTADO)
               </TableHead>
@@ -260,7 +267,14 @@ export function SteamControlTable() {
                     <TableCell className="text-right font-mono font-bold bg-green-50/50 dark:bg-green-950/10">
                       {formatNumber(row.biomassTotal)}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-blue-600 dark:text-blue-400">
+                    <TableCell
+                      className={cn(
+                        'text-right font-mono font-bold',
+                        row.steamConsumption < 0
+                          ? 'text-red-600'
+                          : 'text-blue-600 dark:text-blue-400',
+                      )}
+                    >
                       {formatNumber(row.steamConsumption)}
                     </TableCell>
 
@@ -334,7 +348,12 @@ export function SteamControlTable() {
                 <TableCell className="text-right">
                   {formatNumber(totals.biomassTotal)}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell
+                  className={cn(
+                    'text-right',
+                    totals.steamConsumption < 0 ? 'text-red-600' : '',
+                  )}
+                >
                   {formatNumber(totals.steamConsumption)}
                 </TableCell>
 
