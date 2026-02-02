@@ -27,7 +27,13 @@ import { useToast } from '@/hooks/use-toast'
 import { AcidityChart } from '@/components/dashboard/AcidityChart'
 import { AcidityForm } from '@/components/dashboard/AcidityForm'
 import { AcidityEntry } from '@/lib/types'
-import { format } from 'date-fns'
+import {
+  format,
+  subDays,
+  startOfDay,
+  endOfDay,
+  isWithinInterval,
+} from 'date-fns'
 import {
   Table,
   TableBody,
@@ -60,6 +66,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { SecurityGate } from '@/components/SecurityGate'
+import { DatePickerWithRange } from '@/components/DateRangePicker'
+import { DateRange } from 'react-day-picker'
 
 export default function DailyAcidity() {
   const {
@@ -67,7 +75,6 @@ export default function DailyAcidity() {
     addAcidityRecord,
     updateAcidityRecord,
     deleteAcidityRecord,
-    dateRange,
   } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
@@ -79,6 +86,12 @@ export default function DailyAcidity() {
   )
   const [searchTerm, setSearchTerm] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  // Local Date Range State (Defaults to last 30 days)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  })
 
   // Security Gate State
   const [isSecurityOpen, setIsSecurityOpen] = useState(false)
@@ -153,44 +166,62 @@ export default function DailyAcidity() {
 
   const filteredRecords = acidityRecords
     .filter((item) => {
-      if (dateRange.from && dateRange.to) {
-        if (item.date < dateRange.from || item.date > dateRange.to) return false
+      // Date Filter
+      let matchesDate = true
+      if (dateRange?.from) {
+        const itemDate = item.date
+        const from = startOfDay(dateRange.from)
+        // If 'to' is undefined (selecting), we default to 'from' end of day (single day selection)
+        const to = dateRange.to
+          ? endOfDay(dateRange.to)
+          : endOfDay(dateRange.from)
+        matchesDate = isWithinInterval(itemDate, { start: from, end: to })
       }
-      return (
+
+      // Search Filter
+      const matchesSearch =
         item.responsible.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.tank.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+
+      return matchesDate && matchesSearch
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <FlaskConical className="h-6 w-6 text-primary" />
           Acidez Diária
         </h2>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
-              <Plus className="h-4 w-4" />{' '}
-              <span className="hidden sm:inline">Novo Registro</span>
-              <span className="sm:hidden">Novo</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Registrar Medição de Acidez</DialogTitle>
-              <DialogDescription>
-                Preencha os dados da análise de acidez do tanque.
-              </DialogDescription>
-            </DialogHeader>
-            <AcidityForm
-              onSubmit={handleCreate}
-              onCancel={() => setIsCreateOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <DatePickerWithRange
+            date={dateRange}
+            setDate={setDateRange}
+            className="w-full sm:w-[300px]"
+          />
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2" size={isMobile ? 'default' : 'default'}>
+                <Plus className="h-4 w-4" />{' '}
+                <span className="hidden sm:inline">Novo Registro</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Registrar Medição de Acidez</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados da análise de acidez do tanque.
+                </DialogDescription>
+              </DialogHeader>
+              <AcidityForm
+                onSubmit={handleCreate}
+                onCancel={() => setIsCreateOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <AcidityChart data={filteredRecords} />
@@ -215,7 +246,7 @@ export default function DailyAcidity() {
             <div className="space-y-4">
               {filteredRecords.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Nenhum registro encontrado no período.
+                  Nenhum registro encontrado para o período selecionado.
                 </div>
               ) : (
                 filteredRecords.map((entry) => {
@@ -345,7 +376,7 @@ export default function DailyAcidity() {
                       colSpan={10}
                       className="text-center h-24 text-muted-foreground"
                     >
-                      Nenhum registro encontrado no período.
+                      Nenhum registro encontrado para o período selecionado.
                     </TableCell>
                   </TableRow>
                 ) : (

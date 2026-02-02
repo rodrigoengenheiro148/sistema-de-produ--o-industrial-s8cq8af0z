@@ -92,8 +92,8 @@ export function AcidityChart({ data }: AcidityChartProps) {
             Tendência dos valores de Peso e Acidez ao longo do tempo
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado de acidez disponível.
+        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground text-center">
+          Nenhum dado encontrado para o período selecionado
         </CardContent>
       </Card>
     )
