@@ -111,10 +111,12 @@ export default function SeboInventory() {
         }
       }
       setExtraRows(newExtraRows)
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error)
       toast({
         title: 'Erro ao carregar dados',
-        description: 'Não foi possível buscar o estoque de sebo.',
+        description:
+          error.message || 'Não foi possível buscar o estoque de sebo.',
         variant: 'destructive',
       })
     } finally {
@@ -127,27 +129,34 @@ export default function SeboInventory() {
   }, [loadData])
 
   // Load History Data for Chart
-  useEffect(() => {
+  const loadHistory = useCallback(async () => {
     if (!currentFactoryId || !user) return
 
-    const loadHistory = async () => {
-      setHistoryLoading(true)
-      try {
-        const history = await fetchSeboInventoryHistory(
-          chartStartDate,
-          chartEndDate,
-          currentFactoryId,
-        )
-        setHistoryRecords(history)
-      } catch (error) {
-        console.error('Failed to load history', error)
-      } finally {
-        setHistoryLoading(false)
-      }
+    setHistoryLoading(true)
+    try {
+      const history = await fetchSeboInventoryHistory(
+        chartStartDate,
+        chartEndDate,
+        currentFactoryId,
+      )
+      setHistoryRecords(history)
+    } catch (error: any) {
+      console.error('Failed to load history', error)
+      toast({
+        title: 'Erro ao carregar histórico',
+        description:
+          error.message ||
+          'Não foi possível atualizar o gráfico de evolução do estoque.',
+        variant: 'destructive',
+      })
+    } finally {
+      setHistoryLoading(false)
     }
+  }, [chartStartDate, chartEndDate, currentFactoryId, user, toast])
 
+  useEffect(() => {
     loadHistory()
-  }, [chartStartDate, chartEndDate, currentFactoryId, user])
+  }, [loadHistory])
 
   // Handlers for Tank Inputs
   const handleTankChange = (
@@ -173,11 +182,11 @@ export default function SeboInventory() {
           title: 'Registro removido',
           description: 'O tanque foi removido do banco de dados.',
         })
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to delete record', e)
         toast({
           title: 'Erro ao remover',
-          description: 'Não foi possível remover o registro.',
+          description: e.message || 'Não foi possível remover o registro.',
           variant: 'destructive',
         })
         return // Don't remove from UI if API call failed
@@ -212,11 +221,11 @@ export default function SeboInventory() {
           title: 'Registro removido',
           description: 'O registro extra foi removido.',
         })
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to delete record', e)
         toast({
           title: 'Erro ao remover',
-          description: 'Não foi possível remover o registro.',
+          description: e.message || 'Não foi possível remover o registro.',
           variant: 'destructive',
         })
         return
@@ -301,12 +310,7 @@ export default function SeboInventory() {
       await loadData()
 
       // Refresh history
-      const history = await fetchSeboInventoryHistory(
-        chartStartDate,
-        chartEndDate,
-        currentFactoryId,
-      )
-      setHistoryRecords(history)
+      await loadHistory()
     } catch (error: any) {
       console.error(error)
       toast({
