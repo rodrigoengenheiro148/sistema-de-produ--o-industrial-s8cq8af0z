@@ -4,20 +4,24 @@ import { DowntimeManager } from '@/components/process/DowntimeManager'
 import { HourlyProductionEfficiencyChart } from '@/components/process/HourlyProductionEfficiencyChart'
 import { ProcessMetricsCard } from '@/components/process/ProcessMetricsCard'
 import { DatePicker } from '@/components/ui/date-picker'
+import { ProcessExportMenu } from '@/components/process/ProcessExportMenu'
 
 export default function ProcessManagement() {
   const [analysisDate, setAnalysisDate] = useState<Date>(new Date())
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">
-          Tempos de Processo
-        </h2>
-        <p className="text-muted-foreground">
-          Gerencie os tempos de cozimento e paradas para cálculo de
-          produtividade.
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Tempos de Processo
+          </h2>
+          <p className="text-muted-foreground">
+            Gerencie os tempos de cozimento e paradas para cálculo de
+            produtividade.
+          </p>
+        </div>
+        <ProcessExportMenu />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
