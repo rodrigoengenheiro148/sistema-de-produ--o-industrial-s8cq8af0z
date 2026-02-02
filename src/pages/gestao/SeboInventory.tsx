@@ -273,13 +273,6 @@ export default function SeboInventory() {
 
       const allRecords = [...validTanks, ...validExtras]
 
-      if (allRecords.length === 0) {
-        // Nothing to save is technically a success if we just cleared everything,
-        // but typically users want to save something.
-        // However, we might have deleted records via the delete button individually.
-        // If the user just cleared inputs on a row without deleting, we shouldn't save it.
-      }
-
       // Ensure current context date/factory is consistent
       const sanitizedRecords = allRecords.map((r) => ({
         ...r,
@@ -288,13 +281,15 @@ export default function SeboInventory() {
         userId: user.id,
       }))
 
-      await saveSeboInventory(sanitizedRecords)
-      toast({
-        title: 'Salvo com sucesso',
-        description: 'Os dados do estoque foram atualizados.',
-        variant: 'default',
-        className: 'bg-green-600 text-white border-none',
-      })
+      if (sanitizedRecords.length > 0) {
+        await saveSeboInventory(sanitizedRecords)
+        toast({
+          title: 'Salvo com sucesso',
+          description: 'Os dados do estoque foram atualizados.',
+          variant: 'default',
+          className: 'bg-green-600 text-white border-none',
+        })
+      }
 
       // Reload data to get updated IDs and consistent state
       await loadData()

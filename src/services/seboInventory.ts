@@ -2,6 +2,18 @@ import { supabase } from '@/lib/supabase/client'
 import { SeboInventoryRecord } from '@/lib/types'
 import { format } from 'date-fns'
 
+// Helper to generate UUID client-side if crypto.randomUUID is not available
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0,
+      v = c == 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 export const fetchSeboInventory = async (
   date: Date,
   factoryId: string,
@@ -93,25 +105,28 @@ export const saveSeboInventory = async (records: SeboInventoryRecord[]) => {
     )
   }
 
-  const recordsToSave = records.map((r) => ({
-    id: r.id, // Include ID if it exists for upsert
-    factory_id: r.factoryId,
-    user_id: r.userId,
-    date: format(r.date, 'yyyy-MM-dd'),
-    tank_number: r.tankNumber || null,
-    quantity_lt: r.quantityLt || 0,
-    quantity_kg: r.quantityKg || 0,
-    acidity: r.acidity !== undefined ? r.acidity : null,
-    moisture: r.moisture !== undefined ? r.moisture : null,
-    impurity: r.impurity !== undefined ? r.impurity : null,
-    soaps: r.soaps !== undefined ? r.soaps : null,
-    iodine: r.iodine !== undefined ? r.iodine : null,
-    // Mapping description to 'description' column as per acceptance criteria
-    // Also mapping description to 'label' for backward compatibility if needed, but primarily relying on description
-    label: r.label || null,
-    category: r.category,
-    description: r.description || null,
-  }))
+  const recordsToSave = records.map((r) => {
+    // Generate UUID for new records to ensure upsert works correctly with mixed insert/updates
+    const id = r.id || generateUUID()
+
+    return {
+      id: id,
+      factory_id: r.factoryId,
+      user_id: r.userId,
+      date: format(r.date, 'yyyy-MM-dd'),
+      tank_number: r.tankNumber || null,
+      quantity_lt: r.quantityLt || 0,
+      quantity_kg: r.quantityKg || 0,
+      acidity: r.acidity !== undefined ? r.acidity : null,
+      moisture: r.moisture !== undefined ? r.moisture : null,
+      impurity: r.impurity !== undefined ? r.impurity : null,
+      soaps: r.soaps !== undefined ? r.soaps : null,
+      iodine: r.iodine !== undefined ? r.iodine : null,
+      label: r.label || null,
+      category: r.category,
+      description: r.description || null,
+    }
+  })
 
   const { data, error } = await supabase
     .from('sebo_inventory_records')
