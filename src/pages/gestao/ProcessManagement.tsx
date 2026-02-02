@@ -3,13 +3,10 @@ import { CookingTimeForm } from '@/components/process/CookingTimeForm'
 import { DowntimeManager } from '@/components/process/DowntimeManager'
 import { HourlyProductionEfficiencyChart } from '@/components/process/HourlyProductionEfficiencyChart'
 import { ProcessMetricsCard } from '@/components/process/ProcessMetricsCard'
-import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { DatePicker } from '@/components/ui/date-picker'
-import { useData } from '@/context/DataContext'
 
 export default function ProcessManagement() {
   const [analysisDate, setAnalysisDate] = useState<Date>(new Date())
-  const { rawMaterials } = useData()
 
   return (
     <div className="space-y-8">
@@ -45,10 +42,6 @@ export default function ProcessManagement() {
 
         <div className="md:col-span-2">
           <HourlyProductionEfficiencyChart date={analysisDate} />
-        </div>
-
-        <div className="md:col-span-2">
-          <RawMaterialCompositionChart data={rawMaterials} />
         </div>
       </div>
     </div>

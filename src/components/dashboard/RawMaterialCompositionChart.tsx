@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { RawMaterialEntry } from '@/lib/types'
 import {
   Card,
@@ -35,8 +35,15 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, Layers } from 'lucide-react'
+import { Maximize2, Layers, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface RawMaterialCompositionChartProps {
   data: RawMaterialEntry[]
@@ -71,10 +78,44 @@ export function RawMaterialCompositionChart({
   isMobile = false,
   className,
 }: RawMaterialCompositionChartProps) {
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('all')
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
+
+  // Extract unique options for filters from the provided data
+  const { materialOptions, supplierOptions } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return { materialOptions: [], supplierOptions: [] }
+    }
+    const materials = new Set<string>()
+    const suppliers = new Set<string>()
+
+    data.forEach((item) => {
+      if (item.type) materials.add(item.type)
+      if (item.supplier) suppliers.add(item.supplier)
+    })
+
+    return {
+      materialOptions: Array.from(materials).sort(),
+      supplierOptions: Array.from(suppliers).sort(),
+    }
+  }, [data])
+
+  // Filter the data based on selection
+  const filteredData = useMemo(() => {
+    if (!data) return []
+    return data.filter((item) => {
+      const matchMaterial =
+        selectedMaterial === 'all' || item.type === selectedMaterial
+      const matchSupplier =
+        selectedSupplier === 'all' || item.supplier === selectedSupplier
+      return matchMaterial && matchSupplier
+    })
+  }, [data, selectedMaterial, selectedSupplier])
+
   const { chartData, chartConfig } = useMemo(() => {
     const groupedData = new Map<string, any>()
 
-    data.forEach((item) => {
+    filteredData.forEach((item) => {
       // Normalize date to YYYY-MM-DD
       const dateKey = format(item.date, 'yyyy-MM-dd')
       const displayDate = format(item.date, 'dd/MM')
@@ -118,7 +159,7 @@ export function RawMaterialCompositionChart({
     })
 
     return { chartData: processedData, chartConfig: config }
-  }, [data])
+  }, [filteredData])
 
   const formatTotalLabel = (value: number) => {
     if (value === 0) return ''
@@ -131,6 +172,7 @@ export function RawMaterialCompositionChart({
     return value.toString()
   }
 
+  // If no data is passed at all (regardless of filters)
   if (!data || data.length === 0) {
     return (
       <Card className={cn('shadow-sm border-primary/10', className)}>
@@ -229,7 +271,7 @@ export function RawMaterialCompositionChart({
 
   return (
     <Card className={cn('shadow-sm border-primary/10', className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
@@ -237,28 +279,70 @@ export function RawMaterialCompositionChart({
           </CardTitle>
           <CardDescription>Volume diário por tipo</CardDescription>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Maximize2 className="h-4 w-4 text-muted-foreground" />
-              <span className="sr-only">Expandir</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Composição de Matéria-Prima</DialogTitle>
-              <DialogDescription>
-                Visualização detalhada dos tipos de matéria-prima processada.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 w-full min-h-0 py-4">
-              <ChartContent height="h-full" />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
+              <Filter className="h-3 w-3 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Material" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Materiais</SelectItem>
+              {materialOptions.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
+              <Filter className="h-3 w-3 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Fornecedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Fornecedores</SelectItem>
+              {supplierOptions.map((supplier) => (
+                <SelectItem key={supplier} value={supplier}>
+                  {supplier}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hidden sm:flex"
+              >
+                <Maximize2 className="h-4 w-4 text-muted-foreground" />
+                <span className="sr-only">Expandir</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Composição de Matéria-Prima</DialogTitle>
+                <DialogDescription>
+                  Visualização detalhada dos tipos de matéria-prima processada.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 w-full min-h-0 py-4">
+                <ChartContent height="h-full" />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <ChartContent />
+        {chartData.length > 0 ? (
+          <ChartContent />
+        ) : (
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10">
+            Nenhum dado encontrado para os filtros selecionados.
+          </div>
+        )}
       </CardContent>
     </Card>
   )
