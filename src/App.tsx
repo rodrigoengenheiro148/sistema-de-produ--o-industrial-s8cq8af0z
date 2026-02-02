@@ -19,6 +19,8 @@ import SteamControl from './pages/gestao/SteamControl'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import AuthPage from './pages/Auth'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
 import { AuthProvider } from '@/hooks/use-auth'
@@ -35,6 +37,8 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route
               element={
