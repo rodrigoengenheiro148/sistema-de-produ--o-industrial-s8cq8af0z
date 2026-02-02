@@ -19,16 +19,18 @@ import {
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon, Save, Loader2, Database } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import {
   fetchSeboInventory,
+  fetchSeboInventoryHistory,
   saveSeboInventory,
   deleteSeboInventoryRecord,
 } from '@/services/seboInventory'
 import { SeboInventoryRecord } from '@/lib/types'
+import { SeboInventoryChart } from '@/components/inventory/SeboInventoryChart'
 
 const TANKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '14']
 const INITIAL_EXTRA_ROWS = 3
@@ -41,6 +43,7 @@ export default function SeboInventory() {
   const [date, setDate] = useState<Date>(new Date())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   // Tank Records State
   const [tankRecords, setTankRecords] = useState<
@@ -49,6 +52,11 @@ export default function SeboInventory() {
 
   // Extra Records State
   const [extraRecords, setExtraRecords] = useState<SeboInventoryRecord[]>([])
+
+  // History Records State for Chart
+  const [historyRecords, setHistoryRecords] = useState<SeboInventoryRecord[]>(
+    [],
+  )
 
   // Load Data
   useEffect(() => {
@@ -106,6 +114,33 @@ export default function SeboInventory() {
 
     loadData()
   }, [date, currentFactoryId, user, toast])
+
+  // Load History Data for Chart
+  useEffect(() => {
+    if (!currentFactoryId || !user) return
+
+    const loadHistory = async () => {
+      setHistoryLoading(true)
+      try {
+        // Fetch last 30 days including selected date
+        const endDate = date
+        const startDate = subDays(date, 30)
+
+        const history = await fetchSeboInventoryHistory(
+          startDate,
+          endDate,
+          currentFactoryId,
+        )
+        setHistoryRecords(history)
+      } catch (error) {
+        console.error('Failed to load history', error)
+      } finally {
+        setHistoryLoading(false)
+      }
+    }
+
+    loadHistory()
+  }, [date, currentFactoryId, user])
 
   // Handlers for Tank Inputs
   const handleTankChange = (
@@ -210,7 +245,15 @@ export default function SeboInventory() {
         description: 'Os dados do estoque foram atualizados.',
       })
 
-      // Refresh logic could be better, but for now relies on state being up to date
+      // Refresh history to include new save if it falls in range
+      const endDate = date
+      const startDate = subDays(date, 30)
+      const history = await fetchSeboInventoryHistory(
+        startDate,
+        endDate,
+        currentFactoryId,
+      )
+      setHistoryRecords(history)
     } catch (error) {
       toast({
         title: 'Erro ao salvar',
@@ -300,72 +343,250 @@ export default function SeboInventory() {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-muted/40 pb-4">
-          <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Estoque de Sebo - {format(date, 'dd/MMM', { locale: ptBR })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table className="border-collapse">
-                <TableHeader>
-                  <TableRow className="bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30">
-                    <TableHead className="w-[80px] text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      TANQUES
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      QTD (LT)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      QTD (KG)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      ACIDEZ (%)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      UMIDADE (%)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      IMPUREZA (%)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      SABÕES (ppm)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
-                      IODO (%)
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-green-900 dark:text-green-100">
-                      STATUS / OBS
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {TANKS.map((tank) => {
-                    const record = tankRecords[tank] || {}
-                    return (
-                      <TableRow key={tank} className="hover:bg-muted/50">
-                        <TableCell className="font-bold text-center border-r bg-muted/20">
-                          {tank}
-                        </TableCell>
-                        <TableCell className="p-1 border-r">
-                          <Input
-                            type="number"
-                            className="text-right h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.quantityLt || ''}
-                            onChange={(e) =>
-                              handleTankChange(
-                                tank,
-                                'quantityLt',
-                                e.target.value,
-                              )
-                            }
-                          />
+      <div className="grid grid-cols-1 gap-6">
+        {/* Inventory Chart */}
+        <SeboInventoryChart
+          data={historyRecords}
+          className={historyLoading ? 'opacity-50' : ''}
+        />
+
+        {/* Inventory Input Table */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/40 pb-4">
+            <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+              Estoque de Sebo - {format(date, 'dd/MMM', { locale: ptBR })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table className="border-collapse">
+                  <TableHeader>
+                    <TableRow className="bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30">
+                      <TableHead className="w-[80px] text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        TANQUES
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        QTD (LT)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        QTD (KG)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        ACIDEZ (%)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        UMIDADE (%)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        IMPUREZA (%)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        SABÕES (ppm)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100 border-r">
+                        IODO (%)
+                      </TableHead>
+                      <TableHead className="text-center font-bold text-green-900 dark:text-green-100">
+                        STATUS / OBS
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {TANKS.map((tank) => {
+                      const record = tankRecords[tank] || {}
+                      return (
+                        <TableRow key={tank} className="hover:bg-muted/50">
+                          <TableCell className="font-bold text-center border-r bg-muted/20">
+                            {tank}
+                          </TableCell>
+                          <TableCell className="p-1 border-r">
+                            <Input
+                              type="number"
+                              className="text-right h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.quantityLt || ''}
+                              onChange={(e) =>
+                                handleTankChange(
+                                  tank,
+                                  'quantityLt',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="p-1 border-r">
+                            <Input
+                              type="number"
+                              className="text-right h-8 border-transparent hover:border-input focus:border-primary bg-transparent font-medium"
+                              value={record.quantityKg || ''}
+                              onChange={(e) =>
+                                handleTankChange(
+                                  tank,
+                                  'quantityKg',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </TableCell>
+
+                          {/* Quality Metrics */}
+                          <TableCell
+                            className={cn(
+                              'p-1 border-r',
+                              record.acidity && record.acidity > 5
+                                ? 'bg-amber-100 dark:bg-amber-900/30'
+                                : '',
+                            )}
+                          >
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.acidity || ''}
+                              onChange={(e) =>
+                                handleTankChange(
+                                  tank,
+                                  'acidity',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              'p-1 border-r',
+                              getCellClass(
+                                'moisture_impurity',
+                                record.moisture,
+                                record.impurity,
+                              ),
+                            )}
+                          >
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.moisture || ''}
+                              onChange={(e) =>
+                                handleTankChange(
+                                  tank,
+                                  'moisture',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              'p-1 border-r',
+                              getCellClass(
+                                'moisture_impurity',
+                                record.moisture,
+                                record.impurity,
+                              ),
+                            )}
+                          >
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.impurity || ''}
+                              onChange={(e) =>
+                                handleTankChange(
+                                  tank,
+                                  'impurity',
+                                  e.target.value,
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              'p-1 border-r',
+                              getCellClass('soaps', record.soaps),
+                            )}
+                          >
+                            <Input
+                              type="number"
+                              className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.soaps || ''}
+                              onChange={(e) =>
+                                handleTankChange(tank, 'soaps', e.target.value)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              'p-1 border-r',
+                              getCellClass('iodine', record.iodine),
+                            )}
+                          >
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.iodine || ''}
+                              onChange={(e) =>
+                                handleTankChange(tank, 'iodine', e.target.value)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input
+                              type="text"
+                              placeholder="Status..."
+                              className="h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
+                              value={record.label || ''}
+                              onChange={(e) =>
+                                handleTankChange(tank, 'label', e.target.value)
+                              }
+                              list="status-suggestions"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+
+                    {/* Tank Totals Row */}
+                    <TableRow className="bg-muted font-bold border-t-2 border-primary/20">
+                      <TableCell className="text-center border-r">
+                        TOTAL
+                      </TableCell>
+                      <TableCell className="text-right px-4 border-r">
+                        {totals.tankTotalLt.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right px-4 border-r">
+                        {totals.tankTotalKg.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center text-muted-foreground text-xs uppercase tracking-widest"
+                      >
+                        Totais dos Tanques
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Extra Records Section */}
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="bg-green-50 dark:bg-green-900/20 text-center font-semibold py-2 text-green-800 dark:text-green-200 uppercase text-xs"
+                      >
+                        Registros Adicionais / Comercialização
+                      </TableCell>
+                    </TableRow>
+
+                    {extraRecords.map((record, idx) => (
+                      <TableRow key={`extra-${idx}`}>
+                        <TableCell
+                          colSpan={2}
+                          className="p-1 border-r text-right text-xs text-muted-foreground"
+                        >
+                          {idx + 1}
                         </TableCell>
                         <TableCell className="p-1 border-r">
                           <Input
@@ -373,235 +594,85 @@ export default function SeboInventory() {
                             className="text-right h-8 border-transparent hover:border-input focus:border-primary bg-transparent font-medium"
                             value={record.quantityKg || ''}
                             onChange={(e) =>
-                              handleTankChange(
-                                tank,
+                              handleExtraChange(
+                                idx,
                                 'quantityKg',
+                                e.target.value,
+                              )
+                            }
+                            placeholder="0"
+                          />
+                        </TableCell>
+                        <TableCell colSpan={6} className="p-1">
+                          <Input
+                            type="text"
+                            placeholder="Descrição (Ex: COMERCIALIZAÇÃO BONANZA - NF: 12345)..."
+                            className="h-8 border-transparent hover:border-input focus:border-primary bg-transparent w-full"
+                            value={record.description || ''}
+                            onChange={(e) =>
+                              handleExtraChange(
+                                idx,
+                                'description',
                                 e.target.value,
                               )
                             }
                           />
                         </TableCell>
-
-                        {/* Quality Metrics */}
-                        <TableCell
-                          className={cn(
-                            'p-1 border-r',
-                            record.acidity && record.acidity > 5
-                              ? 'bg-amber-100 dark:bg-amber-900/30'
-                              : '',
-                          )}
-                        >
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.acidity || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'acidity', e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            'p-1 border-r',
-                            getCellClass(
-                              'moisture_impurity',
-                              record.moisture,
-                              record.impurity,
-                            ),
-                          )}
-                        >
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.moisture || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'moisture', e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            'p-1 border-r',
-                            getCellClass(
-                              'moisture_impurity',
-                              record.moisture,
-                              record.impurity,
-                            ),
-                          )}
-                        >
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.impurity || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'impurity', e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            'p-1 border-r',
-                            getCellClass('soaps', record.soaps),
-                          )}
-                        >
-                          <Input
-                            type="number"
-                            className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.soaps || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'soaps', e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            'p-1 border-r',
-                            getCellClass('iodine', record.iodine),
-                          )}
-                        >
-                          <Input
-                            type="number"
-                            step="0.01"
-                            className="text-center h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.iodine || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'iodine', e.target.value)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input
-                            type="text"
-                            placeholder="Status..."
-                            className="h-8 border-transparent hover:border-input focus:border-primary bg-transparent"
-                            value={record.label || ''}
-                            onChange={(e) =>
-                              handleTankChange(tank, 'label', e.target.value)
-                            }
-                            list="status-suggestions"
-                          />
-                        </TableCell>
                       </TableRow>
-                    )
-                  })}
+                    ))}
 
-                  {/* Tank Totals Row */}
-                  <TableRow className="bg-muted font-bold border-t-2 border-primary/20">
-                    <TableCell className="text-center border-r">
-                      TOTAL
-                    </TableCell>
-                    <TableCell className="text-right px-4 border-r">
-                      {totals.tankTotalLt.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="text-right px-4 border-r">
-                      {totals.tankTotalKg.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center text-muted-foreground text-xs uppercase tracking-widest"
-                    >
-                      Totais dos Tanques
-                    </TableCell>
-                  </TableRow>
-
-                  {/* Extra Records Section */}
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="bg-green-50 dark:bg-green-900/20 text-center font-semibold py-2 text-green-800 dark:text-green-200 uppercase text-xs"
-                    >
-                      Registros Adicionais / Comercialização
-                    </TableCell>
-                  </TableRow>
-
-                  {extraRecords.map((record, idx) => (
-                    <TableRow key={`extra-${idx}`}>
-                      <TableCell
-                        colSpan={2}
-                        className="p-1 border-r text-right text-xs text-muted-foreground"
-                      >
-                        {idx + 1}
-                      </TableCell>
-                      <TableCell className="p-1 border-r">
-                        <Input
-                          type="number"
-                          className="text-right h-8 border-transparent hover:border-input focus:border-primary bg-transparent font-medium"
-                          value={record.quantityKg || ''}
-                          onChange={(e) =>
-                            handleExtraChange(idx, 'quantityKg', e.target.value)
-                          }
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell colSpan={6} className="p-1">
-                        <Input
-                          type="text"
-                          placeholder="Descrição (Ex: COMERCIALIZAÇÃO BONANZA - NF: 12345)..."
-                          className="h-8 border-transparent hover:border-input focus:border-primary bg-transparent w-full"
-                          value={record.description || ''}
-                          onChange={(e) =>
-                            handleExtraChange(
-                              idx,
-                              'description',
-                              e.target.value,
-                            )
-                          }
-                        />
+                    <TableRow>
+                      <TableCell colSpan={9} className="p-2 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={addExtraRow}
+                          className="text-xs text-muted-foreground h-6"
+                        >
+                          + Adicionar Linha Extra
+                        </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
 
-                  <TableRow>
-                    <TableCell colSpan={9} className="p-2 text-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={addExtraRow}
-                        className="text-xs text-muted-foreground h-6"
+                    {/* Extras Total */}
+                    <TableRow className="bg-muted/50 font-medium text-muted-foreground">
+                      <TableCell
+                        colSpan={2}
+                        className="text-right border-r px-4"
                       >
-                        + Adicionar Linha Extra
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                        TOTAL EXTRA
+                      </TableCell>
+                      <TableCell className="text-right px-4 border-r">
+                        {totals.extraTotalKg.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell colSpan={6}></TableCell>
+                    </TableRow>
 
-                  {/* Extras Total */}
-                  <TableRow className="bg-muted/50 font-medium text-muted-foreground">
-                    <TableCell colSpan={2} className="text-right border-r px-4">
-                      TOTAL EXTRA
-                    </TableCell>
-                    <TableCell className="text-right px-4 border-r">
-                      {totals.extraTotalKg.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell colSpan={6}></TableCell>
-                  </TableRow>
-
-                  {/* Grand Total */}
-                  <TableRow className="bg-primary/10 font-bold text-lg border-t-2 border-primary">
-                    <TableCell
-                      colSpan={2}
-                      className="text-right border-r px-4 text-primary"
-                    >
-                      TOTAL GERAL
-                    </TableCell>
-                    <TableCell className="text-right px-4 border-r text-primary">
-                      {totals.grandTotalKg.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell
-                      colSpan={6}
-                      className="text-xs font-normal text-muted-foreground px-2 flex items-center h-full"
-                    >
-                      (Tanques + Extras)
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    {/* Grand Total */}
+                    <TableRow className="bg-primary/10 font-bold text-lg border-t-2 border-primary">
+                      <TableCell
+                        colSpan={2}
+                        className="text-right border-r px-4 text-primary"
+                      >
+                        TOTAL GERAL
+                      </TableCell>
+                      <TableCell className="text-right px-4 border-r text-primary">
+                        {totals.grandTotalKg.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell
+                        colSpan={6}
+                        className="text-xs font-normal text-muted-foreground px-2 flex items-center h-full"
+                      >
+                        (Tanques + Extras)
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <datalist id="status-suggestions">
         <option value="PRODUÇÃO" />

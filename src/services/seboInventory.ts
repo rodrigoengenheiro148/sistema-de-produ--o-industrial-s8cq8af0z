@@ -40,6 +40,47 @@ export const fetchSeboInventory = async (
   }))
 }
 
+export const fetchSeboInventoryHistory = async (
+  startDate: Date,
+  endDate: Date,
+  factoryId: string,
+): Promise<SeboInventoryRecord[]> => {
+  const startStr = format(startDate, 'yyyy-MM-dd')
+  const endStr = format(endDate, 'yyyy-MM-dd')
+
+  const { data, error } = await supabase
+    .from('sebo_inventory_records')
+    .select('*')
+    .eq('factory_id', factoryId)
+    .gte('date', startStr)
+    .lte('date', endStr)
+    .order('date', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching sebo inventory history:', error)
+    throw error
+  }
+
+  return data.map((item: any) => ({
+    id: item.id,
+    factoryId: item.factory_id,
+    userId: item.user_id,
+    date: new Date(item.date),
+    tankNumber: item.tank_number,
+    quantityLt: item.quantity_lt,
+    quantityKg: item.quantity_kg,
+    acidity: item.acidity,
+    moisture: item.moisture,
+    impurity: item.impurity,
+    soaps: item.soaps,
+    iodine: item.iodine,
+    label: item.label,
+    category: item.category,
+    description: item.description,
+    createdAt: new Date(item.created_at),
+  }))
+}
+
 export const saveSeboInventory = async (records: SeboInventoryRecord[]) => {
   const recordsToSave = records.map((r) => ({
     id: r.id, // Include ID if it exists for upsert
