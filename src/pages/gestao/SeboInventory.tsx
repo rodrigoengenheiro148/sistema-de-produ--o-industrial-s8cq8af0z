@@ -63,8 +63,9 @@ export default function SeboInventory() {
   )
 
   // Derived dates for the chart view
-  const chartEndDate = date
-  const chartStartDate = subDays(date, 30)
+  // Memoize to prevent object recreation on every render (typing in inputs)
+  const chartEndDate = useMemo(() => date, [date])
+  const chartStartDate = useMemo(() => subDays(date, 30), [date])
 
   const createEmptyRecord = useCallback(
     (category: 'tank' | 'extra'): SeboInventoryRecord => ({
@@ -133,6 +134,10 @@ export default function SeboInventory() {
     if (!currentFactoryId || !user) return
 
     setHistoryLoading(true)
+    // Clear records to avoid mismatch between new date axis and old data during fetch
+    // This combined with isLoading state in Chart prevents flickering
+    setHistoryRecords([])
+
     try {
       const history = await fetchSeboInventoryHistory(
         chartStartDate,
@@ -408,7 +413,7 @@ export default function SeboInventory() {
           data={historyRecords}
           startDate={chartStartDate}
           endDate={chartEndDate}
-          className={historyLoading ? 'opacity-50 transition-opacity' : ''}
+          isLoading={historyLoading}
         />
 
         {/* Inventory Input Table */}

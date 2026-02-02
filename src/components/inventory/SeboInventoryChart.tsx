@@ -13,7 +13,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format, eachDayOfInterval, isSameDay, startOfDay } from 'date-fns'
+import { format, eachDayOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SeboInventoryRecord } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -27,12 +27,14 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface SeboInventoryChartProps {
   data: SeboInventoryRecord[]
   startDate?: Date
   endDate?: Date
   className?: string
+  isLoading?: boolean
 }
 
 export function SeboInventoryChart({
@@ -40,9 +42,11 @@ export function SeboInventoryChart({
   startDate,
   endDate,
   className,
+  isLoading = false,
 }: SeboInventoryChartProps) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return []
+    // If loading or invalid range, return empty to prevent calculation errors
+    if (isLoading || !data) return []
 
     // Group by date (yyyy-MM-dd) to aggregate multiple records per day (e.g. tanks)
     const grouped = data.reduce(
@@ -64,17 +68,22 @@ export function SeboInventoryChart({
     // If a range is provided, we generate all days in that interval
     // This ensures gaps are shown as 0 instead of missing from the axis
     if (startDate && endDate) {
-      const days = eachDayOfInterval({ start: startDate, end: endDate })
-      return days.map((day) => {
-        const dateKey = format(day, 'yyyy-MM-dd')
-        const dayStats = grouped[dateKey] || { totalKg: 0, totalLt: 0 }
-        return {
-          date: format(day, 'dd/MM'),
-          fullDate: format(day, "dd 'de' MMMM", { locale: ptBR }),
-          quantity: dayStats.totalKg,
-          originalDate: day,
-        }
-      })
+      try {
+        const days = eachDayOfInterval({ start: startDate, end: endDate })
+        return days.map((day) => {
+          const dateKey = format(day, 'yyyy-MM-dd')
+          const dayStats = grouped[dateKey] || { totalKg: 0, totalLt: 0 }
+          return {
+            date: format(day, 'dd/MM'),
+            fullDate: format(day, "dd 'de' MMMM", { locale: ptBR }),
+            quantity: dayStats.totalKg,
+            originalDate: day,
+          }
+        })
+      } catch (e) {
+        console.error('Invalid date interval for chart', e)
+        return []
+      }
     }
 
     // Fallback if no range provided: just show existing dates sorted
@@ -91,7 +100,7 @@ export function SeboInventoryChart({
         }
       })
       .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
-  }, [data, startDate, endDate])
+  }, [data, startDate, endDate, isLoading])
 
   const chartConfig = {
     quantity: {
@@ -99,6 +108,35 @@ export function SeboInventoryChart({
       color: 'hsl(var(--primary))',
     },
   } satisfies ChartConfig
+
+  if (isLoading) {
+    return (
+      <Card className={cn('shadow-sm flex flex-col', className)}>
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+          <div className="space-y-1 w-full">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <Skeleton className="h-6 w-48" />
+            </div>
+            <Skeleton className="h-4 w-64 mt-2" />
+          </div>
+          <Skeleton className="h-8 w-8 rounded-md" />
+        </CardHeader>
+        <CardContent className="pt-4 flex-1 min-h-[300px] flex items-end gap-2 px-6">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="w-full rounded-t-sm"
+              style={{
+                height: `${Math.max(20, Math.random() * 80)}%`,
+                opacity: 0.3 + Math.random() * 0.4,
+              }}
+            />
+          ))}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (!data || data.length === 0) {
     return (
@@ -143,6 +181,7 @@ export function SeboInventoryChart({
           radius={[4, 4, 0, 0]}
           name="Estoque (Kg)"
           maxBarSize={60}
+          animationDuration={500}
         >
           <LabelList
             dataKey="quantity"
