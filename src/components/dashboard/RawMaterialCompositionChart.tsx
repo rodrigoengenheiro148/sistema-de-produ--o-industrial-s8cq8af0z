@@ -15,7 +15,15 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Line,
+  LabelList,
+} from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -78,6 +86,7 @@ export function RawMaterialCompositionChart({
           displayDate,
           fullDate,
           originalDate: item.date,
+          total: 0,
           // Initialize all categories to 0
           ...CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
         })
@@ -91,6 +100,7 @@ export function RawMaterialCompositionChart({
 
       if (category) {
         entry[category] += item.quantity
+        entry.total += item.quantity
       }
     })
 
@@ -109,6 +119,17 @@ export function RawMaterialCompositionChart({
 
     return { chartData: processedData, chartConfig: config }
   }, [data])
+
+  const formatTotalLabel = (value: number) => {
+    if (value === 0) return ''
+    if (value >= 1000) {
+      return (
+        (value / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) +
+        'k'
+      )
+    }
+    return value.toString()
+  }
 
   if (!data || data.length === 0) {
     return (
@@ -154,7 +175,7 @@ export function RawMaterialCompositionChart({
 
             // Filter out items with 0 or null value
             const filteredPayload = payload.filter(
-              (item: any) => item.value > 0,
+              (item: any) => item.value > 0 && item.name !== 'total', // exclude total line from tooltip
             )
 
             // If no data to show, hide tooltip
@@ -184,6 +205,24 @@ export function RawMaterialCompositionChart({
             radius={[0, 0, 0, 0]}
           />
         ))}
+
+        {/* Hidden line to display total labels on top of the stacked bars */}
+        <Line
+          type="monotone"
+          dataKey="total"
+          stroke="none"
+          dot={false}
+          activeDot={false}
+          legendType="none"
+          isAnimationActive={false}
+        >
+          <LabelList
+            position="top"
+            offset={10}
+            className="fill-foreground text-[10px] font-bold"
+            formatter={formatTotalLabel}
+          />
+        </Line>
       </BarChart>
     </ChartContainer>
   )

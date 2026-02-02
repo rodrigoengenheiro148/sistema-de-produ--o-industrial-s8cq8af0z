@@ -15,7 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
 import { format, isSameDay } from 'date-fns'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -121,6 +121,14 @@ export function HourlyProductionEfficiencyChart({
     },
   } satisfies ChartConfig
 
+  const formatLabel = (value: number) => {
+    if (value === 0) return null
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: unit === 't' ? 2 : 0,
+      maximumFractionDigits: unit === 't' ? 2 : 0,
+    })
+  }
+
   return (
     <Card className="shadow-sm border">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
@@ -144,7 +152,12 @@ export function HourlyProductionEfficiencyChart({
       <CardContent>
         {chartData.hasActivity ? (
           <ChartContainer config={chartConfig} className="h-[300px] w-full">
-            <BarChart accessibilityLayer data={chartData.data} barGap={0}>
+            <BarChart
+              accessibilityLayer
+              data={chartData.data}
+              barGap={0}
+              margin={{ top: 20 }}
+            >
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="hour"
@@ -165,13 +178,27 @@ export function HourlyProductionEfficiencyChart({
                 fill="var(--color-production)"
                 radius={[4, 4, 0, 0]}
                 name={`Produção (${unit})`}
-              />
+              >
+                <LabelList
+                  position="top"
+                  offset={10}
+                  className="fill-foreground text-[10px]"
+                  formatter={(value: number) => formatLabel(value)}
+                />
+              </Bar>
               <Bar
                 dataKey="consumption"
                 fill="var(--color-consumption)"
                 radius={[4, 4, 0, 0]}
                 name={`Consumo Real (${unit})`}
-              />
+              >
+                <LabelList
+                  position="top"
+                  offset={10}
+                  className="fill-foreground text-[10px]"
+                  formatter={(value: number) => formatLabel(value)}
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         ) : (
