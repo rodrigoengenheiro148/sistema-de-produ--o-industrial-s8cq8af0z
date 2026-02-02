@@ -3,6 +3,7 @@ import { useData } from '@/context/DataContext'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -83,12 +84,13 @@ export default function SeboInventory() {
 
   // Load Data
   const loadData = useCallback(async () => {
-    if (!currentFactoryId || !user) return
+    if (!currentFactoryId) return
 
     setLoading(true)
     try {
-      // Pass user.id to filter by user as per requirements
-      const data = await fetchSeboInventory(date, currentFactoryId, user.id)
+      // Fetch all records for the factory on the selected date
+      // This allows managers to see all records, not just their own
+      const data = await fetchSeboInventory(date, currentFactoryId)
 
       const fetchedTanks = data.filter((r) => r.category === 'tank')
       const fetchedExtras = data.filter((r) => r.category === 'extra')
@@ -123,7 +125,7 @@ export default function SeboInventory() {
     } finally {
       setLoading(false)
     }
-  }, [date, currentFactoryId, user, createEmptyRecord, toast])
+  }, [date, currentFactoryId, createEmptyRecord, toast])
 
   useEffect(() => {
     loadData()
@@ -131,11 +133,10 @@ export default function SeboInventory() {
 
   // Load History Data for Chart
   const loadHistory = useCallback(async () => {
-    if (!currentFactoryId || !user) return
+    if (!currentFactoryId) return
 
     setHistoryLoading(true)
     // Clear records to avoid mismatch between new date axis and old data during fetch
-    // This combined with isLoading state in Chart prevents flickering
     setHistoryRecords([])
 
     try {
@@ -157,7 +158,7 @@ export default function SeboInventory() {
     } finally {
       setHistoryLoading(false)
     }
-  }, [chartStartDate, chartEndDate, currentFactoryId, user, toast])
+  }, [chartStartDate, chartEndDate, currentFactoryId, toast])
 
   useEffect(() => {
     loadHistory()
@@ -298,7 +299,8 @@ export default function SeboInventory() {
         ...r,
         date: date,
         factoryId: currentFactoryId,
-        userId: user.id,
+        // Preserve existing userId if editing another user's record, otherwise default to current user
+        userId: r.userId || user.id,
       }))
 
       if (sanitizedRecords.length > 0) {
@@ -364,46 +366,55 @@ export default function SeboInventory() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={'outline'}
-                className={cn(
-                  'w-[240px] justify-start text-left font-normal',
-                  !date && 'text-muted-foreground',
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? (
-                  format(date, 'PPP', { locale: ptBR })
-                ) : (
-                  <span>Selecione uma data</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => d && setDate(d)}
-                initialFocus
-                locale={ptBR}
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="date-picker" className="text-xs font-semibold">
+              Data de Referência
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date-picker"
+                  variant={'outline'}
+                  className={cn(
+                    'w-[240px] justify-start text-left font-normal',
+                    !date && 'text-muted-foreground',
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? (
+                    format(date, 'PPP', { locale: ptBR })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => d && setDate(d)}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="gap-2"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Salvar
-          </Button>
+          <div className="flex flex-col gap-1 justify-end h-full">
+            <Label className="text-xs font-semibold opacity-0">Ação</Label>
+            <Button
+              onClick={handleSave}
+              disabled={saving || loading}
+              className="gap-2"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Salvar
+            </Button>
+          </div>
         </div>
       </div>
 

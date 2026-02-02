@@ -22,19 +22,17 @@ const parseLocalDate = (dateStr: string): Date => {
   return new Date(year, month - 1, day)
 }
 
+// Fetch records for a specific date and factory
+// We removed userId filter to allow managers to see all records for the day
 export const fetchSeboInventory = async (
   date: Date,
   factoryId: string,
-  userId: string,
 ): Promise<SeboInventoryRecord[]> => {
   if (!date || isNaN(date.getTime())) {
     throw new Error('Data inválida fornecida.')
   }
   if (!factoryId) {
     throw new Error('Fábrica não selecionada.')
-  }
-  if (!userId) {
-    throw new Error('Usuário não identificado.')
   }
 
   const dateStr = format(date, 'yyyy-MM-dd')
@@ -44,7 +42,6 @@ export const fetchSeboInventory = async (
       .from('sebo_inventory_records')
       .select('*')
       .eq('factory_id', factoryId)
-      .eq('user_id', userId)
       .eq('date', dateStr)
       .order('created_at', { ascending: true })
 
