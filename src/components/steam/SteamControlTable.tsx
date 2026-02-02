@@ -75,21 +75,21 @@ export function SteamControlTable() {
         .filter((rm) => isSameDay(rm.date, record.date))
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
-      // Total Biomass: (soy * 1.7) + (rice * 1.7) + (chips * 1.7) + firewood
+      // Total Biomass (Adjusted): (soy * 1.7) + (firewood * 1.0) + (rice * 1.7) + (chips * 1.7)
       const biomassTotal =
         record.soyWaste * 1.7 +
+        record.firewood * 1.0 +
         record.riceHusk * 1.7 +
-        record.woodChips * 1.7 +
-        record.firewood
+        record.woodChips * 1.7
 
-      // Consumo Vapor: Use stored value which is calculated as meterEnd - meterStart
+      // Consumo Vapor
       const steamConsumption = record.steamConsumption
 
       return {
         ...record,
         mpEntry,
         biomassTotal,
-        // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Existing logic maintained for this column)
+        // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Adjusted)
         cavacoVsVapor: biomassTotal ? steamConsumption / biomassTotal : 0,
 
         // MPs VS VAPOR: Entrada MP / Consumo Vapor
@@ -192,7 +192,10 @@ export function SteamControlTable() {
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 CAVACO
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30">
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30"
+                title="(Resíduos Soja * 1.7) + (Lenha * 1.0) + (Palha Arroz * 1.7) + (Cavaco * 1.7)"
+              >
                 TOTAL (AJUSTADO)
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
