@@ -11,9 +11,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   ChartConfig,
+  ChartLegend,
+  ChartLegendContent,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format, eachDayOfInterval } from 'date-fns'
+import { format, eachDayOfInterval, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SeboInventoryRecord } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -44,70 +46,129 @@ export function SeboInventoryChart({
   className,
   isLoading = false,
 }: SeboInventoryChartProps) {
-  const chartData = useMemo(() => {
-    // If loading or invalid range, return empty to prevent calculation errors
-    if (isLoading || !data) return []
+  const { chartData, chartConfig, uniqueTanks, hasExtras } = useMemo(() => {
+    if (!data)
+      return {
+        chartData: [],
+        chartConfig: {},
+        uniqueTanks: [],
+        hasExtras: false,
+      }
 
-    // Group by date (yyyy-MM-dd) to aggregate multiple records per day (e.g. tanks)
-    const grouped = data.reduce(
-      (acc, record) => {
-        const dateKey = format(record.date, 'yyyy-MM-dd')
-        if (!acc[dateKey]) {
-          acc[dateKey] = {
-            totalKg: 0,
-            totalLt: 0,
-          }
-        }
-        acc[dateKey].totalKg += Number(record.quantityKg) || 0
-        acc[dateKey].totalLt += Number(record.quantityLt) || 0
-        return acc
-      },
-      {} as Record<string, { totalKg: number; totalLt: number }>,
+    // 1. Identify all unique tank numbers from the dataset
+    const tankSet = new Set<string>()
+    data.forEach((record) => {
+      if (record.category === 'tank' && record.tankNumber) {
+        tankSet.add(record.tankNumber)
+      }
+    })
+
+    // Sort tanks: Numeric sort if possible, otherwise alphabetic
+    const sortedTanks = Array.from(tankSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }),
     )
 
-    // If a range is provided, we generate all days in that interval
-    // This ensures gaps are shown as 0 instead of missing from the axis
-    if (startDate && endDate) {
-      try {
-        const days = eachDayOfInterval({ start: startDate, end: endDate })
-        return days.map((day) => {
-          const dateKey = format(day, 'yyyy-MM-dd')
-          const dayStats = grouped[dateKey] || { totalKg: 0, totalLt: 0 }
-          return {
-            date: format(day, 'dd/MM'),
-            fullDate: format(day, "dd 'de' MMMM", { locale: ptBR }),
-            quantity: dayStats.totalKg,
-            originalDate: day,
-          }
-        })
-      } catch (e) {
-        console.error('Invalid date interval for chart', e)
-        return []
+    // 2. Generate Colors and Config for each tank
+    const config: ChartConfig = {}
+
+    // We can cycle through chart CSS variables for colors
+    const tankColors = [
+      'hsl(var(--chart-1))',
+      'hsl(var(--chart-2))',
+      'hsl(var(--chart-3))',
+      'hsl(var(--chart-4))',
+      'hsl(var(--chart-5))',
+    ]
+
+    sortedTanks.forEach((tank, index) => {
+      config[`tank_${tank}`] = {
+        label: `Tanque ${tank}`,
+        color: tankColors[index % tankColors.length],
+      }
+    })
+
+    // Check if we have extras to display
+    const extrasExist = data.some(
+      (r) => r.category === 'extra' || (r.category === 'tank' && !r.tankNumber),
+    )
+
+    if (extrasExist) {
+      config['extras'] = {
+        label: 'Outros/Extras',
+        color: 'hsl(var(--muted-foreground))',
       }
     }
 
-    // Fallback if no range provided: just show existing dates sorted
-    return Object.entries(grouped)
-      .map(([dateStr, stats]) => {
-        // Need to parse back to date object correctly from string key
-        const [y, m, d] = dateStr.split('-').map(Number)
-        const dateObj = new Date(y, m - 1, d)
-        return {
-          date: format(dateObj, 'dd/MM'),
-          fullDate: format(dateObj, "dd 'de' MMMM", { locale: ptBR }),
-          quantity: stats.totalKg,
-          originalDate: dateObj,
-        }
+    // 3. Build Data Rows grouped by day
+    let dateRange: Date[] = []
+    if (startDate && endDate) {
+      try {
+        dateRange = eachDayOfInterval({ start: startDate, end: endDate })
+      } catch (e) {
+        console.error('Invalid interval', e)
+        dateRange = []
+      }
+    } else {
+      // If no range, find unique days in data
+      // This is a fallback, usually startDate and endDate are provided
+      const uniqueDates = Array.from(
+        new Set(data.map((r) => format(r.date, 'yyyy-MM-dd'))),
+      )
+      dateRange = uniqueDates.map((d) => {
+        const [y, m, da] = d.split('-').map(Number)
+        return new Date(y, m - 1, da)
       })
-      .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
-  }, [data, startDate, endDate, isLoading])
+      dateRange.sort((a, b) => a.getTime() - b.getTime())
+    }
 
-  const chartConfig = {
-    quantity: {
-      label: 'Estoque (kg)',
-      color: 'hsl(var(--primary))',
-    },
-  } satisfies ChartConfig
+    const formattedData = dateRange.map((day) => {
+      const dateKey = format(day, 'yyyy-MM-dd')
+      const dayRecords = data.filter(
+        (r) => format(r.date, 'yyyy-MM-dd') === dateKey,
+      )
+
+      const row: any = {
+        date: format(day, 'dd/MM'),
+        fullDate: format(day, "dd 'de' MMMM", { locale: ptBR }),
+        originalDate: day,
+      }
+
+      // Sum for each tank
+      sortedTanks.forEach((tank) => {
+        const tankRecs = dayRecords.filter(
+          (r) => r.category === 'tank' && r.tankNumber === tank,
+        )
+        const total = tankRecs.reduce(
+          (sum, r) => sum + (Number(r.quantityKg) || 0),
+          0,
+        )
+        // Store as number (even if 0, so stacks align correctly if needed, though recharts handles gaps)
+        row[`tank_${tank}`] = total
+      })
+
+      // Sum for extras
+      if (extrasExist) {
+        const extraRecs = dayRecords.filter(
+          (r) =>
+            r.category === 'extra' || (r.category === 'tank' && !r.tankNumber),
+        )
+        const totalExtra = extraRecs.reduce(
+          (sum, r) => sum + (Number(r.quantityKg) || 0),
+          0,
+        )
+        row['extras'] = totalExtra
+      }
+
+      return row
+    })
+
+    return {
+      chartData: formattedData,
+      chartConfig: config,
+      uniqueTanks: sortedTanks,
+      hasExtras: extrasExist,
+    }
+  }, [data, startDate, endDate])
 
   if (isLoading) {
     return (
@@ -138,7 +199,15 @@ export function SeboInventoryChart({
     )
   }
 
-  if (!data || data.length === 0) {
+  const hasData = chartData && chartData.length > 0
+  const isEmpty =
+    !hasData ||
+    chartData.every((d) => {
+      const values = Object.values(d).filter((v) => typeof v === 'number')
+      return values.reduce((a: any, b: any) => a + b, 0) === 0
+    })
+
+  if (isEmpty) {
     return (
       <Card className={cn('shadow-sm', className)}>
         <CardHeader className="pb-2">
@@ -146,7 +215,9 @@ export function SeboInventoryChart({
             <BarChart3 className="h-5 w-5 text-primary" />
             Evolução do Estoque
           </CardTitle>
-          <CardDescription>Histórico diário do estoque de Sebo</CardDescription>
+          <CardDescription>
+            Detalhamento diário por tanque (últimos 30 dias)
+          </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
           Nenhum dado encontrado para o período.
@@ -173,29 +244,32 @@ export function SeboInventoryChart({
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
           cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-          content={<ChartTooltipContent />}
+          content={<ChartTooltipContent indicator="dashed" />}
         />
-        <Bar
-          dataKey="quantity"
-          fill="var(--color-quantity)"
-          radius={[4, 4, 0, 0]}
-          name="Estoque (Kg)"
-          maxBarSize={60}
-          animationDuration={500}
-        >
-          <LabelList
-            dataKey="quantity"
-            position="top"
-            formatter={(val: number) => {
-              if (val === 0) return ''
-              return val >= 1000
-                ? `${(val / 1000).toFixed(1)}k`
-                : val.toFixed(0)
-            }}
-            className="fill-foreground font-bold"
-            fontSize={12}
+        <ChartLegend content={<ChartLegendContent />} />
+
+        {/* Dynamic Bars for each Tank */}
+        {uniqueTanks.map((tank) => (
+          <Bar
+            key={tank}
+            dataKey={`tank_${tank}`}
+            stackId="a"
+            fill={`var(--color-tank_${tank})`}
+            radius={[0, 0, 0, 0]}
+            maxBarSize={60}
           />
-        </Bar>
+        ))}
+
+        {/* Bar for Extras if they exist */}
+        {hasExtras && (
+          <Bar
+            dataKey="extras"
+            stackId="a"
+            fill="var(--color-extras)"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={60}
+          />
+        )}
       </BarChart>
     </ChartContainer>
   )
@@ -209,7 +283,7 @@ export function SeboInventoryChart({
             Evolução do Estoque
           </CardTitle>
           <CardDescription>
-            Quantidade total de sebo (Kg) por dia
+            Quantidade total de sebo (Kg) por dia, detalhado por tanque
           </CardDescription>
         </div>
         <Dialog>

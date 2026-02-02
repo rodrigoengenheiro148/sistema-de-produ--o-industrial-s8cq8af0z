@@ -26,6 +26,7 @@ import {
   Database,
   Plus,
   Trash2,
+  RefreshCcw,
 } from 'lucide-react'
 import { format, subDays, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -64,7 +65,7 @@ export default function SeboInventory() {
   )
 
   // Derived dates for the chart view
-  // Memoize to prevent object recreation on every render (typing in inputs)
+  // Memoize to prevent object recreation on every render
   const chartEndDate = useMemo(() => date, [date])
   const chartStartDate = useMemo(() => subDays(date, 30), [date])
 
@@ -89,7 +90,6 @@ export default function SeboInventory() {
     setLoading(true)
     try {
       // Fetch all records for the factory on the selected date
-      // This allows managers to see all records, not just their own
       const data = await fetchSeboInventory(date, currentFactoryId)
 
       const fetchedTanks = data.filter((r) => r.category === 'tank')
@@ -127,18 +127,12 @@ export default function SeboInventory() {
     }
   }, [date, currentFactoryId, createEmptyRecord, toast])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
-
   // Load History Data for Chart
   const loadHistory = useCallback(async () => {
     if (!currentFactoryId) return
 
     setHistoryLoading(true)
-    // Clear records to avoid mismatch between new date axis and old data during fetch
-    setHistoryRecords([])
-
+    // We don't clear records immediately to avoid chart flickering
     try {
       const history = await fetchSeboInventoryHistory(
         chartStartDate,
@@ -160,9 +154,11 @@ export default function SeboInventory() {
     }
   }, [chartStartDate, chartEndDate, currentFactoryId, toast])
 
+  // Trigger loads when dependencies change
   useEffect(() => {
+    loadData()
     loadHistory()
-  }, [loadHistory])
+  }, [loadData, loadHistory])
 
   // Handlers for Tank Inputs
   const handleTankChange = (
@@ -188,6 +184,8 @@ export default function SeboInventory() {
           title: 'Registro removido',
           description: 'O tanque foi removido do banco de dados.',
         })
+        // Immediately update history chart
+        loadHistory()
       } catch (e: any) {
         console.error('Failed to delete record', e)
         toast({
@@ -227,6 +225,8 @@ export default function SeboInventory() {
           title: 'Registro removido',
           description: 'O registro extra foi removido.',
         })
+        // Immediately update history chart
+        loadHistory()
       } catch (e: any) {
         console.error('Failed to delete record', e)
         toast({
@@ -293,8 +293,6 @@ export default function SeboInventory() {
       const allRecords = [...validTanks, ...validExtras]
 
       // Ensure current context date/factory is consistent
-      // This is crucial: we overwrite the record date with the SELECTED UI date
-      // to ensure no date shifting happens during save.
       const sanitizedRecords = allRecords.map((r) => ({
         ...r,
         date: date,
@@ -316,7 +314,7 @@ export default function SeboInventory() {
       // Reload data to get updated IDs and consistent state
       await loadData()
 
-      // Refresh history
+      // Refresh history immediately
       await loadHistory()
     } catch (error: any) {
       console.error(error)
@@ -392,7 +390,7 @@ export default function SeboInventory() {
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={(d) => d && setDate(d)}
+                  onSelect={(d) => d && setDate(startOfDay(d))}
                   initialFocus
                   locale={ptBR}
                 />
@@ -429,10 +427,22 @@ export default function SeboInventory() {
 
         {/* Inventory Input Table */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-muted/40 pb-4">
+          <CardHeader className="bg-muted/40 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
               Estoque de Sebo - {format(date, 'dd/MMM', { locale: ptBR })}
             </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => loadData()}
+              disabled={loading}
+              title="Recarregar tabela"
+            >
+              <RefreshCcw
+                className={cn('h-3 w-3', loading && 'animate-spin')}
+              />
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
