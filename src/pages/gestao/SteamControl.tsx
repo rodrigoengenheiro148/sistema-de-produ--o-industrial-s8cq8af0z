@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Flame, Info } from 'lucide-react'
 import { SteamControlForm } from '@/components/steam/SteamControlForm'
 import { SteamControlTable } from '@/components/steam/SteamControlTable'
+import { SteamCharts } from '@/components/steam/SteamCharts'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function SteamControl() {
@@ -56,6 +57,7 @@ export default function SteamControl() {
         </div>
       </div>
 
+      <SteamCharts />
       <SteamControlTable />
     </div>
   )
