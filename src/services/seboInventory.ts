@@ -14,6 +14,14 @@ function generateUUID() {
   })
 }
 
+// Helper to parse YYYY-MM-DD string to local Date object (00:00:00)
+// This avoids timezone shifts that occur with new Date('YYYY-MM-DD') which is UTC
+const parseLocalDate = (dateStr: string): Date => {
+  if (!dateStr) return new Date()
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export const fetchSeboInventory = async (
   date: Date,
   factoryId: string,
@@ -38,7 +46,7 @@ export const fetchSeboInventory = async (
     id: item.id,
     factoryId: item.factory_id,
     userId: item.user_id,
-    date: new Date(item.date),
+    date: parseLocalDate(item.date),
     tankNumber: item.tank_number || '',
     quantityLt: Number(item.quantity_lt) || 0,
     quantityKg: Number(item.quantity_kg) || 0,
@@ -79,7 +87,7 @@ export const fetchSeboInventoryHistory = async (
     id: item.id,
     factoryId: item.factory_id,
     userId: item.user_id,
-    date: new Date(item.date),
+    date: parseLocalDate(item.date),
     tankNumber: item.tank_number || '',
     quantityLt: Number(item.quantity_lt) || 0,
     quantityKg: Number(item.quantity_kg) || 0,

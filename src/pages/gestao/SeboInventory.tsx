@@ -26,7 +26,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-react'
-import { format, subDays } from 'date-fns'
+import { format, subDays, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -47,7 +47,8 @@ export default function SeboInventory() {
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const [date, setDate] = useState<Date>(new Date())
+  // Initialize date to start of today to ensure no time components cause shift
+  const [date, setDate] = useState<Date>(startOfDay(new Date()))
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -275,6 +276,8 @@ export default function SeboInventory() {
       const allRecords = [...validTanks, ...validExtras]
 
       // Ensure current context date/factory is consistent
+      // This is crucial: we overwrite the record date with the SELECTED UI date
+      // to ensure no date shifting happens during save.
       const sanitizedRecords = allRecords.map((r) => ({
         ...r,
         date: date,
