@@ -97,6 +97,8 @@ export function SteamControlTable() {
         steamConsumption, // Use calculated value for display
 
         // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Adjusted)
+        // Note: Even though we swapped display columns, the logic of the ratio
+        // typically uses (Steam Produced / Biomass Consumed).
         cavacoVsVapor: biomassTotal ? steamConsumption / biomassTotal : 0,
 
         // MPs VS VAPOR: Entrada MP / Consumo Vapor
@@ -199,15 +201,23 @@ export function SteamControlTable() {
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 CAVACO
               </TableHead>
+
+              {/* Swapped Column 1: Header 'TOTAL (AJUSTADO)' now shows steamConsumption */}
               <TableHead
                 className="font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30"
-                title="(Resíduos Soja * 1.7) + (Lenha) + (Palha Arroz * 1.7) + (Cavaco * 1.7)"
+                title="Medidor Fim - Medidor Início"
               >
                 TOTAL (AJUSTADO)
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
+
+              {/* Swapped Column 2: Header 'CONSUMO VAPOR' now shows biomassTotal */}
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right"
+                title="(Resíduos Soja * 1.7) + (Lenha) + (Palha Arroz * 1.7) + (Cavaco * 1.7)"
+              >
                 CONSUMO VAPOR
               </TableHead>
+
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
                 CAVACOS VS TONELADAS VAPOR
               </TableHead>
@@ -264,18 +274,22 @@ export function SteamControlTable() {
                     <TableCell className="text-right font-mono text-muted-foreground">
                       {formatNumber(row.woodChips)}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold bg-green-50/50 dark:bg-green-950/10">
-                      {formatNumber(row.biomassTotal)}
-                    </TableCell>
+
+                    {/* Swapped Cell 1: Under 'TOTAL (AJUSTADO)' now renders steamConsumption */}
                     <TableCell
                       className={cn(
-                        'text-right font-mono font-bold',
+                        'text-right font-mono font-bold bg-green-50/50 dark:bg-green-950/10',
                         row.steamConsumption < 0
                           ? 'text-red-600'
                           : 'text-blue-600 dark:text-blue-400',
                       )}
                     >
                       {formatNumber(row.steamConsumption)}
+                    </TableCell>
+
+                    {/* Swapped Cell 2: Under 'CONSUMO VAPOR' now renders biomassTotal */}
+                    <TableCell className="text-right font-mono font-bold">
+                      {formatNumber(row.biomassTotal)}
                     </TableCell>
 
                     {/* Ratios */}
@@ -345,16 +359,22 @@ export function SteamControlTable() {
                 <TableCell className="text-right">
                   {formatNumber(totals.woodChips)}
                 </TableCell>
-                <TableCell className="text-right">
-                  {formatNumber(totals.biomassTotal)}
-                </TableCell>
+
+                {/* Swapped Footer 1: Under 'TOTAL (AJUSTADO)' now renders steamConsumption total */}
                 <TableCell
                   className={cn(
                     'text-right',
-                    totals.steamConsumption < 0 ? 'text-red-600' : '',
+                    totals.steamConsumption < 0
+                      ? 'text-red-600'
+                      : 'text-blue-600 dark:text-blue-400',
                   )}
                 >
                   {formatNumber(totals.steamConsumption)}
+                </TableCell>
+
+                {/* Swapped Footer 2: Under 'CONSUMO VAPOR' now renders biomassTotal total */}
+                <TableCell className="text-right">
+                  {formatNumber(totals.biomassTotal)}
                 </TableCell>
 
                 <TableCell className="text-right text-xs">
