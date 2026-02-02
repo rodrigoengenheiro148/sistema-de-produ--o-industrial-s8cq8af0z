@@ -13,7 +13,7 @@ import {
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format, parseISO } from 'date-fns'
+import { format, eachDayOfInterval, isSameDay, startOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SeboInventoryRecord } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -30,25 +30,26 @@ import { cn } from '@/lib/utils'
 
 interface SeboInventoryChartProps {
   data: SeboInventoryRecord[]
+  startDate?: Date
+  endDate?: Date
   className?: string
 }
 
 export function SeboInventoryChart({
   data,
+  startDate,
+  endDate,
   className,
 }: SeboInventoryChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    // Group by date and sum quantities
+    // Group by date (yyyy-MM-dd) to aggregate multiple records per day (e.g. tanks)
     const grouped = data.reduce(
       (acc, record) => {
-        // Use yyyy-MM-dd string as key to group
         const dateKey = format(record.date, 'yyyy-MM-dd')
         if (!acc[dateKey]) {
           acc[dateKey] = {
-            dateKey,
-            originalDate: record.date,
             totalKg: 0,
             totalLt: 0,
           }
@@ -57,26 +58,40 @@ export function SeboInventoryChart({
         acc[dateKey].totalLt += Number(record.quantityLt) || 0
         return acc
       },
-      {} as Record<
-        string,
-        {
-          dateKey: string
-          originalDate: Date
-          totalKg: number
-          totalLt: number
-        }
-      >,
+      {} as Record<string, { totalKg: number; totalLt: number }>,
     )
 
-    // Convert to array and sort
-    return Object.values(grouped)
+    // If a range is provided, we generate all days in that interval
+    // This ensures gaps are shown as 0 instead of missing from the axis
+    if (startDate && endDate) {
+      const days = eachDayOfInterval({ start: startDate, end: endDate })
+      return days.map((day) => {
+        const dateKey = format(day, 'yyyy-MM-dd')
+        const dayStats = grouped[dateKey] || { totalKg: 0, totalLt: 0 }
+        return {
+          date: format(day, 'dd/MM'),
+          fullDate: format(day, "dd 'de' MMMM", { locale: ptBR }),
+          quantity: dayStats.totalKg,
+          originalDate: day,
+        }
+      })
+    }
+
+    // Fallback if no range provided: just show existing dates sorted
+    return Object.entries(grouped)
+      .map(([dateStr, stats]) => {
+        // Need to parse back to date object correctly from string key
+        const [y, m, d] = dateStr.split('-').map(Number)
+        const dateObj = new Date(y, m - 1, d)
+        return {
+          date: format(dateObj, 'dd/MM'),
+          fullDate: format(dateObj, "dd 'de' MMMM", { locale: ptBR }),
+          quantity: stats.totalKg,
+          originalDate: dateObj,
+        }
+      })
       .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
-      .map((item) => ({
-        date: format(item.originalDate, 'dd/MM'),
-        fullDate: format(item.originalDate, "dd 'de' MMMM", { locale: ptBR }),
-        quantity: item.totalKg, // Defaulting to KG for display
-      }))
-  }, [data])
+  }, [data, startDate, endDate])
 
   const chartConfig = {
     quantity: {
@@ -85,10 +100,10 @@ export function SeboInventoryChart({
     },
   } satisfies ChartConfig
 
-  if (!chartData || chartData.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <Card className={cn('shadow-sm', className)}>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             Evolução do Estoque
@@ -115,6 +130,7 @@ export function SeboInventoryChart({
           axisLine={false}
           tickMargin={10}
           fontSize={12}
+          minTickGap={20}
         />
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
@@ -131,9 +147,12 @@ export function SeboInventoryChart({
           <LabelList
             dataKey="quantity"
             position="top"
-            formatter={(val: number) =>
-              val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val.toFixed(0)
-            }
+            formatter={(val: number) => {
+              if (val === 0) return ''
+              return val >= 1000
+                ? `${(val / 1000).toFixed(1)}k`
+                : val.toFixed(0)
+            }}
             className="fill-foreground font-bold"
             fontSize={12}
           />

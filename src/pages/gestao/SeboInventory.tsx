@@ -62,6 +62,10 @@ export default function SeboInventory() {
     [],
   )
 
+  // Derived dates for the chart view
+  const chartEndDate = date
+  const chartStartDate = subDays(date, 30)
+
   const createEmptyRecord = useCallback(
     (category: 'tank' | 'extra'): SeboInventoryRecord => ({
       factoryId: currentFactoryId,
@@ -129,11 +133,9 @@ export default function SeboInventory() {
     const loadHistory = async () => {
       setHistoryLoading(true)
       try {
-        const endDate = date
-        const startDate = subDays(date, 30)
         const history = await fetchSeboInventoryHistory(
-          startDate,
-          endDate,
+          chartStartDate,
+          chartEndDate,
           currentFactoryId,
         )
         setHistoryRecords(history)
@@ -145,7 +147,7 @@ export default function SeboInventory() {
     }
 
     loadHistory()
-  }, [date, currentFactoryId, user])
+  }, [chartStartDate, chartEndDate, currentFactoryId, user])
 
   // Handlers for Tank Inputs
   const handleTankChange = (
@@ -299,11 +301,9 @@ export default function SeboInventory() {
       await loadData()
 
       // Refresh history
-      const endDate = date
-      const startDate = subDays(date, 30)
       const history = await fetchSeboInventoryHistory(
-        startDate,
-        endDate,
+        chartStartDate,
+        chartEndDate,
         currentFactoryId,
       )
       setHistoryRecords(history)
@@ -402,7 +402,9 @@ export default function SeboInventory() {
         {/* Inventory Chart */}
         <SeboInventoryChart
           data={historyRecords}
-          className={historyLoading ? 'opacity-50' : ''}
+          startDate={chartStartDate}
+          endDate={chartEndDate}
+          className={historyLoading ? 'opacity-50 transition-opacity' : ''}
         />
 
         {/* Inventory Input Table */}
