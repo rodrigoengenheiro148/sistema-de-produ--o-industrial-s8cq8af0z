@@ -17,24 +17,24 @@ import {
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
 import { format, isSameDay } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Calendar as CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { calculateDailyMetrics } from '@/lib/process-calculations'
 
-export function HourlyProductionEfficiencyChart() {
+interface HourlyProductionEfficiencyChartProps {
+  date?: Date
+}
+
+export function HourlyProductionEfficiencyChart({
+  date,
+}: HourlyProductionEfficiencyChartProps) {
   const { production, cookingTimeRecords, downtimeRecords } = useData()
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [internalDate, setInternalDate] = useState<Date>(new Date())
   const [unit, setUnit] = useState<'kg' | 't'>('kg')
   const [now, setNow] = useState(new Date())
+
+  // Use prop date if available, otherwise internal state
+  const selectedDate = date || internalDate
 
   // Update 'now' every minute to keep the "Active until now" logic fresh for today
   useEffect(() => {
@@ -131,33 +131,7 @@ export function HourlyProductionEfficiencyChart() {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={'outline'}
-                className={cn(
-                  'w-[200px] justify-start text-left font-normal',
-                  !selectedDate && 'text-muted-foreground',
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? (
-                  format(selectedDate, 'PPP', { locale: ptBR })
-                ) : (
-                  <span>Selecione uma data</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(d)}
-                initialFocus
-                locale={ptBR}
-              />
-            </PopoverContent>
-          </Popover>
+          {/* Internal date picker removed to rely on parent state if provided, or default behavior */}
 
           <Tabs value={unit} onValueChange={(v) => setUnit(v as 'kg' | 't')}>
             <TabsList>

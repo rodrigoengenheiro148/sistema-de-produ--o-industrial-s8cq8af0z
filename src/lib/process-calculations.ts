@@ -3,10 +3,12 @@ import { CookingTimeRecord, DowntimeRecord, ProductionEntry } from '@/lib/types'
 
 export interface DailyMetrics {
   activeMinutesArray: Int8Array
+  rawActiveMinutes: number
   grossActiveMinutes: number
   netActiveMinutes: number
   netActiveHours: number
   totalConsumption: number
+  totalDowntimeMinutes: number
   rateKg: number
   rateTon: number
 }
@@ -50,6 +52,9 @@ export function calculateDailyMetrics(
     }
   })
 
+  // 1.5 Calculate Raw Active Minutes (Before Downtime)
+  const rawActiveMinutes = activeMinutesArray.reduce((a, b) => a + b, 0)
+
   // 2. Subtract Timestamped Downtime
   const dayDowntime = downtimeRecords.filter((r) => {
     if (r.startTime) {
@@ -59,6 +64,7 @@ export function calculateDailyMetrics(
   })
 
   let manualDowntimeMinutes = 0
+  let timestampedDowntimeMinutes = 0 // Approximate overlap count
 
   dayDowntime.forEach((record) => {
     if (record.startTime) {
@@ -75,7 +81,13 @@ export function calculateDailyMetrics(
       if (endMin < startMin) endMin = 24 * 60
 
       for (let i = startMin; i < endMin; i++) {
-        if (i >= 0 && i < 1440) activeMinutesArray[i] = 0
+        if (i >= 0 && i < 1440) {
+          if (activeMinutesArray[i] === 1) {
+            activeMinutesArray[i] = 0
+            // Only count as downtime deduction if it was active
+            timestampedDowntimeMinutes++
+          }
+        }
       }
     } else {
       // Manual downtime (durationHours)
@@ -84,7 +96,7 @@ export function calculateDailyMetrics(
   })
 
   // 3. Calculate Totals
-  // Gross minutes: Actual minutes marked as active in the array (excludes timestamped downtime)
+  // Gross minutes: Actual minutes marked as active in the array (after timestamped downtime removal)
   const grossActiveMinutes = activeMinutesArray.reduce((a, b) => a + b, 0)
 
   // Net minutes: Gross minus manual downtime (cannot be negative)
@@ -93,6 +105,9 @@ export function calculateDailyMetrics(
     grossActiveMinutes - manualDowntimeMinutes,
   )
   const netActiveHours = netActiveMinutes / 60
+
+  const totalDowntimeMinutes =
+    rawActiveMinutes - grossActiveMinutes + manualDowntimeMinutes
 
   const totalConsumption = productionRecords
     .filter((p) => isSameDay(p.date, date))
@@ -105,10 +120,12 @@ export function calculateDailyMetrics(
 
   return {
     activeMinutesArray,
+    rawActiveMinutes,
     grossActiveMinutes,
     netActiveMinutes,
     netActiveHours,
     totalConsumption, // kg
+    totalDowntimeMinutes,
     rateKg,
     rateTon,
   }
