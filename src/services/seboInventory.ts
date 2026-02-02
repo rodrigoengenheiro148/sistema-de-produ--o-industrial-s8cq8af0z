@@ -17,6 +17,7 @@ function generateUUID() {
 export const fetchSeboInventory = async (
   date: Date,
   factoryId: string,
+  userId: string,
 ): Promise<SeboInventoryRecord[]> => {
   const dateStr = format(date, 'yyyy-MM-dd')
 
@@ -24,6 +25,7 @@ export const fetchSeboInventory = async (
     .from('sebo_inventory_records')
     .select('*')
     .eq('factory_id', factoryId)
+    .eq('user_id', userId)
     .eq('date', dateStr)
     .order('created_at', { ascending: true })
 

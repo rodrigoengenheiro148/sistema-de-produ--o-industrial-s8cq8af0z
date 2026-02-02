@@ -81,7 +81,8 @@ export default function SeboInventory() {
 
     setLoading(true)
     try {
-      const data = await fetchSeboInventory(date, currentFactoryId)
+      // Pass user.id to filter by user as per requirements
+      const data = await fetchSeboInventory(date, currentFactoryId, user.id)
 
       const fetchedTanks = data.filter((r) => r.category === 'tank')
       const fetchedExtras = data.filter((r) => r.category === 'extra')
@@ -374,6 +375,7 @@ export default function SeboInventory() {
                 selected={date}
                 onSelect={(d) => d && setDate(d)}
                 initialFocus
+                locale={ptBR}
               />
             </PopoverContent>
           </Popover>
