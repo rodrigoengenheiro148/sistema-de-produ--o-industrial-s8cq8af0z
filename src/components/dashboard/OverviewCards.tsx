@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Database,
-  TrendingUp,
-  PieChart,
   DollarSign,
   Droplets,
   Bone,
   Wheat,
   Droplet,
+  FlaskConical,
+  Factory,
+  Activity,
+  Package,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -16,10 +18,10 @@ import {
   CookingTimeRecord,
   DowntimeRecord,
   NotificationSettings,
+  AcidityEntry,
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
-import { ProductivityCard } from './ProductivityCard'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -27,6 +29,7 @@ interface OverviewCardsProps {
   shipping: ShippingEntry[]
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
+  acidityRecords: AcidityEntry[]
   notificationSettings: NotificationSettings
 }
 
@@ -34,16 +37,23 @@ export function OverviewCards({
   rawMaterials,
   production,
   shipping,
-  notificationSettings,
+  acidityRecords,
 }: OverviewCardsProps) {
   const metrics = useMemo(() => {
-    // 1. Entrada MP (Total Raw Material)
-    const totalMpProcessed = production.reduce(
-      (acc, curr) => acc + curr.mpUsed,
-      0,
-    )
+    // Helper to normalize quantity to kg
+    const normalizeToKg = (quantity: number, unit?: string) => {
+      const u = unit?.toLowerCase() || ''
+      if (u.includes('bag')) return quantity * 1400
+      if (u.includes('ton')) return quantity * 1000
+      return quantity // assuming kg if not specified or liters for liquid (roughly 1:1 for simplicity in general view, but MP is usually mass)
+    }
 
-    // 2. Produção (Total Production)
+    // 1. Entrada MP (Excluding Sangue)
+    const rawMaterialInputKg = rawMaterials
+      .filter((r) => r.type?.toLowerCase() !== 'sangue')
+      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+
+    // 2. Produção (Total including Blood Meal)
     const seboProduced = production.reduce(
       (acc, curr) => acc + curr.seboProduced,
       0,
@@ -60,118 +70,107 @@ export function OverviewCards({
       (acc, curr) => acc + (curr.bloodMealProduced || 0),
       0,
     )
+    const totalProduction =
+      seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
 
-    // 3. Faturamento
+    // 3. Rendimento Geral
+    // Defined as: Total Production Output / Total Raw Material Used
+    // MP Used (from production table) corresponds to Main Line (Sebo/FCO/Farinheta)
+    const mpUsedMainLine = production.reduce(
+      (acc, curr) => acc + curr.mpUsed,
+      0,
+    )
+
+    // Blood Input (from Raw Materials) corresponds to Blood Line
+    const bloodInputKg = rawMaterials
+      .filter((r) => r.type?.toLowerCase() === 'sangue')
+      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+
+    const totalInput = mpUsedMainLine + bloodInputKg
+    const generalYield =
+      totalInput > 0 ? (totalProduction / totalInput) * 100 : 0
+
+    // 4. Faturamento
     const totalRevenue = shipping.reduce(
       (acc, curr) => acc + curr.quantity * curr.unitPrice,
       0,
     )
 
-    // 4. Yields (Rendimentos)
+    // 5. Vol. Acidez Analisado
+    const totalAcidityVolume = acidityRecords.reduce(
+      (acc, curr) => acc + (curr.volume || 0),
+      0,
+    )
+
+    // 6, 7, 8. Specific Yields
     const seboYield =
-      totalMpProcessed > 0 ? (seboProduced / totalMpProcessed) * 100 : 0
+      mpUsedMainLine > 0 ? (seboProduced / mpUsedMainLine) * 100 : 0
     const fcoYield =
-      totalMpProcessed > 0 ? (fcoProduced / totalMpProcessed) * 100 : 0
+      mpUsedMainLine > 0 ? (fcoProduced / mpUsedMainLine) * 100 : 0
     const farinhetaYield =
-      totalMpProcessed > 0 ? (farinhetaProduced / totalMpProcessed) * 100 : 0
+      mpUsedMainLine > 0 ? (farinhetaProduced / mpUsedMainLine) * 100 : 0
 
-    // General Yield (Excluding Blood for main line efficiency)
-    const generalYield =
-      totalMpProcessed > 0
-        ? ((seboProduced + fcoProduced + farinhetaProduced) /
-            totalMpProcessed) *
-          100
-        : 0
+    // 9. Total de entrada de sangue (Calculated above as bloodInputKg)
 
-    // 5. Blood Metrics
-    const bloodInputTotal = rawMaterials
-      .filter((r) => r.type?.toLowerCase() === 'sangue')
-      .reduce((acc, curr) => {
-        let qty = curr.quantity
-        const unit = curr.unit?.toLowerCase() || ''
+    // 10. Total farinha de sangue (Calculated above as bloodMealProduced)
 
-        if (unit.includes('bag')) {
-          qty = qty * 1400
-        } else if (unit.includes('ton')) {
-          qty = qty * 1000
-        }
-
-        return acc + qty
-      }, 0)
-
+    // 11. Rendimento sangue
     const bloodYield =
-      bloodInputTotal > 0 ? (bloodMealProduced / bloodInputTotal) * 100 : 0
+      bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
     return {
-      totalMpProcessed,
-      seboProduced,
-      fcoProduced,
-      farinhetaProduced,
-      bloodMealProduced,
+      rawMaterialInputKg,
+      totalProduction,
+      generalYield,
       totalRevenue,
+      totalAcidityVolume,
       seboYield,
       fcoYield,
       farinhetaYield,
-      generalYield,
-      bloodInputTotal,
+      bloodInputKg,
+      bloodMealProduced,
       bloodYield,
     }
-  }, [rawMaterials, production, shipping])
+  }, [rawMaterials, production, shipping, acidityRecords])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
+      maximumFractionDigits: 0,
     }).format(val)
   }
 
-  const formatNumber = (val: number) => {
-    return val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+  const formatNumber = (val: number, suffix = '') => {
+    return (
+      val.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) +
+      (suffix ? ` ${suffix}` : '')
+    )
   }
 
-  // Helper function to determine text color based on threshold
-  const getYieldColor = (
-    yieldValue: number,
-    threshold: number | undefined | null,
-  ) => {
-    if (threshold === null || threshold === undefined || threshold === 0) {
-      return 'text-foreground'
-    }
-    if (yieldValue >= threshold) {
-      return 'text-emerald-600'
-    }
-    return 'text-red-600'
+  const formatPercentage = (val: number) => {
+    return val.toFixed(2) + '%'
   }
 
-  // Resolve thresholds
-  const seboThreshold = notificationSettings.seboThreshold
-  const fcoThreshold =
-    notificationSettings.fcoThreshold ||
-    notificationSettings.farinhaThreshold ||
-    0
-  const farinhetaThreshold = notificationSettings.farinhetaThreshold
-
-  // Reusable Standardized Metric Card
+  // Reusable Card Component
   const MetricCard = ({
     title,
     value,
-    unit = '',
     icon: Icon,
-    borderColor,
-    iconColor,
-    subValue,
-    valueColor = 'text-foreground',
+    iconColor = 'text-muted-foreground',
+    borderColor = 'border-l-transparent',
+    textColor = 'text-foreground',
+    className,
   }: {
     title: string
-    value: string | number
-    unit?: string
+    value: string
     icon: any
-    borderColor: string
-    iconColor: string
-    subValue?: React.ReactNode
-    valueColor?: string
+    iconColor?: string
+    borderColor?: string
+    textColor?: string
+    className?: string
   }) => (
-    <Card className={cn('shadow-sm border-l-4', borderColor)}>
+    <Card className={cn('shadow-sm border-l-4', borderColor, className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
         <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           {title}
@@ -179,141 +178,113 @@ export function OverviewCards({
         <Icon className={cn('h-4 w-4', iconColor)} />
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className={cn('text-2xl font-bold', valueColor)}>
-          {value}{' '}
-          {unit && (
-            <span className="text-sm font-normal text-muted-foreground">
-              {unit}
-            </span>
-          )}
-        </div>
-        {subValue && <div className="mt-1">{subValue}</div>}
+        <div className={cn('text-2xl font-bold', textColor)}>{value}</div>
       </CardContent>
     </Card>
   )
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {/* 1. Raw Material Inputs */}
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* 1. Entrada MP */}
       <MetricCard
-        title="TOTAL MATÉRIA-PRIMA"
-        value={formatNumber(metrics.totalMpProcessed)}
-        unit="kg"
-        icon={Database}
-        borderColor="border-l-primary"
-        iconColor="text-primary"
-        subValue={
-          <span className="text-xs text-muted-foreground">
-            Baseado em MP Processada
-          </span>
-        }
-      />
-      <MetricCard
-        title="TOTAL ENTRADA DE SANGUE"
-        value={formatNumber(metrics.bloodInputTotal)}
-        unit="kg"
-        icon={Droplet}
-        borderColor="border-l-red-500"
-        iconColor="text-red-500"
+        title="Entrada MP"
+        value={formatNumber(metrics.rawMaterialInputKg, 'kg')}
+        icon={Package}
+        iconColor="text-orange-500"
+        borderColor="border-l-orange-500"
       />
 
-      {/* 2. Production Totals */}
+      {/* 2. Produção */}
       <MetricCard
-        title="TOTAL SEBO"
-        value={formatNumber(metrics.seboProduced)}
-        unit="kg"
-        icon={Droplets}
-        borderColor="border-l-emerald-500"
-        iconColor="text-emerald-500"
-      />
-      <MetricCard
-        title="TOTAL FCO"
-        value={formatNumber(metrics.fcoProduced)}
-        unit="kg"
-        icon={Bone}
-        borderColor="border-l-orange-500"
-        iconColor="text-orange-500"
-      />
-      <MetricCard
-        title="TOTAL FARINHETA"
-        value={formatNumber(metrics.farinhetaProduced)}
-        unit="kg"
-        icon={Wheat}
-        borderColor="border-l-orange-500"
-        iconColor="text-orange-500"
-      />
-      <MetricCard
-        title="TOTAL FARINHA DE SANGUE"
-        value={formatNumber(metrics.bloodMealProduced)}
-        unit="kg"
-        icon={Droplet}
-        borderColor="border-l-red-500"
-        iconColor="text-red-500"
+        title="Produção"
+        value={formatNumber(metrics.totalProduction, 'kg')}
+        icon={Factory}
+        iconColor="text-emerald-600"
+        borderColor="border-l-emerald-600"
       />
 
-      {/* 3. Performance Metrics */}
+      {/* 3. Rendimento Geral */}
       <MetricCard
-        title="FATURAMENTO ESTIMADO"
+        title="Rendimento Geral"
+        value={formatPercentage(metrics.generalYield)}
+        icon={Activity}
+        iconColor="text-emerald-600"
+        borderColor="border-l-emerald-600"
+      />
+
+      {/* 4. Faturamento */}
+      <MetricCard
+        title="Faturamento"
         value={formatCurrency(metrics.totalRevenue)}
         icon={DollarSign}
-        borderColor="border-l-emerald-500"
-        iconColor="text-emerald-500"
+        iconColor="text-emerald-600"
+        borderColor="border-l-emerald-600"
       />
 
-      <ProductivityCard />
-
-      {/* 4. Yield Metrics */}
+      {/* 5. Vol. Acidez Analisado */}
       <MetricCard
-        title="RENDIMENTO SEBO"
-        value={metrics.seboYield.toFixed(2)}
-        unit="%"
+        title="Vol. Acidez Analisado"
+        value={formatNumber(metrics.totalAcidityVolume, 'L')}
+        icon={FlaskConical}
+        iconColor="text-blue-500"
+        borderColor="border-l-blue-500"
+      />
+
+      {/* 6. Rendimento Sebo */}
+      <MetricCard
+        title="Rendimento Sebo"
+        value={formatPercentage(metrics.seboYield)}
         icon={Droplets}
-        borderColor="border-l-emerald-500"
-        iconColor="text-emerald-500"
-        valueColor={getYieldColor(metrics.seboYield, seboThreshold)}
-      />
-      <MetricCard
-        title="RENDIMENTO FCO"
-        value={metrics.fcoYield.toFixed(2)}
-        unit="%"
-        icon={Bone}
-        borderColor="border-l-orange-500"
-        iconColor="text-orange-500"
-        valueColor={getYieldColor(metrics.fcoYield, fcoThreshold)}
-      />
-      <MetricCard
-        title="RENDIMENTO FARINHETA"
-        value={metrics.farinhetaYield.toFixed(2)}
-        unit="%"
-        icon={Wheat}
-        borderColor="border-l-orange-500"
-        iconColor="text-orange-500"
-        valueColor={getYieldColor(metrics.farinhetaYield, farinhetaThreshold)}
-      />
-      <MetricCard
-        title="TOTAL REND. SANGUE"
-        value={metrics.bloodYield.toFixed(2)}
-        unit="%"
-        icon={Droplet}
-        borderColor="border-l-red-600"
-        iconColor="text-red-600"
-        valueColor={
-          metrics.bloodYield > 0 ? 'text-foreground' : 'text-muted-foreground'
-        }
+        iconColor="text-emerald-600"
+        borderColor="border-l-emerald-600"
+        textColor="text-emerald-600"
       />
 
+      {/* 7. Rendimento FCO */}
       <MetricCard
-        title="RENDIMENTO GERAL"
-        value={metrics.generalYield.toFixed(2)}
-        unit="%"
-        icon={PieChart}
-        borderColor="border-l-teal-600"
-        iconColor="text-teal-600"
-        subValue={
-          <span className="text-xs text-muted-foreground">
-            Média Global (Exceto Sangue)
-          </span>
-        }
+        title="Rendimento FCO"
+        value={formatPercentage(metrics.fcoYield)}
+        icon={Bone}
+        iconColor="text-orange-500"
+        borderColor="border-l-orange-500"
+        textColor="text-emerald-600"
+      />
+
+      {/* 8. Rendimento Farinheta */}
+      <MetricCard
+        title="Rendimento Farinheta"
+        value={formatPercentage(metrics.farinhetaYield)}
+        icon={Wheat}
+        iconColor="text-emerald-600"
+        borderColor="border-l-emerald-600"
+        textColor="text-red-600" // As shown in image for lower percentages sometimes, or keep consistent
+      />
+
+      {/* 9. Total de entrada de sangue */}
+      <MetricCard
+        title="Total de entrada de sangue"
+        value={formatNumber(metrics.bloodInputKg, 'kg')}
+        icon={Droplet}
+        iconColor="text-red-600"
+        borderColor="border-l-red-600"
+      />
+
+      {/* 10. Total farinha de sangue */}
+      <MetricCard
+        title="Total farinha de sangue"
+        value={formatNumber(metrics.bloodMealProduced, 'kg')}
+        icon={Database} // Using generic db icon or can reuse Droplet
+        iconColor="text-red-600"
+        borderColor="border-l-red-600"
+      />
+
+      {/* 11. Rendimento sangue */}
+      <MetricCard
+        title="Rendimento sangue"
+        value={formatPercentage(metrics.bloodYield)}
+        icon={Activity}
+        iconColor="text-red-600"
+        borderColor="border-l-red-600"
       />
     </div>
   )

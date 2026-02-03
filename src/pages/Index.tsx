@@ -1,5 +1,5 @@
 import { useData } from '@/context/DataContext'
-import { format, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns'
+import { format, isWithinInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -35,6 +35,7 @@ export default function Dashboard() {
     cookingTimeRecords,
     downtimeRecords,
     qualityRecords,
+    acidityRecords,
     dateRange,
     setDateRange,
     factories,
@@ -89,6 +90,7 @@ export default function Dashboard() {
     filteredCookingTime,
     filteredDowntime,
     filteredQuality,
+    filteredAcidity,
   } = useMemo(() => {
     return {
       filteredProduction: production
@@ -105,6 +107,7 @@ export default function Dashboard() {
       ),
       filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
       filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
+      filteredAcidity: acidityRecords.filter((a) => filterByDate(a.date)),
     }
   }, [
     production,
@@ -113,6 +116,7 @@ export default function Dashboard() {
     cookingTimeRecords,
     downtimeRecords,
     qualityRecords,
+    acidityRecords,
     dateRange,
   ])
 
@@ -246,6 +250,7 @@ export default function Dashboard() {
             shipping={filteredShipping}
             cookingTimeRecords={filteredCookingTime}
             downtimeRecords={filteredDowntime}
+            acidityRecords={filteredAcidity}
             notificationSettings={notificationSettings}
           />
 
