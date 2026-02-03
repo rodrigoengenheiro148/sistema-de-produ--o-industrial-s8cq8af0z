@@ -10,6 +10,7 @@ import {
   Factory,
   Activity,
   Package,
+  Clock,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -37,6 +38,7 @@ export function OverviewCards({
   rawMaterials,
   production,
   shipping,
+  cookingTimeRecords,
   acidityRecords,
 }: OverviewCardsProps) {
   const metrics = useMemo(() => {
@@ -118,6 +120,34 @@ export function OverviewCards({
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
+    // 12. Tempo de Processos
+    const totalProcessMinutes = cookingTimeRecords.reduce((acc, curr) => {
+      if (!curr.startTime || !curr.endTime) return acc
+
+      const toMinutes = (timeStr: string) => {
+        const parts = timeStr.split(':')
+        if (parts.length < 2) return 0
+        return parseInt(parts[0]) * 60 + parseInt(parts[1])
+      }
+
+      // Check if it's a string (expected)
+      if (
+        typeof curr.startTime === 'string' &&
+        typeof curr.endTime === 'string'
+      ) {
+        const start = toMinutes(curr.startTime)
+        const end = toMinutes(curr.endTime)
+        let diff = end - start
+        if (diff < 0) diff += 24 * 60 // Overnight assumption
+        return acc + diff
+      }
+      return acc
+    }, 0)
+
+    const processTimeHours = Math.floor(totalProcessMinutes / 60)
+    const processTimeMinutes = Math.round(totalProcessMinutes % 60)
+    const processTimeDisplay = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
+
     return {
       rawMaterialInputKg,
       totalProduction,
@@ -130,8 +160,9 @@ export function OverviewCards({
       bloodInputKg,
       bloodMealProduced,
       bloodYield,
+      processTimeDisplay,
     }
-  }, [rawMaterials, production, shipping, acidityRecords])
+  }, [rawMaterials, production, shipping, acidityRecords, cookingTimeRecords])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -201,6 +232,15 @@ export function OverviewCards({
         icon={Factory}
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
+      />
+
+      {/* 12. Tempo de Processos (New) */}
+      <MetricCard
+        title="Tempo de Processos"
+        value={metrics.processTimeDisplay}
+        icon={Clock}
+        iconColor="text-blue-500"
+        borderColor="border-l-blue-500"
       />
 
       {/* 3. Rendimento Geral */}
