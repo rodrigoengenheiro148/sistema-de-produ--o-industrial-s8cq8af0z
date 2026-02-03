@@ -109,6 +109,7 @@ const ChartTooltipContent = React.forwardRef<
       payload: any[]
       hideLabel?: boolean
       hideIndicator?: boolean
+      hideZero?: boolean
       label?: string
       indicator?: 'line' | 'dot' | 'dashed'
       nameKey?: string
@@ -123,6 +124,7 @@ const ChartTooltipContent = React.forwardRef<
       indicator = 'dot',
       hideLabel = false,
       hideIndicator = false,
+      hideZero = false,
       label,
       labelFormatter,
       labelClassName,
@@ -171,11 +173,16 @@ const ChartTooltipContent = React.forwardRef<
       labelKey,
     ])
 
-    if (!active || !payload?.length) {
+    const filteredPayload = React.useMemo(() => {
+      if (!hideZero || !payload?.length) return payload
+      return payload.filter((item) => item.value !== 0 && item.value !== '0')
+    }, [payload, hideZero])
+
+    if (!active || !filteredPayload?.length) {
       return null
     }
 
-    const nestLabel = payload.length === 1 && indicator !== 'dot'
+    const nestLabel = filteredPayload.length === 1 && indicator !== 'dot'
 
     return (
       <div
@@ -187,7 +194,7 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {filteredPayload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || 'value'}`
             const itemConfig = getPayloadConfigFromPayload(config, item, key)
             const indicatorColor = color || item.payload.fill || item.color
@@ -283,7 +290,7 @@ const ChartLegendContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          'flex items-center justify-center gap-4',
+          'flex items-center justify-center gap-4 flex-wrap',
           verticalAlign === 'top' ? 'pb-3' : 'pt-3',
           className,
         )}

@@ -155,6 +155,18 @@ export function RawMaterialCompositionChart({
     )
   }, [filteredData])
 
+  // Determine which categories have data > 0 to filter the legend/bars
+  const activeCategories = useMemo(() => {
+    const active = new Set<string>()
+    chartData.forEach((entry) => {
+      CATEGORIES.forEach((cat) => {
+        if (entry[cat] > 0) active.add(cat)
+      })
+    })
+    // Maintain the original order for consistency in colors/stacking
+    return CATEGORIES.filter((cat) => active.has(cat))
+  }, [chartData])
+
   // Build ChartConfig
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {}
@@ -215,6 +227,7 @@ export function RawMaterialCompositionChart({
           cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
           content={
             <ChartTooltipContent
+              hideZero
               labelFormatter={(value, payload) => {
                 return payload[0]?.payload?.fullDateLabel || value
               }}
@@ -235,7 +248,7 @@ export function RawMaterialCompositionChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {CATEGORIES.map((category) => (
+        {activeCategories.map((category) => (
           <Bar
             key={category}
             dataKey={category}
