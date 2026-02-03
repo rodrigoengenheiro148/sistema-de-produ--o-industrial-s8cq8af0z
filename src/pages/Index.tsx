@@ -284,6 +284,7 @@ export default function Dashboard() {
             <RevenueChart
               data={filteredShipping}
               productionData={filteredProduction}
+              rawMaterials={filteredRawMaterials}
               isMobile={isMobile}
               timeScale="daily"
             />

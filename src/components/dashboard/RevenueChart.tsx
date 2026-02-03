@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ShippingEntry, ProductionEntry } from '@/lib/types'
+import { ShippingEntry, ProductionEntry, RawMaterialEntry } from '@/lib/types'
 import {
   Card,
   CardContent,
@@ -26,7 +26,7 @@ import {
   ReferenceLine,
   LabelList,
 } from 'recharts'
-import { format } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
@@ -63,6 +63,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 interface RevenueChartProps {
   data: ShippingEntry[]
   productionData?: ProductionEntry[]
+  rawMaterials?: RawMaterialEntry[]
   timeScale?: 'daily' | 'monthly'
   isMobile?: boolean
   className?: string
@@ -81,19 +82,23 @@ interface RevenueChartProps {
 const PRODUCT_COLORS: Record<string, string> = {
   Sebo: 'hsl(var(--chart-1))',
   FCO: 'hsl(var(--chart-2))',
+  'Farinha Especial': 'hsl(var(--chart-5))',
   Farinha: 'hsl(var(--chart-2))',
   Farinheta: 'hsl(var(--chart-3))',
   'Matéria-Prima': 'hsl(var(--chart-4))',
 }
 
+const DEFAULT_FILTERS = ['Sebo', 'FCO', 'Farinheta', 'Farinha Especial']
+
 export function RevenueChart({
   data,
   productionData = [],
+  rawMaterials = [],
   timeScale = 'daily',
   isMobile = false,
   className,
   forecastMetrics,
-  activeFilter = ['Sebo', 'FCO', 'Farinheta'],
+  activeFilter = DEFAULT_FILTERS,
   onFilterChange,
   clientFilter = [],
   onClientFilterChange,
@@ -102,11 +107,7 @@ export function RevenueChart({
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
 
   // Local state for filter if not controlled
-  const [localFilter, setLocalFilter] = useState<string[]>([
-    'Sebo',
-    'FCO',
-    'Farinheta',
-  ])
+  const [localFilter, setLocalFilter] = useState<string[]>(DEFAULT_FILTERS)
   const currentFilter = onFilterChange ? activeFilter : localFilter
 
   const handleFilterChange = (val: string) => {
@@ -129,6 +130,13 @@ export function RevenueChart({
     onClientFilterChange(newFilter)
   }
 
+  const normalizeToKg = (quantity: number, unit?: string) => {
+    const u = unit?.toLowerCase() || ''
+    if (u.includes('bag')) return quantity * 1400
+    if (u.includes('ton')) return quantity * 1000
+    return quantity
+  }
+
   const {
     chartData,
     chartConfig,
@@ -139,8 +147,7 @@ export function RevenueChart({
     totalForecast,
     calculatedForecastTotal,
   } = useMemo(() => {
-    // 1. Calculate Average Unit Prices from Shipping Data (to apply to Production)
-    // We calculate this BEFORE filtering to ensure prices are stable
+    // 1. Calculate Average Unit Prices from Shipping Data
     const prices: Record<string, number> = {}
     const counts: Record<string, number> = {}
 
@@ -159,17 +166,34 @@ export function RevenueChart({
       avgPrices[p] = counts[p] > 0 ? prices[p] / counts[p] : 0
     })
 
+    // 2. Calculate Historical Yields from Production Data
+    let totalMp = 0
+    let totalSebo = 0
+    let totalFco = 0
+    let totalFarinheta = 0
+
+    productionData.forEach((p) => {
+      totalMp += p.mpUsed
+      totalSebo += p.seboProduced
+      totalFco += p.fcoProduced
+      totalFarinheta += p.farinhetaProduced
+    })
+
+    const yields: Record<string, number> = {
+      Sebo: totalMp > 0 ? totalSebo / totalMp : 0.15,
+      FCO: totalMp > 0 ? totalFco / totalMp : 0.2,
+      Farinheta: totalMp > 0 ? totalFarinheta / totalMp : 0.05,
+      'Farinha Especial': 0.1, // Default as per requirements (no tracking col yet)
+    }
+
     const uniqueKeys = new Set<string>()
     const dateMap = new Map<string, any>()
     let globalTotal = 0
     let globalForecast = 0
 
-    // 2. Process Shipping Data (Actual Revenue) - Apply Filter
-    // Note: 'data' is already filtered by Client in the parent if clientFilter is active
+    // 3. Process Shipping Data (Realized Revenue)
     data.forEach((s) => {
       if (!s.date) return
-      // Filter Logic:
-      // If filtering by product, strictly check product name
       if (!currentFilter.includes(s.product)) return
 
       let dateKey: string
@@ -197,6 +221,7 @@ export function RevenueChart({
           dateKey,
           displayDate,
           fullDate,
+          originalDate: s.date,
           totalRevenue: 0,
           forecastRevenue: 0,
         })
@@ -207,49 +232,70 @@ export function RevenueChart({
       entry.totalRevenue += revenue
     })
 
-    // 3. Process Production Data (Forecast Revenue) - Apply Filter
-    // Production Data is Global (not filtered by client), as per requirement
-    productionData.forEach((p) => {
-      if (!p.date) return
+    // 4. Process Raw Materials for Forecast (Projected Revenue)
+    // We iterate through all raw materials to ensure we have forecast even for days without sales
+    const rawMaterialDates = new Set<string>()
+    rawMaterials.forEach((r) => {
+      if (!r.date) return
+      // Exclude Blood from main line projection
+      if (r.type?.toLowerCase() === 'sangue') return
 
       let dateKey: string
-      let displayDate: string
-      let fullDate: string
-
       if (timeScale === 'monthly') {
-        dateKey = format(p.date, 'yyyy-MM')
-        displayDate = format(p.date, 'MMM', { locale: ptBR })
-        fullDate = format(p.date, 'MMMM yyyy', { locale: ptBR })
+        dateKey = format(r.date, 'yyyy-MM')
       } else {
-        dateKey = format(p.date, 'yyyy-MM-dd')
-        displayDate = format(p.date, 'dd/MM')
-        fullDate = format(p.date, "dd 'de' MMMM", { locale: ptBR })
+        dateKey = format(r.date, 'yyyy-MM-dd')
       }
+      rawMaterialDates.add(dateKey)
 
       if (!dateMap.has(dateKey)) {
+        let displayDate: string
+        let fullDate: string
+        if (timeScale === 'monthly') {
+          displayDate = format(r.date, 'MMM', { locale: ptBR })
+          fullDate = format(r.date, 'MMMM yyyy', { locale: ptBR })
+        } else {
+          displayDate = format(r.date, 'dd/MM')
+          fullDate = format(r.date, "dd 'de' MMMM", { locale: ptBR })
+        }
+
         dateMap.set(dateKey, {
           dateKey,
           displayDate,
           fullDate,
+          originalDate: r.date,
           totalRevenue: 0,
           forecastRevenue: 0,
         })
       }
 
       const entry = dateMap.get(dateKey)
+      const quantityKg = normalizeToKg(r.quantity, r.unit)
 
       // Calculate potential value based strictly on filtered products
-      const seboValue = currentFilter.includes('Sebo')
-        ? p.seboProduced * (avgPrices['Sebo'] || 0)
-        : 0
-      const fcoValue = currentFilter.includes('FCO')
-        ? p.fcoProduced * (avgPrices['FCO'] || avgPrices['Farinha'] || 0)
-        : 0
-      const farinhetaValue = currentFilter.includes('Farinheta')
-        ? p.farinhetaProduced * (avgPrices['Farinheta'] || 0)
-        : 0
+      // Formula: MP * Yield * AvgPrice
+      let dailyForecast = 0
 
-      const dailyForecast = seboValue + fcoValue + farinhetaValue
+      if (currentFilter.includes('Sebo')) {
+        dailyForecast += quantityKg * yields['Sebo'] * (avgPrices['Sebo'] || 0)
+      }
+      if (currentFilter.includes('FCO')) {
+        dailyForecast +=
+          quantityKg *
+          yields['FCO'] *
+          (avgPrices['FCO'] || avgPrices['Farinha'] || 0)
+      }
+      if (currentFilter.includes('Farinheta')) {
+        dailyForecast +=
+          quantityKg * yields['Farinheta'] * (avgPrices['Farinheta'] || 0)
+      }
+      if (currentFilter.includes('Farinha Especial')) {
+        dailyForecast +=
+          quantityKg *
+          yields['Farinha Especial'] *
+          (avgPrices['Farinha Especial'] || 0)
+      }
+
       entry.forecastRevenue += dailyForecast
       globalForecast += dailyForecast
     })
@@ -294,7 +340,6 @@ export function RevenueChart({
       }
     })
 
-    // Fallback config if no keys but we want to show something (e.g. just forecast)
     if (sortedKeys.length === 0) {
       config['empty'] = { label: 'Sem dados', color: 'transparent' }
     }
@@ -310,7 +355,7 @@ export function RevenueChart({
       totalForecast: globalForecast,
       calculatedForecastTotal: globalForecast,
     }
-  }, [data, productionData, groupBy, timeScale, currentFilter])
+  }, [data, productionData, rawMaterials, groupBy, timeScale, currentFilter])
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -513,7 +558,7 @@ export function RevenueChart({
                 <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
                   <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="hidden xs:inline text-xs">Materiais</span>
-                  {currentFilter.length < 3 && (
+                  {currentFilter.length < 4 && (
                     <Badge variant="secondary" className="h-5 px-1 text-[10px]">
                       {currentFilter.length}
                     </Badge>
@@ -540,6 +585,12 @@ export function RevenueChart({
                   onCheckedChange={() => handleFilterChange('Farinheta')}
                 >
                   Farinheta
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={currentFilter.includes('Farinha Especial')}
+                  onCheckedChange={() => handleFilterChange('Farinha Especial')}
+                >
+                  Farinha Especial
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -639,7 +690,7 @@ export function RevenueChart({
                 )}
               </div>
               <span className="text-[10px] text-muted-foreground mt-1">
-                Inclui faturamento realizado + estoque excedente (Filtro:{' '}
+                Baseado em MP + Rendimentos (Filtro:{' '}
                 {currentFilter.join(', ') || 'Nenhum'}
                 {clientFilter.length > 0
                   ? ` | Clientes: ${clientFilter.length}`
