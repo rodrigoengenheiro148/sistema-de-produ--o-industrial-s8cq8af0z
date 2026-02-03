@@ -113,6 +113,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const { user } = useAuth()
   const operationalChannelRef = useRef<RealtimeChannel | null>(null)
+  const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [currentFactoryId, setCurrentFactoryId] = useState<string>(() => {
     return localStorage.getItem('currentFactoryId') || ''
@@ -345,14 +346,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
+  // Debounced fetch handler for realtime updates
+  const handleRealtimeUpdate = useCallback(() => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+    }
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log('Refreshing operational data from realtime update...')
+      fetchOperationalData()
+    }, 1500) // Debounce for 1.5 seconds to batch multiple rapid updates
+  }, [fetchOperationalData])
+
   // Realtime Subscription Setup
   useEffect(() => {
-    // Cleanup previous channel immediately
-    if (operationalChannelRef.current) {
-      supabase.removeChannel(operationalChannelRef.current)
-      operationalChannelRef.current = null
-    }
-
     if (!user?.id || !currentFactoryId) return
 
     // Strict validation of UUID for Factory ID to prevent subscription errors
@@ -364,7 +370,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const normalizedFactoryId = currentFactoryId.toLowerCase()
-    const channelName = `operational-data-${normalizedFactoryId}`
+    // Append a timestamp to ensure channel uniqueness on re-subscription and avoid race conditions
+    const channelName = `operational-data-${normalizedFactoryId}-${Date.now()}`
     const channel = supabase.channel(channelName)
 
     const tables = [
@@ -387,12 +394,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           table: table,
           filter: `factory_id=eq.${normalizedFactoryId}`,
         },
-        () => fetchOperationalData(),
+        () => handleRealtimeUpdate(),
       )
     })
 
     channel.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
+        console.log(`Subscribed to realtime channel: ${channelName}`)
         setConnectionStatus('online')
       } else if (status === 'CHANNEL_ERROR') {
         const errorMessage =
@@ -404,21 +412,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
+        // Optionally allow a retry or just log it. We don't set 'error' status immediately
+        // to avoid locking the UI, but we log it.
       } else if (status === 'TIMED_OUT') {
-        console.error(`Realtime subscription timed out on ${channelName}`)
-        setConnectionStatus('error')
+        console.warn(`Realtime subscription timed out on ${channelName}`)
+        // We can try to reconnect or just let it be, often it reconnects automatically
       }
     })
 
     operationalChannelRef.current = channel
 
     return () => {
+      // Cleanup: unsubscribe from the channel
       if (operationalChannelRef.current) {
         supabase.removeChannel(operationalChannelRef.current)
         operationalChannelRef.current = null
       }
+      // Clear any pending debounce timeout
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
+        refreshTimeoutRef.current = null
+      }
     }
-  }, [user?.id, currentFactoryId, fetchOperationalData])
+  }, [user?.id, currentFactoryId, handleRealtimeUpdate])
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
