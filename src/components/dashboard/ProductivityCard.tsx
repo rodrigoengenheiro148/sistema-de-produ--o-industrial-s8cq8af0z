@@ -121,13 +121,28 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
     ? 'bg-destructive-foreground/20 text-destructive-foreground'
     : 'bg-muted/30 text-muted-foreground'
 
+  // Standard border color for productivity (Activity/Blue) if not stopped
+  const borderClass = metrics.isStopped
+    ? 'border-l-destructive'
+    : 'border-l-blue-500'
+
   return (
     <Card
-      className={cn(className, cardBgClass, 'transition-colors duration-500')}
+      className={cn(
+        'shadow-sm border-l-4 transition-colors duration-500',
+        borderClass,
+        className,
+        cardBgClass,
+      )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className={cn('text-sm font-medium', titleClass)}>
-          {metrics.isStopped ? 'Máquina parada' : 'Produtividade'}
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+        <CardTitle
+          className={cn(
+            'text-xs font-bold uppercase tracking-wider',
+            titleClass,
+          )}
+        >
+          {metrics.isStopped ? 'MÁQUINA PARADA' : 'PRODUTIVIDADE'}
         </CardTitle>
         {metrics.isStopped ? (
           <AlertOctagon className={cn('h-4 w-4 animate-pulse', iconClass)} />
@@ -135,7 +150,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
           <Activity className={cn('h-4 w-4', iconClass)} />
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         <div className="text-2xl font-bold flex items-baseline gap-1">
           {metrics.rateVal.toFixed(2)}{' '}
           <span className={cn('text-sm font-medium', subTextClass)}>
