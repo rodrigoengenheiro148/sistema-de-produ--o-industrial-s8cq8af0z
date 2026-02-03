@@ -11,6 +11,9 @@ import {
   Activity,
   Package,
   Clock,
+  Gauge,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -23,6 +26,7 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
+import { subDays, isSameDay, startOfDay } from 'date-fns'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -32,6 +36,7 @@ interface OverviewCardsProps {
   downtimeRecords: DowntimeRecord[]
   acidityRecords: AcidityEntry[]
   notificationSettings: NotificationSettings
+  fullProductionHistory?: ProductionEntry[]
 }
 
 export function OverviewCards({
@@ -40,6 +45,7 @@ export function OverviewCards({
   shipping,
   cookingTimeRecords,
   acidityRecords,
+  fullProductionHistory = [],
 }: OverviewCardsProps) {
   const metrics = useMemo(() => {
     // Helper to normalize quantity to kg
@@ -120,7 +126,7 @@ export function OverviewCards({
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
-    // 12. Tempo de Processos
+    // 12. Tempo de Processos & Production Efficiency
     const totalProcessMinutes = cookingTimeRecords.reduce((acc, curr) => {
       if (!curr.startTime || !curr.endTime) return acc
 
@@ -148,6 +154,47 @@ export function OverviewCards({
     const processTimeMinutes = Math.round(totalProcessMinutes % 60)
     const processTimeDisplay = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
 
+    // New Efficiency Calculation: Tons / Hour
+    // Formula: Total Production of (Day - 1) / Total Cooking Time of (Day)
+    // Target: 14.125 Ton/h
+
+    // 1. Identify unique days in current cookingTimeRecords (the "Current Days")
+    const uniqueCookingDays = Array.from(
+      new Set(
+        cookingTimeRecords.map((r) => startOfDay(r.date).getTime()),
+      ),
+    ).map((t) => new Date(t))
+
+    // 2. Sum Production for (Day - 1) for each unique day
+    let totalShiftedProductionKg = 0
+
+    uniqueCookingDays.forEach((currentDay) => {
+      const previousDay = subDays(currentDay, 1)
+
+      // Find all production records for previousDay in full history
+      const prevDayProduction = fullProductionHistory.filter((p) =>
+        isSameDay(p.date, previousDay),
+      )
+
+      const dailyProd = prevDayProduction.reduce(
+        (acc, p) =>
+          acc +
+          p.seboProduced +
+          p.fcoProduced +
+          p.farinhetaProduced +
+          (p.bloodMealProduced || 0),
+        0,
+      ,
+      )
+      totalShiftedProductionKg += dailyProd
+    })
+
+    const totalCookingHoursDecimal = totalProcessMinutes / 60
+    const productionRateTonPerHour =
+      totalCookingHoursDecimal > 0
+        ? totalShiftedProductionKg / 1000 / totalCookingHoursDecimal
+        : 0
+
     return {
       rawMaterialInputKg,
       totalProduction,
@@ -161,8 +208,16 @@ export function OverviewCards({
       bloodMealProduced,
       bloodYield,
       processTimeDisplay,
+      productionRateTonPerHour,
     }
-  }, [rawMaterials, production, shipping, acidityRecords, cookingTimeRecords])
+  }, [
+    rawMaterials,
+    production,
+    shipping,
+    acidityRecords,
+    cookingTimeRecords,
+    fullProductionHistory,
+  ])
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -183,6 +238,8 @@ export function OverviewCards({
     return val.toFixed(2) + '%'
   }
 
+  const TARGET_RATE = 14.125
+
   // Reusable Card Component
   const MetricCard = ({
     title,
@@ -192,6 +249,7 @@ export function OverviewCards({
     borderColor = 'border-l-transparent',
     textColor = 'text-foreground',
     className,
+    children,
   }: {
     title: string
     value: string
@@ -200,6 +258,7 @@ export function OverviewCards({
     borderColor?: string
     textColor?: string
     className?: string
+    children?: React.ReactNode
   }) => (
     <Card className={cn('shadow-sm border-l-4', borderColor, className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
@@ -210,6 +269,7 @@ export function OverviewCards({
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <div className={cn('text-2xl font-bold', textColor)}>{value}</div>
+        {children}
       </CardContent>
     </Card>
   )
@@ -234,14 +294,48 @@ export function OverviewCards({
         borderColor="border-l-emerald-600"
       />
 
-      {/* 12. Tempo de Processos (New) */}
+      {/* 12. Tempo de Processos (Enhanced) */}
       <MetricCard
         title="Tempo de Processos"
         value={metrics.processTimeDisplay}
         icon={Clock}
         iconColor="text-blue-500"
         borderColor="border-l-blue-500"
-      />
+      >
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+                Eficiência (D-1)
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-lg font-bold">
+                  {metrics.productionRateTonPerHour.toFixed(2)}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    t/h
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+                Meta
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {TARGET_RATE}
+                </span>
+                {metrics.productionRateTonPerHour >= TARGET_RATE ? (
+                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 text-red-500" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </MetricCard>
 
       {/* 3. Rendimento Geral */}
       <MetricCard
@@ -297,7 +391,7 @@ export function OverviewCards({
         icon={Wheat}
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
-        textColor="text-red-600" // As shown in image for lower percentages sometimes, or keep consistent
+        textColor="text-red-600"
       />
 
       {/* 9. Total de entrada de sangue */}
@@ -313,7 +407,7 @@ export function OverviewCards({
       <MetricCard
         title="Total farinha de sangue"
         value={formatNumber(metrics.bloodMealProduced, 'kg')}
-        icon={Database} // Using generic db icon or can reuse Droplet
+        icon={Database}
         iconColor="text-red-600"
         borderColor="border-l-red-600"
       />

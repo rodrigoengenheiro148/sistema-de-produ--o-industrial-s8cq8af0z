@@ -252,6 +252,7 @@ export default function Dashboard() {
             downtimeRecords={filteredDowntime}
             acidityRecords={filteredAcidity}
             notificationSettings={notificationSettings}
+            fullProductionHistory={production}
           />
 
           <LoadForecast referenceDate={effectiveForecastDate} />
