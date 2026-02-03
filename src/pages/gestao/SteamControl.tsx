@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,11 +11,37 @@ import { Plus, Flame, Info } from 'lucide-react'
 import { SteamControlForm } from '@/components/steam/SteamControlForm'
 import { SteamControlTable } from '@/components/steam/SteamControlTable'
 import { SteamCharts } from '@/components/steam/SteamCharts'
+import { StatCard } from '@/components/dashboard/StatCard'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useData } from '@/context/DataContext'
+import { differenceInDays, subDays } from 'date-fns'
 
 export default function SteamControl() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const isMobile = useIsMobile()
+  const { steamRecords, dateRange } = useData()
+
+  // Calculate wood chips stats
+  const woodChipsStats = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) {
+      return { current: 0, previous: 0 }
+    }
+
+    const currentTotal = steamRecords
+      .filter((r) => r.date >= dateRange.from! && r.date <= dateRange.to!)
+      .reduce((sum, r) => sum + (r.woodChips || 0), 0)
+
+    // Calculate previous period
+    const days = differenceInDays(dateRange.to, dateRange.from) + 1
+    const prevTo = subDays(dateRange.from, 1)
+    const prevFrom = subDays(prevTo, days - 1)
+
+    const prevTotal = steamRecords
+      .filter((r) => r.date >= prevFrom && r.date <= prevTo)
+      .reduce((sum, r) => sum + (r.woodChips || 0), 0)
+
+    return { current: currentTotal, previous: prevTotal }
+  }, [steamRecords, dateRange])
 
   return (
     <div className="space-y-6">
@@ -55,6 +81,16 @@ export default function SteamControl() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="MPS M³ CAVACO"
+          value={woodChipsStats.current}
+          prevValue={woodChipsStats.previous}
+          icon={Flame}
+          details="Total de cavaco utilizado no período"
+        />
       </div>
 
       <SteamCharts />

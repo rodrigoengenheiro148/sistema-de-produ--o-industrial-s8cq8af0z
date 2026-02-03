@@ -120,8 +120,8 @@ export function SteamControlTable() {
       // 1. MPs VS VAPOR: (Total MP / Steam Consumption)
       const mpVsVapor = steamConsumption > 0 ? mpEntry / steamConsumption : 0
 
-      // 2. MPs m³ CAVACO: (Total MP / wood_chips)
-      const mpVsCavaco = woodChips > 0 ? mpEntry / woodChips : 0
+      // 2. MPs m³ CAVACO: NOW DISPLAYING RAW WOOD CHIPS VALUE
+      const mpVsCavaco = woodChips
 
       // 3. TONELADAS VAPOR VS MPs: (Steam Consumption / Total MP)
       // Multiplied by 1000 to convert MP kg to Tons (Steam is Tons, MP is Kg)
@@ -184,7 +184,7 @@ export function SteamControlTable() {
       mpVsVapor: sums.steamConsumption
         ? sums.mpEntry / sums.steamConsumption
         : 0,
-      mpVsCavaco: sums.woodChips ? sums.mpEntry / sums.woodChips : 0,
+      mpVsCavaco: sums.woodChips, // Total Wood Chips
       vaporVsMp: sums.mpEntry
         ? (sums.steamConsumption / sums.mpEntry) * 1000
         : 0,
@@ -207,6 +207,15 @@ export function SteamControlTable() {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })
+
+  // Specific formatter for columns that should show '-' on zero
+  const formatValueOrDash = (num: number | undefined | null) => {
+    if (!num || num === 0) return '-'
+    return num.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+  }
 
   return (
     <div className="space-y-4">
@@ -261,7 +270,7 @@ export function SteamControlTable() {
               </TableHead>
               <TableHead
                 className="font-bold text-green-900 dark:text-green-100 text-right text-xs"
-                title="Total MP / Cavaco"
+                title="Quantidade de Cavaco"
               >
                 MPs m³ CAVACO
               </TableHead>
@@ -340,7 +349,7 @@ export function SteamControlTable() {
                       {formatRatio(row.mpVsVapor)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                      {formatRatio(row.mpVsCavaco)}
+                      {formatValueOrDash(row.mpVsCavaco)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {formatRatio(row.vaporVsMp)}
@@ -414,7 +423,7 @@ export function SteamControlTable() {
                   {formatRatio(totals.mpVsVapor)}
                 </TableCell>
                 <TableCell className="text-right text-xs">
-                  {formatRatio(totals.mpVsCavaco)}
+                  {formatValueOrDash(totals.mpVsCavaco)}
                 </TableCell>
                 <TableCell className="text-right text-xs">
                   {formatRatio(totals.vaporVsMp)}
