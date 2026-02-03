@@ -15,17 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import {
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Line,
-  LabelList,
-} from 'recharts'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { PieChart, Pie, Cell, Label } from 'recharts'
 import {
   Dialog,
   DialogContent,
@@ -35,7 +25,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, Layers, Filter } from 'lucide-react'
+import { Maximize2, PieChart as PieChartIcon, Filter } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Select,
@@ -51,7 +41,7 @@ interface RawMaterialCompositionChartProps {
   className?: string
 }
 
-// Fixed set of categories as per requirement
+// Updated set of categories including 'Sangue'
 const CATEGORIES = [
   'Barrigada',
   'COURO BOVINO',
@@ -60,9 +50,10 @@ const CATEGORIES = [
   'Misto',
   'Ossos',
   'VISCERAS DE PEIXE',
+  'Sangue',
 ]
 
-// Colors mapped to match the visual requirement (Green shades mostly)
+// Colors mapped to match the visual requirement
 const CATEGORY_COLORS: Record<string, string> = {
   Barrigada: '#14532d', // green-900
   'COURO BOVINO': '#15803d', // green-700
@@ -71,6 +62,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Misto: '#f97316', // orange-500
   Ossos: '#0f172a', // slate-900 (Dark Grey)
   'VISCERAS DE PEIXE': '#3b82f6', // blue-500
+  Sangue: '#dc2626', // red-600
 }
 
 export function RawMaterialCompositionChart({
@@ -112,42 +104,44 @@ export function RawMaterialCompositionChart({
     })
   }, [data, selectedMaterial, selectedSupplier])
 
-  const { chartData, chartConfig } = useMemo(() => {
-    const groupedData = new Map<string, any>()
+  const { chartData, chartConfig, totalWeight } = useMemo(() => {
+    const categoryMap = new Map<string, number>()
+    let total = 0
+
+    // Initialize categories with 0
+    CATEGORIES.forEach((cat) => categoryMap.set(cat, 0))
 
     filteredData.forEach((item) => {
-      // Normalize date to YYYY-MM-DD
-      const dateKey = format(item.date, 'yyyy-MM-dd')
-      const displayDate = format(item.date, 'dd/MM')
-      const fullDate = format(item.date, "dd 'de' MMMM", { locale: ptBR })
-
-      if (!groupedData.has(dateKey)) {
-        groupedData.set(dateKey, {
-          dateKey,
-          displayDate,
-          fullDate,
-          originalDate: item.date,
-          total: 0,
-          // Initialize all categories to 0
-          ...CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
-        })
-      }
-
-      const entry = groupedData.get(dateKey)
       // Normalize item type match
       const category = CATEGORIES.find(
         (c) => c.toLowerCase() === item.type.toLowerCase(),
       )
 
       if (category) {
-        entry[category] += item.quantity
-        entry.total += item.quantity
+        let quantity = item.quantity
+        const unit = item.unit?.toLowerCase() || ''
+
+        // Conversion logic for 'Sangue' (Bag -> kg)
+        // Also handling 'ton' for robustness
+        if (category === 'Sangue' && unit.includes('bag')) {
+          quantity = quantity * 1400
+        } else if (unit.includes('ton')) {
+          quantity = quantity * 1000
+        }
+
+        categoryMap.set(category, (categoryMap.get(category) || 0) + quantity)
+        total += quantity
       }
     })
 
-    const processedData = Array.from(groupedData.values()).sort(
-      (a, b) => a.originalDate.getTime() - b.originalDate.getTime(),
-    )
+    const processedData = Array.from(categoryMap.entries())
+      .filter(([_, value]) => value > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        fill: CATEGORY_COLORS[name] || '#cccccc',
+      }))
+      .sort((a, b) => b.value - a.value)
 
     // Build ChartConfig
     const config: ChartConfig = {}
@@ -158,18 +152,17 @@ export function RawMaterialCompositionChart({
       }
     })
 
-    return { chartData: processedData, chartConfig: config }
+    return { chartData: processedData, chartConfig: config, totalWeight: total }
   }, [filteredData])
 
-  const formatTotalLabel = (value: number) => {
-    if (value === 0) return ''
+  const formatWeight = (value: number) => {
     if (value >= 1000) {
       return (
-        (value / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) +
+        (value / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) +
         'k'
       )
     }
-    return value.toString()
+    return value.toLocaleString('pt-BR')
   }
 
   // If no data is passed at all (regardless of filters)
@@ -178,7 +171,7 @@ export function RawMaterialCompositionChart({
       <Card className={cn('shadow-sm border-primary/10', className)}>
         <CardHeader>
           <CardTitle>Composição de Matéria-Prima</CardTitle>
-          <CardDescription>Volume diário por tipo</CardDescription>
+          <CardDescription>Distribuição total por tipo (kg)</CardDescription>
         </CardHeader>
         <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
           Nenhum dado disponível.
@@ -188,84 +181,60 @@ export function RawMaterialCompositionChart({
   }
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
-    <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart
-        data={chartData}
-        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
-      >
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis
-          dataKey="displayDate"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          minTickGap={30}
-          fontSize={isMobile ? 10 : 12}
-        />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          width={isMobile ? 35 : 50}
-          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-          fontSize={isMobile ? 10 : 12}
-        />
+    <ChartContainer
+      config={chartConfig}
+      className={cn('mx-auto aspect-square max-h-[350px]', height)}
+    >
+      <PieChart>
         <ChartTooltip
-          cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
-          content={(props) => {
-            const { payload, active } = props
-            if (!active || !payload) return null
-
-            // Filter out items with 0 or null value
-            const filteredPayload = payload.filter(
-              (item: any) => item.value > 0 && item.name !== 'total', // exclude total line from tooltip
-            )
-
-            // If no data to show, hide tooltip
-            if (filteredPayload.length === 0) return null
-
-            return (
-              <ChartTooltipContent
-                {...props}
-                payload={filteredPayload}
-                labelFormatter={(_, p) => p[0]?.payload?.fullDate}
-              />
-            )
-          }}
+          cursor={false}
+          content={<ChartTooltipContent hideLabel />}
         />
-        <ChartLegend
-          content={<ChartLegendContent />}
-          className="flex-wrap gap-2 pt-4"
-        />
-
-        {CATEGORIES.map((category) => (
-          <Bar
-            key={category}
-            dataKey={category}
-            stackId="a"
-            fill={CATEGORY_COLORS[category]}
-            maxBarSize={50}
-            radius={[0, 0, 0, 0]}
-          />
-        ))}
-
-        {/* Hidden line to display total labels on top of the stacked bars */}
-        <Line
-          type="monotone"
-          dataKey="total"
-          stroke="none"
-          dot={false}
-          activeDot={false}
-          legendType="none"
-          isAnimationActive={false}
+        <Pie
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={60}
+          strokeWidth={5}
         >
-          <LabelList
-            position="top"
-            offset={10}
-            className="fill-foreground text-[10px] font-bold"
-            formatter={formatTotalLabel}
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.fill} />
+          ))}
+          <Label
+            content={({ viewBox }) => {
+              if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                return (
+                  <text
+                    x={viewBox.cx}
+                    y={viewBox.cy}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    <tspan
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      className="fill-foreground text-3xl font-bold"
+                    >
+                      {formatWeight(totalWeight)}
+                    </tspan>
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy || 0) + 24}
+                      className="fill-muted-foreground text-xs"
+                    >
+                      Total (kg)
+                    </tspan>
+                  </text>
+                )
+              }
+            }}
           />
-        </Line>
-      </BarChart>
+        </Pie>
+        <ChartLegend
+          content={<ChartLegendContent nameKey="name" />}
+          className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+        />
+      </PieChart>
     </ChartContainer>
   )
 
@@ -274,10 +243,10 @@ export function RawMaterialCompositionChart({
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" />
+            <PieChartIcon className="h-5 w-5 text-primary" />
             Composição de Matéria-Prima
           </CardTitle>
-          <CardDescription>Volume diário por tipo</CardDescription>
+          <CardDescription>Distribuição total por tipo (kg)</CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
@@ -328,14 +297,14 @@ export function RawMaterialCompositionChart({
                   Visualização detalhada dos tipos de matéria-prima processada.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-1 w-full min-h-0 py-4">
-                <ChartContent height="h-full" />
+              <div className="flex-1 w-full min-h-0 py-4 flex items-center justify-center">
+                <ChartContent height="h-[500px]" />
               </div>
             </DialogContent>
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="pt-4 pb-0">
         {chartData.length > 0 ? (
           <ChartContent />
         ) : (
