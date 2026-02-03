@@ -26,7 +26,7 @@ import {
   ReferenceLine,
   LabelList,
 } from 'recharts'
-import { format, isSameDay } from 'date-fns'
+import { format, isSameDay, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
@@ -64,6 +64,9 @@ interface RevenueChartProps {
   data: ShippingEntry[]
   productionData?: ProductionEntry[]
   rawMaterials?: RawMaterialEntry[]
+  allData?: ShippingEntry[]
+  allProductionData?: ProductionEntry[]
+  allRawMaterials?: RawMaterialEntry[]
   timeScale?: 'daily' | 'monthly'
   isMobile?: boolean
   className?: string
@@ -94,6 +97,9 @@ export function RevenueChart({
   data,
   productionData = [],
   rawMaterials = [],
+  allData = [],
+  allProductionData = [],
+  allRawMaterials = [],
   timeScale = 'daily',
   isMobile = false,
   className,
@@ -147,7 +153,62 @@ export function RevenueChart({
     totalForecast,
     calculatedForecastTotal,
   } = useMemo(() => {
-    // 1. Calculate Average Unit Prices from Shipping Data
+    // 0. Calculate Global Historical Averages (for Future Projection)
+    // -------------------------------------------------------------
+
+    // Avg MP (Last 30 days)
+    const today = new Date()
+    const thirtyDaysAgo = subDays(today, 30)
+    const recentRawMaterials = allRawMaterials.filter(
+      (r) => new Date(r.date) >= thirtyDaysAgo,
+    )
+    const totalRecentMp = recentRawMaterials.reduce(
+      (acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit),
+      0,
+    )
+    const globalAvgMp = recentRawMaterials.length > 0 ? totalRecentMp / 30 : 0
+
+    // Avg Yields (Historical - All Time)
+    let globalTotalMp = 0
+    let globalSebo = 0
+    let globalFco = 0
+    let globalFarinheta = 0
+
+    allProductionData.forEach((p) => {
+      globalTotalMp += p.mpUsed
+      globalSebo += p.seboProduced
+      globalFco += p.fcoProduced
+      globalFarinheta += p.farinhetaProduced
+    })
+
+    const globalYields: Record<string, number> = {
+      Sebo: globalTotalMp > 0 ? globalSebo / globalTotalMp : 0.15,
+      FCO: globalTotalMp > 0 ? globalFco / globalTotalMp : 0.2,
+      Farinheta: globalTotalMp > 0 ? globalFarinheta / globalTotalMp : 0.05,
+      'Farinha Especial': 0.1,
+    }
+
+    // Avg Prices (Last 10 records per product)
+    const productsToCheck = ['Sebo', 'FCO', 'Farinheta', 'Farinha Especial']
+    const globalAvgPrices: Record<string, number> = {}
+
+    productsToCheck.forEach((product) => {
+      // Find all sales for this product, sort by date desc
+      const productSales = allData
+        .filter((s) => s.product === product)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10) // Take last 10
+
+      if (productSales.length > 0) {
+        const sumPrice = productSales.reduce((acc, s) => acc + s.unitPrice, 0)
+        globalAvgPrices[product] = sumPrice / productSales.length
+      } else {
+        globalAvgPrices[product] = 0
+      }
+    })
+
+    // 1. Calculate Local Averages (for existing data visualization context)
+    // --------------------------------------------------------------------
     const prices: Record<string, number> = {}
     const counts: Record<string, number> = {}
 
@@ -166,7 +227,7 @@ export function RevenueChart({
       avgPrices[p] = counts[p] > 0 ? prices[p] / counts[p] : 0
     })
 
-    // 2. Calculate Historical Yields from Production Data
+    // Local Yields
     let totalMp = 0
     let totalSebo = 0
     let totalFco = 0
@@ -180,10 +241,11 @@ export function RevenueChart({
     })
 
     const yields: Record<string, number> = {
-      Sebo: totalMp > 0 ? totalSebo / totalMp : 0.15,
-      FCO: totalMp > 0 ? totalFco / totalMp : 0.2,
-      Farinheta: totalMp > 0 ? totalFarinheta / totalMp : 0.05,
-      'Farinha Especial': 0.1, // Default as per requirements (no tracking col yet)
+      Sebo: totalMp > 0 ? totalSebo / totalMp : globalYields['Sebo'],
+      FCO: totalMp > 0 ? totalFco / totalMp : globalYields['FCO'],
+      Farinheta:
+        totalMp > 0 ? totalFarinheta / totalMp : globalYields['Farinheta'],
+      'Farinha Especial': 0.1,
     }
 
     const uniqueKeys = new Set<string>()
@@ -224,6 +286,7 @@ export function RevenueChart({
           originalDate: s.date,
           totalRevenue: 0,
           forecastRevenue: 0,
+          isProjection: false,
         })
       }
 
@@ -232,12 +295,10 @@ export function RevenueChart({
       entry.totalRevenue += revenue
     })
 
-    // 4. Process Raw Materials for Forecast (Projected Revenue)
-    // We iterate through all raw materials to ensure we have forecast even for days without sales
+    // 4. Process Raw Materials for Forecast (Projected Revenue based on ACTUAL MP)
     const rawMaterialDates = new Set<string>()
     rawMaterials.forEach((r) => {
       if (!r.date) return
-      // Exclude Blood from main line projection
       if (r.type?.toLowerCase() === 'sangue') return
 
       let dateKey: string
@@ -266,14 +327,13 @@ export function RevenueChart({
           originalDate: r.date,
           totalRevenue: 0,
           forecastRevenue: 0,
+          isProjection: false,
         })
       }
 
       const entry = dateMap.get(dateKey)
       const quantityKg = normalizeToKg(r.quantity, r.unit)
 
-      // Calculate potential value based strictly on filtered products
-      // Formula: MP * Yield * AvgPrice
       let dailyForecast = 0
 
       if (currentFilter.includes('Sebo')) {
@@ -300,6 +360,64 @@ export function RevenueChart({
       globalForecast += dailyForecast
     })
 
+    // 5. EXTENSION: 7-Day Forecast based on Global Averages
+    if (timeScale === 'daily') {
+      const forecastStart = new Date() // Start from today/tomorrow
+
+      for (let i = 1; i <= 7; i++) {
+        const futureDate = addDays(forecastStart, i)
+        const dateKey = format(futureDate, 'yyyy-MM-dd')
+
+        // If data already exists (e.g. future booked material), we skip overwriting
+        // to prioritize actual scheduled data.
+        if (!dateMap.has(dateKey)) {
+          const displayDate = format(futureDate, 'dd/MM')
+          const fullDate = format(futureDate, "dd 'de' MMMM", { locale: ptBR })
+
+          let projectedRevenue = 0
+
+          // Formula: (Avg Daily MP) * (Product Yield %) * (Average Product Price)
+          // Summed for selected filters
+
+          if (currentFilter.includes('Sebo')) {
+            projectedRevenue +=
+              globalAvgMp *
+              globalYields['Sebo'] *
+              (globalAvgPrices['Sebo'] || 0)
+          }
+          if (currentFilter.includes('FCO')) {
+            projectedRevenue +=
+              globalAvgMp * globalYields['FCO'] * (globalAvgPrices['FCO'] || 0)
+          }
+          if (currentFilter.includes('Farinheta')) {
+            projectedRevenue +=
+              globalAvgMp *
+              globalYields['Farinheta'] *
+              (globalAvgPrices['Farinheta'] || 0)
+          }
+          if (currentFilter.includes('Farinha Especial')) {
+            projectedRevenue +=
+              globalAvgMp *
+              globalYields['Farinha Especial'] *
+              (globalAvgPrices['Farinha Especial'] || 0)
+          }
+
+          if (projectedRevenue > 0) {
+            dateMap.set(dateKey, {
+              dateKey,
+              displayDate,
+              fullDate,
+              originalDate: futureDate,
+              totalRevenue: 0,
+              forecastRevenue: projectedRevenue,
+              isProjection: true,
+            })
+            globalForecast += projectedRevenue
+          }
+        }
+      }
+    }
+
     const processedData = Array.from(dateMap.values()).sort((a, b) =>
       a.dateKey.localeCompare(b.dateKey),
     )
@@ -307,7 +425,7 @@ export function RevenueChart({
     const avg =
       processedData.length > 0 ? globalTotal / processedData.length : 0
 
-    // Find peak
+    // Find peak (realized)
     let max = 0
     let mDate = ''
     processedData.forEach((d) => {
@@ -320,12 +438,11 @@ export function RevenueChart({
     const sortedKeys = Array.from(uniqueKeys).sort()
     const config: ChartConfig = {
       forecastRevenue: {
-        label: 'Projeção (Produção)',
+        label: 'Receita Projetada',
         color: 'hsl(var(--muted-foreground))',
       },
     }
 
-    // Assign colors
     sortedKeys.forEach((key, index) => {
       if (groupBy === 'product' && PRODUCT_COLORS[key]) {
         config[key] = {
@@ -355,7 +472,17 @@ export function RevenueChart({
       totalForecast: globalForecast,
       calculatedForecastTotal: globalForecast,
     }
-  }, [data, productionData, rawMaterials, groupBy, timeScale, currentFilter])
+  }, [
+    data,
+    productionData,
+    rawMaterials,
+    allData,
+    allProductionData,
+    allRawMaterials,
+    groupBy,
+    timeScale,
+    currentFilter,
+  ])
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', {
@@ -412,7 +539,11 @@ export function RevenueChart({
           content={
             <ChartTooltipContent
               labelFormatter={(value, payload) => {
-                return payload[0]?.payload?.fullDate || value
+                const item = payload[0]?.payload
+                return (
+                  (item?.fullDate || value) +
+                  (item?.isProjection ? ' (Projeção)' : '')
+                )
               }}
               formatter={(value, name, item) => (
                 <div className="flex items-center gap-2 w-full min-w-[150px]">
@@ -464,7 +595,7 @@ export function RevenueChart({
         <Line
           type="monotone"
           dataKey="forecastRevenue"
-          name="Projeção (Produção)"
+          name="Receita Projetada"
           stroke="hsl(var(--muted-foreground))"
           strokeWidth={2}
           strokeDasharray="4 4"
@@ -498,7 +629,7 @@ export function RevenueChart({
               Receita {timeScale === 'monthly' ? 'Mensal' : 'Diária'}
             </CardTitle>
             <CardDescription>
-              Realizado (Expedição) vs Projetado (Produção)
+              Realizado (Expedição) vs Projetado (Produção + Médias)
             </CardDescription>
           </div>
 
@@ -630,7 +761,8 @@ export function RevenueChart({
                     {timeScale === 'monthly' ? 'Mensal' : 'Diária'}
                   </DialogTitle>
                   <DialogDescription>
-                    Visualização expandida do faturamento.
+                    Visualização expandida do faturamento com projeção de 7
+                    dias.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 w-full min-h-0 py-4">

@@ -285,6 +285,9 @@ export default function Dashboard() {
               data={filteredShipping}
               productionData={filteredProduction}
               rawMaterials={filteredRawMaterials}
+              allData={shipping}
+              allProductionData={production}
+              allRawMaterials={rawMaterials}
               isMobile={isMobile}
               timeScale="daily"
             />
