@@ -82,6 +82,7 @@ const mapData = (data: any[]) => {
     fcoProduced: item.fco_produced,
     farinhetaProduced: item.farinheta_produced,
     bloodMealProduced: item.blood_meal_produced || 0,
+    bloodMealBags: item.blood_meal_bags || 0,
     unitPrice: item.unit_price,
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
@@ -500,6 +501,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       fco_produced: entry.fcoProduced,
       farinheta_produced: entry.farinhetaProduced,
       blood_meal_produced: entry.bloodMealProduced,
+      blood_meal_bags: entry.bloodMealBags,
       losses: entry.losses,
       user_id: user?.id,
       factory_id: currentFactoryId,
@@ -518,6 +520,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         fco_produced: entry.fcoProduced,
         farinheta_produced: entry.farinhetaProduced,
         blood_meal_produced: entry.bloodMealProduced,
+        blood_meal_bags: entry.bloodMealBags,
         losses: entry.losses,
       })
       .eq('id', entry.id)

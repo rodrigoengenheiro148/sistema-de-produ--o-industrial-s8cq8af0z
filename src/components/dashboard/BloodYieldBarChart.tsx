@@ -61,16 +61,24 @@ export function BloodYieldBarChart({
     })
 
     // Group production (Blood Meal) by date
-    const bloodOutputs = new Map<string, number>()
+    const bloodOutputs = new Map<string, { produced: number; bags: number }>()
     const dates = new Set<string>()
 
     productionData.forEach((item) => {
-      if (item.bloodMealProduced > 0) {
+      // Prioritize calculation from bags if available
+      const producedKg =
+        item.bloodMealBags && item.bloodMealBags > 0
+          ? item.bloodMealBags * 1400
+          : item.bloodMealProduced || 0
+
+      if (producedKg > 0) {
         const dateKey = format(item.date, 'yyyy-MM-dd')
-        bloodOutputs.set(
-          dateKey,
-          (bloodOutputs.get(dateKey) || 0) + item.bloodMealProduced,
-        )
+        const current = bloodOutputs.get(dateKey) || { produced: 0, bags: 0 }
+
+        bloodOutputs.set(dateKey, {
+          produced: current.produced + producedKg,
+          bags: current.bags + (item.bloodMealBags || 0),
+        })
         dates.add(dateKey)
       }
     })
@@ -83,7 +91,8 @@ export function BloodYieldBarChart({
     const processedData = Array.from(dates)
       .map((dateKey) => {
         const input = bloodInputs.get(dateKey) || 0
-        const output = bloodOutputs.get(dateKey) || 0
+        const outputData = bloodOutputs.get(dateKey) || { produced: 0, bags: 0 }
+        const output = outputData.produced
         const dateObj = new Date(`${dateKey}T12:00:00`)
 
         return {
@@ -93,6 +102,7 @@ export function BloodYieldBarChart({
           yield: input > 0 ? (output / input) * 100 : 0,
           input,
           output,
+          bags: outputData.bags,
         }
       })
       .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
@@ -113,7 +123,7 @@ export function BloodYieldBarChart({
         <CardHeader>
           <CardTitle>Rendimentos Diários de Sangue</CardTitle>
           <CardDescription>
-            Performance de rendimento da linha de sangue
+            Rendimento calculado sobre Sangue processado (base 1400kg/bag)
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -141,7 +151,53 @@ export function BloodYieldBarChart({
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
           cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-          content={<ChartTooltipContent />}
+          content={({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              const data = payload[0].payload
+              return (
+                <div className="rounded-lg border bg-background p-2 shadow-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-[0.70rem] uppercase text-muted-foreground">
+                        Data
+                      </span>
+                      <span className="font-bold text-muted-foreground">
+                        {data.fullDate}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[0.70rem] uppercase text-muted-foreground">
+                        Rendimento
+                      </span>
+                      <span className="font-bold text-red-600">
+                        {data.yield.toLocaleString('pt-BR', {
+                          maximumFractionDigits: 1,
+                        })}
+                        %
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[0.70rem] uppercase text-muted-foreground">
+                        Bags
+                      </span>
+                      <span className="font-bold text-muted-foreground">
+                        {data.bags > 0 ? data.bags : '-'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[0.70rem] uppercase text-muted-foreground">
+                        Produção
+                      </span>
+                      <span className="font-bold text-muted-foreground">
+                        {data.output.toLocaleString('pt-BR')} kg
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+            return null
+          }}
         />
         <Bar
           dataKey="yield"
@@ -153,7 +209,9 @@ export function BloodYieldBarChart({
           <LabelList
             dataKey="yield"
             position="top"
-            formatter={(val: number) => `${val.toFixed(1)}%`}
+            formatter={(val: number) =>
+              `${val.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+            }
             className="fill-foreground font-bold"
             fontSize={isMobile ? 10 : 12}
           />
@@ -173,7 +231,7 @@ export function BloodYieldBarChart({
             Rendimentos Diários de Sangue
           </CardTitle>
           <CardDescription>
-            Rendimento calculado sobre Sangue processado
+            Rendimento calculado sobre Sangue processado (base 1400kg/bag)
           </CardDescription>
         </div>
 

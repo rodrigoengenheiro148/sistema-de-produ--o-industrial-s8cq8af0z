@@ -84,10 +84,16 @@ export function OverviewCards({
       (acc, curr) => acc + curr.farinhetaProduced,
       0,
     )
+    // Prioritize calculation from bags if available (1400kg constant)
     const bloodMealProduced = production.reduce(
-      (acc, curr) => acc + (curr.bloodMealProduced || 0),
+      (acc, curr) =>
+        acc +
+        (curr.bloodMealBags && curr.bloodMealBags > 0
+          ? curr.bloodMealBags * 1400
+          : curr.bloodMealProduced || 0),
       0,
     )
+
     const totalProduction =
       seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
 
@@ -145,7 +151,9 @@ export function OverviewCards({
         p.seboProduced +
         p.fcoProduced +
         p.farinhetaProduced +
-        (p.bloodMealProduced || 0),
+        (p.bloodMealBags && p.bloodMealBags > 0
+          ? p.bloodMealBags * 1400
+          : p.bloodMealProduced || 0),
       0,
     )
 
@@ -244,7 +252,12 @@ export function OverviewCards({
   }
 
   const formatPercentage = (val: number) => {
-    return val.toFixed(2) + '%'
+    return (
+      val.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) + '%'
+    )
   }
 
   const formatDecimal = (val: number) => {

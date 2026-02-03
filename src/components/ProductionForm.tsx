@@ -19,6 +19,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { SheetFooter } from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
@@ -32,6 +33,10 @@ const formSchema = z.object({
   sebo: z.coerce.number().min(0, 'Valor deve ser positivo'),
   fco: z.coerce.number().min(0, 'Valor deve ser positivo'),
   farinheta: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  bloodMealBags: z.coerce
+    .number()
+    .min(0, 'Valor deve ser positivo')
+    .int('Deve ser um número inteiro'),
   bloodMeal: z.coerce.number().min(0, 'Valor deve ser positivo'),
   losses: z.coerce.number(),
 })
@@ -59,6 +64,7 @@ export function ProductionForm({
       sebo: initialData?.seboProduced || 0,
       fco: initialData?.fcoProduced || 0,
       farinheta: initialData?.farinhetaProduced || 0,
+      bloodMealBags: initialData?.bloodMealBags || 0,
       bloodMeal: initialData?.bloodMealProduced || 0,
       losses: initialData?.losses || 0,
     },
@@ -68,6 +74,17 @@ export function ProductionForm({
   const sebo = form.watch('sebo')
   const fco = form.watch('fco')
   const farinheta = form.watch('farinheta')
+  const bloodMealBags = form.watch('bloodMealBags')
+
+  // Auto-calculate bloodMeal (kg) when bags change
+  useEffect(() => {
+    const bags = Number(bloodMealBags) || 0
+    form.setValue('bloodMeal', bags * 1400, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+  }, [bloodMealBags, form])
 
   useEffect(() => {
     // Note: Blood meal is usually a separate process, so it might not subtract from the main MP line in the same way.
@@ -96,6 +113,7 @@ export function ProductionForm({
       fcoProduced: values.fco,
       farinhetaProduced: values.farinheta,
       bloodMealProduced: values.bloodMeal,
+      bloodMealBags: values.bloodMealBags,
       losses: values.losses,
     }
 
@@ -244,19 +262,42 @@ export function ProductionForm({
           <h3 className="font-medium text-sm text-red-600 dark:text-red-400">
             Linha de Sangue
           </h3>
-          <FormField
-            control={form.control}
-            name="bloodMeal"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Farinha de Sangue (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="bloodMealBags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Qtd. Bags</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    1 bag = 1400kg
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bloodMeal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Farinha de Sangue (kg)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <SheetFooter>

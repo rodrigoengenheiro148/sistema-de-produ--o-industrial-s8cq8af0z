@@ -19,6 +19,7 @@ export interface ProductionEntry {
   fcoProduced: number
   farinhetaProduced: number
   bloodMealProduced: number
+  bloodMealBags?: number
   losses: number
   factoryId?: string
   createdAt?: Date
