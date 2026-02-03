@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
+  Flame,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -24,10 +25,11 @@ import {
   DowntimeRecord,
   NotificationSettings,
   AcidityEntry,
+  SteamControlRecord,
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
-import { subDays, isSameDay, startOfDay, format } from 'date-fns'
+import { subDays, isSameDay, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface OverviewCardsProps {
@@ -37,6 +39,7 @@ interface OverviewCardsProps {
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
   acidityRecords: AcidityEntry[]
+  steamRecords?: SteamControlRecord[]
   notificationSettings: NotificationSettings
   fullProductionHistory?: ProductionEntry[]
   fullCookingTimeRecords?: CookingTimeRecord[]
@@ -49,6 +52,7 @@ export function OverviewCards({
   shipping,
   cookingTimeRecords,
   acidityRecords,
+  steamRecords = [],
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
   referenceDate,
@@ -125,7 +129,7 @@ export function OverviewCards({
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
-    // 12. NEW: Process Time & Efficiency (D-1 Logic)
+    // 12. Tempo de Processos & Efficiency (D-1 Logic)
     // Target Date (D)
     const targetDate = referenceDate || new Date()
     // Previous Date (D-1)
@@ -181,6 +185,20 @@ export function OverviewCards({
       locale: ptBR,
     })
 
+    // 13. MPs m³ CAVACO
+    const totalSteamAdjusted = steamRecords.reduce((acc, curr) => {
+      return (
+        acc +
+        (curr.soyWaste || 0) +
+        (curr.firewood || 0) +
+        (curr.riceHusk || 0) +
+        (curr.woodChips || 0)
+      )
+    }, 0)
+
+    const mpPerSteam =
+      totalSteamAdjusted > 0 ? rawMaterialInputKg / totalSteamAdjusted : 0
+
     return {
       rawMaterialInputKg,
       totalProduction,
@@ -196,12 +214,15 @@ export function OverviewCards({
       processTimeD1Display,
       tonPerHourD1,
       previousDateFormatted,
+      mpPerSteam,
+      totalSteamAdjusted,
     }
   }, [
     rawMaterials,
     production,
     shipping,
     acidityRecords,
+    steamRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
     referenceDate,
@@ -224,6 +245,13 @@ export function OverviewCards({
 
   const formatPercentage = (val: number) => {
     return val.toFixed(2) + '%'
+  }
+
+  const formatDecimal = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val)
   }
 
   const TARGET_RATE = 14.125
@@ -325,6 +353,19 @@ export function OverviewCards({
           </div>
         </div>
       </MetricCard>
+
+      {/* 13. MPs m³ CAVACO (Efficiency) */}
+      <MetricCard
+        title="MPs m³ CAVACO"
+        value={
+          metrics.totalSteamAdjusted > 0
+            ? formatDecimal(metrics.mpPerSteam)
+            : '-'
+        }
+        icon={Flame}
+        iconColor="text-amber-500"
+        borderColor="border-l-amber-500"
+      />
 
       {/* 3. Rendimento Geral */}
       <MetricCard
