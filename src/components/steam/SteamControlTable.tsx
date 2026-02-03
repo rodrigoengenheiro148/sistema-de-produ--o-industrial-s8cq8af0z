@@ -95,7 +95,6 @@ export function SteamControlTable() {
         }, 0)
 
       // Total Ajustado (Biomass Total): Sum of fuels
-      // Formula: Resíduos de Soja + Lenha + Palha Arroz + Cavaco
       const biomassTotal =
         (record.soyWaste || 0) +
         (record.firewood || 0) +
@@ -108,28 +107,40 @@ export function SteamControlTable() {
       const meterEnd = record.meterEnd || 0
       const steamConsumption = meterEnd - meterStart
 
+      // Wood Chips
+      const woodChips = record.woodChips || 0
+
+      // CALCULATIONS
+
+      // 1. MPs VS VAPOR: (Total MP / Steam Consumption)
+      const mpVsVapor = steamConsumption > 0 ? mpEntry / steamConsumption : 0
+
+      // 2. MPs m³ CAVACO: (Total MP / wood_chips)
+      const mpVsCavaco = woodChips > 0 ? mpEntry / woodChips : 0
+
+      // 3. TONELADAS VAPOR VS MPs: (Steam Consumption / Total MP)
+      // Multiplied by 1000 to convert MP kg to Tons (Steam is Tons, MP is Kg)
+      const vaporVsMp = mpEntry > 0 ? (steamConsumption / mpEntry) * 1000 : 0
+
+      // 4. TONS VS MPs: (Total Production / Total MP)
+      const tonsVsMp = mpEntry > 0 ? dailyProduction / mpEntry : 0
+
+      // Extra: Cavaco vs Vapor
+      const cavacoVsVapor =
+        biomassTotal > 0 ? steamConsumption / biomassTotal : 0
+
       return {
         ...record,
         mpEntry,
         dailyProduction,
         biomassTotal,
         steamConsumption,
-
-        // CAVACOS VS TONELADAS VAPOR: Consumo Vapor / TOTAL (Adjusted)
-        cavacoVsVapor: biomassTotal ? steamConsumption / biomassTotal : 0,
-
-        // MPs VS VAPOR: Entrada MP / Consumo Vapor
-        mpVsVapor: steamConsumption ? mpEntry / steamConsumption : 0,
-
-        // MPs m³ CAVACO: Entrada MP / Cavaco
-        mpVsCavaco: record.woodChips ? mpEntry / record.woodChips : 0,
-
-        // TONELADAS VAPOR VS MPs: Consumo Vapor / Entrada MP
-        // Multiplied by 1000 to convert MP kg to Tons, resulting in Tons Steam / Ton MP
-        vaporVsMp: mpEntry ? (steamConsumption / mpEntry) * 1000 : 0,
-
-        // TONS VS MPs: Total Production / Entrada MP
-        tonsVsMp: mpEntry ? dailyProduction / mpEntry : 0,
+        woodChips,
+        mpVsVapor,
+        mpVsCavaco,
+        vaporVsMp,
+        tonsVsMp,
+        cavacoVsVapor,
       }
     })
   }, [steamRecords, rawMaterials, production, dateRange])
@@ -229,16 +240,28 @@ export function SteamControlTable() {
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
                 CAVACOS VS TONELADAS VAPOR
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right text-xs"
+                title="Total MP / Consumo Vapor"
+              >
                 MPs VS VAPOR
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right text-xs"
+                title="Total MP / Cavaco"
+              >
                 MPs m³ CAVACO
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right text-xs"
+                title="Consumo Vapor / Total MP"
+              >
                 TONELADAS VAPOR VS MPs
               </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right text-xs"
+                title="Produção Total / Total MP"
+              >
                 TONS VS MPs
               </TableHead>
               <TableHead className="w-[80px]"></TableHead>
@@ -294,16 +317,16 @@ export function SteamControlTable() {
                     <TableCell className="text-right font-mono text-xs">
                       {formatRatio(row.cavacoVsVapor)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
+                    <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {formatRatio(row.mpVsVapor)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
+                    <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {formatRatio(row.mpVsCavaco)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
+                    <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {formatRatio(row.vaporVsMp)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
+                    <TableCell className="text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {formatRatio(row.tonsVsMp)}
                     </TableCell>
 

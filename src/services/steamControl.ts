@@ -2,9 +2,18 @@ import { supabase } from '@/lib/supabase/client'
 import { SteamControlRecord } from '@/lib/types'
 import { format } from 'date-fns'
 
+const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
+  if (!dateStr) return new Date()
+  if (dateStr instanceof Date) return dateStr
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}T12:00:00`)
+  }
+  return new Date(dateStr)
+}
+
 export const mapSteamRecord = (item: any): SteamControlRecord => ({
   id: item.id,
-  date: new Date(item.date),
+  date: parseDateSafe(item.date),
   soyWaste: Number(item.soy_waste) || 0,
   firewood: Number(item.firewood) || 0,
   riceHusk: Number(item.rice_husk) || 0,
@@ -14,7 +23,7 @@ export const mapSteamRecord = (item: any): SteamControlRecord => ({
   meterEnd: Number(item.meter_end) || 0,
   factoryId: item.factory_id,
   userId: item.user_id,
-  createdAt: new Date(item.created_at),
+  createdAt: item.created_at ? new Date(item.created_at) : undefined,
 })
 
 export const fetchSteamRecords = async (
