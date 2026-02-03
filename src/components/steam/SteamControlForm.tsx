@@ -67,12 +67,9 @@ export function SteamControlForm({
   // Auto-calculate steam consumption based on meter readings
   useEffect(() => {
     // We update the calculated consumption field for visibility
+    // AC requirement: Consumo Vapor = Medidor Fim - Medidor Início
     const diff = meterEnd - meterStart
-    // The table allows negative diffs, but for saving/form we usually default to 0 if negative
-    // unless the user really intends to submit bad data.
-    // We'll keep it as max(0, diff) for the 'steamConsumption' value storage,
-    // but the Table component calculates it dynamically as (End - Start).
-    form.setValue('steamConsumption', diff > 0 ? diff : 0)
+    form.setValue('steamConsumption', diff)
   }, [meterStart, meterEnd, form])
 
   const calculatedMpEntry = useMemo(() => {
@@ -85,11 +82,8 @@ export function SteamControlForm({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const dateObj = new Date(`${values.date}T12:00:00`)
-    // Ensure steam consumption is strictly meterEnd - meterStart if positive, else 0 or user defined
-    const calculatedConsumption =
-      values.meterEnd >= values.meterStart
-        ? values.meterEnd - values.meterStart
-        : 0
+    // Ensure steam consumption is strictly meterEnd - meterStart
+    const calculatedConsumption = values.meterEnd - values.meterStart
 
     if (initialData) {
       updateSteamRecord({

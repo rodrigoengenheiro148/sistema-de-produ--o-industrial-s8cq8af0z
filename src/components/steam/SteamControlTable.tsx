@@ -105,7 +105,12 @@ export function SteamControlTable() {
       // Formula: Medidor Fim - Medidor Início
       const meterStart = record.meterStart || 0
       const meterEnd = record.meterEnd || 0
-      const steamConsumption = meterEnd - meterStart
+
+      // Calculate consumption based on meters if present, otherwise fallback to stored record
+      const steamConsumption =
+        record.meterEnd !== undefined && record.meterStart !== undefined
+          ? meterEnd - meterStart
+          : record.steamConsumption || 0
 
       // Wood Chips
       const woodChips = record.woodChips || 0
@@ -187,11 +192,13 @@ export function SteamControlTable() {
     }
   }, [tableData])
 
-  const formatNumber = (num: number) =>
-    num.toLocaleString('pt-BR', {
+  const formatNumber = (num: number | undefined | null) => {
+    if (num === undefined || num === null) return '-'
+    return num.toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
+  }
 
   const formatRatio = (num: number) =>
     !isFinite(num) || num === 0
@@ -211,6 +218,19 @@ export function SteamControlTable() {
                 DATA
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
+                MEDIDOR INÍCIO
+              </TableHead>
+              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
+                MEDIDOR FIM
+              </TableHead>
+              <TableHead
+                className="font-bold text-green-900 dark:text-green-100 text-right"
+                title="Medidor Fim - Medidor Início"
+              >
+                CONSUMO VAPOR
+              </TableHead>
+
+              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 RESIDUOS DE SOJA
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
@@ -228,13 +248,6 @@ export function SteamControlTable() {
                 title="Soma de todos os combustíveis"
               >
                 TOTAL (AJUSTADO)
-              </TableHead>
-
-              <TableHead
-                className="font-bold text-green-900 dark:text-green-100 text-right"
-                title="Medidor Fim - Medidor Início"
-              >
-                CONSUMO VAPOR
               </TableHead>
 
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right text-xs">
@@ -271,7 +284,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={13}
+                  colSpan={15}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado no período.
@@ -290,6 +303,17 @@ export function SteamControlTable() {
                         )}
                       </div>
                     </TableCell>
+
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {formatNumber(row.meterStart)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {formatNumber(row.meterEnd)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-bold text-foreground">
+                      {formatNumber(row.steamConsumption)}
+                    </TableCell>
+
                     <TableCell className="text-right font-mono text-muted-foreground">
                       {formatNumber(row.soyWaste)}
                     </TableCell>
@@ -306,11 +330,6 @@ export function SteamControlTable() {
                     {/* Total Ajustado */}
                     <TableCell className="text-right font-mono font-bold text-blue-600 dark:text-blue-400 bg-green-50/50 dark:bg-green-950/10">
                       {formatNumber(row.biomassTotal)}
-                    </TableCell>
-
-                    {/* Consumo Vapor */}
-                    <TableCell className="text-right font-mono font-bold text-foreground">
-                      {formatNumber(row.steamConsumption)}
                     </TableCell>
 
                     {/* Ratios */}
@@ -365,6 +384,11 @@ export function SteamControlTable() {
             <tfoot className="bg-green-100 dark:bg-green-900/30 font-bold border-t-2 border-green-200">
               <TableRow>
                 <TableCell>TOTAL</TableCell>
+                <TableCell className="text-right">-</TableCell>
+                <TableCell className="text-right">-</TableCell>
+                <TableCell className="text-right">
+                  {formatNumber(totals.steamConsumption)}
+                </TableCell>
                 <TableCell className="text-right">
                   {formatNumber(totals.soyWaste)}
                 </TableCell>
@@ -381,11 +405,6 @@ export function SteamControlTable() {
                 {/* Total Ajustado */}
                 <TableCell className="text-right text-blue-600 dark:text-blue-400">
                   {formatNumber(totals.biomassTotal)}
-                </TableCell>
-
-                {/* Consumo Vapor */}
-                <TableCell className="text-right">
-                  {formatNumber(totals.steamConsumption)}
                 </TableCell>
 
                 <TableCell className="text-right text-xs">
