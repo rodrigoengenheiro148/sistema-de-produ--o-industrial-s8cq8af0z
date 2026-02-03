@@ -27,7 +27,13 @@ import { DialogFooter } from '@/components/ui/dialog'
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
   client: z.string().min(2, 'Cliente é obrigatório'),
-  product: z.enum(['Sebo', 'FCO', 'Farinheta', 'Matéria-Prima']),
+  product: z.enum([
+    'Sebo',
+    'FCO',
+    'Farinheta',
+    'Farinha Especial',
+    'Matéria-Prima',
+  ]),
   quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: 'Quantidade inválida',
   }),
@@ -151,6 +157,9 @@ export function ShippingForm({ initialData, onSuccess }: ShippingFormProps) {
                   <SelectItem value="Sebo">Sebo</SelectItem>
                   <SelectItem value="FCO">Farinha Carne/Osso</SelectItem>
                   <SelectItem value="Farinheta">Farinheta</SelectItem>
+                  <SelectItem value="Farinha Especial">
+                    Farinha Especial
+                  </SelectItem>
                   <SelectItem value="Matéria-Prima">
                     Matéria-Prima (Devolução)
                   </SelectItem>
