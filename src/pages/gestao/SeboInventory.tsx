@@ -20,6 +20,13 @@ import {
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   CalendarIcon,
   Save,
   Loader2,
@@ -28,7 +35,16 @@ import {
   Trash2,
   RefreshCcw,
 } from 'lucide-react'
-import { format, subDays, startOfDay } from 'date-fns'
+import {
+  format,
+  startOfDay,
+  startOfMonth,
+  endOfMonth,
+  setMonth,
+  setYear,
+  getMonth,
+  getYear,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -44,13 +60,32 @@ import { SeboInventoryChart } from '@/components/inventory/SeboInventoryChart'
 const INITIAL_TANK_ROWS = 5
 const INITIAL_EXTRA_ROWS = 3
 
+const MONTHS = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+]
+
 export default function SeboInventory() {
   const { currentFactoryId } = useData()
   const { user } = useAuth()
   const { toast } = useToast()
 
-  // Initialize date to start of today to ensure no time components cause shift
+  // Initialize table date to start of today
   const [date, setDate] = useState<Date>(startOfDay(new Date()))
+
+  // Initialize chart reference month to start of current month
+  const [chartMonth, setChartMonth] = useState<Date>(startOfMonth(new Date()))
+
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -64,10 +99,17 @@ export default function SeboInventory() {
     [],
   )
 
-  // Derived dates for the chart view
-  // Memoize to prevent object recreation on every render
-  const chartEndDate = useMemo(() => date, [date])
-  const chartStartDate = useMemo(() => subDays(date, 30), [date])
+  // Derived dates for the chart view based on selected month
+  const chartStartDate = useMemo(() => startOfMonth(chartMonth), [chartMonth])
+  const chartEndDate = useMemo(() => endOfMonth(chartMonth), [chartMonth])
+
+  // Generate Year Options dynamically (Current Year +/- 2)
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    return [currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(
+      String,
+    )
+  }, [])
 
   const createEmptyRecord = useCallback(
     (category: 'tank' | 'extra'): SeboInventoryRecord => ({
@@ -83,7 +125,7 @@ export default function SeboInventory() {
     [currentFactoryId, user, date],
   )
 
-  // Load Data
+  // Load Data for Table
   const loadData = useCallback(async () => {
     if (!currentFactoryId) return
 
@@ -132,7 +174,6 @@ export default function SeboInventory() {
     if (!currentFactoryId) return
 
     setHistoryLoading(true)
-    // We don't clear records immediately to avoid chart flickering
     try {
       const history = await fetchSeboInventoryHistory(
         chartStartDate,
@@ -155,10 +196,25 @@ export default function SeboInventory() {
   }, [chartStartDate, chartEndDate, currentFactoryId, toast])
 
   // Trigger loads when dependencies change
+  // Note: loadData depends on `date`, loadHistory depends on `chartMonth` (via start/end dates)
   useEffect(() => {
     loadData()
+  }, [loadData])
+
+  useEffect(() => {
     loadHistory()
-  }, [loadData, loadHistory])
+  }, [loadHistory])
+
+  // Handlers for Chart Filter
+  const handleChartMonthChange = (value: string) => {
+    const newDate = setMonth(chartMonth, parseInt(value))
+    setChartMonth(newDate)
+  }
+
+  const handleChartYearChange = (value: string) => {
+    const newDate = setYear(chartMonth, parseInt(value))
+    setChartMonth(newDate)
+  }
 
   // Handlers for Tank Inputs
   const handleTankChange = (
@@ -184,7 +240,7 @@ export default function SeboInventory() {
           title: 'Registro removido',
           description: 'O tanque foi removido do banco de dados.',
         })
-        // Immediately update history chart
+        // Immediately update history chart if deleted record is within view
         loadHistory()
       } catch (e: any) {
         console.error('Failed to delete record', e)
@@ -193,7 +249,7 @@ export default function SeboInventory() {
           description: e.message || 'Não foi possível remover o registro.',
           variant: 'destructive',
         })
-        return // Don't remove from UI if API call failed
+        return
       }
     }
     const newRows = [...tankRows]
@@ -350,6 +406,44 @@ export default function SeboInventory() {
     return ''
   }
 
+  const chartControls = (
+    <div className="flex items-center gap-2">
+      <div className="hidden sm:block text-sm font-medium text-muted-foreground mr-1">
+        Filtrar por Mês:
+      </div>
+      <Select
+        value={String(getMonth(chartMonth))}
+        onValueChange={handleChartMonthChange}
+      >
+        <SelectTrigger className="w-[110px] sm:w-[130px] h-8 text-xs sm:text-sm">
+          <SelectValue placeholder="Mês" />
+        </SelectTrigger>
+        <SelectContent>
+          {MONTHS.map((m, index) => (
+            <SelectItem key={index} value={String(index)}>
+              {m}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
+        value={String(getYear(chartMonth))}
+        onValueChange={handleChartYearChange}
+      >
+        <SelectTrigger className="w-[80px] sm:w-[90px] h-8 text-xs sm:text-sm">
+          <SelectValue placeholder="Ano" />
+        </SelectTrigger>
+        <SelectContent>
+          {yearOptions.map((y) => (
+            <SelectItem key={y} value={String(y)}>
+              {y}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -366,7 +460,7 @@ export default function SeboInventory() {
         <div className="flex items-center gap-2">
           <div className="flex flex-col gap-1">
             <Label htmlFor="date-picker" className="text-xs font-semibold">
-              Data de Referência
+              Data de Referência (Tabela)
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -423,6 +517,7 @@ export default function SeboInventory() {
           startDate={chartStartDate}
           endDate={chartEndDate}
           isLoading={historyLoading}
+          headerControls={chartControls}
         />
 
         {/* Inventory Input Table */}

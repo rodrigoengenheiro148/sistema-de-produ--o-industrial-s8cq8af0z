@@ -14,8 +14,8 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format, eachDayOfInterval, isSameDay } from 'date-fns'
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { format, eachDayOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SeboInventoryRecord } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,7 @@ interface SeboInventoryChartProps {
   endDate?: Date
   className?: string
   isLoading?: boolean
+  headerControls?: React.ReactNode
 }
 
 export function SeboInventoryChart({
@@ -45,6 +46,7 @@ export function SeboInventoryChart({
   endDate,
   className,
   isLoading = false,
+  headerControls,
 }: SeboInventoryChartProps) {
   const { chartData, chartConfig, uniqueTanks, hasExtras } = useMemo(() => {
     if (!data)
@@ -170,10 +172,79 @@ export function SeboInventoryChart({
     }
   }, [data, startDate, endDate])
 
+  const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => {
+    // Determine if we should show chart or empty state inside content
+    const hasData = chartData && chartData.length > 0
+    const isEmpty =
+      !hasData ||
+      chartData.every((d) => {
+        const values = Object.values(d).filter((v) => typeof v === 'number')
+        return values.reduce((a: any, b: any) => a + b, 0) === 0
+      })
+
+    if (isEmpty && !isLoading) {
+      return (
+        <div
+          className={`flex items-center justify-center text-muted-foreground ${height}`}
+        >
+          Nenhum dado encontrado para o período.
+        </div>
+      )
+    }
+
+    return (
+      <ChartContainer config={chartConfig} className={`${height} w-full`}>
+        <BarChart
+          data={chartData}
+          margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+          <XAxis
+            dataKey="date"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={10}
+            fontSize={12}
+            minTickGap={20}
+          />
+          <YAxis hide domain={[0, 'auto']} />
+          <ChartTooltip
+            cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+            content={<ChartTooltipContent indicator="dashed" />}
+          />
+          <ChartLegend content={<ChartLegendContent />} />
+
+          {/* Dynamic Bars for each Tank */}
+          {uniqueTanks.map((tank) => (
+            <Bar
+              key={tank}
+              dataKey={`tank_${tank}`}
+              stackId="a"
+              fill={`var(--color-tank_${tank})`}
+              radius={[0, 0, 0, 0]}
+              maxBarSize={60}
+            />
+          ))}
+
+          {/* Bar for Extras if they exist */}
+          {hasExtras && (
+            <Bar
+              dataKey="extras"
+              stackId="a"
+              fill="var(--color-extras)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={60}
+            />
+          )}
+        </BarChart>
+      </ChartContainer>
+    )
+  }
+
   if (isLoading) {
     return (
       <Card className={cn('shadow-sm flex flex-col', className)}>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
           <div className="space-y-1 w-full">
             <div className="flex items-center gap-2">
               <Skeleton className="h-5 w-5 rounded-full" />
@@ -199,84 +270,9 @@ export function SeboInventoryChart({
     )
   }
 
-  const hasData = chartData && chartData.length > 0
-  const isEmpty =
-    !hasData ||
-    chartData.every((d) => {
-      const values = Object.values(d).filter((v) => typeof v === 'number')
-      return values.reduce((a: any, b: any) => a + b, 0) === 0
-    })
-
-  if (isEmpty) {
-    return (
-      <Card className={cn('shadow-sm', className)}>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Evolução do Estoque
-          </CardTitle>
-          <CardDescription>
-            Detalhamento diário por tanque (últimos 30 dias)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado encontrado para o período.
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
-    <ChartContainer config={chartConfig} className={`${height} w-full`}>
-      <BarChart
-        data={chartData}
-        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
-      >
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis
-          dataKey="date"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={10}
-          fontSize={12}
-          minTickGap={20}
-        />
-        <YAxis hide domain={[0, 'auto']} />
-        <ChartTooltip
-          cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-          content={<ChartTooltipContent indicator="dashed" />}
-        />
-        <ChartLegend content={<ChartLegendContent />} />
-
-        {/* Dynamic Bars for each Tank */}
-        {uniqueTanks.map((tank) => (
-          <Bar
-            key={tank}
-            dataKey={`tank_${tank}`}
-            stackId="a"
-            fill={`var(--color-tank_${tank})`}
-            radius={[0, 0, 0, 0]}
-            maxBarSize={60}
-          />
-        ))}
-
-        {/* Bar for Extras if they exist */}
-        {hasExtras && (
-          <Bar
-            dataKey="extras"
-            stackId="a"
-            fill="var(--color-extras)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={60}
-          />
-        )}
-      </BarChart>
-    </ChartContainer>
-  )
-
   return (
     <Card className={cn('shadow-sm flex flex-col', className)}>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
@@ -286,29 +282,32 @@ export function SeboInventoryChart({
             Quantidade total de sebo (Kg) por dia, detalhado por tanque
           </CardDescription>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            >
-              <Maximize2 className="h-4 w-4" />
-              <span className="sr-only">Expandir</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
-            <DialogHeader>
-              <DialogTitle>Evolução Detalhada do Estoque</DialogTitle>
-              <DialogDescription>
-                Visualização expandida do estoque diário de Sebo Bovino.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex-1 w-full min-h-0 py-4">
-              <ChartContent height="h-full" />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          {headerControls}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="sr-only">Expandir</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Evolução Detalhada do Estoque</DialogTitle>
+                <DialogDescription>
+                  Visualização expandida do estoque diário de Sebo Bovino.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 w-full min-h-0 py-4">
+                <ChartContent height="h-full" />
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="pt-4 flex-1 min-h-[300px]">
         <ChartContent />
