@@ -14,6 +14,7 @@ import {
   Gauge,
   ArrowUpRight,
   ArrowDownRight,
+  CalendarDays,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -26,7 +27,8 @@ import {
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
-import { subDays, isSameDay, startOfDay } from 'date-fns'
+import { subDays, isSameDay, startOfDay, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -37,6 +39,8 @@ interface OverviewCardsProps {
   acidityRecords: AcidityEntry[]
   notificationSettings: NotificationSettings
   fullProductionHistory?: ProductionEntry[]
+  fullCookingTimeRecords?: CookingTimeRecord[]
+  referenceDate?: Date
 }
 
 export function OverviewCards({
@@ -46,6 +50,8 @@ export function OverviewCards({
   cookingTimeRecords,
   acidityRecords,
   fullProductionHistory = [],
+  fullCookingTimeRecords = [],
+  referenceDate,
 }: OverviewCardsProps) {
   const metrics = useMemo(() => {
     // Helper to normalize quantity to kg
@@ -53,7 +59,7 @@ export function OverviewCards({
       const u = unit?.toLowerCase() || ''
       if (u.includes('bag')) return quantity * 1400
       if (u.includes('ton')) return quantity * 1000
-      return quantity // assuming kg if not specified or liters for liquid (roughly 1:1 for simplicity in general view, but MP is usually mass)
+      return quantity // assuming kg if not specified
     }
 
     // 1. Entrada MP (Excluding Sangue)
@@ -82,14 +88,11 @@ export function OverviewCards({
       seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
 
     // 3. Rendimento Geral
-    // Defined as: Total Production Output / Total Raw Material Used
-    // MP Used (from production table) corresponds to Main Line (Sebo/FCO/Farinheta)
     const mpUsedMainLine = production.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
-    // Blood Input (from Raw Materials) corresponds to Blood Line
     const bloodInputKg = rawMaterials
       .filter((r) => r.type?.toLowerCase() === 'sangue')
       .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
@@ -118,25 +121,43 @@ export function OverviewCards({
     const farinhetaYield =
       mpUsedMainLine > 0 ? (farinhetaProduced / mpUsedMainLine) * 100 : 0
 
-    // 9. Total de entrada de sangue (Calculated above as bloodInputKg)
-
-    // 10. Total farinha de sangue (Calculated above as bloodMealProduced)
-
     // 11. Rendimento sangue
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
-    // 12. Tempo de Processos & Production Efficiency
-    const totalProcessMinutes = cookingTimeRecords.reduce((acc, curr) => {
-      if (!curr.startTime || !curr.endTime) return acc
+    // 12. NEW: Process Time & Efficiency (D-1 Logic)
+    // Target Date (D)
+    const targetDate = referenceDate || new Date()
+    // Previous Date (D-1)
+    const previousDate = subDays(targetDate, 1)
 
+    // Filter Production for D-1
+    const prevDayProduction = fullProductionHistory.filter((p) =>
+      isSameDay(p.date, previousDate),
+    )
+    const totalProductionKgD1 = prevDayProduction.reduce(
+      (acc, p) =>
+        acc +
+        p.seboProduced +
+        p.fcoProduced +
+        p.farinhetaProduced +
+        (p.bloodMealProduced || 0),
+      0,
+    )
+
+    // Filter Cooking Time for D-1
+    const prevDayCooking = fullCookingTimeRecords.filter((c) =>
+      isSameDay(c.date, previousDate),
+    )
+
+    const totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
+      if (!curr.startTime || !curr.endTime) return acc
       const toMinutes = (timeStr: string) => {
         const parts = timeStr.split(':')
         if (parts.length < 2) return 0
         return parseInt(parts[0]) * 60 + parseInt(parts[1])
       }
 
-      // Check if it's a string (expected)
       if (
         typeof curr.startTime === 'string' &&
         typeof curr.endTime === 'string'
@@ -150,47 +171,15 @@ export function OverviewCards({
       return acc
     }, 0)
 
-    const processTimeHours = Math.floor(totalProcessMinutes / 60)
-    const processTimeMinutes = Math.round(totalProcessMinutes % 60)
-    const processTimeDisplay = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
+    const hoursD1 = totalMinutesD1 / 60
+    const tonPerHourD1 = hoursD1 > 0 ? totalProductionKgD1 / 1000 / hoursD1 : 0
 
-    // New Efficiency Calculation: Tons / Hour
-    // Formula: Total Production of (Day - 1) / Total Cooking Time of (Day)
-    // Target: 14.125 Ton/h
-
-    // 1. Identify unique days in current cookingTimeRecords (the "Current Days")
-    const uniqueCookingDays = Array.from(
-      new Set(cookingTimeRecords.map((r) => startOfDay(r.date).getTime())),
-    ).map((t) => new Date(t))
-
-    // 2. Sum Production for (Day - 1) for each unique day
-    let totalShiftedProductionKg = 0
-
-    uniqueCookingDays.forEach((currentDay) => {
-      const previousDay = subDays(currentDay, 1)
-
-      // Find all production records for previousDay in full history
-      const prevDayProduction = fullProductionHistory.filter((p) =>
-        isSameDay(p.date, previousDay),
-      )
-
-      const dailyProd = prevDayProduction.reduce(
-        (acc, p) =>
-          acc +
-          p.seboProduced +
-          p.fcoProduced +
-          p.farinhetaProduced +
-          (p.bloodMealProduced || 0),
-        0,
-      )
-      totalShiftedProductionKg += dailyProd
+    const processTimeHours = Math.floor(totalMinutesD1 / 60)
+    const processTimeMinutes = Math.round(totalMinutesD1 % 60)
+    const processTimeD1Display = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
+    const previousDateFormatted = format(previousDate, 'dd/MM', {
+      locale: ptBR,
     })
-
-    const totalCookingHoursDecimal = totalProcessMinutes / 60
-    const productionRateTonPerHour =
-      totalCookingHoursDecimal > 0
-        ? totalShiftedProductionKg / 1000 / totalCookingHoursDecimal
-        : 0
 
     return {
       rawMaterialInputKg,
@@ -204,16 +193,18 @@ export function OverviewCards({
       bloodInputKg,
       bloodMealProduced,
       bloodYield,
-      processTimeDisplay,
-      productionRateTonPerHour,
+      processTimeD1Display,
+      tonPerHourD1,
+      previousDateFormatted,
     }
   }, [
     rawMaterials,
     production,
     shipping,
     acidityRecords,
-    cookingTimeRecords,
     fullProductionHistory,
+    fullCookingTimeRecords,
+    referenceDate,
   ])
 
   const formatCurrency = (val: number) => {
@@ -291,10 +282,10 @@ export function OverviewCards({
         borderColor="border-l-emerald-600"
       />
 
-      {/* 12. Tempo de Processos (Enhanced) */}
+      {/* 12. Tempo de Processos (D-1) */}
       <MetricCard
-        title="Tempo de Processos"
-        value={metrics.processTimeDisplay}
+        title={`Tempo de Processos`}
+        value={metrics.processTimeD1Display}
         icon={Clock}
         iconColor="text-blue-500"
         borderColor="border-l-blue-500"
@@ -302,13 +293,14 @@ export function OverviewCards({
         <div className="mt-3 pt-3 border-t border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-                Eficiência (D-1)
+              <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" />
+                Ref: {metrics.previousDateFormatted}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 mt-0.5">
                 <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-lg font-bold">
-                  {metrics.productionRateTonPerHour.toFixed(2)}{' '}
+                  {metrics.tonPerHourD1.toFixed(2)}{' '}
                   <span className="text-xs font-normal text-muted-foreground">
                     t/h
                   </span>
@@ -323,7 +315,7 @@ export function OverviewCards({
                 <span className="text-xs text-muted-foreground">
                   {TARGET_RATE}
                 </span>
-                {metrics.productionRateTonPerHour >= TARGET_RATE ? (
+                {metrics.tonPerHourD1 >= TARGET_RATE ? (
                   <ArrowUpRight className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <ArrowDownRight className="h-4 w-4 text-red-500" />

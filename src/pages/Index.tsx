@@ -58,7 +58,7 @@ export default function Dashboard() {
     return () => clearInterval(timer)
   }, [today])
 
-  // Determine effective date for forecast
+  // Determine effective date for forecast (and now for D-1 efficiency context)
   // If the selected range includes Today, we prioritize Today for the forecast
   // Otherwise we use the end date of the range
   const effectiveForecastDate = useMemo(() => {
@@ -253,6 +253,8 @@ export default function Dashboard() {
             acidityRecords={filteredAcidity}
             notificationSettings={notificationSettings}
             fullProductionHistory={production}
+            fullCookingTimeRecords={cookingTimeRecords}
+            referenceDate={effectiveForecastDate}
           />
 
           <LoadForecast referenceDate={effectiveForecastDate} />
