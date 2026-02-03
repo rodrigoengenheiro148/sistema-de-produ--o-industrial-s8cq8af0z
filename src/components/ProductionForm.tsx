@@ -32,6 +32,7 @@ const formSchema = z.object({
   sebo: z.coerce.number().min(0, 'Valor deve ser positivo'),
   fco: z.coerce.number().min(0, 'Valor deve ser positivo'),
   farinheta: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  bloodMeal: z.coerce.number().min(0, 'Valor deve ser positivo'),
   losses: z.coerce.number(),
 })
 
@@ -58,6 +59,7 @@ export function ProductionForm({
       sebo: initialData?.seboProduced || 0,
       fco: initialData?.fcoProduced || 0,
       farinheta: initialData?.farinhetaProduced || 0,
+      bloodMeal: initialData?.bloodMealProduced || 0,
       losses: initialData?.losses || 0,
     },
   })
@@ -68,6 +70,10 @@ export function ProductionForm({
   const farinheta = form.watch('farinheta')
 
   useEffect(() => {
+    // Note: Blood meal is usually a separate process, so it might not subtract from the main MP line in the same way.
+    // However, if it's considered part of the total output for loss calculation of the factory, we might include it.
+    // For now, preserving existing logic: Losses = Input (MP) - Output (Sebo + FCO + Farinheta).
+    // Assuming Blood processing is a parallel line with its own input (Sangue), so it doesn't affect main line losses directly here.
     const input = Number(mpUsed) || 0
     const output =
       (Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0)
@@ -89,6 +95,7 @@ export function ProductionForm({
       seboProduced: values.sebo,
       fcoProduced: values.fco,
       farinhetaProduced: values.farinheta,
+      bloodMealProduced: values.bloodMeal,
       losses: values.losses,
     }
 
@@ -155,7 +162,9 @@ export function ProductionForm({
         </div>
 
         <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800">
-          <h3 className="font-medium text-sm text-slate-500">Entrada</h3>
+          <h3 className="font-medium text-sm text-slate-500">
+            Linha Principal
+          </h3>
           <FormField
             control={form.control}
             name="mpUsed"
@@ -169,42 +178,78 @@ export function ProductionForm({
               </FormItem>
             )}
           />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="sebo"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sebo (kg)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fco"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Farinha Carne/Osso (kg)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="farinheta"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Farinheta (kg)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="losses"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Perdas (kg)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      readOnly
+                      tabIndex={-1}
+                      className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800">
-          <h3 className="font-medium text-sm text-slate-500">Saídas</h3>
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg space-y-4 border border-red-100 dark:border-red-900/30">
+          <h3 className="font-medium text-sm text-red-600 dark:text-red-400">
+            Linha de Sangue
+          </h3>
           <FormField
             control={form.control}
-            name="sebo"
+            name="bloodMeal"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sebo (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fco"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Farinha Carne/Osso (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="farinheta"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Farinheta (kg)</FormLabel>
+                <FormLabel>Farinha de Sangue (kg)</FormLabel>
                 <FormControl>
                   <Input type="number" {...field} />
                 </FormControl>
@@ -213,26 +258,6 @@ export function ProductionForm({
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="losses"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Perdas (kg)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  readOnly
-                  tabIndex={-1}
-                  className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <SheetFooter>
           <Button type="submit" className="w-full">

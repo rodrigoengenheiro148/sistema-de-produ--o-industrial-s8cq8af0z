@@ -81,6 +81,7 @@ const mapData = (data: any[]) => {
     seboProduced: item.sebo_produced,
     fcoProduced: item.fco_produced,
     farinhetaProduced: item.farinheta_produced,
+    bloodMealProduced: item.blood_meal_produced || 0,
     unitPrice: item.unit_price,
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
@@ -403,10 +404,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
-        // We don't set global 'error' status here to avoid blocking the UI,
-        // but we might want to retry or alert.
-        // For now, keeping it 'online' if data was fetched initially,
-        // or 'error' if initial fetch failed.
       } else if (status === 'TIMED_OUT') {
         console.error(`Realtime subscription timed out on ${channelName}`)
         setConnectionStatus('error')
@@ -486,6 +483,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       sebo_produced: entry.seboProduced,
       fco_produced: entry.fcoProduced,
       farinheta_produced: entry.farinhetaProduced,
+      blood_meal_produced: entry.bloodMealProduced,
       losses: entry.losses,
       user_id: user?.id,
       factory_id: currentFactoryId,
@@ -503,6 +501,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         sebo_produced: entry.seboProduced,
         fco_produced: entry.fcoProduced,
         farinheta_produced: entry.farinhetaProduced,
+        blood_meal_produced: entry.bloodMealProduced,
         losses: entry.losses,
       })
       .eq('id', entry.id)

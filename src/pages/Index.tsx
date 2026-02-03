@@ -24,6 +24,7 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
+import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { useMemo, useState, useEffect } from 'react'
 
 export default function Dashboard() {
@@ -289,6 +290,11 @@ export default function Dashboard() {
         <TabsContent value="yields" className="space-y-4">
           <YieldBarChart data={filteredProduction} isMobile={isMobile} />
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
+          <BloodYieldBarChart
+            productionData={filteredProduction}
+            rawMaterialData={filteredRawMaterials}
+            isMobile={isMobile}
+          />
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">

@@ -7,6 +7,7 @@ import {
   Droplets,
   Bone,
   Wheat,
+  Droplet,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -96,6 +97,28 @@ export function OverviewCards({
     const farinhetaYield =
       mpUsedForYield > 0 ? (farinhetaProduced / mpUsedForYield) * 100 : 0
 
+    // 6. Blood Metrics
+    const bloodEntry = rawMaterials
+      .filter((r) => r.type?.toLowerCase() === 'sangue')
+      .reduce((acc, curr) => {
+        let qty = curr.quantity
+        const unit = curr.unit?.toLowerCase() || ''
+        if (unit.includes('bag')) {
+          qty = qty * 1400
+        } else if (unit.includes('ton')) {
+          qty = qty * 1000
+        }
+        // If 'kg' or others, assume quantity is already correct or treat as 1 unit
+        return acc + qty
+      }, 0)
+
+    const bloodProduced = production.reduce(
+      (acc, curr) => acc + (curr.bloodMealProduced || 0),
+      0,
+    )
+
+    const bloodYield = bloodEntry > 0 ? (bloodProduced / bloodEntry) * 100 : 0
+
     return {
       totalRawMaterial,
       totalProduction,
@@ -104,6 +127,8 @@ export function OverviewCards({
       seboYield,
       fcoYield,
       farinhetaYield,
+      bloodEntry,
+      bloodYield,
     }
   }, [rawMaterials, production, shipping, cookingTimeRecords, now])
 
@@ -274,6 +299,40 @@ export function OverviewCards({
               )}
             >
               {metrics.farinhetaYield.toFixed(2)}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Blood Metrics Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-l-4 border-l-red-600 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Entrada de Sangue
+            </CardTitle>
+            <Droplet className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold">
+              {formatNumber(metrics.bloodEntry)}{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                kg
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-red-400 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total de Rendimentos de Sangue
+            </CardTitle>
+            <Droplet className="h-4 w-4 text-red-400" />
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="text-2xl font-bold">
+              {metrics.bloodYield.toFixed(2)}%
             </div>
           </CardContent>
         </Card>
