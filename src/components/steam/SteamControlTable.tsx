@@ -71,9 +71,9 @@ export function SteamControlTable() {
 
     // Map to include calculated fields
     return filtered.map((record) => {
-      // Entrada MP: Sum of raw materials for the day
+      // Entrada MP: Sum of raw materials for the day (excluding 'Sangue')
       const mpEntry = rawMaterials
-        .filter((rm) => isSameDay(rm.date, record.date))
+        .filter((rm) => isSameDay(rm.date, record.date) && rm.type !== 'Sangue')
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
       // Total Biomass (Adjusted) Calculation

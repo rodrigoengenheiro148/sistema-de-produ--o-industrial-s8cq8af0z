@@ -79,7 +79,7 @@ export function SteamControlForm({
     if (!selectedDateStr) return 0
     const selectedDate = new Date(`${selectedDateStr}T12:00:00`)
     return rawMaterials
-      .filter((rm) => isSameDay(rm.date, selectedDate))
+      .filter((rm) => isSameDay(rm.date, selectedDate) && rm.type !== 'Sangue') // Exclude "Sangue" from MP sum
       .reduce((acc, curr) => acc + curr.quantity, 0)
   }, [selectedDateStr, rawMaterials])
 
