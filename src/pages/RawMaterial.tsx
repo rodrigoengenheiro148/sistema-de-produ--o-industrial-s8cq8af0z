@@ -36,6 +36,8 @@ import {
   Lock,
   MoreVertical,
   Filter,
+  Scale,
+  Percent,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
@@ -64,7 +66,7 @@ import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
 
 export default function RawMaterial() {
-  const { rawMaterials, deleteRawMaterial, dateRange } = useData()
+  const { rawMaterials, deleteRawMaterial, dateRange, production } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
@@ -136,6 +138,42 @@ export default function RawMaterial() {
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
+  // --- Metrics Calculation ---
+
+  // 1. Total Input Mass (uses filteredMaterials to respect all filters)
+  const totalInputKg = filteredMaterials.reduce((acc, item) => {
+    const unit = item.unit?.toLowerCase() || ''
+    if (unit === 'bag') return acc + item.quantity * 1400
+    if (unit === 'ton') return acc + item.quantity * 1000
+    return acc + item.quantity
+  }, 0)
+
+  // 2. Yield Percentage (uses production filtered only by Date Range)
+  const filteredProduction = production.filter((item) => {
+    if (dateRange.from && dateRange.to) {
+      if (item.date < dateRange.from || item.date > dateRange.to) return false
+    }
+    return true
+  })
+
+  const totalOutput = filteredProduction.reduce(
+    (acc, curr) =>
+      acc + (curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced),
+    0,
+  )
+  const totalMpUsed = filteredProduction.reduce(
+    (acc, curr) => acc + curr.mpUsed,
+    0,
+  )
+  const yieldPercentage =
+    totalMpUsed > 0 ? (totalOutput / totalMpUsed) * 100 : 0
+
+  const formatMass = (val: number) => {
+    if (val >= 1000)
+      return `${(val / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t`
+    return `${val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -173,6 +211,46 @@ export default function RawMaterial() {
               />
             </DialogContent>
           </Dialog>
+        </div>
+      </div>
+
+      {/* Visão Geral Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-muted-foreground">
+          Visão Geral
+        </h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total de Entrada
+              </CardTitle>
+              <Scale className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatMass(totalInputKg)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Soma da quantidade baseada nos filtros aplicados.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Rendimentos</CardTitle>
+              <Percent className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {yieldPercentage.toFixed(1)}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Eficiência produtiva no período selecionado.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
