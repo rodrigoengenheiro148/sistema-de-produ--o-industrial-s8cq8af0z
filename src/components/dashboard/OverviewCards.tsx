@@ -160,9 +160,7 @@ export function OverviewCards({
 
     // 1. Identify unique days in current cookingTimeRecords (the "Current Days")
     const uniqueCookingDays = Array.from(
-      new Set(
-        cookingTimeRecords.map((r) => startOfDay(r.date).getTime()),
-      ),
+      new Set(cookingTimeRecords.map((r) => startOfDay(r.date).getTime())),
     ).map((t) => new Date(t))
 
     // 2. Sum Production for (Day - 1) for each unique day
@@ -184,7 +182,6 @@ export function OverviewCards({
           p.farinhetaProduced +
           (p.bloodMealProduced || 0),
         0,
-      ,
       )
       totalShiftedProductionKg += dailyProd
     })
