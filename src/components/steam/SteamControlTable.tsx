@@ -22,10 +22,15 @@ import {
 import { SteamControlForm } from './SteamControlForm'
 import { SteamControlRecord } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
 
 export function SteamControlTable() {
-  const { steamRecords, rawMaterials, deleteSteamRecord, dateRange } = useData()
+  const {
+    steamRecords,
+    rawMaterials,
+    production,
+    deleteSteamRecord,
+    dateRange,
+  } = useData()
   const { toast } = useToast()
 
   const [editingRecord, setEditingRecord] = useState<SteamControlRecord | null>(
@@ -76,10 +81,26 @@ export function SteamControlTable() {
         .filter((rm) => isSameDay(rm.date, record.date) && rm.type !== 'Sangue')
         .reduce((acc, curr) => acc + curr.quantity, 0)
 
+      // Total Production: Sum of all production outputs for the day
+      const dailyProduction = production
+        .filter((prod) => isSameDay(prod.date, record.date))
+        .reduce((acc, curr) => {
+          return (
+            acc +
+            (curr.seboProduced || 0) +
+            (curr.fcoProduced || 0) +
+            (curr.farinhetaProduced || 0) +
+            (curr.bloodMealProduced || 0)
+          )
+        }, 0)
+
       // Total Ajustado (Biomass Total): Sum of fuels
       // Formula: Resíduos de Soja + Lenha + Palha Arroz + Cavaco
       const biomassTotal =
-        record.soyWaste + record.firewood + record.riceHusk + record.woodChips
+        (record.soyWaste || 0) +
+        (record.firewood || 0) +
+        (record.riceHusk || 0) +
+        (record.woodChips || 0)
 
       // Steam Consumption Calculation based on Meters
       // Formula: Medidor Fim - Medidor Início
@@ -90,6 +111,7 @@ export function SteamControlTable() {
       return {
         ...record,
         mpEntry,
+        dailyProduction,
         biomassTotal,
         steamConsumption,
 
@@ -99,35 +121,35 @@ export function SteamControlTable() {
         // MPs VS VAPOR: Entrada MP / Consumo Vapor
         mpVsVapor: steamConsumption ? mpEntry / steamConsumption : 0,
 
-        // MPs m³ CAVACO: (Cavaco + Entrada MP) / Total Biomass
-        mpVsCavaco: biomassTotal
-          ? (record.woodChips + mpEntry) / biomassTotal
-          : 0,
+        // MPs m³ CAVACO: Entrada MP / Cavaco
+        mpVsCavaco: record.woodChips ? mpEntry / record.woodChips : 0,
 
-        // TONELADAS VAPOR VS MPs: (Consumo Vapor / Entrada MP) * 1000
+        // TONELADAS VAPOR VS MPs: Consumo Vapor / Entrada MP
+        // Multiplied by 1000 to convert MP kg to Tons, resulting in Tons Steam / Ton MP
         vaporVsMp: mpEntry ? (steamConsumption / mpEntry) * 1000 : 0,
 
-        // TONS VS MPs: (Consumo Vapor / Entrada MP) * 1000
-        // Kept as per original code logic, usually redundant with vaporVsMp but requested in layout
-        tonsVsMp: mpEntry ? (steamConsumption / mpEntry) * 1000 : 0,
+        // TONS VS MPs: Total Production / Entrada MP
+        tonsVsMp: mpEntry ? dailyProduction / mpEntry : 0,
       }
     })
-  }, [steamRecords, rawMaterials, dateRange])
+  }, [steamRecords, rawMaterials, production, dateRange])
 
   // Calculate Footer Totals
   const totals = useMemo(() => {
     const sums = tableData.reduce(
       (acc, curr) => ({
         mpEntry: acc.mpEntry + curr.mpEntry,
-        soyWaste: acc.soyWaste + curr.soyWaste,
-        firewood: acc.firewood + curr.firewood,
-        riceHusk: acc.riceHusk + curr.riceHusk,
-        woodChips: acc.woodChips + curr.woodChips,
+        dailyProduction: acc.dailyProduction + curr.dailyProduction,
+        soyWaste: acc.soyWaste + (curr.soyWaste || 0),
+        firewood: acc.firewood + (curr.firewood || 0),
+        riceHusk: acc.riceHusk + (curr.riceHusk || 0),
+        woodChips: acc.woodChips + (curr.woodChips || 0),
         biomassTotal: acc.biomassTotal + curr.biomassTotal,
         steamConsumption: acc.steamConsumption + curr.steamConsumption,
       }),
       {
         mpEntry: 0,
+        dailyProduction: 0,
         soyWaste: 0,
         firewood: 0,
         riceHusk: 0,
@@ -146,15 +168,11 @@ export function SteamControlTable() {
       mpVsVapor: sums.steamConsumption
         ? sums.mpEntry / sums.steamConsumption
         : 0,
-      mpVsCavaco: sums.biomassTotal
-        ? (sums.woodChips + sums.mpEntry) / sums.biomassTotal
-        : 0,
+      mpVsCavaco: sums.woodChips ? sums.mpEntry / sums.woodChips : 0,
       vaporVsMp: sums.mpEntry
         ? (sums.steamConsumption / sums.mpEntry) * 1000
         : 0,
-      tonsVsMp: sums.mpEntry
-        ? (sums.steamConsumption / sums.mpEntry) * 1000
-        : 0,
+      tonsVsMp: sums.mpEntry ? sums.dailyProduction / sums.mpEntry : 0,
     }
   }, [tableData])
 
@@ -163,8 +181,9 @@ export function SteamControlTable() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
+
   const formatRatio = (num: number) =>
-    num === 0
+    !isFinite(num) || num === 0
       ? '-'
       : num.toLocaleString('pt-BR', {
           minimumFractionDigits: 2,
@@ -179,9 +198,6 @@ export function SteamControlTable() {
             <TableRow className="bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30">
               <TableHead className="font-bold text-green-900 dark:text-green-100 min-w-[100px]">
                 DATA
-              </TableHead>
-              <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
-                ENTRADA MP
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 RESIDUOS DE SOJA
@@ -232,7 +248,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={14}
+                  colSpan={13}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado no período.
@@ -250,9 +266,6 @@ export function SteamControlTable() {
                           <Lock className="h-3 w-3 text-muted-foreground/50" />
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatNumber(row.mpEntry)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-muted-foreground">
                       {formatNumber(row.soyWaste)}
@@ -329,9 +342,6 @@ export function SteamControlTable() {
             <tfoot className="bg-green-100 dark:bg-green-900/30 font-bold border-t-2 border-green-200">
               <TableRow>
                 <TableCell>TOTAL</TableCell>
-                <TableCell className="text-right">
-                  {formatNumber(totals.mpEntry)}
-                </TableCell>
                 <TableCell className="text-right">
                   {formatNumber(totals.soyWaste)}
                 </TableCell>
