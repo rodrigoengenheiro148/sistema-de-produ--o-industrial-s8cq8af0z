@@ -193,157 +193,128 @@ export function OverviewCards({
   )
 
   return (
-    <div className="space-y-8">
-      {/* Section 1: Entrada de Matéria-Prima */}
-      <section>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Database className="h-5 w-5 text-primary" />
-          Entrada de Matéria-Prima
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="TOTAL MATÉRIA-PRIMA"
-            value={formatNumber(metrics.totalMpProcessed)}
-            unit="kg"
-            icon={Database}
-            borderColor="border-l-primary"
-            iconColor="text-primary"
-            subValue={
-              <span className="text-xs text-muted-foreground">
-                Baseado em MP Processada
-              </span>
-            }
-          />
-          <MetricCard
-            title="TOTAL ENTRADA DE SANGUE"
-            value={formatNumber(metrics.bloodInputTotal)}
-            unit="kg"
-            icon={Droplet}
-            borderColor="border-l-red-500"
-            iconColor="text-red-500"
-          />
-        </div>
-      </section>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* 1. Raw Material Inputs */}
+      <MetricCard
+        title="TOTAL MATÉRIA-PRIMA"
+        value={formatNumber(metrics.totalMpProcessed)}
+        unit="kg"
+        icon={Database}
+        borderColor="border-l-primary"
+        iconColor="text-primary"
+        subValue={
+          <span className="text-xs text-muted-foreground">
+            Baseado em MP Processada
+          </span>
+        }
+      />
+      <MetricCard
+        title="TOTAL ENTRADA DE SANGUE"
+        value={formatNumber(metrics.bloodInputTotal)}
+        unit="kg"
+        icon={Droplet}
+        borderColor="border-l-red-500"
+        iconColor="text-red-500"
+      />
 
-      {/* Section 2: Produção */}
-      <section>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          Produção
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="TOTAL SEBO"
-            value={formatNumber(metrics.seboProduced)}
-            unit="kg"
-            icon={Droplets}
-            borderColor="border-l-emerald-500"
-            iconColor="text-emerald-500"
-          />
-          <MetricCard
-            title="TOTAL FCO"
-            value={formatNumber(metrics.fcoProduced)}
-            unit="kg"
-            icon={Bone}
-            borderColor="border-l-orange-500"
-            iconColor="text-orange-500"
-          />
-          <MetricCard
-            title="TOTAL FARINHETA"
-            value={formatNumber(metrics.farinhetaProduced)}
-            unit="kg"
-            icon={Wheat}
-            borderColor="border-l-orange-500"
-            iconColor="text-orange-500"
-          />
-          <MetricCard
-            title="TOTAL FARINHA DE SANGUE"
-            value={formatNumber(metrics.bloodMealProduced)}
-            unit="kg"
-            icon={Droplet}
-            borderColor="border-l-red-500"
-            iconColor="text-red-500"
-          />
+      {/* 2. Production Totals */}
+      <MetricCard
+        title="TOTAL SEBO"
+        value={formatNumber(metrics.seboProduced)}
+        unit="kg"
+        icon={Droplets}
+        borderColor="border-l-emerald-500"
+        iconColor="text-emerald-500"
+      />
+      <MetricCard
+        title="TOTAL FCO"
+        value={formatNumber(metrics.fcoProduced)}
+        unit="kg"
+        icon={Bone}
+        borderColor="border-l-orange-500"
+        iconColor="text-orange-500"
+      />
+      <MetricCard
+        title="TOTAL FARINHETA"
+        value={formatNumber(metrics.farinhetaProduced)}
+        unit="kg"
+        icon={Wheat}
+        borderColor="border-l-orange-500"
+        iconColor="text-orange-500"
+      />
+      <MetricCard
+        title="TOTAL FARINHA DE SANGUE"
+        value={formatNumber(metrics.bloodMealProduced)}
+        unit="kg"
+        icon={Droplet}
+        borderColor="border-l-red-500"
+        iconColor="text-red-500"
+      />
 
-          {/* Performance Row within Production Section */}
-          <MetricCard
-            title="FATURAMENTO ESTIMADO"
-            value={formatCurrency(metrics.totalRevenue)}
-            icon={DollarSign}
-            borderColor="border-l-emerald-500"
-            iconColor="text-emerald-500"
-          />
+      {/* 3. Performance Metrics */}
+      <MetricCard
+        title="FATURAMENTO ESTIMADO"
+        value={formatCurrency(metrics.totalRevenue)}
+        icon={DollarSign}
+        borderColor="border-l-emerald-500"
+        iconColor="text-emerald-500"
+      />
 
-          <ProductivityCard />
-        </div>
-      </section>
+      <ProductivityCard />
 
-      {/* Section 3: Rendimentos */}
-      <section>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <PieChart className="h-5 w-5 text-primary" />
-          Rendimentos
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="RENDIMENTO SEBO"
-            value={metrics.seboYield.toFixed(2)}
-            unit="%"
-            icon={Droplets}
-            borderColor="border-l-emerald-500"
-            iconColor="text-emerald-500"
-            valueColor={getYieldColor(metrics.seboYield, seboThreshold)}
-          />
-          <MetricCard
-            title="RENDIMENTO FCO"
-            value={metrics.fcoYield.toFixed(2)}
-            unit="%"
-            icon={Bone}
-            borderColor="border-l-orange-500"
-            iconColor="text-orange-500"
-            valueColor={getYieldColor(metrics.fcoYield, fcoThreshold)}
-          />
-          <MetricCard
-            title="RENDIMENTO FARINHETA"
-            value={metrics.farinhetaYield.toFixed(2)}
-            unit="%"
-            icon={Wheat}
-            borderColor="border-l-orange-500"
-            iconColor="text-orange-500"
-            valueColor={getYieldColor(
-              metrics.farinhetaYield,
-              farinhetaThreshold,
-            )}
-          />
-          <MetricCard
-            title="TOTAL REND. SANGUE"
-            value={metrics.bloodYield.toFixed(2)}
-            unit="%"
-            icon={Droplet}
-            borderColor="border-l-red-600"
-            iconColor="text-red-600"
-            valueColor={
-              metrics.bloodYield > 0
-                ? 'text-foreground'
-                : 'text-muted-foreground'
-            }
-          />
+      {/* 4. Yield Metrics */}
+      <MetricCard
+        title="RENDIMENTO SEBO"
+        value={metrics.seboYield.toFixed(2)}
+        unit="%"
+        icon={Droplets}
+        borderColor="border-l-emerald-500"
+        iconColor="text-emerald-500"
+        valueColor={getYieldColor(metrics.seboYield, seboThreshold)}
+      />
+      <MetricCard
+        title="RENDIMENTO FCO"
+        value={metrics.fcoYield.toFixed(2)}
+        unit="%"
+        icon={Bone}
+        borderColor="border-l-orange-500"
+        iconColor="text-orange-500"
+        valueColor={getYieldColor(metrics.fcoYield, fcoThreshold)}
+      />
+      <MetricCard
+        title="RENDIMENTO FARINHETA"
+        value={metrics.farinhetaYield.toFixed(2)}
+        unit="%"
+        icon={Wheat}
+        borderColor="border-l-orange-500"
+        iconColor="text-orange-500"
+        valueColor={getYieldColor(metrics.farinhetaYield, farinhetaThreshold)}
+      />
+      <MetricCard
+        title="TOTAL REND. SANGUE"
+        value={metrics.bloodYield.toFixed(2)}
+        unit="%"
+        icon={Droplet}
+        borderColor="border-l-red-600"
+        iconColor="text-red-600"
+        valueColor={
+          metrics.bloodYield > 0 ? 'text-foreground' : 'text-muted-foreground'
+        }
+      />
 
-          <MetricCard
-            title="RENDIMENTO GERAL"
-            value={metrics.generalYield.toFixed(2)}
-            unit="%"
-            icon={PieChart}
-            borderColor="border-l-teal-600"
-            iconColor="text-teal-600"
-            subValue={
-              <span className="text-xs text-muted-foreground">
-                Média Global (Exceto Sangue)
-              </span>
-            }
-          />
-        </div>
-      </section>
+      <MetricCard
+        title="RENDIMENTO GERAL"
+        value={metrics.generalYield.toFixed(2)}
+        unit="%"
+        icon={PieChart}
+        borderColor="border-l-teal-600"
+        iconColor="text-teal-600"
+        subValue={
+          <span className="text-xs text-muted-foreground">
+            Média Global (Exceto Sangue)
+          </span>
+        }
+      />
     </div>
   )
 }
