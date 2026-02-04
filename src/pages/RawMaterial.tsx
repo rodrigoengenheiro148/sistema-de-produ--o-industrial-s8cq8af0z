@@ -38,8 +38,9 @@ import {
   Filter,
   Scale,
   Percent,
+  X,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 import { RawMaterialForm } from '@/components/RawMaterialForm'
 import { RawMaterialEntry } from '@/lib/types'
@@ -64,6 +65,7 @@ import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
+import { DatePicker } from '@/components/ui/date-picker'
 
 export default function RawMaterial() {
   const { rawMaterials, deleteRawMaterial, dateRange, production } = useData()
@@ -76,6 +78,7 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [historyDate, setHistoryDate] = useState<Date | undefined>(undefined)
 
   // Security Gate State
   const [securityOpen, setSecurityOpen] = useState(false)
@@ -122,8 +125,10 @@ export default function RawMaterial() {
 
   const filteredMaterials = rawMaterials
     .filter((item) => {
-      // Date Range Filter
-      if (dateRange.from && dateRange.to) {
+      // Date Filter: Specific Day (overrides range) OR Date Range
+      if (historyDate) {
+        if (!isSameDay(item.date, historyDate)) return false
+      } else if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false
       }
 
@@ -256,11 +261,41 @@ export default function RawMaterial() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="hidden sm:block">
-              Histórico de Entradas
-            </CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="hidden sm:block">
+                Histórico de Entradas
+              </CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="font-medium">
+                  {historyDate ? 'Total do Dia:' : 'Total Listado:'}
+                </span>
+                <span className="font-bold text-foreground">
+                  {formatMass(totalInputKg)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <div className="flex items-center gap-2">
+                <DatePicker
+                  date={historyDate}
+                  setDate={(date) => setHistoryDate(date)}
+                  className="w-full sm:w-[200px]"
+                />
+                {historyDate && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setHistoryDate(undefined)}
+                    title="Limpar data"
+                    className="shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <div className="flex items-center gap-2">
@@ -277,6 +312,7 @@ export default function RawMaterial() {
                   ))}
                 </SelectContent>
               </Select>
+
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
