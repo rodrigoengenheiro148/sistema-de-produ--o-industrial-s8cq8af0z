@@ -42,11 +42,19 @@ export function LossAnalysisChart({
   className,
 }: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
+    // Filter out blood production records as per acceptance criteria:
+    // A record is "Blood Production" if bloodMealProduced > 0 OR bloodMealBags > 0
+    const filteredData = data.filter((p) => {
+      const isBloodRecord =
+        p.bloodMealProduced > 0 || (p.bloodMealBags && p.bloodMealBags > 0)
+      return !isBloodRecord
+    })
+
     let processedData = []
 
     if (timeScale === 'monthly') {
       const monthlyData = new Map<string, any>()
-      data.forEach((p) => {
+      filteredData.forEach((p) => {
         const dateKey = format(p.date, 'yyyy-MM')
         const displayDate = format(p.date, 'MMM/yy', { locale: ptBR })
 
@@ -72,7 +80,7 @@ export function LossAnalysisChart({
         }))
         .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
     } else {
-      processedData = data
+      processedData = filteredData
         .filter((p) => p.losses > 0)
         .map((p) => ({
           date: format(p.date, 'dd/MM'),
