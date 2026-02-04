@@ -20,6 +20,14 @@ interface ChartDefinition {
   bars: BarConfig[]
 }
 
+// Colors from Tailwind
+const COLORS = {
+  emerald700: '#047857', // Vapor
+  amber500: '#f59e0b', // Cavaco
+  green500: '#22c55e', // Matéria-Prima
+  blue500: '#3b82f6', // Produção
+}
+
 export function SteamCharts() {
   const { steamRecords, production, dateRange } = useData()
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null)
@@ -38,7 +46,23 @@ export function SteamCharts() {
       }
     >()
 
-    // Filter and Process Steam Records
+    const getEntry = (date: Date) => {
+      const dateKey = format(date, 'yyyy-MM-dd')
+      if (!dataMap.has(dateKey)) {
+        dataMap.set(dateKey, {
+          date: date,
+          dateStr: dateKey,
+          displayDate: format(date, 'dd/MM', { locale: ptBR }),
+          steamConsumption: 0,
+          woodChips: 0,
+          mpUsed: 0,
+          totalProduction: 0,
+        })
+      }
+      return dataMap.get(dateKey)!
+    }
+
+    // Process Steam Records
     steamRecords.forEach((record) => {
       if (
         dateRange.from &&
@@ -48,24 +72,12 @@ export function SteamCharts() {
         return
       }
 
-      const dateKey = format(record.date, 'yyyy-MM-dd')
-      if (!dataMap.has(dateKey)) {
-        dataMap.set(dateKey, {
-          date: record.date,
-          dateStr: dateKey,
-          displayDate: format(record.date, 'dd/MM', { locale: ptBR }),
-          steamConsumption: 0,
-          woodChips: 0,
-          mpUsed: 0,
-          totalProduction: 0,
-        })
-      }
-      const entry = dataMap.get(dateKey)!
+      const entry = getEntry(record.date)
       entry.steamConsumption += record.steamConsumption || 0
       entry.woodChips += record.woodChips || 0
     })
 
-    // Filter and Process Production Records
+    // Process Production Records
     production.forEach((prod) => {
       if (
         dateRange.from &&
@@ -75,19 +87,8 @@ export function SteamCharts() {
         return
       }
 
-      const dateKey = format(prod.date, 'yyyy-MM-dd')
-      if (!dataMap.has(dateKey)) {
-        dataMap.set(dateKey, {
-          date: prod.date,
-          dateStr: dateKey,
-          displayDate: format(prod.date, 'dd/MM', { locale: ptBR }),
-          steamConsumption: 0,
-          woodChips: 0,
-          mpUsed: 0,
-          totalProduction: 0,
-        })
-      }
-      const entry = dataMap.get(dateKey)!
+      const entry = getEntry(prod.date)
+      // AC: "Matéria-Prima (kg)" series must fetch data from the production table, specifically the mp_used column
       entry.mpUsed += prod.mpUsed || 0
       entry.totalProduction +=
         (prod.seboProduced || 0) +
@@ -103,19 +104,19 @@ export function SteamCharts() {
   const chartConfig: ChartConfig = {
     steamConsumption: {
       label: 'Vapor (t)',
-      color: 'hsl(var(--chart-1))',
+      color: COLORS.emerald700,
     },
     woodChips: {
       label: 'Cavaco (m³)',
-      color: 'hsl(var(--chart-2))',
+      color: COLORS.amber500,
     },
     mpUsed: {
       label: 'Matéria-Prima (kg)',
-      color: 'hsl(var(--chart-3))',
+      color: COLORS.green500,
     },
     totalProduction: {
       label: 'Produção (kg)',
-      color: 'hsl(var(--chart-4))',
+      color: COLORS.blue500,
     },
   }
 
@@ -125,35 +126,49 @@ export function SteamCharts() {
       title: 'Consumo de Vapor',
       description: 'Total diário (t)',
       showLegend: false,
-      bars: [{ dataKey: 'steamConsumption' }],
+      bars: [{ dataKey: 'steamConsumption', fill: COLORS.emerald700 }],
     },
     {
       id: 'cavacoVsVapor',
       title: 'Cavacos vs. Toneladas Vapor',
       description: 'Comparativo Diário',
       showLegend: true,
-      bars: [{ dataKey: 'woodChips' }, { dataKey: 'steamConsumption' }],
-    },
-    {
-      id: 'mpVsVapor',
-      title: 'MPs vs. Vapor',
-      description: 'Relação MP e Consumo de Vapor',
-      showLegend: true,
-      bars: [{ dataKey: 'mpUsed' }, { dataKey: 'steamConsumption' }],
+      // AC: Color Distinction: Cavaco (Amber-500) vs Vapor (Emerald-700)
+      bars: [
+        { dataKey: 'woodChips', fill: COLORS.amber500 },
+        { dataKey: 'steamConsumption', fill: COLORS.emerald700 },
+      ],
     },
     {
       id: 'mpVsCavaco',
       title: 'MPs vs. m³ Cavaco',
       description: 'Relação MP e Combustível',
       showLegend: true,
-      bars: [{ dataKey: 'mpUsed' }, { dataKey: 'woodChips' }],
+      // AC: Color Distinction: MP (Green-500) vs Cavaco (Amber-500)
+      bars: [
+        { dataKey: 'mpUsed', fill: COLORS.green500 },
+        { dataKey: 'woodChips', fill: COLORS.amber500 },
+      ],
+    },
+    {
+      id: 'mpVsVapor',
+      title: 'MPs vs. Vapor',
+      description: 'Relação MP e Consumo de Vapor',
+      showLegend: true,
+      bars: [
+        { dataKey: 'mpUsed', fill: COLORS.green500 },
+        { dataKey: 'steamConsumption', fill: COLORS.emerald700 },
+      ],
     },
     {
       id: 'vaporVsMp',
       title: 'Vapor vs MPs',
       description: 'Eficiência Vapor/Matéria-Prima',
       showLegend: true,
-      bars: [{ dataKey: 'steamConsumption' }, { dataKey: 'mpUsed' }],
+      bars: [
+        { dataKey: 'steamConsumption', fill: COLORS.emerald700 },
+        { dataKey: 'mpUsed', fill: COLORS.green500 },
+      ],
     },
     {
       id: 'tonsVsMp',
@@ -161,8 +176,12 @@ export function SteamCharts() {
       description: 'Produção Total vs Matéria-Prima',
       showLegend: true,
       bars: [
-        { dataKey: 'totalProduction', name: 'Tons (Produção)' },
-        { dataKey: 'mpUsed', name: 'MPs (Entrada)' },
+        {
+          dataKey: 'totalProduction',
+          name: 'Tons (Produção)',
+          fill: COLORS.blue500,
+        },
+        { dataKey: 'mpUsed', name: 'MPs (Entrada)', fill: COLORS.green500 },
       ],
     },
   ]

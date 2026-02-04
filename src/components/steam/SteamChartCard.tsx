@@ -49,9 +49,18 @@ export function SteamChartCard({
   chartHeight = 'h-[300px]',
   hideHeader = false,
 }: SteamChartCardProps) {
+  // AC: Data must be formatted according to the Brazilian standard
   const formatNumber = (value: number) => {
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
-    return value.toFixed(0)
+    // Show full numbers with separators for clarity, or use 'k' for very large numbers if preferred.
+    // Given the requirement "240.140", we use toLocaleString
+    return value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+  }
+
+  const tooltipFormatter = (value: number) => {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })
   }
 
   return (
@@ -89,7 +98,9 @@ export function SteamChartCard({
               axisLine={false}
             />
             <YAxis tickLine={false} axisLine={false} />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={<ChartTooltipContent formatter={tooltipFormatter} />}
+            />
             {showLegend && <ChartLegend content={<ChartLegendContent />} />}
             {bars.map((bar) => (
               <Bar
