@@ -70451,8 +70451,11 @@ function Dashboard() {
 	const avgFarinhetaAcidity = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhetaQuality.length : 0;
 	const avgFarinhetaProtein = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhetaQuality.length : 0;
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
-		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const totalProduced = filteredProduction.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced, 0);
+		const industrialRecords = filteredProduction.filter((p) => {
+			return !(p.bloodMealProduced && p.bloodMealProduced > 0 || p.bloodMealBags && p.bloodMealBags > 0);
+		});
+		const totalMp = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced, 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
 			yieldTarget: notificationSettings.yieldThreshold || 58
@@ -88171,4 +88174,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BqNqXJyR.js.map
+//# sourceMappingURL=index-DSxOoTbc.js.map

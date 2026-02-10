@@ -153,11 +153,20 @@ export default function Dashboard() {
 
   // Calculate Yield for Gauge
   const { currentYield, yieldTarget } = useMemo(() => {
-    const totalMp = filteredProduction.reduce(
+    // Filter industrial records for the gauge calculation
+    // Exclude records related to blood production (where bloodMealProduced > 0 or bags > 0)
+    const industrialRecords = filteredProduction.filter((p) => {
+      const isBloodRecord =
+        (p.bloodMealProduced && p.bloodMealProduced > 0) ||
+        (p.bloodMealBags && p.bloodMealBags > 0)
+      return !isBloodRecord
+    })
+
+    const totalMp = industrialRecords.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
-    const totalProduced = filteredProduction.reduce(
+    const totalProduced = industrialRecords.reduce(
       (acc, curr) =>
         acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced,
       0,
