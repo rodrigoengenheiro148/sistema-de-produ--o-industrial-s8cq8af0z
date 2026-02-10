@@ -413,8 +413,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
+        setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
+        setConnectionStatus('error')
       }
     })
 

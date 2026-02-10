@@ -36084,7 +36084,11 @@ const DataProvider = ({ children }) => {
 			} else if (status === "CHANNEL_ERROR") {
 				const errorMessage = typeof err === "object" && err !== null && "message" in err ? err.message : JSON.stringify(err) || "Unknown error";
 				console.error(`Realtime subscription error on ${channelName}:`, errorMessage);
-			} else if (status === "TIMED_OUT") console.warn(`Realtime subscription timed out on ${channelName}`);
+				setConnectionStatus("error");
+			} else if (status === "TIMED_OUT") {
+				console.warn(`Realtime subscription timed out on ${channelName}`);
+				setConnectionStatus("error");
+			}
 		});
 		operationalChannelRef.current = channel;
 		return () => {
@@ -88174,4 +88178,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DSxOoTbc.js.map
+//# sourceMappingURL=index-DDkr35F9.js.map
