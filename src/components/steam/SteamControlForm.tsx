@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -68,7 +68,12 @@ export function SteamControlForm({
   useEffect(() => {
     // We update the calculated consumption field for visibility
     // AC requirement: Consumo Vapor = Medidor Fim - Medidor Início
-    const diff = meterEnd - meterStart
+    // Ensure we are working with numbers
+    const start = Number(meterStart) || 0
+    const end = Number(meterEnd) || 0
+    const diff = end - start
+    // Only set if diff is reasonable (not negative unless intentional, though meters usually go up)
+    // Display even if negative to show error in input
     form.setValue('steamConsumption', diff)
   }, [meterStart, meterEnd, form])
 
@@ -85,42 +90,52 @@ export function SteamControlForm({
     // Ensure steam consumption is strictly meterEnd - meterStart
     const calculatedConsumption = values.meterEnd - values.meterStart
 
-    if (initialData) {
-      updateSteamRecord({
-        ...initialData,
-        date: dateObj,
-        meterStart: values.meterStart,
-        meterEnd: values.meterEnd,
-        soyWaste: values.soyWaste,
-        firewood: values.firewood,
-        riceHusk: values.riceHusk,
-        woodChips: values.woodChips,
-        steamConsumption: calculatedConsumption,
-      })
+    try {
+      if (initialData) {
+        updateSteamRecord({
+          ...initialData,
+          date: dateObj,
+          meterStart: values.meterStart,
+          meterEnd: values.meterEnd,
+          soyWaste: values.soyWaste,
+          firewood: values.firewood,
+          riceHusk: values.riceHusk,
+          woodChips: values.woodChips,
+          steamConsumption: calculatedConsumption,
+        })
+        toast({
+          title: 'Registro atualizado',
+          description: 'Dados de vapor salvos com sucesso.',
+        })
+      } else {
+        addSteamRecord({
+          date: dateObj,
+          meterStart: values.meterStart,
+          meterEnd: values.meterEnd,
+          soyWaste: values.soyWaste,
+          firewood: values.firewood,
+          riceHusk: values.riceHusk,
+          woodChips: values.woodChips,
+          steamConsumption: calculatedConsumption,
+          factoryId: '', // Handled by context based on current selection
+          userId: '', // Handled by context
+        })
+        toast({
+          title: 'Registro criado',
+          description: 'Dados de vapor salvos com sucesso.',
+        })
+      }
+
+      if (onSuccess) onSuccess()
+    } catch (error) {
+      console.error('Error saving steam record:', error)
       toast({
-        title: 'Registro atualizado',
-        description: 'Dados de vapor salvos com sucesso.',
-      })
-    } else {
-      addSteamRecord({
-        date: dateObj,
-        meterStart: values.meterStart,
-        meterEnd: values.meterEnd,
-        soyWaste: values.soyWaste,
-        firewood: values.firewood,
-        riceHusk: values.riceHusk,
-        woodChips: values.woodChips,
-        steamConsumption: calculatedConsumption,
-        factoryId: '', // Handled by context
-        userId: '', // Handled by context
-      })
-      toast({
-        title: 'Registro criado',
-        description: 'Dados de vapor salvos com sucesso.',
+        title: 'Erro ao salvar',
+        description:
+          'Ocorreu um erro ao salvar o registro. Tente novamente mais tarde.',
+        variant: 'destructive',
       })
     }
-
-    if (onSuccess) onSuccess()
   }
 
   return (

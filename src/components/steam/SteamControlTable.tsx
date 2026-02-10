@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Pencil, Trash2, Lock } from 'lucide-react'
+import { Pencil, Trash2, Lock, AlertTriangle } from 'lucide-react'
 import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import {
@@ -19,6 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { SteamControlForm } from './SteamControlForm'
 import { SteamControlRecord } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
@@ -30,12 +40,15 @@ export function SteamControlTable() {
     production,
     deleteSteamRecord,
     dateRange,
+    factories,
   } = useData()
   const { toast } = useToast()
 
   const [editingRecord, setEditingRecord] = useState<SteamControlRecord | null>(
     null,
   )
+  const [recordToDelete, setRecordToDelete] =
+    useState<SteamControlRecord | null>(null)
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
 
@@ -57,11 +70,26 @@ export function SteamControlTable() {
     setPendingAction(null)
   }
 
-  const handleDelete = (id: string) => {
-    deleteSteamRecord(id)
-    toast({
-      title: 'Registro excluído',
-      description: 'O registro foi removido com sucesso.',
+  const handleDeleteClick = (record: SteamControlRecord) => {
+    setRecordToDelete(record)
+  }
+
+  const confirmDelete = () => {
+    if (!recordToDelete) return
+
+    const id = recordToDelete.id
+    const createdAt = recordToDelete.createdAt
+
+    // Close the confirmation dialog first
+    setRecordToDelete(null)
+
+    // Then proceed with protected action check
+    handleProtectedAction(createdAt, () => {
+      deleteSteamRecord(id)
+      toast({
+        title: 'Registro excluído',
+        description: 'O registro foi removido com sucesso.',
+      })
     })
   }
 
@@ -74,8 +102,12 @@ export function SteamControlTable() {
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime())
 
-    // Map to include calculated fields
+    // Map to include calculated fields and factory name
     return filtered.map((record) => {
+      // Find factory name
+      const factory = factories.find((f) => f.id === record.factoryId)
+      const factoryName = factory ? factory.name : 'N/A'
+
       // Entrada MP: Sum of raw materials for the day (excluding 'Sangue')
       const mpEntry = rawMaterials
         .filter((rm) => isSameDay(rm.date, record.date) && rm.type !== 'Sangue')
@@ -102,7 +134,6 @@ export function SteamControlTable() {
         (record.woodChips || 0)
 
       // Steam Consumption Calculation based on Meters
-      // Formula: Medidor Fim - Medidor Início
       const meterStart = record.meterStart || 0
       const meterEnd = record.meterEnd || 0
 
@@ -136,6 +167,7 @@ export function SteamControlTable() {
 
       return {
         ...record,
+        factoryName,
         mpEntry,
         dailyProduction,
         biomassTotal,
@@ -148,7 +180,7 @@ export function SteamControlTable() {
         cavacoVsVapor,
       }
     })
-  }, [steamRecords, rawMaterials, production, dateRange])
+  }, [steamRecords, rawMaterials, production, dateRange, factories])
 
   // Calculate Footer Totals
   const totals = useMemo(() => {
@@ -220,11 +252,14 @@ export function SteamControlTable() {
   return (
     <div className="space-y-4">
       <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[1400px]">
+        <Table className="min-w-[1500px]">
           <TableHeader>
             <TableRow className="bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30">
               <TableHead className="font-bold text-green-900 dark:text-green-100 min-w-[100px]">
                 DATA
+              </TableHead>
+              <TableHead className="font-bold text-green-900 dark:text-green-100 min-w-[120px]">
+                FÁBRICA
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 MEDIDOR INÍCIO
@@ -293,7 +328,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={15}
+                  colSpan={16}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado no período.
@@ -311,6 +346,9 @@ export function SteamControlTable() {
                           <Lock className="h-3 w-3 text-muted-foreground/50" />
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground bg-green-50/50 dark:bg-green-950/10">
+                      {row.factoryName}
                     </TableCell>
 
                     <TableCell className="text-right font-mono text-muted-foreground">
@@ -368,6 +406,7 @@ export function SteamControlTable() {
                             setEditingRecord(row),
                           )
                         }
+                        title="Editar Registro"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -375,11 +414,8 @@ export function SteamControlTable() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() =>
-                          handleProtectedAction(row.createdAt, () =>
-                            handleDelete(row.id),
-                          )
-                        }
+                        onClick={() => handleDeleteClick(row)}
+                        title="Excluir Registro"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -393,6 +429,7 @@ export function SteamControlTable() {
             <tfoot className="bg-green-100 dark:bg-green-900/30 font-bold border-t-2 border-green-200">
               <TableRow>
                 <TableCell>TOTAL</TableCell>
+                <TableCell>-</TableCell>
                 <TableCell className="text-right">-</TableCell>
                 <TableCell className="text-right">-</TableCell>
                 <TableCell className="text-right">
@@ -455,6 +492,33 @@ export function SteamControlTable() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!recordToDelete}
+        onOpenChange={(open) => !open && setRecordToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmar exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro de vapor? Esta ação
+              não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SecurityGate
         isOpen={securityOpen}

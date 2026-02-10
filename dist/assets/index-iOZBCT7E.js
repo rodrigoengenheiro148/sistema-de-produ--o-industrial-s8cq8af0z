@@ -85866,7 +85866,8 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	const meterStart = form.watch("meterStart");
 	const meterEnd = form.watch("meterEnd");
 	(0, import_react.useEffect)(() => {
-		const diff = meterEnd - meterStart;
+		const start = Number(meterStart) || 0;
+		const diff = (Number(meterEnd) || 0) - start;
 		form.setValue("steamConsumption", diff);
 	}, [
 		meterStart,
@@ -85881,41 +85882,50 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	function onSubmit(values) {
 		const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
 		const calculatedConsumption = values.meterEnd - values.meterStart;
-		if (initialData) {
-			updateSteamRecord({
-				...initialData,
-				date: dateObj,
-				meterStart: values.meterStart,
-				meterEnd: values.meterEnd,
-				soyWaste: values.soyWaste,
-				firewood: values.firewood,
-				riceHusk: values.riceHusk,
-				woodChips: values.woodChips,
-				steamConsumption: calculatedConsumption
-			});
+		try {
+			if (initialData) {
+				updateSteamRecord({
+					...initialData,
+					date: dateObj,
+					meterStart: values.meterStart,
+					meterEnd: values.meterEnd,
+					soyWaste: values.soyWaste,
+					firewood: values.firewood,
+					riceHusk: values.riceHusk,
+					woodChips: values.woodChips,
+					steamConsumption: calculatedConsumption
+				});
+				toast$2({
+					title: "Registro atualizado",
+					description: "Dados de vapor salvos com sucesso."
+				});
+			} else {
+				addSteamRecord({
+					date: dateObj,
+					meterStart: values.meterStart,
+					meterEnd: values.meterEnd,
+					soyWaste: values.soyWaste,
+					firewood: values.firewood,
+					riceHusk: values.riceHusk,
+					woodChips: values.woodChips,
+					steamConsumption: calculatedConsumption,
+					factoryId: "",
+					userId: ""
+				});
+				toast$2({
+					title: "Registro criado",
+					description: "Dados de vapor salvos com sucesso."
+				});
+			}
+			if (onSuccess) onSuccess();
+		} catch (error) {
+			console.error("Error saving steam record:", error);
 			toast$2({
-				title: "Registro atualizado",
-				description: "Dados de vapor salvos com sucesso."
-			});
-		} else {
-			addSteamRecord({
-				date: dateObj,
-				meterStart: values.meterStart,
-				meterEnd: values.meterEnd,
-				soyWaste: values.soyWaste,
-				firewood: values.firewood,
-				riceHusk: values.riceHusk,
-				woodChips: values.woodChips,
-				steamConsumption: calculatedConsumption,
-				factoryId: "",
-				userId: ""
-			});
-			toast$2({
-				title: "Registro criado",
-				description: "Dados de vapor salvos com sucesso."
+				title: "Erro ao salvar",
+				description: "Ocorreu um erro ao salvar o registro. Tente novamente mais tarde.",
+				variant: "destructive"
 			});
 		}
-		if (onSuccess) onSuccess();
 	}
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: "border-none shadow-none",
@@ -86077,9 +86087,10 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	});
 }
 function SteamControlTable() {
-	const { steamRecords, rawMaterials, production, deleteSteamRecord, dateRange } = useData();
+	const { steamRecords, rawMaterials, production, deleteSteamRecord, dateRange, factories } = useData();
 	const { toast: toast$2 } = useToast();
 	const [editingRecord, setEditingRecord] = (0, import_react.useState)(null);
+	const [recordToDelete, setRecordToDelete] = (0, import_react.useState)(null);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
 	const handleProtectedAction = (createdAt, action) => {
@@ -86093,11 +86104,20 @@ function SteamControlTable() {
 		if (pendingAction) pendingAction();
 		setPendingAction(null);
 	};
-	const handleDelete = (id) => {
-		deleteSteamRecord(id);
-		toast$2({
-			title: "Registro excluído",
-			description: "O registro foi removido com sucesso."
+	const handleDeleteClick = (record) => {
+		setRecordToDelete(record);
+	};
+	const confirmDelete = () => {
+		if (!recordToDelete) return;
+		const id = recordToDelete.id;
+		const createdAt = recordToDelete.createdAt;
+		setRecordToDelete(null);
+		handleProtectedAction(createdAt, () => {
+			deleteSteamRecord(id);
+			toast$2({
+				title: "Registro excluído",
+				description: "O registro foi removido com sucesso."
+			});
 		});
 	};
 	const tableData = (0, import_react.useMemo)(() => {
@@ -86105,6 +86125,8 @@ function SteamControlTable() {
 			if (!dateRange.from || !dateRange.to) return true;
 			return record.date >= dateRange.from && record.date <= dateRange.to;
 		}).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((record) => {
+			const factory = factories.find((f) => f.id === record.factoryId);
+			const factoryName = factory ? factory.name : "N/A";
 			const mpEntry = rawMaterials.filter((rm) => isSameDay(rm.date, record.date) && rm.type !== "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
 			const dailyProduction = production.filter((prod) => isSameDay(prod.date, record.date)).reduce((acc, curr) => {
 				return acc + (curr.seboProduced || 0) + (curr.fcoProduced || 0) + (curr.farinhetaProduced || 0) + (curr.bloodMealProduced || 0);
@@ -86121,6 +86143,7 @@ function SteamControlTable() {
 			const cavacoVsVapor = biomassTotal > 0 ? steamConsumption / biomassTotal : 0;
 			return {
 				...record,
+				factoryName,
 				mpEntry,
 				dailyProduction,
 				biomassTotal,
@@ -86137,7 +86160,8 @@ function SteamControlTable() {
 		steamRecords,
 		rawMaterials,
 		production,
-		dateRange
+		dateRange,
+		factories
 	]);
 	const totals = (0, import_react.useMemo)(() => {
 		const sums = tableData.reduce((acc, curr) => ({
@@ -86192,7 +86216,7 @@ function SteamControlTable() {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "rounded-md border overflow-x-auto",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
-					className: "min-w-[1400px]",
+					className: "min-w-[1500px]",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 							className: "bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30",
@@ -86200,6 +86224,10 @@ function SteamControlTable() {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 min-w-[100px]",
 									children: "DATA"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "font-bold text-green-900 dark:text-green-100 min-w-[120px]",
+									children: "FÁBRICA"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
@@ -86263,7 +86291,7 @@ function SteamControlTable() {
 							]
 						}) }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							colSpan: 15,
+							colSpan: 16,
 							className: "text-center h-24 text-muted-foreground",
 							children: "Nenhum registro encontrado no período."
 						}) }) : tableData.map((row) => {
@@ -86277,6 +86305,10 @@ function SteamControlTable() {
 											className: "flex items-center gap-2",
 											children: [format(row.date, "dd/MM/yyyy"), isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })]
 										})
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+										className: "text-sm text-muted-foreground bg-green-50/50 dark:bg-green-950/10",
+										children: row.factoryName
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 										className: "text-right font-mono text-muted-foreground",
@@ -86337,12 +86369,14 @@ function SteamControlTable() {
 											size: "icon",
 											className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
 											onClick: () => handleProtectedAction(row.createdAt, () => setEditingRecord(row)),
+											title: "Editar Registro",
 											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 											variant: "ghost",
 											size: "icon",
 											className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
-											onClick: () => handleProtectedAction(row.createdAt, () => handleDelete(row.id)),
+											onClick: () => handleDeleteClick(row),
+											title: "Excluir Registro",
 											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
 										})]
 									})
@@ -86353,6 +86387,7 @@ function SteamControlTable() {
 							className: "bg-green-100 dark:bg-green-900/30 font-bold border-t-2 border-green-200",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: "TOTAL" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: "-" }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 									className: "text-right",
 									children: "-"
@@ -86422,6 +86457,18 @@ function SteamControlTable() {
 						onCancel: () => setEditingRecord(null)
 					})]
 				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!recordToDelete,
+				onOpenChange: (open) => !open && setRecordToDelete(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogTitle, {
+					className: "flex items-center gap-2 text-destructive",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-5 w-5" }), "Confirmar exclusão"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja excluir este registro de vapor? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: confirmDelete,
+					className: "bg-destructive hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
 				isOpen: securityOpen,
@@ -88238,4 +88285,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-RBWpNzQj.js.map
+//# sourceMappingURL=index-iOZBCT7E.js.map

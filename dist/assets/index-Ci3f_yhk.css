@@ -1157,11 +1157,14 @@ section[aria-label='Notifications alt+T'] {
 .min-w-\[100px\]{
   min-width: 100px;
 }
+.min-w-\[120px\]{
+  min-width: 120px;
+}
 .min-w-\[12rem\]{
   min-width: 12rem;
 }
-.min-w-\[1400px\]{
-  min-width: 1400px;
+.min-w-\[1500px\]{
+  min-width: 1500px;
 }
 .min-w-\[150px\]{
   min-width: 150px;
