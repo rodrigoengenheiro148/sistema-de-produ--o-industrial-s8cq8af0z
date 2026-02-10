@@ -8,11 +8,13 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { User, Users, ChevronDown, Check } from 'lucide-react'
+import { User, Users, ChevronDown, Check, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 
 export function UserSwitcher() {
   const { userAccessList, currentUser, login } = useData()
+  const { signOut } = useAuth()
 
   return (
     <DropdownMenu>
@@ -27,10 +29,10 @@ export function UserSwitcher() {
             </div>
             <div className="flex flex-col items-start text-xs truncate">
               <span className="font-medium truncate max-w-[100px]">
-                {currentUser?.name || 'Selecione'}
+                {currentUser?.name || 'Usuário'}
               </span>
               <span className="text-muted-foreground text-[10px]">
-                {currentUser?.role || 'Guest'}
+                {currentUser?.role || 'Logado'}
               </span>
             </div>
           </div>
@@ -43,21 +45,37 @@ export function UserSwitcher() {
           Trocar Usuário
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {userAccessList.map((user) => (
-          <DropdownMenuItem
-            key={user.id}
-            onClick={() => login(user.id)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <div className="flex flex-col">
-              <span className="font-medium">{user.name}</span>
-              <span className="text-xs text-muted-foreground">{user.role}</span>
-            </div>
-            {currentUser?.id === user.id && (
-              <Check className="h-4 w-4 text-primary" />
-            )}
-          </DropdownMenuItem>
-        ))}
+        {userAccessList.length > 0 ? (
+          userAccessList.map((user) => (
+            <DropdownMenuItem
+              key={user.id}
+              onClick={() => login(user.id)}
+              className="flex items-center justify-between cursor-pointer"
+            >
+              <div className="flex flex-col">
+                <span className="font-medium">{user.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {user.role}
+                </span>
+              </div>
+              {currentUser?.id === user.id && (
+                <Check className="h-4 w-4 text-primary" />
+              )}
+            </DropdownMenuItem>
+          ))
+        ) : (
+          <div className="p-2 text-xs text-muted-foreground text-center">
+            Nenhum perfil disponível
+          </div>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => signOut()}
+          className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer focus:bg-red-50"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair do Sistema</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

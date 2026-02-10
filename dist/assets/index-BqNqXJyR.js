@@ -19621,6 +19621,20 @@ var Lock = createLucideIcon("lock", [["rect", {
 	d: "M7 11V7a5 5 0 0 1 10 0v4",
 	key: "fwvmzm"
 }]]);
+var LogOut = createLucideIcon("log-out", [
+	["path", {
+		d: "m16 17 5-5-5-5",
+		key: "1bji2h"
+	}],
+	["path", {
+		d: "M21 12H9",
+		key: "dn1m92"
+	}],
+	["path", {
+		d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+		key: "1uf3rs"
+	}]
+]);
 var Mail = createLucideIcon("mail", [["path", {
 	d: "m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7",
 	key: "132q7q"
@@ -78008,6 +78022,7 @@ var formSchema$6 = object({
 		"Noite"
 	]),
 	factoryId: string().min(1, "A fábrica é obrigatória"),
+	mpUsed: number().min(0, "O valor deve ser positivo"),
 	bloodMealProduced: number().min(0, "O valor deve ser positivo").refine((val) => val > 0, "A produção deve ser maior que 0"),
 	bloodMealBags: number().min(0, "A quantidade de sacos deve ser positiva").int("O número de sacos deve ser inteiro")
 });
@@ -78020,6 +78035,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
 			factoryId: initialData?.factoryId || currentFactoryId || "",
+			mpUsed: initialData?.mpUsed || 0,
 			bloodMealProduced: initialData?.bloodMealProduced || 0,
 			bloodMealBags: initialData?.bloodMealBags || 0
 		}
@@ -78038,7 +78054,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 			factoryId: values.factoryId,
 			bloodMealProduced: values.bloodMealProduced,
 			bloodMealBags: values.bloodMealBags,
-			mpUsed: 0,
+			mpUsed: values.mpUsed,
 			seboProduced: 0,
 			fcoProduced: 0,
 			farinhetaProduced: 0,
@@ -78154,33 +78170,53 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-md",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "bloodMealBags",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Quantidade de Sacos" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								min: 0,
-								...field
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Número total de bags produzidos" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "bloodMealProduced",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Produção (kg)" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								min: 0,
-								...field
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Total em quilogramas (aprox. 1400kg/bag)" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					})]
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "mpUsed",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+								className: "md:col-span-2",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "MP processada (kg)" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										min: 0,
+										...field
+									}) }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Quantidade total de matéria-prima utilizada no processo" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+								]
+							})
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "bloodMealBags",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Quantidade de Sacos" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									min: 0,
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Número total de bags produzidos" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "bloodMealProduced",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Produção (kg)" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									min: 0,
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Total em quilogramas (aprox. 1400kg/bag)" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						})
+					]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex justify-end gap-2 pt-4",
@@ -87545,6 +87581,7 @@ SidebarMenuSubButton.displayName = "SidebarMenuSubButton";
 var logotipo_br_render_default = "/assets/logotipo-br-render-Dr6Rbzny.png";
 function UserSwitcher() {
 	const { userAccessList, currentUser, login } = useData();
+	const { signOut } = useAuth();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 		asChild: true,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
@@ -87559,10 +87596,10 @@ function UserSwitcher() {
 					className: "flex flex-col items-start text-xs truncate",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 						className: "font-medium truncate max-w-[100px]",
-						children: currentUser?.name || "Selecione"
+						children: currentUser?.name || "Usuário"
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 						className: "text-muted-foreground text-[10px]",
-						children: currentUser?.role || "Guest"
+						children: currentUser?.role || "Logado"
 					})]
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChevronDown, { className: "h-3 w-3 opacity-50" })]
@@ -87576,7 +87613,7 @@ function UserSwitcher() {
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Users, { className: "h-4 w-4" }), "Trocar Usuário"]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
-			userAccessList.map((user) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+			userAccessList.length > 0 ? userAccessList.map((user) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
 				onClick: () => login(user.id),
 				className: "flex items-center justify-between cursor-pointer",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -87589,7 +87626,16 @@ function UserSwitcher() {
 						children: user.role
 					})]
 				}), currentUser?.id === user.id && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, { className: "h-4 w-4 text-primary" })]
-			}, user.id))
+			}, user.id)) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "p-2 text-xs text-muted-foreground text-center",
+				children: "Nenhum perfil disponível"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+				onClick: () => signOut(),
+				className: "flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer focus:bg-red-50",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LogOut, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Sair do Sistema" })]
+			})
 		]
 	})] });
 }
@@ -88125,4 +88171,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CM4MCkFH.js.map
+//# sourceMappingURL=index-BqNqXJyR.js.map

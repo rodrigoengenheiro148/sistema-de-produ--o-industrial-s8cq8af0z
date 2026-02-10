@@ -40,6 +40,7 @@ const formSchema = z.object({
   }),
   shift: z.enum(['Manhã', 'Tarde', 'Noite']),
   factoryId: z.string().min(1, 'A fábrica é obrigatória'),
+  mpUsed: z.coerce.number().min(0, 'O valor deve ser positivo'),
   bloodMealProduced: z.coerce
     .number()
     .min(0, 'O valor deve ser positivo')
@@ -71,6 +72,7 @@ export function BloodProductionForm({
       date: initialData?.date || new Date(),
       shift: initialData?.shift || 'Manhã',
       factoryId: initialData?.factoryId || currentFactoryId || '',
+      mpUsed: initialData?.mpUsed || 0,
       bloodMealProduced: initialData?.bloodMealProduced || 0,
       bloodMealBags: initialData?.bloodMealBags || 0,
     },
@@ -98,8 +100,8 @@ export function BloodProductionForm({
       factoryId: values.factoryId,
       bloodMealProduced: values.bloodMealProduced,
       bloodMealBags: values.bloodMealBags,
+      mpUsed: values.mpUsed,
       // Default other fields to 0 as per requirement
-      mpUsed: 0,
       seboProduced: 0,
       fcoProduced: 0,
       farinhetaProduced: 0,
@@ -236,6 +238,23 @@ export function BloodProductionForm({
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-md">
+          <FormField
+            control={form.control}
+            name="mpUsed"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>MP processada (kg)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} {...field} />
+                </FormControl>
+                <FormDescription>
+                  Quantidade total de matéria-prima utilizada no processo
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="bloodMealBags"

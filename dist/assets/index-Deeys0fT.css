@@ -3184,6 +3184,10 @@ img[src*='skip.svg'] {
 .focus\:bg-accent:focus{
   background-color: hsl(var(--accent));
 }
+.focus\:bg-red-50:focus{
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
+}
 .focus\:text-accent-foreground:focus{
   color: hsl(var(--accent-foreground));
 }
