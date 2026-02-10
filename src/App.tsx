@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Dashboard from './pages/Index'
 import RawMaterial from './pages/RawMaterial'
 import Production from './pages/Production'
+import BloodProduction from './pages/BloodProduction'
 import Yields from './pages/Yields'
 import DailyAcidity from './pages/DailyAcidity'
 import Quality from './pages/Quality'
@@ -50,6 +51,10 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/entrada-mp" element={<RawMaterial />} />
               <Route path="/producao" element={<Production />} />
+              <Route
+                path="/operacional/producao-sangue"
+                element={<BloodProduction />}
+              />
               <Route path="/rendimentos" element={<Yields />} />
               <Route path="/acidez-diaria" element={<DailyAcidity />} />
               <Route path="/qualidade" element={<Quality />} />

@@ -13,6 +13,7 @@ import {
   Database,
   Timer,
   Flame,
+  Droplet,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -47,6 +48,11 @@ const operationalItems = [
     title: 'Produção',
     url: '/producao',
     icon: Factory,
+  },
+  {
+    title: 'Produção de Sangue',
+    url: '/operacional/producao-sangue',
+    icon: Droplet,
   },
   {
     title: 'Rendimentos',

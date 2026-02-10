@@ -413,11 +413,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
-        // Optionally allow a retry or just log it. We don't set 'error' status immediately
-        // to avoid locking the UI, but we log it.
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
-        // We can try to reconnect or just let it be, often it reconnects automatically
       }
     })
 
@@ -492,7 +489,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const addProduction = async (entry: Omit<ProductionEntry, 'id'>) => {
-    if (!currentFactoryId) return
+    const targetFactoryId = entry.factoryId || currentFactoryId
+    if (!targetFactoryId) return
     const { error } = await supabase.from('production').insert({
       date: entry.date.toISOString(),
       shift: entry.shift,
@@ -504,25 +502,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       blood_meal_bags: entry.bloodMealBags,
       losses: entry.losses,
       user_id: user?.id,
-      factory_id: currentFactoryId,
+      factory_id: targetFactoryId,
     })
     if (!error) fetchOperationalData()
   }
 
   const updateProduction = async (entry: ProductionEntry) => {
+    // If updating, ideally we shouldn't change factory_id unless intended
+    const payload: any = {
+      date: entry.date.toISOString(),
+      shift: entry.shift,
+      mp_used: entry.mpUsed,
+      sebo_produced: entry.seboProduced,
+      fco_produced: entry.fcoProduced,
+      farinheta_produced: entry.farinhetaProduced,
+      blood_meal_produced: entry.bloodMealProduced,
+      blood_meal_bags: entry.bloodMealBags,
+      losses: entry.losses,
+    }
+
+    if (entry.factoryId) {
+      payload.factory_id = entry.factoryId
+    }
+
     const { error } = await supabase
       .from('production')
-      .update({
-        date: entry.date.toISOString(),
-        shift: entry.shift,
-        mp_used: entry.mpUsed,
-        sebo_produced: entry.seboProduced,
-        fco_produced: entry.fcoProduced,
-        farinheta_produced: entry.farinhetaProduced,
-        blood_meal_produced: entry.bloodMealProduced,
-        blood_meal_bags: entry.bloodMealBags,
-        losses: entry.losses,
-      })
+      .update(payload)
       .eq('id', entry.id)
     if (!error) fetchOperationalData()
   }

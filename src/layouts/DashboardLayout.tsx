@@ -28,6 +28,8 @@ export default function DashboardLayout() {
         return 'Entrada de Matéria-Prima'
       case '/producao':
         return 'Produção Diária'
+      case '/operacional/producao-sangue':
+        return 'Produção de Sangue'
       case '/rendimentos':
         return 'Análise de Rendimentos'
       case '/acidez-diaria':

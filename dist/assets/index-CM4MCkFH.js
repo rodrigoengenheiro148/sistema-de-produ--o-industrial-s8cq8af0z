@@ -24852,84 +24852,84 @@ const secondsInDay = 3600 * 24;
 secondsInDay * 7;
 secondsInDay * daysInYear / 12 * 3;
 const constructFromSymbol$1 = Symbol.for("constructDateFrom");
-function constructFrom(date$3, value) {
-	if (typeof date$3 === "function") return date$3(value);
-	if (date$3 && typeof date$3 === "object" && constructFromSymbol$1 in date$3) return date$3[constructFromSymbol$1](value);
-	if (date$3 instanceof Date) return new date$3.constructor(value);
+function constructFrom(date$4, value) {
+	if (typeof date$4 === "function") return date$4(value);
+	if (date$4 && typeof date$4 === "object" && constructFromSymbol$1 in date$4) return date$4[constructFromSymbol$1](value);
+	if (date$4 instanceof Date) return new date$4.constructor(value);
 	return new Date(value);
 }
 function toDate(argument, context) {
 	return constructFrom(context || argument, argument);
 }
-function addDays(date$3, amount, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	if (isNaN(amount)) return constructFrom(options$1?.in || date$3, NaN);
-	if (!amount) return _date;
-	_date.setDate(_date.getDate() + amount);
-	return _date;
+function addDays(date$4, amount, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	if (isNaN(amount)) return constructFrom(options$1?.in || date$4, NaN);
+	if (!amount) return _date$1;
+	_date$1.setDate(_date$1.getDate() + amount);
+	return _date$1;
 }
-function addMonths(date$3, amount, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	if (isNaN(amount)) return constructFrom(options$1?.in || date$3, NaN);
-	if (!amount) return _date;
-	const dayOfMonth = _date.getDate();
-	const endOfDesiredMonth = constructFrom(options$1?.in || date$3, _date.getTime());
-	endOfDesiredMonth.setMonth(_date.getMonth() + amount + 1, 0);
+function addMonths(date$4, amount, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	if (isNaN(amount)) return constructFrom(options$1?.in || date$4, NaN);
+	if (!amount) return _date$1;
+	const dayOfMonth = _date$1.getDate();
+	const endOfDesiredMonth = constructFrom(options$1?.in || date$4, _date$1.getTime());
+	endOfDesiredMonth.setMonth(_date$1.getMonth() + amount + 1, 0);
 	if (dayOfMonth >= endOfDesiredMonth.getDate()) return endOfDesiredMonth;
 	else {
-		_date.setFullYear(endOfDesiredMonth.getFullYear(), endOfDesiredMonth.getMonth(), dayOfMonth);
-		return _date;
+		_date$1.setFullYear(endOfDesiredMonth.getFullYear(), endOfDesiredMonth.getMonth(), dayOfMonth);
+		return _date$1;
 	}
 }
 var defaultOptions$1 = {};
 function getDefaultOptions$1() {
 	return defaultOptions$1;
 }
-function startOfWeek(date$3, options$1) {
+function startOfWeek(date$4, options$1) {
 	const defaultOptions$2 = getDefaultOptions$1();
 	const weekStartsOn = options$1?.weekStartsOn ?? options$1?.locale?.options?.weekStartsOn ?? defaultOptions$2.weekStartsOn ?? defaultOptions$2.locale?.options?.weekStartsOn ?? 0;
-	const _date = toDate(date$3, options$1?.in);
-	const day = _date.getDay();
+	const _date$1 = toDate(date$4, options$1?.in);
+	const day = _date$1.getDay();
 	const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
-	_date.setDate(_date.getDate() - diff);
-	_date.setHours(0, 0, 0, 0);
-	return _date;
+	_date$1.setDate(_date$1.getDate() - diff);
+	_date$1.setHours(0, 0, 0, 0);
+	return _date$1;
 }
-function startOfISOWeek(date$3, options$1) {
-	return startOfWeek(date$3, {
+function startOfISOWeek(date$4, options$1) {
+	return startOfWeek(date$4, {
 		...options$1,
 		weekStartsOn: 1
 	});
 }
-function getISOWeekYear(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const year = _date.getFullYear();
-	const fourthOfJanuaryOfNextYear = constructFrom(_date, 0);
+function getISOWeekYear(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const year = _date$1.getFullYear();
+	const fourthOfJanuaryOfNextYear = constructFrom(_date$1, 0);
 	fourthOfJanuaryOfNextYear.setFullYear(year + 1, 0, 4);
 	fourthOfJanuaryOfNextYear.setHours(0, 0, 0, 0);
 	const startOfNextYear = startOfISOWeek(fourthOfJanuaryOfNextYear);
-	const fourthOfJanuaryOfThisYear = constructFrom(_date, 0);
+	const fourthOfJanuaryOfThisYear = constructFrom(_date$1, 0);
 	fourthOfJanuaryOfThisYear.setFullYear(year, 0, 4);
 	fourthOfJanuaryOfThisYear.setHours(0, 0, 0, 0);
 	const startOfThisYear = startOfISOWeek(fourthOfJanuaryOfThisYear);
-	if (_date.getTime() >= startOfNextYear.getTime()) return year + 1;
-	else if (_date.getTime() >= startOfThisYear.getTime()) return year;
+	if (_date$1.getTime() >= startOfNextYear.getTime()) return year + 1;
+	else if (_date$1.getTime() >= startOfThisYear.getTime()) return year;
 	else return year - 1;
 }
-function getTimezoneOffsetInMilliseconds(date$3) {
-	const _date = toDate(date$3);
-	const utcDate$1 = new Date(Date.UTC(_date.getFullYear(), _date.getMonth(), _date.getDate(), _date.getHours(), _date.getMinutes(), _date.getSeconds(), _date.getMilliseconds()));
-	utcDate$1.setUTCFullYear(_date.getFullYear());
-	return +date$3 - +utcDate$1;
+function getTimezoneOffsetInMilliseconds(date$4) {
+	const _date$1 = toDate(date$4);
+	const utcDate$1 = new Date(Date.UTC(_date$1.getFullYear(), _date$1.getMonth(), _date$1.getDate(), _date$1.getHours(), _date$1.getMinutes(), _date$1.getSeconds(), _date$1.getMilliseconds()));
+	utcDate$1.setUTCFullYear(_date$1.getFullYear());
+	return +date$4 - +utcDate$1;
 }
 function normalizeDates(context, ...dates) {
-	const normalize$1 = constructFrom.bind(null, context || dates.find((date$3) => typeof date$3 === "object"));
+	const normalize$1 = constructFrom.bind(null, context || dates.find((date$4) => typeof date$4 === "object"));
 	return dates.map(normalize$1);
 }
-function startOfDay(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	_date.setHours(0, 0, 0, 0);
-	return _date;
+function startOfDay(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	_date$1.setHours(0, 0, 0, 0);
+	return _date$1;
 }
 function differenceInCalendarDays(laterDate, earlierDate, options$1) {
 	const [laterDate_, earlierDate_] = normalizeDates(options$1?.in, laterDate, earlierDate);
@@ -24939,25 +24939,25 @@ function differenceInCalendarDays(laterDate, earlierDate, options$1) {
 	const earlierTimestamp = +earlierStartOfDay - getTimezoneOffsetInMilliseconds(earlierStartOfDay);
 	return Math.round((laterTimestamp - earlierTimestamp) / millisecondsInDay);
 }
-function startOfISOWeekYear(date$3, options$1) {
-	const year = getISOWeekYear(date$3, options$1);
-	const fourthOfJanuary = constructFrom(options$1?.in || date$3, 0);
+function startOfISOWeekYear(date$4, options$1) {
+	const year = getISOWeekYear(date$4, options$1);
+	const fourthOfJanuary = constructFrom(options$1?.in || date$4, 0);
 	fourthOfJanuary.setFullYear(year, 0, 4);
 	fourthOfJanuary.setHours(0, 0, 0, 0);
 	return startOfISOWeek(fourthOfJanuary);
 }
-function addWeeks(date$3, amount, options$1) {
-	return addDays(date$3, amount * 7, options$1);
+function addWeeks(date$4, amount, options$1) {
+	return addDays(date$4, amount * 7, options$1);
 }
-function addYears(date$3, amount, options$1) {
-	return addMonths(date$3, amount * 12, options$1);
+function addYears(date$4, amount, options$1) {
+	return addMonths(date$4, amount * 12, options$1);
 }
 function max$4(dates, options$1) {
 	let result;
 	let context = options$1?.in;
-	dates.forEach((date$3) => {
-		if (!context && typeof date$3 === "object") context = constructFrom.bind(null, date$3);
-		const date_ = toDate(date$3, context);
+	dates.forEach((date$4) => {
+		if (!context && typeof date$4 === "object") context = constructFrom.bind(null, date$4);
+		const date_ = toDate(date$4, context);
 		if (!result || result < date_ || isNaN(+date_)) result = date_;
 	});
 	return constructFrom(context, result || NaN);
@@ -24965,9 +24965,9 @@ function max$4(dates, options$1) {
 function min$3(dates, options$1) {
 	let result;
 	let context = options$1?.in;
-	dates.forEach((date$3) => {
-		if (!context && typeof date$3 === "object") context = constructFrom.bind(null, date$3);
-		const date_ = toDate(date$3, context);
+	dates.forEach((date$4) => {
+		if (!context && typeof date$4 === "object") context = constructFrom.bind(null, date$4);
+		const date_ = toDate(date$4, context);
 		if (!result || result > date_ || isNaN(+date_)) result = date_;
 	});
 	return constructFrom(context, result || NaN);
@@ -24979,8 +24979,8 @@ function isSameDay(laterDate, earlierDate, options$1) {
 function isDate(value) {
 	return value instanceof Date || typeof value === "object" && Object.prototype.toString.call(value) === "[object Date]";
 }
-function isValid(date$3) {
-	return !(!isDate(date$3) && typeof date$3 !== "number" || isNaN(+toDate(date$3)));
+function isValid(date$4) {
+	return !(!isDate(date$4) && typeof date$4 !== "number" || isNaN(+toDate(date$4)));
 }
 function differenceInCalendarMonths(laterDate, earlierDate, options$1) {
 	const [laterDate_, earlierDate_] = normalizeDates(options$1?.in, laterDate, earlierDate);
@@ -25020,17 +25020,17 @@ function differenceInMinutes(dateLeft, dateRight, options$1) {
 	const diff = differenceInMilliseconds(dateLeft, dateRight) / millisecondsInMinute;
 	return getRoundingMethod(options$1?.roundingMethod)(diff);
 }
-function endOfDay(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	_date.setHours(23, 59, 59, 999);
-	return _date;
+function endOfDay(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	_date$1.setHours(23, 59, 59, 999);
+	return _date$1;
 }
-function endOfMonth(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const month = _date.getMonth();
-	_date.setFullYear(_date.getFullYear(), month + 1, 0);
-	_date.setHours(23, 59, 59, 999);
-	return _date;
+function endOfMonth(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const month = _date$1.getMonth();
+	_date$1.setFullYear(_date$1.getFullYear(), month + 1, 0);
+	_date$1.setHours(23, 59, 59, 999);
+	return _date$1;
 }
 function differenceInSeconds(laterDate, earlierDate, options$1) {
 	const diff = differenceInMilliseconds(laterDate, earlierDate) / 1e3;
@@ -25047,8 +25047,8 @@ function eachDayOfInterval(interval, options$1) {
 	const { start, end } = normalizeInterval(options$1?.in, interval);
 	let reversed = +start > +end;
 	const endTime = reversed ? +start : +end;
-	const date$3 = reversed ? end : start;
-	date$3.setHours(0, 0, 0, 0);
+	const date$4 = reversed ? end : start;
+	date$4.setHours(0, 0, 0, 0);
 	let step = options$1?.step ?? 1;
 	if (!step) return [];
 	if (step < 0) {
@@ -25056,10 +25056,10 @@ function eachDayOfInterval(interval, options$1) {
 		reversed = !reversed;
 	}
 	const dates = [];
-	while (+date$3 <= endTime) {
-		dates.push(constructFrom(start, date$3));
-		date$3.setDate(date$3.getDate() + step);
-		date$3.setHours(0, 0, 0, 0);
+	while (+date$4 <= endTime) {
+		dates.push(constructFrom(start, date$4));
+		date$4.setDate(date$4.getDate() + step);
+		date$4.setHours(0, 0, 0, 0);
 	}
 	return reversed ? dates.reverse() : dates;
 }
@@ -25067,9 +25067,9 @@ function eachMonthOfInterval(interval, options$1) {
 	const { start, end } = normalizeInterval(options$1?.in, interval);
 	let reversed = +start > +end;
 	const endTime = reversed ? +start : +end;
-	const date$3 = reversed ? end : start;
-	date$3.setHours(0, 0, 0, 0);
-	date$3.setDate(1);
+	const date$4 = reversed ? end : start;
+	date$4.setHours(0, 0, 0, 0);
+	date$4.setDate(1);
 	let step = options$1?.step ?? 1;
 	if (!step) return [];
 	if (step < 0) {
@@ -25077,27 +25077,27 @@ function eachMonthOfInterval(interval, options$1) {
 		reversed = !reversed;
 	}
 	const dates = [];
-	while (+date$3 <= endTime) {
-		dates.push(constructFrom(start, date$3));
-		date$3.setMonth(date$3.getMonth() + step);
+	while (+date$4 <= endTime) {
+		dates.push(constructFrom(start, date$4));
+		date$4.setMonth(date$4.getMonth() + step);
 	}
 	return reversed ? dates.reverse() : dates;
 }
-function startOfMonth(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	_date.setDate(1);
-	_date.setHours(0, 0, 0, 0);
-	return _date;
+function startOfMonth(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	_date$1.setDate(1);
+	_date$1.setHours(0, 0, 0, 0);
+	return _date$1;
 }
-function endOfYear(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const year = _date.getFullYear();
-	_date.setFullYear(year + 1, 0, 0);
-	_date.setHours(23, 59, 59, 999);
-	return _date;
+function endOfYear(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const year = _date$1.getFullYear();
+	_date$1.setFullYear(year + 1, 0, 0);
+	_date$1.setHours(23, 59, 59, 999);
+	return _date$1;
 }
-function startOfYear(date$3, options$1) {
-	const date_ = toDate(date$3, options$1?.in);
+function startOfYear(date$4, options$1) {
+	const date_ = toDate(date$4, options$1?.in);
 	date_.setFullYear(date_.getFullYear(), 0, 1);
 	date_.setHours(0, 0, 0, 0);
 	return date_;
@@ -25106,9 +25106,9 @@ function eachYearOfInterval(interval, options$1) {
 	const { start, end } = normalizeInterval(options$1?.in, interval);
 	let reversed = +start > +end;
 	const endTime = reversed ? +start : +end;
-	const date$3 = reversed ? end : start;
-	date$3.setHours(0, 0, 0, 0);
-	date$3.setMonth(0, 1);
+	const date$4 = reversed ? end : start;
+	date$4.setHours(0, 0, 0, 0);
+	date$4.setMonth(0, 1);
 	let step = options$1?.step ?? 1;
 	if (!step) return [];
 	if (step < 0) {
@@ -25116,24 +25116,24 @@ function eachYearOfInterval(interval, options$1) {
 		reversed = !reversed;
 	}
 	const dates = [];
-	while (+date$3 <= endTime) {
-		dates.push(constructFrom(start, date$3));
-		date$3.setFullYear(date$3.getFullYear() + step);
+	while (+date$4 <= endTime) {
+		dates.push(constructFrom(start, date$4));
+		date$4.setFullYear(date$4.getFullYear() + step);
 	}
 	return reversed ? dates.reverse() : dates;
 }
-function endOfWeek(date$3, options$1) {
+function endOfWeek(date$4, options$1) {
 	const defaultOptions$2 = getDefaultOptions$1();
 	const weekStartsOn = options$1?.weekStartsOn ?? options$1?.locale?.options?.weekStartsOn ?? defaultOptions$2.weekStartsOn ?? defaultOptions$2.locale?.options?.weekStartsOn ?? 0;
-	const _date = toDate(date$3, options$1?.in);
-	const day = _date.getDay();
+	const _date$1 = toDate(date$4, options$1?.in);
+	const day = _date$1.getDay();
 	const diff = (day < weekStartsOn ? -7 : 0) + 6 - (day - weekStartsOn);
-	_date.setDate(_date.getDate() + diff);
-	_date.setHours(23, 59, 59, 999);
-	return _date;
+	_date$1.setDate(_date$1.getDate() + diff);
+	_date$1.setHours(23, 59, 59, 999);
+	return _date$1;
 }
-function endOfISOWeek(date$3, options$1) {
-	return endOfWeek(date$3, {
+function endOfISOWeek(date$4, options$1) {
+	return endOfWeek(date$4, {
 		...options$1,
 		weekStartsOn: 1
 	});
@@ -25254,7 +25254,7 @@ var formatRelativeLocale$1 = {
 	nextWeek: "eeee 'at' p",
 	other: "P"
 };
-const formatRelative$1 = (token, _date, _baseDate, _options) => formatRelativeLocale$1[token];
+const formatRelative$1 = (token, _date$1, _baseDate, _options) => formatRelativeLocale$1[token];
 function buildLocalizeFn(args) {
 	return (value, options$1) => {
 		const context = options$1?.context ? String(options$1.context) : "standalone";
@@ -25651,64 +25651,64 @@ const enUS$1 = {
 		firstWeekContainsDate: 1
 	}
 };
-function getDayOfYear(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	return differenceInCalendarDays(_date, startOfYear(_date)) + 1;
+function getDayOfYear(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	return differenceInCalendarDays(_date$1, startOfYear(_date$1)) + 1;
 }
-function getISOWeek(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const diff = +startOfISOWeek(_date) - +startOfISOWeekYear(_date);
+function getISOWeek(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const diff = +startOfISOWeek(_date$1) - +startOfISOWeekYear(_date$1);
 	return Math.round(diff / millisecondsInWeek) + 1;
 }
-function getWeekYear(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const year = _date.getFullYear();
+function getWeekYear(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const year = _date$1.getFullYear();
 	const defaultOptions$2 = getDefaultOptions$1();
 	const firstWeekContainsDate = options$1?.firstWeekContainsDate ?? options$1?.locale?.options?.firstWeekContainsDate ?? defaultOptions$2.firstWeekContainsDate ?? defaultOptions$2.locale?.options?.firstWeekContainsDate ?? 1;
-	const firstWeekOfNextYear = constructFrom(options$1?.in || date$3, 0);
+	const firstWeekOfNextYear = constructFrom(options$1?.in || date$4, 0);
 	firstWeekOfNextYear.setFullYear(year + 1, 0, firstWeekContainsDate);
 	firstWeekOfNextYear.setHours(0, 0, 0, 0);
 	const startOfNextYear = startOfWeek(firstWeekOfNextYear, options$1);
-	const firstWeekOfThisYear = constructFrom(options$1?.in || date$3, 0);
+	const firstWeekOfThisYear = constructFrom(options$1?.in || date$4, 0);
 	firstWeekOfThisYear.setFullYear(year, 0, firstWeekContainsDate);
 	firstWeekOfThisYear.setHours(0, 0, 0, 0);
 	const startOfThisYear = startOfWeek(firstWeekOfThisYear, options$1);
-	if (+_date >= +startOfNextYear) return year + 1;
-	else if (+_date >= +startOfThisYear) return year;
+	if (+_date$1 >= +startOfNextYear) return year + 1;
+	else if (+_date$1 >= +startOfThisYear) return year;
 	else return year - 1;
 }
-function startOfWeekYear(date$3, options$1) {
+function startOfWeekYear(date$4, options$1) {
 	const defaultOptions$2 = getDefaultOptions$1();
 	const firstWeekContainsDate = options$1?.firstWeekContainsDate ?? options$1?.locale?.options?.firstWeekContainsDate ?? defaultOptions$2.firstWeekContainsDate ?? defaultOptions$2.locale?.options?.firstWeekContainsDate ?? 1;
-	const year = getWeekYear(date$3, options$1);
-	const firstWeek = constructFrom(options$1?.in || date$3, 0);
+	const year = getWeekYear(date$4, options$1);
+	const firstWeek = constructFrom(options$1?.in || date$4, 0);
 	firstWeek.setFullYear(year, 0, firstWeekContainsDate);
 	firstWeek.setHours(0, 0, 0, 0);
 	return startOfWeek(firstWeek, options$1);
 }
-function getWeek(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const diff = +startOfWeek(_date, options$1) - +startOfWeekYear(_date, options$1);
+function getWeek(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const diff = +startOfWeek(_date$1, options$1) - +startOfWeekYear(_date$1, options$1);
 	return Math.round(diff / millisecondsInWeek) + 1;
 }
 function addLeadingZeros(number$5, targetLength) {
 	return (number$5 < 0 ? "-" : "") + Math.abs(number$5).toString().padStart(targetLength, "0");
 }
 const lightFormatters = {
-	y(date$3, token) {
-		const signedYear = date$3.getFullYear();
+	y(date$4, token) {
+		const signedYear = date$4.getFullYear();
 		const year = signedYear > 0 ? signedYear : 1 - signedYear;
 		return addLeadingZeros(token === "yy" ? year % 100 : year, token.length);
 	},
-	M(date$3, token) {
-		const month = date$3.getMonth();
+	M(date$4, token) {
+		const month = date$4.getMonth();
 		return token === "M" ? String(month + 1) : addLeadingZeros(month + 1, 2);
 	},
-	d(date$3, token) {
-		return addLeadingZeros(date$3.getDate(), token.length);
+	d(date$4, token) {
+		return addLeadingZeros(date$4.getDate(), token.length);
 	},
-	a(date$3, token) {
-		const dayPeriodEnumValue = date$3.getHours() / 12 >= 1 ? "pm" : "am";
+	a(date$4, token) {
+		const dayPeriodEnumValue = date$4.getHours() / 12 >= 1 ? "pm" : "am";
 		switch (token) {
 			case "a":
 			case "aa": return dayPeriodEnumValue.toUpperCase();
@@ -25718,21 +25718,21 @@ const lightFormatters = {
 			default: return dayPeriodEnumValue === "am" ? "a.m." : "p.m.";
 		}
 	},
-	h(date$3, token) {
-		return addLeadingZeros(date$3.getHours() % 12 || 12, token.length);
+	h(date$4, token) {
+		return addLeadingZeros(date$4.getHours() % 12 || 12, token.length);
 	},
-	H(date$3, token) {
-		return addLeadingZeros(date$3.getHours(), token.length);
+	H(date$4, token) {
+		return addLeadingZeros(date$4.getHours(), token.length);
 	},
-	m(date$3, token) {
-		return addLeadingZeros(date$3.getMinutes(), token.length);
+	m(date$4, token) {
+		return addLeadingZeros(date$4.getMinutes(), token.length);
 	},
-	s(date$3, token) {
-		return addLeadingZeros(date$3.getSeconds(), token.length);
+	s(date$4, token) {
+		return addLeadingZeros(date$4.getSeconds(), token.length);
 	},
-	S(date$3, token) {
+	S(date$4, token) {
 		const numberOfDigits = token.length;
-		const milliseconds$1 = date$3.getMilliseconds();
+		const milliseconds$1 = date$4.getMilliseconds();
 		return addLeadingZeros(Math.trunc(milliseconds$1 * Math.pow(10, numberOfDigits - 3)), token.length);
 	}
 };
@@ -25747,8 +25747,8 @@ var dayPeriodEnum = {
 	night: "night"
 };
 const formatters = {
-	G: function(date$3, token, localize$2) {
-		const era = date$3.getFullYear() > 0 ? 1 : 0;
+	G: function(date$4, token, localize$2) {
+		const era = date$4.getFullYear() > 0 ? 1 : 0;
 		switch (token) {
 			case "G":
 			case "GG":
@@ -25758,29 +25758,29 @@ const formatters = {
 			default: return localize$2.era(era, { width: "wide" });
 		}
 	},
-	y: function(date$3, token, localize$2) {
+	y: function(date$4, token, localize$2) {
 		if (token === "yo") {
-			const signedYear = date$3.getFullYear();
+			const signedYear = date$4.getFullYear();
 			const year = signedYear > 0 ? signedYear : 1 - signedYear;
 			return localize$2.ordinalNumber(year, { unit: "year" });
 		}
-		return lightFormatters.y(date$3, token);
+		return lightFormatters.y(date$4, token);
 	},
-	Y: function(date$3, token, localize$2, options$1) {
-		const signedWeekYear = getWeekYear(date$3, options$1);
+	Y: function(date$4, token, localize$2, options$1) {
+		const signedWeekYear = getWeekYear(date$4, options$1);
 		const weekYear = signedWeekYear > 0 ? signedWeekYear : 1 - signedWeekYear;
 		if (token === "YY") return addLeadingZeros(weekYear % 100, 2);
 		if (token === "Yo") return localize$2.ordinalNumber(weekYear, { unit: "year" });
 		return addLeadingZeros(weekYear, token.length);
 	},
-	R: function(date$3, token) {
-		return addLeadingZeros(getISOWeekYear(date$3), token.length);
+	R: function(date$4, token) {
+		return addLeadingZeros(getISOWeekYear(date$4), token.length);
 	},
-	u: function(date$3, token) {
-		return addLeadingZeros(date$3.getFullYear(), token.length);
+	u: function(date$4, token) {
+		return addLeadingZeros(date$4.getFullYear(), token.length);
 	},
-	Q: function(date$3, token, localize$2) {
-		const quarter = Math.ceil((date$3.getMonth() + 1) / 3);
+	Q: function(date$4, token, localize$2) {
+		const quarter = Math.ceil((date$4.getMonth() + 1) / 3);
 		switch (token) {
 			case "Q": return String(quarter);
 			case "QQ": return addLeadingZeros(quarter, 2);
@@ -25800,8 +25800,8 @@ const formatters = {
 			});
 		}
 	},
-	q: function(date$3, token, localize$2) {
-		const quarter = Math.ceil((date$3.getMonth() + 1) / 3);
+	q: function(date$4, token, localize$2) {
+		const quarter = Math.ceil((date$4.getMonth() + 1) / 3);
 		switch (token) {
 			case "q": return String(quarter);
 			case "qq": return addLeadingZeros(quarter, 2);
@@ -25821,11 +25821,11 @@ const formatters = {
 			});
 		}
 	},
-	M: function(date$3, token, localize$2) {
-		const month = date$3.getMonth();
+	M: function(date$4, token, localize$2) {
+		const month = date$4.getMonth();
 		switch (token) {
 			case "M":
-			case "MM": return lightFormatters.M(date$3, token);
+			case "MM": return lightFormatters.M(date$4, token);
 			case "Mo": return localize$2.ordinalNumber(month + 1, { unit: "month" });
 			case "MMM": return localize$2.month(month, {
 				width: "abbreviated",
@@ -25842,8 +25842,8 @@ const formatters = {
 			});
 		}
 	},
-	L: function(date$3, token, localize$2) {
-		const month = date$3.getMonth();
+	L: function(date$4, token, localize$2) {
+		const month = date$4.getMonth();
 		switch (token) {
 			case "L": return String(month + 1);
 			case "LL": return addLeadingZeros(month + 1, 2);
@@ -25863,27 +25863,27 @@ const formatters = {
 			});
 		}
 	},
-	w: function(date$3, token, localize$2, options$1) {
-		const week = getWeek(date$3, options$1);
+	w: function(date$4, token, localize$2, options$1) {
+		const week = getWeek(date$4, options$1);
 		if (token === "wo") return localize$2.ordinalNumber(week, { unit: "week" });
 		return addLeadingZeros(week, token.length);
 	},
-	I: function(date$3, token, localize$2) {
-		const isoWeek = getISOWeek(date$3);
+	I: function(date$4, token, localize$2) {
+		const isoWeek = getISOWeek(date$4);
 		if (token === "Io") return localize$2.ordinalNumber(isoWeek, { unit: "week" });
 		return addLeadingZeros(isoWeek, token.length);
 	},
-	d: function(date$3, token, localize$2) {
-		if (token === "do") return localize$2.ordinalNumber(date$3.getDate(), { unit: "date" });
-		return lightFormatters.d(date$3, token);
+	d: function(date$4, token, localize$2) {
+		if (token === "do") return localize$2.ordinalNumber(date$4.getDate(), { unit: "date" });
+		return lightFormatters.d(date$4, token);
 	},
-	D: function(date$3, token, localize$2) {
-		const dayOfYear = getDayOfYear(date$3);
+	D: function(date$4, token, localize$2) {
+		const dayOfYear = getDayOfYear(date$4);
 		if (token === "Do") return localize$2.ordinalNumber(dayOfYear, { unit: "dayOfYear" });
 		return addLeadingZeros(dayOfYear, token.length);
 	},
-	E: function(date$3, token, localize$2) {
-		const dayOfWeek = date$3.getDay();
+	E: function(date$4, token, localize$2) {
+		const dayOfWeek = date$4.getDay();
 		switch (token) {
 			case "E":
 			case "EE":
@@ -25906,8 +25906,8 @@ const formatters = {
 			});
 		}
 	},
-	e: function(date$3, token, localize$2, options$1) {
-		const dayOfWeek = date$3.getDay();
+	e: function(date$4, token, localize$2, options$1) {
+		const dayOfWeek = date$4.getDay();
 		const localDayOfWeek = (dayOfWeek - options$1.weekStartsOn + 8) % 7 || 7;
 		switch (token) {
 			case "e": return String(localDayOfWeek);
@@ -25932,8 +25932,8 @@ const formatters = {
 			});
 		}
 	},
-	c: function(date$3, token, localize$2, options$1) {
-		const dayOfWeek = date$3.getDay();
+	c: function(date$4, token, localize$2, options$1) {
+		const dayOfWeek = date$4.getDay();
 		const localDayOfWeek = (dayOfWeek - options$1.weekStartsOn + 8) % 7 || 7;
 		switch (token) {
 			case "c": return String(localDayOfWeek);
@@ -25958,8 +25958,8 @@ const formatters = {
 			});
 		}
 	},
-	i: function(date$3, token, localize$2) {
-		const dayOfWeek = date$3.getDay();
+	i: function(date$4, token, localize$2) {
+		const dayOfWeek = date$4.getDay();
 		const isoDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
 		switch (token) {
 			case "i": return String(isoDayOfWeek);
@@ -25984,8 +25984,8 @@ const formatters = {
 			});
 		}
 	},
-	a: function(date$3, token, localize$2) {
-		const dayPeriodEnumValue = date$3.getHours() / 12 >= 1 ? "pm" : "am";
+	a: function(date$4, token, localize$2) {
+		const dayPeriodEnumValue = date$4.getHours() / 12 >= 1 ? "pm" : "am";
 		switch (token) {
 			case "a":
 			case "aa": return localize$2.dayPeriod(dayPeriodEnumValue, {
@@ -26007,8 +26007,8 @@ const formatters = {
 			});
 		}
 	},
-	b: function(date$3, token, localize$2) {
-		const hours = date$3.getHours();
+	b: function(date$4, token, localize$2) {
+		const hours = date$4.getHours();
 		let dayPeriodEnumValue;
 		if (hours === 12) dayPeriodEnumValue = dayPeriodEnum.noon;
 		else if (hours === 0) dayPeriodEnumValue = dayPeriodEnum.midnight;
@@ -26034,8 +26034,8 @@ const formatters = {
 			});
 		}
 	},
-	B: function(date$3, token, localize$2) {
-		const hours = date$3.getHours();
+	B: function(date$4, token, localize$2) {
+		const hours = date$4.getHours();
 		let dayPeriodEnumValue;
 		if (hours >= 17) dayPeriodEnumValue = dayPeriodEnum.evening;
 		else if (hours >= 12) dayPeriodEnumValue = dayPeriodEnum.afternoon;
@@ -26059,42 +26059,42 @@ const formatters = {
 			});
 		}
 	},
-	h: function(date$3, token, localize$2) {
+	h: function(date$4, token, localize$2) {
 		if (token === "ho") {
-			let hours = date$3.getHours() % 12;
+			let hours = date$4.getHours() % 12;
 			if (hours === 0) hours = 12;
 			return localize$2.ordinalNumber(hours, { unit: "hour" });
 		}
-		return lightFormatters.h(date$3, token);
+		return lightFormatters.h(date$4, token);
 	},
-	H: function(date$3, token, localize$2) {
-		if (token === "Ho") return localize$2.ordinalNumber(date$3.getHours(), { unit: "hour" });
-		return lightFormatters.H(date$3, token);
+	H: function(date$4, token, localize$2) {
+		if (token === "Ho") return localize$2.ordinalNumber(date$4.getHours(), { unit: "hour" });
+		return lightFormatters.H(date$4, token);
 	},
-	K: function(date$3, token, localize$2) {
-		const hours = date$3.getHours() % 12;
+	K: function(date$4, token, localize$2) {
+		const hours = date$4.getHours() % 12;
 		if (token === "Ko") return localize$2.ordinalNumber(hours, { unit: "hour" });
 		return addLeadingZeros(hours, token.length);
 	},
-	k: function(date$3, token, localize$2) {
-		let hours = date$3.getHours();
+	k: function(date$4, token, localize$2) {
+		let hours = date$4.getHours();
 		if (hours === 0) hours = 24;
 		if (token === "ko") return localize$2.ordinalNumber(hours, { unit: "hour" });
 		return addLeadingZeros(hours, token.length);
 	},
-	m: function(date$3, token, localize$2) {
-		if (token === "mo") return localize$2.ordinalNumber(date$3.getMinutes(), { unit: "minute" });
-		return lightFormatters.m(date$3, token);
+	m: function(date$4, token, localize$2) {
+		if (token === "mo") return localize$2.ordinalNumber(date$4.getMinutes(), { unit: "minute" });
+		return lightFormatters.m(date$4, token);
 	},
-	s: function(date$3, token, localize$2) {
-		if (token === "so") return localize$2.ordinalNumber(date$3.getSeconds(), { unit: "second" });
-		return lightFormatters.s(date$3, token);
+	s: function(date$4, token, localize$2) {
+		if (token === "so") return localize$2.ordinalNumber(date$4.getSeconds(), { unit: "second" });
+		return lightFormatters.s(date$4, token);
 	},
-	S: function(date$3, token) {
-		return lightFormatters.S(date$3, token);
+	S: function(date$4, token) {
+		return lightFormatters.S(date$4, token);
 	},
-	X: function(date$3, token, _localize) {
-		const timezoneOffset = date$3.getTimezoneOffset();
+	X: function(date$4, token, _localize) {
+		const timezoneOffset = date$4.getTimezoneOffset();
 		if (timezoneOffset === 0) return "Z";
 		switch (token) {
 			case "X": return formatTimezoneWithOptionalMinutes(timezoneOffset);
@@ -26105,8 +26105,8 @@ const formatters = {
 			default: return formatTimezone(timezoneOffset, ":");
 		}
 	},
-	x: function(date$3, token, _localize) {
-		const timezoneOffset = date$3.getTimezoneOffset();
+	x: function(date$4, token, _localize) {
+		const timezoneOffset = date$4.getTimezoneOffset();
 		switch (token) {
 			case "x": return formatTimezoneWithOptionalMinutes(timezoneOffset);
 			case "xxxx":
@@ -26116,8 +26116,8 @@ const formatters = {
 			default: return formatTimezone(timezoneOffset, ":");
 		}
 	},
-	O: function(date$3, token, _localize) {
-		const timezoneOffset = date$3.getTimezoneOffset();
+	O: function(date$4, token, _localize) {
+		const timezoneOffset = date$4.getTimezoneOffset();
 		switch (token) {
 			case "O":
 			case "OO":
@@ -26126,8 +26126,8 @@ const formatters = {
 			default: return "GMT" + formatTimezone(timezoneOffset, ":");
 		}
 	},
-	z: function(date$3, token, _localize) {
-		const timezoneOffset = date$3.getTimezoneOffset();
+	z: function(date$4, token, _localize) {
+		const timezoneOffset = date$4.getTimezoneOffset();
 		switch (token) {
 			case "z":
 			case "zz":
@@ -26136,11 +26136,11 @@ const formatters = {
 			default: return "GMT" + formatTimezone(timezoneOffset, ":");
 		}
 	},
-	t: function(date$3, token, _localize) {
-		return addLeadingZeros(Math.trunc(+date$3 / 1e3), token.length);
+	t: function(date$4, token, _localize) {
+		return addLeadingZeros(Math.trunc(+date$4 / 1e3), token.length);
 	},
-	T: function(date$3, token, _localize) {
-		return addLeadingZeros(+date$3, token.length);
+	T: function(date$4, token, _localize) {
+		return addLeadingZeros(+date$4, token.length);
 	}
 };
 function formatTimezoneShort(offset$3, delimiter = "") {
@@ -26235,12 +26235,12 @@ var longFormattingTokensRegExp$1 = /P+p+|P+|p+|''|'(''|[^'])+('|$)|./g;
 var escapedStringRegExp$1 = /^'([^]*?)'?$/;
 var doubleQuoteRegExp$1 = /''/g;
 var unescapedLatinCharacterRegExp$1 = /[a-zA-Z]/;
-function format(date$3, formatStr, options$1) {
+function format(date$4, formatStr, options$1) {
 	const defaultOptions$2 = getDefaultOptions$1();
 	const locale$2 = options$1?.locale ?? defaultOptions$2.locale ?? enUS$1;
 	const firstWeekContainsDate = options$1?.firstWeekContainsDate ?? options$1?.locale?.options?.firstWeekContainsDate ?? defaultOptions$2.firstWeekContainsDate ?? defaultOptions$2.locale?.options?.firstWeekContainsDate ?? 1;
 	const weekStartsOn = options$1?.weekStartsOn ?? options$1?.locale?.options?.weekStartsOn ?? defaultOptions$2.weekStartsOn ?? defaultOptions$2.locale?.options?.weekStartsOn ?? 0;
-	const originalDate = toDate(date$3, options$1?.in);
+	const originalDate = toDate(date$4, options$1?.in);
 	if (!isValid(originalDate)) throw new RangeError("Invalid time value");
 	let parts = formatStr.match(longFormattingTokensRegExp$1).map((substring) => {
 		const firstCharacter = substring[0];
@@ -26278,7 +26278,7 @@ function format(date$3, formatStr, options$1) {
 	return parts.map((part) => {
 		if (!part.isToken) return part.value;
 		const token = part.value;
-		if (!options$1?.useAdditionalWeekYearTokens && isProtectedWeekYearToken(token) || !options$1?.useAdditionalDayOfYearTokens && isProtectedDayOfYearToken(token)) warnOrThrowProtectedError(token, formatStr, String(date$3));
+		if (!options$1?.useAdditionalWeekYearTokens && isProtectedWeekYearToken(token) || !options$1?.useAdditionalDayOfYearTokens && isProtectedDayOfYearToken(token)) warnOrThrowProtectedError(token, formatStr, String(date$4));
 		const formatter = formatters[token[0]];
 		return formatter(originalDate, token, locale$2.localize, formatterOptions);
 	}).join("");
@@ -26288,11 +26288,11 @@ function cleanEscapedString$1(input) {
 	if (!matched) return input;
 	return matched[1].replace(doubleQuoteRegExp$1, "'");
 }
-function getDaysInMonth(date$3, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const year = _date.getFullYear();
-	const monthIndex = _date.getMonth();
-	const lastDayOfMonth = constructFrom(_date, 0);
+function getDaysInMonth(date$4, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const year = _date$1.getFullYear();
+	const monthIndex = _date$1.getMonth();
+	const lastDayOfMonth = constructFrom(_date$1, 0);
 	lastDayOfMonth.setFullYear(year, monthIndex + 1, 0);
 	lastDayOfMonth.setHours(0, 0, 0, 0);
 	return lastDayOfMonth.getDate();
@@ -26300,26 +26300,26 @@ function getDaysInMonth(date$3, options$1) {
 function getDefaultOptions() {
 	return Object.assign({}, getDefaultOptions$1());
 }
-function getISODay(date$3, options$1) {
-	const day = toDate(date$3, options$1?.in).getDay();
+function getISODay(date$4, options$1) {
+	const day = toDate(date$4, options$1?.in).getDay();
 	return day === 0 ? 7 : day;
 }
-function getMonth(date$3, options$1) {
-	return toDate(date$3, options$1?.in).getMonth();
+function getMonth(date$4, options$1) {
+	return toDate(date$4, options$1?.in).getMonth();
 }
-function getYear(date$3, options$1) {
-	return toDate(date$3, options$1?.in).getFullYear();
+function getYear(date$4, options$1) {
+	return toDate(date$4, options$1?.in).getFullYear();
 }
-function isAfter(date$3, dateToCompare) {
-	return +toDate(date$3) > +toDate(dateToCompare);
+function isAfter(date$4, dateToCompare) {
+	return +toDate(date$4) > +toDate(dateToCompare);
 }
-function isBefore(date$3, dateToCompare) {
-	return +toDate(date$3) < +toDate(dateToCompare);
+function isBefore(date$4, dateToCompare) {
+	return +toDate(date$4) < +toDate(dateToCompare);
 }
-function transpose(date$3, constructor) {
+function transpose(date$4, constructor) {
 	const date_ = isConstructor(constructor) ? new constructor(0) : constructFrom(constructor, 0);
-	date_.setFullYear(date$3.getFullYear(), date$3.getMonth(), date$3.getDate());
-	date_.setHours(date$3.getHours(), date$3.getMinutes(), date$3.getSeconds(), date$3.getMilliseconds());
+	date_.setFullYear(date$4.getFullYear(), date$4.getMonth(), date$4.getDate());
+	date_.setHours(date$4.getHours(), date$4.getMinutes(), date$4.getSeconds(), date$4.getMilliseconds());
 	return date_;
 }
 function isConstructor(constructor) {
@@ -26341,11 +26341,11 @@ var ValueSetter = class extends Setter {
 		this.priority = priority;
 		if (subPriority) this.subPriority = subPriority;
 	}
-	validate(date$3, options$1) {
-		return this.validateValue(date$3, this.value, options$1);
+	validate(date$4, options$1) {
+		return this.validateValue(date$4, this.value, options$1);
 	}
-	set(date$3, flags, options$1) {
-		return this.setValue(date$3, flags, this.value, options$1);
+	set(date$4, flags, options$1) {
+		return this.setValue(date$4, flags, this.value, options$1);
 	}
 };
 var DateTimezoneSetter = class extends Setter {
@@ -26353,11 +26353,11 @@ var DateTimezoneSetter = class extends Setter {
 	subPriority = -1;
 	constructor(context, reference) {
 		super();
-		this.context = context || ((date$3) => constructFrom(reference, date$3));
+		this.context = context || ((date$4) => constructFrom(reference, date$4));
 	}
-	set(date$3, flags) {
-		if (flags.timestampIsSet) return date$3;
-		return constructFrom(date$3, transpose(date$3, this.context));
+	set(date$4, flags) {
+		if (flags.timestampIsSet) return date$4;
+		return constructFrom(date$4, transpose(date$4, this.context));
 	}
 };
 var Parser = class {
@@ -26385,11 +26385,11 @@ var EraParser = class extends Parser {
 			default: return match$2.era(dateString, { width: "wide" }) || match$2.era(dateString, { width: "abbreviated" }) || match$2.era(dateString, { width: "narrow" });
 		}
 	}
-	set(date$3, flags, value) {
+	set(date$4, flags, value) {
 		flags.era = value;
-		date$3.setFullYear(value, 0, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+		date$4.setFullYear(value, 0, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"R",
@@ -26532,21 +26532,21 @@ var YearParser = class extends Parser {
 			default: return mapValue(parseNDigits(token.length, dateString), valueCallback);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value.isTwoDigitYear || value.year > 0;
 	}
-	set(date$3, flags, value) {
-		const currentYear = date$3.getFullYear();
+	set(date$4, flags, value) {
+		const currentYear = date$4.getFullYear();
 		if (value.isTwoDigitYear) {
 			const normalizedTwoDigitYear = normalizeTwoDigitYear(value.year, currentYear);
-			date$3.setFullYear(normalizedTwoDigitYear, 0, 1);
-			date$3.setHours(0, 0, 0, 0);
-			return date$3;
+			date$4.setFullYear(normalizedTwoDigitYear, 0, 1);
+			date$4.setHours(0, 0, 0, 0);
+			return date$4;
 		}
 		const year = !("era" in flags) || flags.era === 1 ? value.year : 1 - value.year;
-		date$3.setFullYear(year, 0, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+		date$4.setFullYear(year, 0, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 };
 var LocalWeekYearParser = class extends Parser {
@@ -26562,21 +26562,21 @@ var LocalWeekYearParser = class extends Parser {
 			default: return mapValue(parseNDigits(token.length, dateString), valueCallback);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value.isTwoDigitYear || value.year > 0;
 	}
-	set(date$3, flags, value, options$1) {
-		const currentYear = getWeekYear(date$3, options$1);
+	set(date$4, flags, value, options$1) {
+		const currentYear = getWeekYear(date$4, options$1);
 		if (value.isTwoDigitYear) {
 			const normalizedTwoDigitYear = normalizeTwoDigitYear(value.year, currentYear);
-			date$3.setFullYear(normalizedTwoDigitYear, 0, options$1.firstWeekContainsDate);
-			date$3.setHours(0, 0, 0, 0);
-			return startOfWeek(date$3, options$1);
+			date$4.setFullYear(normalizedTwoDigitYear, 0, options$1.firstWeekContainsDate);
+			date$4.setHours(0, 0, 0, 0);
+			return startOfWeek(date$4, options$1);
 		}
 		const year = !("era" in flags) || flags.era === 1 ? value.year : 1 - value.year;
-		date$3.setFullYear(year, 0, options$1.firstWeekContainsDate);
-		date$3.setHours(0, 0, 0, 0);
-		return startOfWeek(date$3, options$1);
+		date$4.setFullYear(year, 0, options$1.firstWeekContainsDate);
+		date$4.setHours(0, 0, 0, 0);
+		return startOfWeek(date$4, options$1);
 	}
 	incompatibleTokens = [
 		"y",
@@ -26600,8 +26600,8 @@ var ISOWeekYearParser = class extends Parser {
 		if (token === "R") return parseNDigitsSigned(4, dateString);
 		return parseNDigitsSigned(token.length, dateString);
 	}
-	set(date$3, _flags, value) {
-		const firstWeekOfYear = constructFrom(date$3, 0);
+	set(date$4, _flags, value) {
+		const firstWeekOfYear = constructFrom(date$4, 0);
 		firstWeekOfYear.setFullYear(value, 0, 4);
 		firstWeekOfYear.setHours(0, 0, 0, 0);
 		return startOfISOWeek(firstWeekOfYear);
@@ -26630,10 +26630,10 @@ var ExtendedYearParser = class extends Parser {
 		if (token === "u") return parseNDigitsSigned(4, dateString);
 		return parseNDigitsSigned(token.length, dateString);
 	}
-	set(date$3, _flags, value) {
-		date$3.setFullYear(value, 0, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setFullYear(value, 0, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"G",
@@ -26680,13 +26680,13 @@ var QuarterParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 4;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMonth((value - 1) * 3, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMonth((value - 1) * 3, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"Y",
@@ -26736,13 +26736,13 @@ var StandAloneQuarterParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 4;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMonth((value - 1) * 3, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMonth((value - 1) * 3, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"Y",
@@ -26808,13 +26808,13 @@ var MonthParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 11;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMonth(value, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMonth(value, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 };
 var StandAloneMonthParser = class extends Parser {
@@ -26849,13 +26849,13 @@ var StandAloneMonthParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 11;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMonth(value, 1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMonth(value, 1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"Y",
@@ -26873,8 +26873,8 @@ var StandAloneMonthParser = class extends Parser {
 		"T"
 	];
 };
-function setWeek(date$3, week, options$1) {
-	const date_ = toDate(date$3, options$1?.in);
+function setWeek(date$4, week, options$1) {
+	const date_ = toDate(date$4, options$1?.in);
 	const diff = getWeek(date_, options$1) - week;
 	date_.setDate(date_.getDate() - diff * 7);
 	return toDate(date_, options$1?.in);
@@ -26888,11 +26888,11 @@ var LocalWeekParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 53;
 	}
-	set(date$3, _flags, value, options$1) {
-		return startOfWeek(setWeek(date$3, value, options$1), options$1);
+	set(date$4, _flags, value, options$1) {
+		return startOfWeek(setWeek(date$4, value, options$1), options$1);
 	}
 	incompatibleTokens = [
 		"y",
@@ -26910,11 +26910,11 @@ var LocalWeekParser = class extends Parser {
 		"T"
 	];
 };
-function setISOWeek(date$3, week, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const diff = getISOWeek(_date, options$1) - week;
-	_date.setDate(_date.getDate() - diff * 7);
-	return _date;
+function setISOWeek(date$4, week, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const diff = getISOWeek(_date$1, options$1) - week;
+	_date$1.setDate(_date$1.getDate() - diff * 7);
+	return _date$1;
 }
 var ISOWeekParser = class extends Parser {
 	priority = 100;
@@ -26925,11 +26925,11 @@ var ISOWeekParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 53;
 	}
-	set(date$3, _flags, value) {
-		return startOfISOWeek(setISOWeek(date$3, value));
+	set(date$4, _flags, value) {
+		return startOfISOWeek(setISOWeek(date$4, value));
 	}
 	incompatibleTokens = [
 		"y",
@@ -26986,16 +26986,16 @@ var DateParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(date$3, value) {
-		const isLeapYear = isLeapYearIndex(date$3.getFullYear());
-		const month = date$3.getMonth();
+	validate(date$4, value) {
+		const isLeapYear = isLeapYearIndex(date$4.getFullYear());
+		const month = date$4.getMonth();
 		if (isLeapYear) return value >= 1 && value <= DAYS_IN_MONTH_LEAP_YEAR[month];
 		else return value >= 1 && value <= DAYS_IN_MONTH[month];
 	}
-	set(date$3, _flags, value) {
-		date$3.setDate(value);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setDate(value);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"Y",
@@ -27023,14 +27023,14 @@ var DayOfYearParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(date$3, value) {
-		if (isLeapYearIndex(date$3.getFullYear())) return value >= 1 && value <= 366;
+	validate(date$4, value) {
+		if (isLeapYearIndex(date$4.getFullYear())) return value >= 1 && value <= 366;
 		else return value >= 1 && value <= 365;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMonth(0, value);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMonth(0, value);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"Y",
@@ -27050,10 +27050,10 @@ var DayOfYearParser = class extends Parser {
 		"T"
 	];
 };
-function setDay(date$3, day, options$1) {
+function setDay(date$4, day, options$1) {
 	const defaultOptions$2 = getDefaultOptions$1();
 	const weekStartsOn = options$1?.weekStartsOn ?? options$1?.locale?.options?.weekStartsOn ?? defaultOptions$2.weekStartsOn ?? defaultOptions$2.locale?.options?.weekStartsOn ?? 0;
-	const date_ = toDate(date$3, options$1?.in);
+	const date_ = toDate(date$4, options$1?.in);
 	const currentDay = date_.getDay();
 	const dayIndex = (day % 7 + 7) % 7;
 	const delta = 7 - weekStartsOn;
@@ -27102,13 +27102,13 @@ var DayParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 6;
 	}
-	set(date$3, _flags, value, options$1) {
-		date$3 = setDay(date$3, value, options$1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value, options$1) {
+		date$4 = setDay(date$4, value, options$1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"D",
@@ -27167,13 +27167,13 @@ var LocalDayParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 6;
 	}
-	set(date$3, _flags, value, options$1) {
-		date$3 = setDay(date$3, value, options$1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value, options$1) {
+		date$4 = setDay(date$4, value, options$1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"y",
@@ -27241,13 +27241,13 @@ var StandAloneLocalDayParser = class extends Parser {
 			});
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 6;
 	}
-	set(date$3, _flags, value, options$1) {
-		date$3 = setDay(date$3, value, options$1);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value, options$1) {
+		date$4 = setDay(date$4, value, options$1);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"y",
@@ -27267,8 +27267,8 @@ var StandAloneLocalDayParser = class extends Parser {
 		"T"
 	];
 };
-function setISODay(date$3, day, options$1) {
-	const date_ = toDate(date$3, options$1?.in);
+function setISODay(date$4, day, options$1) {
+	const date_ = toDate(date$4, options$1?.in);
 	return addDays(date_, day - getISODay(date_, options$1), options$1);
 }
 var ISODayParser = class extends Parser {
@@ -27319,13 +27319,13 @@ var ISODayParser = class extends Parser {
 			}), valueCallback);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 7;
 	}
-	set(date$3, _flags, value) {
-		date$3 = setISODay(date$3, value);
-		date$3.setHours(0, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4 = setISODay(date$4, value);
+		date$4.setHours(0, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"y",
@@ -27375,9 +27375,9 @@ var AMPMParser = class extends Parser {
 			});
 		}
 	}
-	set(date$3, _flags, value) {
-		date$3.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"b",
@@ -27418,9 +27418,9 @@ var AMPMMidnightParser = class extends Parser {
 			});
 		}
 	}
-	set(date$3, _flags, value) {
-		date$3.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"a",
@@ -27461,9 +27461,9 @@ var DayPeriodParser = class extends Parser {
 			});
 		}
 	}
-	set(date$3, _flags, value) {
-		date$3.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setHours(dayPeriodEnumToHours(value), 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"a",
@@ -27481,15 +27481,15 @@ var Hour1to12Parser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 12;
 	}
-	set(date$3, _flags, value) {
-		const isPM = date$3.getHours() >= 12;
-		if (isPM && value < 12) date$3.setHours(value + 12, 0, 0, 0);
-		else if (!isPM && value === 12) date$3.setHours(0, 0, 0, 0);
-		else date$3.setHours(value, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		const isPM = date$4.getHours() >= 12;
+		if (isPM && value < 12) date$4.setHours(value + 12, 0, 0, 0);
+		else if (!isPM && value === 12) date$4.setHours(0, 0, 0, 0);
+		else date$4.setHours(value, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"H",
@@ -27508,12 +27508,12 @@ var Hour0to23Parser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 23;
 	}
-	set(date$3, _flags, value) {
-		date$3.setHours(value, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setHours(value, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"a",
@@ -27534,13 +27534,13 @@ var Hour0To11Parser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 11;
 	}
-	set(date$3, _flags, value) {
-		if (date$3.getHours() >= 12 && value < 12) date$3.setHours(value + 12, 0, 0, 0);
-		else date$3.setHours(value, 0, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		if (date$4.getHours() >= 12 && value < 12) date$4.setHours(value + 12, 0, 0, 0);
+		else date$4.setHours(value, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"h",
@@ -27559,13 +27559,13 @@ var Hour1To24Parser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 1 && value <= 24;
 	}
-	set(date$3, _flags, value) {
+	set(date$4, _flags, value) {
 		const hours = value <= 24 ? value % 24 : value;
-		date$3.setHours(hours, 0, 0, 0);
-		return date$3;
+		date$4.setHours(hours, 0, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = [
 		"a",
@@ -27586,12 +27586,12 @@ var MinuteParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 59;
 	}
-	set(date$3, _flags, value) {
-		date$3.setMinutes(value, 0, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMinutes(value, 0, 0);
+		return date$4;
 	}
 	incompatibleTokens = ["t", "T"];
 };
@@ -27604,12 +27604,12 @@ var SecondParser = class extends Parser {
 			default: return parseNDigits(token.length, dateString);
 		}
 	}
-	validate(_date, value) {
+	validate(_date$1, value) {
 		return value >= 0 && value <= 59;
 	}
-	set(date$3, _flags, value) {
-		date$3.setSeconds(value, 0);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setSeconds(value, 0);
+		return date$4;
 	}
 	incompatibleTokens = ["t", "T"];
 };
@@ -27619,9 +27619,9 @@ var FractionOfSecondParser = class extends Parser {
 		const valueCallback = (value) => Math.trunc(value * Math.pow(10, -token.length + 3));
 		return mapValue(parseNDigits(token.length, dateString), valueCallback);
 	}
-	set(date$3, _flags, value) {
-		date$3.setMilliseconds(value);
-		return date$3;
+	set(date$4, _flags, value) {
+		date$4.setMilliseconds(value);
+		return date$4;
 	}
 	incompatibleTokens = ["t", "T"];
 };
@@ -27637,9 +27637,9 @@ var ISOTimezoneWithZParser = class extends Parser {
 			default: return parseTimezonePattern(timezonePatterns.extended, dateString);
 		}
 	}
-	set(date$3, flags, value) {
-		if (flags.timestampIsSet) return date$3;
-		return constructFrom(date$3, date$3.getTime() - getTimezoneOffsetInMilliseconds(date$3) - value);
+	set(date$4, flags, value) {
+		if (flags.timestampIsSet) return date$4;
+		return constructFrom(date$4, date$4.getTime() - getTimezoneOffsetInMilliseconds(date$4) - value);
 	}
 	incompatibleTokens = [
 		"t",
@@ -27659,9 +27659,9 @@ var ISOTimezoneParser = class extends Parser {
 			default: return parseTimezonePattern(timezonePatterns.extended, dateString);
 		}
 	}
-	set(date$3, flags, value) {
-		if (flags.timestampIsSet) return date$3;
-		return constructFrom(date$3, date$3.getTime() - getTimezoneOffsetInMilliseconds(date$3) - value);
+	set(date$4, flags, value) {
+		if (flags.timestampIsSet) return date$4;
+		return constructFrom(date$4, date$4.getTime() - getTimezoneOffsetInMilliseconds(date$4) - value);
 	}
 	incompatibleTokens = [
 		"t",
@@ -27674,8 +27674,8 @@ var TimestampSecondsParser = class extends Parser {
 	parse(dateString) {
 		return parseAnyDigitsSigned(dateString);
 	}
-	set(date$3, _flags, value) {
-		return [constructFrom(date$3, value * 1e3), { timestampIsSet: true }];
+	set(date$4, _flags, value) {
+		return [constructFrom(date$4, value * 1e3), { timestampIsSet: true }];
 	}
 	incompatibleTokens = "*";
 };
@@ -27684,8 +27684,8 @@ var TimestampMillisecondsParser = class extends Parser {
 	parse(dateString) {
 		return parseAnyDigitsSigned(dateString);
 	}
-	set(date$3, _flags, value) {
-		return [constructFrom(date$3, value), { timestampIsSet: true }];
+	set(date$4, _flags, value) {
+		return [constructFrom(date$4, value), { timestampIsSet: true }];
 	}
 	incompatibleTokens = "*";
 };
@@ -27779,18 +27779,18 @@ function parse(dateStr, formatStr, referenceDate, options$1) {
 	}
 	if (dateStr.length > 0 && notWhitespaceRegExp.test(dateStr)) return invalidDate();
 	const uniquePrioritySetters = setters.map((setter) => setter.priority).sort((a$2, b$1) => b$1 - a$2).filter((priority, index$1, array$1) => array$1.indexOf(priority) === index$1).map((priority) => setters.filter((setter) => setter.priority === priority).sort((a$2, b$1) => b$1.subPriority - a$2.subPriority)).map((setterArray) => setterArray[0]);
-	let date$3 = toDate(referenceDate, options$1?.in);
-	if (isNaN(+date$3)) return invalidDate();
+	let date$4 = toDate(referenceDate, options$1?.in);
+	if (isNaN(+date$4)) return invalidDate();
 	const flags = {};
 	for (const setter of uniquePrioritySetters) {
-		if (!setter.validate(date$3, subFnOptions)) return invalidDate();
-		const result = setter.set(date$3, flags, subFnOptions);
+		if (!setter.validate(date$4, subFnOptions)) return invalidDate();
+		const result = setter.set(date$4, flags, subFnOptions);
 		if (Array.isArray(result)) {
-			date$3 = result[0];
+			date$4 = result[0];
 			Object.assign(flags, result[1]);
-		} else date$3 = result;
+		} else date$4 = result;
 	}
-	return date$3;
+	return date$4;
 }
 function cleanEscapedString(input) {
 	return input.match(escapedStringRegExp)[1].replace(doubleQuoteRegExp, "'");
@@ -27803,28 +27803,28 @@ function isSameYear(laterDate, earlierDate, options$1) {
 	const [laterDate_, earlierDate_] = normalizeDates(options$1?.in, laterDate, earlierDate);
 	return laterDate_.getFullYear() === earlierDate_.getFullYear();
 }
-function isWithinInterval(date$3, interval, options$1) {
-	const time$3 = +toDate(date$3, options$1?.in);
+function isWithinInterval(date$4, interval, options$1) {
+	const time$3 = +toDate(date$4, options$1?.in);
 	const [startTime, endTime] = [+toDate(interval.start, options$1?.in), +toDate(interval.end, options$1?.in)].sort((a$2, b$1) => a$2 - b$1);
 	return time$3 >= startTime && time$3 <= endTime;
 }
-function subDays(date$3, amount, options$1) {
-	return addDays(date$3, -amount, options$1);
+function subDays(date$4, amount, options$1) {
+	return addDays(date$4, -amount, options$1);
 }
-function setMonth(date$3, month, options$1) {
-	const _date = toDate(date$3, options$1?.in);
-	const year = _date.getFullYear();
-	const day = _date.getDate();
-	const midMonth = constructFrom(options$1?.in || date$3, 0);
+function setMonth(date$4, month, options$1) {
+	const _date$1 = toDate(date$4, options$1?.in);
+	const year = _date$1.getFullYear();
+	const day = _date$1.getDate();
+	const midMonth = constructFrom(options$1?.in || date$4, 0);
 	midMonth.setFullYear(year, month, 15);
 	midMonth.setHours(0, 0, 0, 0);
 	const daysInMonth = getDaysInMonth(midMonth);
-	_date.setMonth(month, Math.min(day, daysInMonth));
-	return _date;
+	_date$1.setMonth(month, Math.min(day, daysInMonth));
+	return _date$1;
 }
-function setYear(date$3, year, options$1) {
-	const date_ = toDate(date$3, options$1?.in);
-	if (isNaN(+date_)) return constructFrom(options$1?.in || date$3, NaN);
+function setYear(date$4, year, options$1) {
+	const date_ = toDate(date$4, options$1?.in);
+	if (isNaN(+date_)) return constructFrom(options$1?.in || date$4, NaN);
 	date_.setFullYear(year);
 	return date_;
 }
@@ -36134,7 +36134,8 @@ const DataProvider = ({ children }) => {
 		if (!error) fetchOperationalData();
 	};
 	const addProduction = async (entry) => {
-		if (!currentFactoryId) return;
+		const targetFactoryId = entry.factoryId || currentFactoryId;
+		if (!targetFactoryId) return;
 		const { error } = await supabase.from("production").insert({
 			date: entry.date.toISOString(),
 			shift: entry.shift,
@@ -36146,12 +36147,12 @@ const DataProvider = ({ children }) => {
 			blood_meal_bags: entry.bloodMealBags,
 			losses: entry.losses,
 			user_id: user?.id,
-			factory_id: currentFactoryId
+			factory_id: targetFactoryId
 		});
 		if (!error) fetchOperationalData();
 	};
 	const updateProduction = async (entry) => {
-		const { error } = await supabase.from("production").update({
+		const payload = {
 			date: entry.date.toISOString(),
 			shift: entry.shift,
 			mp_used: entry.mpUsed,
@@ -36161,7 +36162,9 @@ const DataProvider = ({ children }) => {
 			blood_meal_produced: entry.bloodMealProduced,
 			blood_meal_bags: entry.bloodMealBags,
 			losses: entry.losses
-		}).eq("id", entry.id);
+		};
+		if (entry.factoryId) payload.factory_id = entry.factoryId;
+		const { error } = await supabase.from("production").update(payload).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
 	const deleteProduction = async (id) => {
@@ -36657,8 +36660,8 @@ const formatLong = {
 	})
 };
 var formatRelativeLocale = {
-	lastWeek: (date$3) => {
-		const weekday = date$3.getDay();
+	lastWeek: (date$4) => {
+		const weekday = date$4.getDay();
 		return "'" + (weekday === 0 || weekday === 6 ? "último" : "última") + "' eeee 'às' p";
 	},
 	yesterday: "'ontem às' p",
@@ -36667,9 +36670,9 @@ var formatRelativeLocale = {
 	nextWeek: "eeee 'às' p",
 	other: "P"
 };
-const formatRelative = (token, date$3, _baseDate, _options) => {
+const formatRelative = (token, date$4, _baseDate, _options) => {
 	const format$2 = formatRelativeLocale[token];
-	if (typeof format$2 === "function") return format$2(date$3);
+	if (typeof format$2 === "function") return format$2(date$4);
 	return format$2;
 };
 var eraValues = {
@@ -37016,21 +37019,21 @@ const ptBR = {
 		firstWeekContainsDate: 1
 	}
 };
-function tzName(timeZone, date$3, format$2 = "long") {
+function tzName(timeZone, date$4, format$2 = "long") {
 	return new Intl.DateTimeFormat("en-US", {
 		hour: "numeric",
 		timeZone,
 		timeZoneName: format$2
-	}).format(date$3).split(/\s/g).slice(2).join(" ");
+	}).format(date$4).split(/\s/g).slice(2).join(" ");
 }
 var offsetFormatCache = {};
 var offsetCache = {};
-function tzOffset(timeZone, date$3) {
+function tzOffset(timeZone, date$4) {
 	try {
 		const offsetStr = (offsetFormatCache[timeZone] ||= new Intl.DateTimeFormat("en-US", {
 			timeZone,
 			timeZoneName: "longOffset"
-		}).format)(date$3).split("GMT")[1];
+		}).format)(date$4).split("GMT")[1];
 		if (offsetStr in offsetCache) return offsetCache[offsetStr];
 		return calcOffset(offsetStr, offsetStr.split(":"));
 	} catch {
@@ -37078,8 +37081,8 @@ var TZDateMini = class TZDateMini extends Date {
 		syncToInternal(this);
 		return +this;
 	}
-	[Symbol.for("constructDateFrom")](date$3) {
-		return new TZDateMini(+new Date(date$3), this.timeZone);
+	[Symbol.for("constructDateFrom")](date$4) {
+		return new TZDateMini(+new Date(date$4), this.timeZone);
 	}
 };
 var re$1 = /^(get|set)(?!UTC)/;
@@ -37103,46 +37106,46 @@ Object.getOwnPropertyNames(Date.prototype).forEach((method) => {
 		};
 	}
 });
-function syncToInternal(date$3) {
-	date$3.internal.setTime(+date$3);
-	date$3.internal.setUTCSeconds(date$3.internal.getUTCSeconds() - Math.round(-tzOffset(date$3.timeZone, date$3) * 60));
+function syncToInternal(date$4) {
+	date$4.internal.setTime(+date$4);
+	date$4.internal.setUTCSeconds(date$4.internal.getUTCSeconds() - Math.round(-tzOffset(date$4.timeZone, date$4) * 60));
 }
-function syncFromInternal(date$3) {
-	Date.prototype.setFullYear.call(date$3, date$3.internal.getUTCFullYear(), date$3.internal.getUTCMonth(), date$3.internal.getUTCDate());
-	Date.prototype.setHours.call(date$3, date$3.internal.getUTCHours(), date$3.internal.getUTCMinutes(), date$3.internal.getUTCSeconds(), date$3.internal.getUTCMilliseconds());
-	adjustToSystemTZ(date$3);
+function syncFromInternal(date$4) {
+	Date.prototype.setFullYear.call(date$4, date$4.internal.getUTCFullYear(), date$4.internal.getUTCMonth(), date$4.internal.getUTCDate());
+	Date.prototype.setHours.call(date$4, date$4.internal.getUTCHours(), date$4.internal.getUTCMinutes(), date$4.internal.getUTCSeconds(), date$4.internal.getUTCMilliseconds());
+	adjustToSystemTZ(date$4);
 }
-function adjustToSystemTZ(date$3) {
-	const baseOffset = tzOffset(date$3.timeZone, date$3);
+function adjustToSystemTZ(date$4) {
+	const baseOffset = tzOffset(date$4.timeZone, date$4);
 	const offset$3 = baseOffset > 0 ? Math.floor(baseOffset) : Math.ceil(baseOffset);
-	const prevHour = /* @__PURE__ */ new Date(+date$3);
+	const prevHour = /* @__PURE__ */ new Date(+date$4);
 	prevHour.setUTCHours(prevHour.getUTCHours() - 1);
-	const systemOffset = -(/* @__PURE__ */ new Date(+date$3)).getTimezoneOffset();
+	const systemOffset = -(/* @__PURE__ */ new Date(+date$4)).getTimezoneOffset();
 	const systemDSTChange = systemOffset - -(/* @__PURE__ */ new Date(+prevHour)).getTimezoneOffset();
-	const dstShift = Date.prototype.getHours.apply(date$3) !== date$3.internal.getUTCHours();
-	if (systemDSTChange && dstShift) date$3.internal.setUTCMinutes(date$3.internal.getUTCMinutes() + systemDSTChange);
+	const dstShift = Date.prototype.getHours.apply(date$4) !== date$4.internal.getUTCHours();
+	if (systemDSTChange && dstShift) date$4.internal.setUTCMinutes(date$4.internal.getUTCMinutes() + systemDSTChange);
 	const offsetDiff = systemOffset - offset$3;
-	if (offsetDiff) Date.prototype.setUTCMinutes.call(date$3, Date.prototype.getUTCMinutes.call(date$3) + offsetDiff);
-	const systemDate = /* @__PURE__ */ new Date(+date$3);
+	if (offsetDiff) Date.prototype.setUTCMinutes.call(date$4, Date.prototype.getUTCMinutes.call(date$4) + offsetDiff);
+	const systemDate = /* @__PURE__ */ new Date(+date$4);
 	systemDate.setUTCSeconds(0);
 	const systemSecondsOffset = systemOffset > 0 ? systemDate.getSeconds() : (systemDate.getSeconds() - 60) % 60;
-	const secondsOffset = Math.round(-(tzOffset(date$3.timeZone, date$3) * 60)) % 60;
+	const secondsOffset = Math.round(-(tzOffset(date$4.timeZone, date$4) * 60)) % 60;
 	if (secondsOffset || systemSecondsOffset) {
-		date$3.internal.setUTCSeconds(date$3.internal.getUTCSeconds() + secondsOffset);
-		Date.prototype.setUTCSeconds.call(date$3, Date.prototype.getUTCSeconds.call(date$3) + secondsOffset + systemSecondsOffset);
+		date$4.internal.setUTCSeconds(date$4.internal.getUTCSeconds() + secondsOffset);
+		Date.prototype.setUTCSeconds.call(date$4, Date.prototype.getUTCSeconds.call(date$4) + secondsOffset + systemSecondsOffset);
 	}
-	const postBaseOffset = tzOffset(date$3.timeZone, date$3);
+	const postBaseOffset = tzOffset(date$4.timeZone, date$4);
 	const postOffset = postBaseOffset > 0 ? Math.floor(postBaseOffset) : Math.ceil(postBaseOffset);
-	const postOffsetDiff = -(/* @__PURE__ */ new Date(+date$3)).getTimezoneOffset() - postOffset;
+	const postOffsetDiff = -(/* @__PURE__ */ new Date(+date$4)).getTimezoneOffset() - postOffset;
 	const offsetChanged = postOffset !== offset$3;
 	const postDiff = postOffsetDiff - offsetDiff;
 	if (offsetChanged && postDiff) {
-		Date.prototype.setUTCMinutes.call(date$3, Date.prototype.getUTCMinutes.call(date$3) + postDiff);
-		const newBaseOffset = tzOffset(date$3.timeZone, date$3);
+		Date.prototype.setUTCMinutes.call(date$4, Date.prototype.getUTCMinutes.call(date$4) + postDiff);
+		const newBaseOffset = tzOffset(date$4.timeZone, date$4);
 		const offsetChange = postOffset - (newBaseOffset > 0 ? Math.floor(newBaseOffset) : Math.ceil(newBaseOffset));
 		if (offsetChange) {
-			date$3.internal.setUTCMinutes(date$3.internal.getUTCMinutes() + offsetChange);
-			Date.prototype.setUTCMinutes.call(date$3, Date.prototype.getUTCMinutes.call(date$3) + offsetChange);
+			date$4.internal.setUTCMinutes(date$4.internal.getUTCMinutes() + offsetChange);
+			Date.prototype.setUTCMinutes.call(date$4, Date.prototype.getUTCMinutes.call(date$4) + offsetChange);
 		}
 	}
 }
@@ -37159,8 +37162,8 @@ var TZDate = class TZDate extends TZDateMini {
 		return `${this.toDateString()} ${this.toTimeString()}`;
 	}
 	toDateString() {
-		const [day, date$3, month, year] = this.internal.toUTCString().split(" ");
-		return `${day?.slice(0, -1)} ${month} ${date$3} ${year}`;
+		const [day, date$4, month, year] = this.internal.toUTCString().split(" ");
+		return `${day?.slice(0, -1)} ${month} ${date$4} ${year}`;
 	}
 	toTimeString() {
 		const time$3 = this.internal.toUTCString().split(" ")[4];
@@ -37196,8 +37199,8 @@ var TZDate = class TZDate extends TZDateMini {
 	withTimeZone(timeZone) {
 		return new TZDate(+this, timeZone);
 	}
-	[Symbol.for("constructDateFrom")](date$3) {
-		return new TZDate(+new Date(date$3), this.timeZone);
+	[Symbol.for("constructDateFrom")](date$4) {
+		return new TZDate(+new Date(date$4), this.timeZone);
 	}
 };
 var FIVE_WEEKS = 5;
@@ -37209,29 +37212,29 @@ function getBroadcastWeeksInMonth(month, dateLib) {
 	const lastDateOfLastWeek = dateLib.addDays(broadcastStartDate, FIVE_WEEKS * 7 - 1);
 	return dateLib.getMonth(month) === dateLib.getMonth(lastDateOfLastWeek) ? FIVE_WEEKS : FOUR_WEEKS;
 }
-function startOfBroadcastWeek(date$3, dateLib) {
-	const firstOfMonth = dateLib.startOfMonth(date$3);
+function startOfBroadcastWeek(date$4, dateLib) {
+	const firstOfMonth = dateLib.startOfMonth(date$4);
 	const dayOfWeek = firstOfMonth.getDay();
 	if (dayOfWeek === 1) return firstOfMonth;
 	else if (dayOfWeek === 0) return dateLib.addDays(firstOfMonth, -6);
 	else return dateLib.addDays(firstOfMonth, -1 * (dayOfWeek - 1));
 }
-function endOfBroadcastWeek(date$3, dateLib) {
-	const startDate = startOfBroadcastWeek(date$3, dateLib);
-	const numberOfWeeks = getBroadcastWeeksInMonth(date$3, dateLib);
+function endOfBroadcastWeek(date$4, dateLib) {
+	const startDate = startOfBroadcastWeek(date$4, dateLib);
+	const numberOfWeeks = getBroadcastWeeksInMonth(date$4, dateLib);
 	return dateLib.addDays(startDate, numberOfWeeks * 7 - 1);
 }
 const enUS = {
 	...enUS$1,
 	labels: {
-		labelDayButton: (date$3, modifiers, options$1, dateLib) => {
+		labelDayButton: (date$4, modifiers, options$1, dateLib) => {
 			let formatDate;
 			if (dateLib && typeof dateLib.format === "function") formatDate = dateLib.format.bind(dateLib);
 			else formatDate = (d, pattern) => format(d, pattern, {
 				locale: enUS$1,
 				...options$1
 			});
-			let label = formatDate(date$3, "PPPP");
+			let label = formatDate(date$4, "PPPP");
 			if (modifiers.today) label = `Today, ${label}`;
 			if (modifiers.selected) label = `${label}, selected`;
 			return label;
@@ -37241,36 +37244,36 @@ const enUS = {
 		labelPrevious: "Go to the Previous Month",
 		labelWeekNumber: (weekNumber) => `Week ${weekNumber}`,
 		labelYearDropdown: "Choose the Year",
-		labelGrid: (date$3, options$1, dateLib) => {
+		labelGrid: (date$4, options$1, dateLib) => {
 			let formatDate;
 			if (dateLib && typeof dateLib.format === "function") formatDate = dateLib.format.bind(dateLib);
 			else formatDate = (d, pattern) => format(d, pattern, {
 				locale: enUS$1,
 				...options$1
 			});
-			return formatDate(date$3, "LLLL yyyy");
+			return formatDate(date$4, "LLLL yyyy");
 		},
-		labelGridcell: (date$3, modifiers, options$1, dateLib) => {
+		labelGridcell: (date$4, modifiers, options$1, dateLib) => {
 			let formatDate;
 			if (dateLib && typeof dateLib.format === "function") formatDate = dateLib.format.bind(dateLib);
 			else formatDate = (d, pattern) => format(d, pattern, {
 				locale: enUS$1,
 				...options$1
 			});
-			let label = formatDate(date$3, "PPPP");
+			let label = formatDate(date$4, "PPPP");
 			if (modifiers?.today) label = `Today, ${label}`;
 			return label;
 		},
 		labelNav: "Navigation bar",
 		labelWeekNumberHeader: "Week Number",
-		labelWeekday: (date$3, options$1, dateLib) => {
+		labelWeekday: (date$4, options$1, dateLib) => {
 			let formatDate;
 			if (dateLib && typeof dateLib.format === "function") formatDate = dateLib.format.bind(dateLib);
 			else formatDate = (d, pattern) => format(d, pattern, {
 				locale: enUS$1,
 				...options$1
 			});
-			return formatDate(date$3, "cccc");
+			return formatDate(date$4, "cccc");
 		}
 	}
 };
@@ -37282,22 +37285,22 @@ var DateLib = class DateLib {
 			if (this.options.timeZone) return TZDate.tz(this.options.timeZone);
 			return new this.Date();
 		};
-		this.newDate = (year, monthIndex, date$3) => {
-			if (this.overrides?.newDate) return this.overrides.newDate(year, monthIndex, date$3);
-			if (this.options.timeZone) return new TZDate(year, monthIndex, date$3, this.options.timeZone);
-			return new Date(year, monthIndex, date$3);
+		this.newDate = (year, monthIndex, date$4) => {
+			if (this.overrides?.newDate) return this.overrides.newDate(year, monthIndex, date$4);
+			if (this.options.timeZone) return new TZDate(year, monthIndex, date$4, this.options.timeZone);
+			return new Date(year, monthIndex, date$4);
 		};
-		this.addDays = (date$3, amount) => {
-			return this.overrides?.addDays ? this.overrides.addDays(date$3, amount) : addDays(date$3, amount);
+		this.addDays = (date$4, amount) => {
+			return this.overrides?.addDays ? this.overrides.addDays(date$4, amount) : addDays(date$4, amount);
 		};
-		this.addMonths = (date$3, amount) => {
-			return this.overrides?.addMonths ? this.overrides.addMonths(date$3, amount) : addMonths(date$3, amount);
+		this.addMonths = (date$4, amount) => {
+			return this.overrides?.addMonths ? this.overrides.addMonths(date$4, amount) : addMonths(date$4, amount);
 		};
-		this.addWeeks = (date$3, amount) => {
-			return this.overrides?.addWeeks ? this.overrides.addWeeks(date$3, amount) : addWeeks(date$3, amount);
+		this.addWeeks = (date$4, amount) => {
+			return this.overrides?.addWeeks ? this.overrides.addWeeks(date$4, amount) : addWeeks(date$4, amount);
 		};
-		this.addYears = (date$3, amount) => {
-			return this.overrides?.addYears ? this.overrides.addYears(date$3, amount) : addYears(date$3, amount);
+		this.addYears = (date$4, amount) => {
+			return this.overrides?.addYears ? this.overrides.addYears(date$4, amount) : addYears(date$4, amount);
 		};
 		this.differenceInCalendarDays = (dateLeft, dateRight) => {
 			return this.overrides?.differenceInCalendarDays ? this.overrides.differenceInCalendarDays(dateLeft, dateRight) : differenceInCalendarDays(dateLeft, dateRight);
@@ -37318,43 +37321,43 @@ var DateLib = class DateLib {
 			});
 			return yearsArray;
 		};
-		this.endOfBroadcastWeek = (date$3) => {
-			return this.overrides?.endOfBroadcastWeek ? this.overrides.endOfBroadcastWeek(date$3) : endOfBroadcastWeek(date$3, this);
+		this.endOfBroadcastWeek = (date$4) => {
+			return this.overrides?.endOfBroadcastWeek ? this.overrides.endOfBroadcastWeek(date$4) : endOfBroadcastWeek(date$4, this);
 		};
-		this.endOfISOWeek = (date$3) => {
-			return this.overrides?.endOfISOWeek ? this.overrides.endOfISOWeek(date$3) : endOfISOWeek(date$3);
+		this.endOfISOWeek = (date$4) => {
+			return this.overrides?.endOfISOWeek ? this.overrides.endOfISOWeek(date$4) : endOfISOWeek(date$4);
 		};
-		this.endOfMonth = (date$3) => {
-			return this.overrides?.endOfMonth ? this.overrides.endOfMonth(date$3) : endOfMonth(date$3);
+		this.endOfMonth = (date$4) => {
+			return this.overrides?.endOfMonth ? this.overrides.endOfMonth(date$4) : endOfMonth(date$4);
 		};
-		this.endOfWeek = (date$3, options$2) => {
-			return this.overrides?.endOfWeek ? this.overrides.endOfWeek(date$3, options$2) : endOfWeek(date$3, this.options);
+		this.endOfWeek = (date$4, options$2) => {
+			return this.overrides?.endOfWeek ? this.overrides.endOfWeek(date$4, options$2) : endOfWeek(date$4, this.options);
 		};
-		this.endOfYear = (date$3) => {
-			return this.overrides?.endOfYear ? this.overrides.endOfYear(date$3) : endOfYear(date$3);
+		this.endOfYear = (date$4) => {
+			return this.overrides?.endOfYear ? this.overrides.endOfYear(date$4) : endOfYear(date$4);
 		};
-		this.format = (date$3, formatStr, _options) => {
-			const formatted = this.overrides?.format ? this.overrides.format(date$3, formatStr, this.options) : format(date$3, formatStr, this.options);
+		this.format = (date$4, formatStr, _options) => {
+			const formatted = this.overrides?.format ? this.overrides.format(date$4, formatStr, this.options) : format(date$4, formatStr, this.options);
 			if (this.options.numerals && this.options.numerals !== "latn") return this.replaceDigits(formatted);
 			return formatted;
 		};
-		this.getISOWeek = (date$3) => {
-			return this.overrides?.getISOWeek ? this.overrides.getISOWeek(date$3) : getISOWeek(date$3);
+		this.getISOWeek = (date$4) => {
+			return this.overrides?.getISOWeek ? this.overrides.getISOWeek(date$4) : getISOWeek(date$4);
 		};
-		this.getMonth = (date$3, _options) => {
-			return this.overrides?.getMonth ? this.overrides.getMonth(date$3, this.options) : getMonth(date$3, this.options);
+		this.getMonth = (date$4, _options) => {
+			return this.overrides?.getMonth ? this.overrides.getMonth(date$4, this.options) : getMonth(date$4, this.options);
 		};
-		this.getYear = (date$3, _options) => {
-			return this.overrides?.getYear ? this.overrides.getYear(date$3, this.options) : getYear(date$3, this.options);
+		this.getYear = (date$4, _options) => {
+			return this.overrides?.getYear ? this.overrides.getYear(date$4, this.options) : getYear(date$4, this.options);
 		};
-		this.getWeek = (date$3, _options) => {
-			return this.overrides?.getWeek ? this.overrides.getWeek(date$3, this.options) : getWeek(date$3, this.options);
+		this.getWeek = (date$4, _options) => {
+			return this.overrides?.getWeek ? this.overrides.getWeek(date$4, this.options) : getWeek(date$4, this.options);
 		};
-		this.isAfter = (date$3, dateToCompare) => {
-			return this.overrides?.isAfter ? this.overrides.isAfter(date$3, dateToCompare) : isAfter(date$3, dateToCompare);
+		this.isAfter = (date$4, dateToCompare) => {
+			return this.overrides?.isAfter ? this.overrides.isAfter(date$4, dateToCompare) : isAfter(date$4, dateToCompare);
 		};
-		this.isBefore = (date$3, dateToCompare) => {
-			return this.overrides?.isBefore ? this.overrides.isBefore(date$3, dateToCompare) : isBefore(date$3, dateToCompare);
+		this.isBefore = (date$4, dateToCompare) => {
+			return this.overrides?.isBefore ? this.overrides.isBefore(date$4, dateToCompare) : isBefore(date$4, dateToCompare);
 		};
 		this.isDate = (value) => {
 			return this.overrides?.isDate ? this.overrides.isDate(value) : isDate(value);
@@ -37374,29 +37377,29 @@ var DateLib = class DateLib {
 		this.min = (dates) => {
 			return this.overrides?.min ? this.overrides.min(dates) : min$3(dates);
 		};
-		this.setMonth = (date$3, month) => {
-			return this.overrides?.setMonth ? this.overrides.setMonth(date$3, month) : setMonth(date$3, month);
+		this.setMonth = (date$4, month) => {
+			return this.overrides?.setMonth ? this.overrides.setMonth(date$4, month) : setMonth(date$4, month);
 		};
-		this.setYear = (date$3, year) => {
-			return this.overrides?.setYear ? this.overrides.setYear(date$3, year) : setYear(date$3, year);
+		this.setYear = (date$4, year) => {
+			return this.overrides?.setYear ? this.overrides.setYear(date$4, year) : setYear(date$4, year);
 		};
-		this.startOfBroadcastWeek = (date$3, _dateLib) => {
-			return this.overrides?.startOfBroadcastWeek ? this.overrides.startOfBroadcastWeek(date$3, this) : startOfBroadcastWeek(date$3, this);
+		this.startOfBroadcastWeek = (date$4, _dateLib) => {
+			return this.overrides?.startOfBroadcastWeek ? this.overrides.startOfBroadcastWeek(date$4, this) : startOfBroadcastWeek(date$4, this);
 		};
-		this.startOfDay = (date$3) => {
-			return this.overrides?.startOfDay ? this.overrides.startOfDay(date$3) : startOfDay(date$3);
+		this.startOfDay = (date$4) => {
+			return this.overrides?.startOfDay ? this.overrides.startOfDay(date$4) : startOfDay(date$4);
 		};
-		this.startOfISOWeek = (date$3) => {
-			return this.overrides?.startOfISOWeek ? this.overrides.startOfISOWeek(date$3) : startOfISOWeek(date$3);
+		this.startOfISOWeek = (date$4) => {
+			return this.overrides?.startOfISOWeek ? this.overrides.startOfISOWeek(date$4) : startOfISOWeek(date$4);
 		};
-		this.startOfMonth = (date$3) => {
-			return this.overrides?.startOfMonth ? this.overrides.startOfMonth(date$3) : startOfMonth(date$3);
+		this.startOfMonth = (date$4) => {
+			return this.overrides?.startOfMonth ? this.overrides.startOfMonth(date$4) : startOfMonth(date$4);
 		};
-		this.startOfWeek = (date$3, _options) => {
-			return this.overrides?.startOfWeek ? this.overrides.startOfWeek(date$3, this.options) : startOfWeek(date$3, this.options);
+		this.startOfWeek = (date$4, _options) => {
+			return this.overrides?.startOfWeek ? this.overrides.startOfWeek(date$4, this.options) : startOfWeek(date$4, this.options);
 		};
-		this.startOfYear = (date$3) => {
-			return this.overrides?.startOfYear ? this.overrides.startOfYear(date$3) : startOfYear(date$3);
+		this.startOfYear = (date$4) => {
+			return this.overrides?.startOfYear ? this.overrides.startOfYear(date$4) : startOfYear(date$4);
 		};
 		this.options = {
 			locale: enUS,
@@ -37423,7 +37426,7 @@ var DateLib = class DateLib {
 		if (!code) return "month-first";
 		return DateLib.yearFirstLocales.has(code) ? "year-first" : "month-first";
 	}
-	formatMonthYear(date$3) {
+	formatMonthYear(date$4) {
 		const { locale: locale$2, timeZone, numerals } = this.options;
 		const localeCode = locale$2?.code;
 		if (localeCode && DateLib.yearFirstLocales.has(localeCode)) try {
@@ -37432,10 +37435,10 @@ var DateLib = class DateLib {
 				year: "numeric",
 				timeZone,
 				numberingSystem: numerals
-			}).format(date$3);
+			}).format(date$4);
 		} catch {}
 		const pattern = this.getMonthYearOrder() === "year-first" ? "y LLLL" : "LLLL y";
-		return this.format(date$3, pattern);
+		return this.format(date$4, pattern);
 	}
 };
 DateLib.yearFirstLocales = new Set([
@@ -37459,14 +37462,14 @@ DateLib.yearFirstLocales = new Set([
 ]);
 const defaultDateLib = new DateLib();
 var CalendarDay = class {
-	constructor(date$3, displayMonth, dateLib = defaultDateLib) {
-		this.date = date$3;
+	constructor(date$4, displayMonth, dateLib = defaultDateLib) {
+		this.date = date$4;
 		this.displayMonth = displayMonth;
-		this.outside = Boolean(displayMonth && !dateLib.isSameMonth(date$3, displayMonth));
+		this.outside = Boolean(displayMonth && !dateLib.isSameMonth(date$4, displayMonth));
 		this.dateLib = dateLib;
-		this.isoDate = dateLib.format(date$3, "yyyy-MM-dd");
+		this.isoDate = dateLib.format(date$4, "yyyy-MM-dd");
 		this.displayMonthId = dateLib.format(displayMonth, "yyyy-MM");
-		this.dateMonthId = dateLib.format(date$3, "yyyy-MM");
+		this.dateMonthId = dateLib.format(date$4, "yyyy-MM");
 	}
 	isEqualTo(day) {
 		return this.dateLib.isSameDay(day.date, this.date) && this.dateLib.isSameMonth(day.displayMonth, this.displayMonth);
@@ -37726,15 +37729,15 @@ var custom_components_exports = /* @__PURE__ */ __export({
 	Weeks: () => Weeks,
 	YearsDropdown: () => YearsDropdown
 }, 1);
-function rangeIncludesDate(range$5, date$3, excludeEnds = false, dateLib = defaultDateLib) {
+function rangeIncludesDate(range$5, date$4, excludeEnds = false, dateLib = defaultDateLib) {
 	let { from, to } = range$5;
 	const { differenceInCalendarDays: differenceInCalendarDays$1, isSameDay: isSameDay$1 } = dateLib;
 	if (from && to) {
 		if (differenceInCalendarDays$1(to, from) < 0) [from, to] = [to, from];
-		return differenceInCalendarDays$1(date$3, from) >= (excludeEnds ? 1 : 0) && differenceInCalendarDays$1(to, date$3) >= (excludeEnds ? 1 : 0);
+		return differenceInCalendarDays$1(date$4, from) >= (excludeEnds ? 1 : 0) && differenceInCalendarDays$1(to, date$4) >= (excludeEnds ? 1 : 0);
 	}
-	if (!excludeEnds && to) return isSameDay$1(to, date$3);
-	if (!excludeEnds && from) return isSameDay$1(from, date$3);
+	if (!excludeEnds && to) return isSameDay$1(to, date$4);
+	if (!excludeEnds && from) return isSameDay$1(from, date$4);
 	return false;
 }
 function isDateInterval(matcher) {
@@ -37755,29 +37758,29 @@ function isDayOfWeekType(value) {
 function isDatesArray(value, dateLib) {
 	return Array.isArray(value) && value.every(dateLib.isDate);
 }
-function dateMatchModifiers(date$3, matchers, dateLib = defaultDateLib) {
+function dateMatchModifiers(date$4, matchers, dateLib = defaultDateLib) {
 	const matchersArr = !Array.isArray(matchers) ? [matchers] : matchers;
 	const { isSameDay: isSameDay$1, differenceInCalendarDays: differenceInCalendarDays$1, isAfter: isAfter$1 } = dateLib;
 	return matchersArr.some((matcher) => {
 		if (typeof matcher === "boolean") return matcher;
-		if (dateLib.isDate(matcher)) return isSameDay$1(date$3, matcher);
-		if (isDatesArray(matcher, dateLib)) return matcher.some((matcherDate) => isSameDay$1(date$3, matcherDate));
-		if (isDateRange(matcher)) return rangeIncludesDate(matcher, date$3, false, dateLib);
+		if (dateLib.isDate(matcher)) return isSameDay$1(date$4, matcher);
+		if (isDatesArray(matcher, dateLib)) return matcher.some((matcherDate) => isSameDay$1(date$4, matcherDate));
+		if (isDateRange(matcher)) return rangeIncludesDate(matcher, date$4, false, dateLib);
 		if (isDayOfWeekType(matcher)) {
-			if (!Array.isArray(matcher.dayOfWeek)) return matcher.dayOfWeek === date$3.getDay();
-			return matcher.dayOfWeek.includes(date$3.getDay());
+			if (!Array.isArray(matcher.dayOfWeek)) return matcher.dayOfWeek === date$4.getDay();
+			return matcher.dayOfWeek.includes(date$4.getDay());
 		}
 		if (isDateInterval(matcher)) {
-			const diffBefore = differenceInCalendarDays$1(matcher.before, date$3);
-			const diffAfter = differenceInCalendarDays$1(matcher.after, date$3);
+			const diffBefore = differenceInCalendarDays$1(matcher.before, date$4);
+			const diffAfter = differenceInCalendarDays$1(matcher.after, date$4);
 			const isDayBefore = diffBefore > 0;
 			const isDayAfter = diffAfter < 0;
 			if (isAfter$1(matcher.before, matcher.after)) return isDayAfter && isDayBefore;
 			else return isDayBefore || isDayAfter;
 		}
-		if (isDateAfterType(matcher)) return differenceInCalendarDays$1(date$3, matcher.after) > 0;
-		if (isDateBeforeType(matcher)) return differenceInCalendarDays$1(matcher.before, date$3) > 0;
-		if (typeof matcher === "function") return matcher(date$3);
+		if (isDateAfterType(matcher)) return differenceInCalendarDays$1(date$4, matcher.after) > 0;
+		if (isDateBeforeType(matcher)) return differenceInCalendarDays$1(matcher.before, date$4) > 0;
+		if (typeof matcher === "function") return matcher(date$4);
 		return false;
 	});
 }
@@ -37795,20 +37798,20 @@ function createGetModifiers(days, props, navStart, navEnd, dateLib) {
 	};
 	const customModifiersMap = {};
 	for (const day of days) {
-		const { date: date$3, displayMonth } = day;
-		const isOutside = Boolean(displayMonth && !isSameMonth$1(date$3, displayMonth));
-		const isBeforeNavStart = Boolean(computedNavStart && isBefore$1(date$3, computedNavStart));
-		const isAfterNavEnd = Boolean(computedNavEnd && isAfter$1(date$3, computedNavEnd));
-		const isDisabled = Boolean(disabled && dateMatchModifiers(date$3, disabled, dateLib));
-		const isHidden$1 = Boolean(hidden && dateMatchModifiers(date$3, hidden, dateLib)) || isBeforeNavStart || isAfterNavEnd || !broadcastCalendar && !showOutsideDays && isOutside || broadcastCalendar && showOutsideDays === false && isOutside;
-		const isToday = isSameDay$1(date$3, today);
+		const { date: date$4, displayMonth } = day;
+		const isOutside = Boolean(displayMonth && !isSameMonth$1(date$4, displayMonth));
+		const isBeforeNavStart = Boolean(computedNavStart && isBefore$1(date$4, computedNavStart));
+		const isAfterNavEnd = Boolean(computedNavEnd && isAfter$1(date$4, computedNavEnd));
+		const isDisabled = Boolean(disabled && dateMatchModifiers(date$4, disabled, dateLib));
+		const isHidden$1 = Boolean(hidden && dateMatchModifiers(date$4, hidden, dateLib)) || isBeforeNavStart || isAfterNavEnd || !broadcastCalendar && !showOutsideDays && isOutside || broadcastCalendar && showOutsideDays === false && isOutside;
+		const isToday = isSameDay$1(date$4, today);
 		if (isOutside) internalModifiersMap.outside.push(day);
 		if (isDisabled) internalModifiersMap.disabled.push(day);
 		if (isHidden$1) internalModifiersMap.hidden.push(day);
 		if (isToday) internalModifiersMap.today.push(day);
 		if (modifiers) Object.keys(modifiers).forEach((name) => {
 			const modifierValue = modifiers?.[name];
-			if (!(modifierValue ? dateMatchModifiers(date$3, modifierValue, dateLib) : false)) return;
+			if (!(modifierValue ? dateMatchModifiers(date$4, modifierValue, dateLib) : false)) return;
 			if (customModifiersMap[name]) customModifiersMap[name].push(day);
 			else customModifiersMap[name] = [day];
 		});
@@ -37870,8 +37873,8 @@ function formatCaption(month, options$1, dateLib) {
 	return (dateLib ?? new DateLib(options$1)).formatMonthYear(month);
 }
 const formatMonthCaption = formatCaption;
-function formatDay(date$3, options$1, dateLib) {
-	return (dateLib ?? new DateLib(options$1)).format(date$3, "d");
+function formatDay(date$4, options$1, dateLib) {
+	return (dateLib ?? new DateLib(options$1)).format(date$4, "d");
 }
 function formatMonthDropdown(month, dateLib = defaultDateLib) {
 	return dateLib.format(month, "LLLL");
@@ -37909,19 +37912,19 @@ function getFormatters(customFormatters) {
 		...customFormatters
 	};
 }
-function labelDayButton(date$3, modifiers, options$1, dateLib) {
-	let label = (dateLib ?? new DateLib(options$1)).format(date$3, "PPPP");
+function labelDayButton(date$4, modifiers, options$1, dateLib) {
+	let label = (dateLib ?? new DateLib(options$1)).format(date$4, "PPPP");
 	if (modifiers.today) label = `Today, ${label}`;
 	if (modifiers.selected) label = `${label}, selected`;
 	return label;
 }
 const labelDay = labelDayButton;
-function labelGrid(date$3, options$1, dateLib) {
-	return (dateLib ?? new DateLib(options$1)).formatMonthYear(date$3);
+function labelGrid(date$4, options$1, dateLib) {
+	return (dateLib ?? new DateLib(options$1)).formatMonthYear(date$4);
 }
 const labelCaption = labelGrid;
-function labelGridcell(date$3, modifiers, options$1, dateLib) {
-	let label = (dateLib ?? new DateLib(options$1)).format(date$3, "PPPP");
+function labelGridcell(date$4, modifiers, options$1, dateLib) {
+	let label = (dateLib ?? new DateLib(options$1)).format(date$4, "PPPP");
 	if (modifiers?.today) label = `Today, ${label}`;
 	return label;
 }
@@ -37938,8 +37941,8 @@ function labelNext(_month, _options) {
 function labelPrevious(_month) {
 	return "Go to the Previous Month";
 }
-function labelWeekday(date$3, options$1, dateLib) {
-	return (dateLib ?? new DateLib(options$1)).format(date$3, "cccc");
+function labelWeekday(date$4, options$1, dateLib) {
+	return (dateLib ?? new DateLib(options$1)).format(date$4, "cccc");
 }
 function labelWeekNumber(weekNumber, _options) {
 	return `Week ${weekNumber}`;
@@ -38043,66 +38046,66 @@ function getYearOptions(navStart, navEnd, formatters$1, dateLib, reverse$1 = fal
 function createNoonOverrides(timeZone, options$1 = {}) {
 	const { weekStartsOn, locale: locale$2 } = options$1;
 	const fallbackWeekStartsOn = weekStartsOn ?? locale$2?.options?.weekStartsOn ?? 0;
-	const toNoonTZDate = (date$3) => {
-		const normalizedDate = typeof date$3 === "number" || typeof date$3 === "string" ? new Date(date$3) : date$3;
+	const toNoonTZDate = (date$4) => {
+		const normalizedDate = typeof date$4 === "number" || typeof date$4 === "string" ? new Date(date$4) : date$4;
 		return new TZDate(normalizedDate.getFullYear(), normalizedDate.getMonth(), normalizedDate.getDate(), 12, 0, 0, timeZone);
 	};
-	const toCalendarDate = (date$3) => {
-		const zoned = toNoonTZDate(date$3);
+	const toCalendarDate = (date$4) => {
+		const zoned = toNoonTZDate(date$4);
 		return new Date(zoned.getFullYear(), zoned.getMonth(), zoned.getDate(), 0, 0, 0, 0);
 	};
 	return {
 		today: () => {
 			return toNoonTZDate(TZDate.tz(timeZone));
 		},
-		newDate: (year, monthIndex, date$3) => {
-			return new TZDate(year, monthIndex, date$3, 12, 0, 0, timeZone);
+		newDate: (year, monthIndex, date$4) => {
+			return new TZDate(year, monthIndex, date$4, 12, 0, 0, timeZone);
 		},
-		startOfDay: (date$3) => {
-			return toNoonTZDate(date$3);
+		startOfDay: (date$4) => {
+			return toNoonTZDate(date$4);
 		},
-		startOfWeek: (date$3, options$2) => {
-			const base = toNoonTZDate(date$3);
+		startOfWeek: (date$4, options$2) => {
+			const base = toNoonTZDate(date$4);
 			const weekStartsOnValue = options$2?.weekStartsOn ?? fallbackWeekStartsOn;
 			const diff = (base.getDay() - weekStartsOnValue + 7) % 7;
 			base.setDate(base.getDate() - diff);
 			return base;
 		},
-		startOfISOWeek: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		startOfISOWeek: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			const diff = (base.getDay() - 1 + 7) % 7;
 			base.setDate(base.getDate() - diff);
 			return base;
 		},
-		startOfMonth: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		startOfMonth: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			base.setDate(1);
 			return base;
 		},
-		startOfYear: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		startOfYear: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			base.setMonth(0, 1);
 			return base;
 		},
-		endOfWeek: (date$3, options$2) => {
-			const base = toNoonTZDate(date$3);
+		endOfWeek: (date$4, options$2) => {
+			const base = toNoonTZDate(date$4);
 			const diff = (((options$2?.weekStartsOn ?? fallbackWeekStartsOn) + 6) % 7 - base.getDay() + 7) % 7;
 			base.setDate(base.getDate() + diff);
 			return base;
 		},
-		endOfISOWeek: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		endOfISOWeek: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			const diff = (7 - base.getDay()) % 7;
 			base.setDate(base.getDate() + diff);
 			return base;
 		},
-		endOfMonth: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		endOfMonth: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			base.setMonth(base.getMonth() + 1, 0);
 			return base;
 		},
-		endOfYear: (date$3) => {
-			const base = toNoonTZDate(date$3);
+		endOfYear: (date$4) => {
+			const base = toNoonTZDate(date$4);
 			base.setMonth(11, 31);
 			return base;
 		},
@@ -38118,23 +38121,23 @@ function createNoonOverrides(timeZone, options$1 = {}) {
 			}
 			return result;
 		},
-		addDays: (date$3, amount) => {
-			const base = toNoonTZDate(date$3);
+		addDays: (date$4, amount) => {
+			const base = toNoonTZDate(date$4);
 			base.setDate(base.getDate() + amount);
 			return base;
 		},
-		addWeeks: (date$3, amount) => {
-			const base = toNoonTZDate(date$3);
+		addWeeks: (date$4, amount) => {
+			const base = toNoonTZDate(date$4);
 			base.setDate(base.getDate() + amount * 7);
 			return base;
 		},
-		addMonths: (date$3, amount) => {
-			const base = toNoonTZDate(date$3);
+		addMonths: (date$4, amount) => {
+			const base = toNoonTZDate(date$4);
 			base.setMonth(base.getMonth() + amount);
 			return base;
 		},
-		addYears: (date$3, amount) => {
-			const base = toNoonTZDate(date$3);
+		addYears: (date$4, amount) => {
+			const base = toNoonTZDate(date$4);
 			base.setFullYear(base.getFullYear() + amount);
 			return base;
 		},
@@ -38149,14 +38152,14 @@ function createNoonOverrides(timeZone, options$1 = {}) {
 			}
 			return years;
 		},
-		getWeek: (date$3, options$2) => {
-			return getWeek(toCalendarDate(date$3), {
+		getWeek: (date$4, options$2) => {
+			return getWeek(toCalendarDate(date$4), {
 				weekStartsOn: options$2?.weekStartsOn ?? fallbackWeekStartsOn,
 				firstWeekContainsDate: options$2?.firstWeekContainsDate ?? locale$2?.options?.firstWeekContainsDate ?? 1
 			});
 		},
-		getISOWeek: (date$3) => {
-			return getISOWeek(toCalendarDate(date$3));
+		getISOWeek: (date$4) => {
+			return getISOWeek(toCalendarDate(date$4));
 		},
 		differenceInCalendarDays: (dateLeft, dateRight) => {
 			return differenceInCalendarDays(toCalendarDate(dateLeft), toCalendarDate(dateRight));
@@ -38261,15 +38264,15 @@ function getDates(displayMonths, maxDate, props, dateLib) {
 	const nOfMonths = differenceInCalendarMonths$1(lastMonth, firstMonth) + 1;
 	const dates = [];
 	for (let i$2 = 0; i$2 <= nOfDays; i$2++) {
-		const date$3 = addDays$1(startWeekFirstDate, i$2);
-		dates.push(date$3);
+		const date$4 = addDays$1(startWeekFirstDate, i$2);
+		dates.push(date$4);
 	}
 	const extraDates = (broadcastCalendar ? 35 : 42) * nOfMonths;
 	if (fixedWeeks && dates.length < extraDates) {
 		const daysToAdd = extraDates - dates.length;
 		for (let i$2 = 0; i$2 < daysToAdd; i$2++) {
-			const date$3 = addDays$1(dates[dates.length - 1], 1);
-			dates.push(date$3);
+			const date$4 = addDays$1(dates[dates.length - 1], 1);
+			dates.push(date$4);
 		}
 	}
 	return dates;
@@ -38306,21 +38309,21 @@ function getMonths(displayMonths, dates, props, dateLib) {
 	const dayPickerMonths = displayMonths.reduce((months, month) => {
 		const firstDateOfFirstWeek = props.broadcastCalendar ? startOfBroadcastWeek$1(month, dateLib) : props.ISOWeek ? startOfISOWeek$1(month) : startOfWeek$1(month);
 		const lastDateOfLastWeek = props.broadcastCalendar ? endOfBroadcastWeek$1(month) : props.ISOWeek ? endOfISOWeek$1(endOfMonth$1(month)) : endOfWeek$1(endOfMonth$1(month));
-		const monthDates = dates.filter((date$3) => {
-			return date$3 >= firstDateOfFirstWeek && date$3 <= lastDateOfLastWeek;
+		const monthDates = dates.filter((date$4) => {
+			return date$4 >= firstDateOfFirstWeek && date$4 <= lastDateOfLastWeek;
 		});
 		const nrOfDaysWithFixedWeeks = props.broadcastCalendar ? 35 : 42;
 		if (props.fixedWeeks && monthDates.length < nrOfDaysWithFixedWeeks) {
-			const extraDates = dates.filter((date$3) => {
+			const extraDates = dates.filter((date$4) => {
 				const daysToAdd = nrOfDaysWithFixedWeeks - monthDates.length;
-				return date$3 > lastDateOfLastWeek && date$3 <= addDays$1(lastDateOfLastWeek, daysToAdd);
+				return date$4 > lastDateOfLastWeek && date$4 <= addDays$1(lastDateOfLastWeek, daysToAdd);
 			});
 			monthDates.push(...extraDates);
 		}
-		const dayPickerMonth = new CalendarMonth(month, monthDates.reduce((weeks, date$3) => {
-			const weekNumber = props.ISOWeek ? getISOWeek$1(date$3) : getWeek$1(date$3);
+		const dayPickerMonth = new CalendarMonth(month, monthDates.reduce((weeks, date$4) => {
+			const weekNumber = props.ISOWeek ? getISOWeek$1(date$4) : getWeek$1(date$4);
 			const week = weeks.find((week$1) => week$1.weekNumber === weekNumber);
-			const day = new CalendarDay(date$3, month, dateLib);
+			const day = new CalendarDay(date$4, month, dateLib);
 			if (!week) weeks.push(new CalendarWeek(weekNumber, [day]));
 			else week.days.push(day);
 			return weeks;
@@ -38420,9 +38423,9 @@ function useCalendar(props, dateLib) {
 	]);
 	const { disableNavigation, onMonthChange } = props;
 	const isDayInCalendar = (day) => weeks.some((week) => week.days.some((d) => d.isEqualTo(day)));
-	const goToMonth = (date$3) => {
+	const goToMonth = (date$4) => {
 		if (disableNavigation) return;
-		let newMonth = startOfMonth$1(date$3);
+		let newMonth = startOfMonth$1(date$4);
 		if (navStart && newMonth < startOfMonth$1(navStart)) newMonth = startOfMonth$1(navStart);
 		if (navEnd && newMonth > startOfMonth$1(navEnd)) newMonth = startOfMonth$1(navEnd);
 		setFirstMonth(newMonth);
@@ -38486,8 +38489,8 @@ function getFocusableDate(moveBy, moveDir, refDate, navStart, navEnd, props, dat
 		week: addWeeks$1,
 		month: addMonths$1,
 		year: addYears$1,
-		startOfWeek: (date$3) => broadcastCalendar ? startOfBroadcastWeek$1(date$3, dateLib) : ISOWeek ? startOfISOWeek$1(date$3) : startOfWeek$1(date$3),
-		endOfWeek: (date$3) => broadcastCalendar ? endOfBroadcastWeek$1(date$3) : ISOWeek ? endOfISOWeek$1(date$3) : endOfWeek$1(date$3)
+		startOfWeek: (date$4) => broadcastCalendar ? startOfBroadcastWeek$1(date$4, dateLib) : ISOWeek ? startOfISOWeek$1(date$4) : startOfWeek$1(date$4),
+		endOfWeek: (date$4) => broadcastCalendar ? endOfBroadcastWeek$1(date$4) : ISOWeek ? endOfISOWeek$1(date$4) : endOfWeek$1(date$4)
 	}[moveBy](refDate, moveDir === "after" ? 1 : -1);
 	if (moveDir === "before" && navStart) focusableDate = max$6([navStart, focusableDate]);
 	else if (moveDir === "after" && navEnd) focusableDate = min$5([navEnd, focusableDate]);
@@ -38537,8 +38540,8 @@ function useMulti(props, dateLib) {
 	const [internallySelected, setSelected] = useControlledValue(initiallySelected, onSelect ? initiallySelected : void 0);
 	const selected = !onSelect ? internallySelected : initiallySelected;
 	const { isSameDay: isSameDay$1 } = dateLib;
-	const isSelected = (date$3) => {
-		return selected?.some((d) => isSameDay$1(d, date$3)) ?? false;
+	const isSelected = (date$4) => {
+		return selected?.some((d) => isSameDay$1(d, date$4)) ?? false;
 	};
 	const { min: min$5, max: max$6 } = props;
 	const select = (triggerDate, modifiers, e) => {
@@ -38559,65 +38562,65 @@ function useMulti(props, dateLib) {
 		isSelected
 	};
 }
-function addToRange(date$3, initialRange, min$5 = 0, max$6 = 0, required$1 = false, dateLib = defaultDateLib) {
+function addToRange(date$4, initialRange, min$5 = 0, max$6 = 0, required$1 = false, dateLib = defaultDateLib) {
 	const { from, to } = initialRange || {};
 	const { isSameDay: isSameDay$1, isAfter: isAfter$1, isBefore: isBefore$1 } = dateLib;
 	let range$5;
 	if (!from && !to) range$5 = {
-		from: date$3,
-		to: min$5 > 0 ? void 0 : date$3
+		from: date$4,
+		to: min$5 > 0 ? void 0 : date$4
 	};
-	else if (from && !to) if (isSameDay$1(from, date$3)) if (min$5 === 0) range$5 = {
+	else if (from && !to) if (isSameDay$1(from, date$4)) if (min$5 === 0) range$5 = {
 		from,
-		to: date$3
+		to: date$4
 	};
 	else if (required$1) range$5 = {
 		from,
 		to: void 0
 	};
 	else range$5 = void 0;
-	else if (isBefore$1(date$3, from)) range$5 = {
-		from: date$3,
+	else if (isBefore$1(date$4, from)) range$5 = {
+		from: date$4,
 		to: from
 	};
 	else range$5 = {
 		from,
-		to: date$3
+		to: date$4
 	};
-	else if (from && to) if (isSameDay$1(from, date$3) && isSameDay$1(to, date$3)) if (required$1) range$5 = {
+	else if (from && to) if (isSameDay$1(from, date$4) && isSameDay$1(to, date$4)) if (required$1) range$5 = {
 		from,
 		to
 	};
 	else range$5 = void 0;
-	else if (isSameDay$1(from, date$3)) range$5 = {
+	else if (isSameDay$1(from, date$4)) range$5 = {
 		from,
-		to: min$5 > 0 ? void 0 : date$3
+		to: min$5 > 0 ? void 0 : date$4
 	};
-	else if (isSameDay$1(to, date$3)) range$5 = {
-		from: date$3,
-		to: min$5 > 0 ? void 0 : date$3
+	else if (isSameDay$1(to, date$4)) range$5 = {
+		from: date$4,
+		to: min$5 > 0 ? void 0 : date$4
 	};
-	else if (isBefore$1(date$3, from)) range$5 = {
-		from: date$3,
+	else if (isBefore$1(date$4, from)) range$5 = {
+		from: date$4,
 		to
 	};
-	else if (isAfter$1(date$3, from)) range$5 = {
+	else if (isAfter$1(date$4, from)) range$5 = {
 		from,
-		to: date$3
+		to: date$4
 	};
-	else if (isAfter$1(date$3, to)) range$5 = {
+	else if (isAfter$1(date$4, to)) range$5 = {
 		from,
-		to: date$3
+		to: date$4
 	};
 	else throw new Error("Invalid range");
 	if (range$5?.from && range$5?.to) {
 		const diff = dateLib.differenceInCalendarDays(range$5.to, range$5.from);
 		if (max$6 > 0 && diff > max$6) range$5 = {
-			from: date$3,
+			from: date$4,
 			to: void 0
 		};
 		else if (min$5 > 1 && diff < min$5) range$5 = {
-			from: date$3,
+			from: date$4,
 			to: void 0
 		};
 	}
@@ -38625,12 +38628,12 @@ function addToRange(date$3, initialRange, min$5 = 0, max$6 = 0, required$1 = fal
 }
 function rangeContainsDayOfWeek(range$5, dayOfWeek, dateLib = defaultDateLib) {
 	const dayOfWeekArr = !Array.isArray(dayOfWeek) ? [dayOfWeek] : dayOfWeek;
-	let date$3 = range$5.from;
+	let date$4 = range$5.from;
 	const totalDays = dateLib.differenceInCalendarDays(range$5.to, range$5.from);
 	const totalDaysLimit = Math.min(totalDays, 6);
 	for (let i$2 = 0; i$2 <= totalDaysLimit; i$2++) {
-		if (dayOfWeekArr.includes(date$3.getDay())) return true;
-		date$3 = dateLib.addDays(date$3, 1);
+		if (dayOfWeekArr.includes(date$4.getDay())) return true;
+		date$4 = dateLib.addDays(date$4, 1);
 	}
 	return false;
 }
@@ -38642,7 +38645,7 @@ function rangeContainsModifiers(range$5, modifiers, dateLib = defaultDateLib) {
 	if (matchers.filter((matcher) => typeof matcher !== "function").some((matcher) => {
 		if (typeof matcher === "boolean") return matcher;
 		if (dateLib.isDate(matcher)) return rangeIncludesDate(range$5, matcher, false, dateLib);
-		if (isDatesArray(matcher, dateLib)) return matcher.some((date$3) => rangeIncludesDate(range$5, date$3, false, dateLib));
+		if (isDatesArray(matcher, dateLib)) return matcher.some((date$4) => rangeIncludesDate(range$5, date$4, false, dateLib));
 		if (isDateRange(matcher)) {
 			if (matcher.from && matcher.to) return rangeOverlaps(range$5, {
 				from: matcher.from,
@@ -38663,11 +38666,11 @@ function rangeContainsModifiers(range$5, modifiers, dateLib = defaultDateLib) {
 	})) return true;
 	const functionMatchers = matchers.filter((matcher) => typeof matcher === "function");
 	if (functionMatchers.length) {
-		let date$3 = range$5.from;
+		let date$4 = range$5.from;
 		const totalDays = dateLib.differenceInCalendarDays(range$5.to, range$5.from);
 		for (let i$2 = 0; i$2 <= totalDays; i$2++) {
-			if (functionMatchers.some((matcher) => matcher(date$3))) return true;
-			date$3 = dateLib.addDays(date$3, 1);
+			if (functionMatchers.some((matcher) => matcher(date$4))) return true;
+			date$4 = dateLib.addDays(date$4, 1);
 		}
 	}
 	return false;
@@ -38676,7 +38679,7 @@ function useRange(props, dateLib) {
 	const { disabled, excludeDisabled, selected: initiallySelected, required: required$1, onSelect } = props;
 	const [internallySelected, setSelected] = useControlledValue(initiallySelected, onSelect ? initiallySelected : void 0);
 	const selected = !onSelect ? internallySelected : initiallySelected;
-	const isSelected = (date$3) => selected && rangeIncludesDate(selected, date$3, false, dateLib);
+	const isSelected = (date$4) => selected && rangeIncludesDate(selected, date$4, false, dateLib);
 	const select = (triggerDate, modifiers, e) => {
 		const { min: min$5, max: max$6 } = props;
 		const newRange = triggerDate ? addToRange(triggerDate, selected, min$5, max$6, required$1, dateLib) : void 0;
@@ -38732,13 +38735,13 @@ function useSelection(props, dateLib) {
 		default: return;
 	}
 }
-function toTimeZone(date$3, timeZone) {
-	if (date$3 instanceof TZDate && date$3.timeZone === timeZone) return date$3;
-	return new TZDate(date$3, timeZone);
+function toTimeZone(date$4, timeZone) {
+	if (date$4 instanceof TZDate && date$4.timeZone === timeZone) return date$4;
+	return new TZDate(date$4, timeZone);
 }
-function toZoneNoon(date$3, timeZone, noonSafe) {
-	if (!noonSafe) return toTimeZone(date$3, timeZone);
-	const zoned = toTimeZone(date$3, timeZone);
+function toZoneNoon(date$4, timeZone, noonSafe) {
+	if (!noonSafe) return toTimeZone(date$4, timeZone);
+	const zoned = toTimeZone(date$4, timeZone);
 	const noonZoned = new TZDate(zoned.getFullYear(), zoned.getMonth(), zoned.getDate(), 12, 0, 0, timeZone);
 	return new Date(noonZoned.getTime());
 }
@@ -38778,7 +38781,7 @@ function DayPicker(initialProps) {
 		if (props.startMonth) props.startMonth = toTimeZone(props.startMonth, timeZone);
 		if (props.endMonth) props.endMonth = toTimeZone(props.endMonth, timeZone);
 		if (props.mode === "single" && props.selected) props.selected = toTimeZone(props.selected, timeZone);
-		else if (props.mode === "multiple" && props.selected) props.selected = props.selected?.map((date$3) => toTimeZone(date$3, timeZone));
+		else if (props.mode === "multiple" && props.selected) props.selected = props.selected?.map((date$4) => toTimeZone(date$4, timeZone));
 		else if (props.mode === "range" && props.selected) props.selected = {
 			from: props.selected.from ? toTimeZone(props.selected.from, timeZone) : props.selected.from,
 			to: props.selected.to ? toTimeZone(props.selected.to, timeZone) : props.selected.to
@@ -38929,13 +38932,13 @@ function DayPicker(initialProps) {
 	const handleDayMouseLeave = (0, import_react.useCallback)((day, modifiers) => (e) => {
 		onDayMouseLeave?.(day.date, modifiers, e);
 	}, [onDayMouseLeave]);
-	const handleMonthChange = (0, import_react.useCallback)((date$3) => (e) => {
+	const handleMonthChange = (0, import_react.useCallback)((date$4) => (e) => {
 		const selectedMonth = Number(e.target.value);
-		goToMonth(dateLib.setMonth(dateLib.startOfMonth(date$3), selectedMonth));
+		goToMonth(dateLib.setMonth(dateLib.startOfMonth(date$4), selectedMonth));
 	}, [dateLib, goToMonth]);
-	const handleYearChange = (0, import_react.useCallback)((date$3) => (e) => {
+	const handleYearChange = (0, import_react.useCallback)((date$4) => (e) => {
 		const selectedYear = Number(e.target.value);
-		goToMonth(dateLib.setYear(dateLib.startOfMonth(date$3), selectedYear));
+		goToMonth(dateLib.setYear(dateLib.startOfMonth(date$4), selectedYear));
 	}, [dateLib, goToMonth]);
 	const { className, style } = (0, import_react.useMemo)(() => ({
 		className: [classNames[UI.Root], props.className].filter(Boolean).join(" "),
@@ -39132,19 +39135,19 @@ function DayPicker(initialProps) {
 				scope: "row",
 				role: "rowheader"
 			}, formatWeekNumber$1(week.weekNumber, dateLib)), week.days.map((day) => {
-				const { date: date$3 } = day;
+				const { date: date$4 } = day;
 				const modifiers = getModifiers(day);
 				modifiers[DayFlag.focused] = !modifiers.hidden && Boolean(focused?.isEqualTo(day));
-				modifiers[SelectionState.selected] = isSelected?.(date$3) || modifiers.selected;
+				modifiers[SelectionState.selected] = isSelected?.(date$4) || modifiers.selected;
 				if (isDateRange(selectedValue)) {
 					const { from, to } = selectedValue;
-					modifiers[SelectionState.range_start] = Boolean(from && to && dateLib.isSameDay(date$3, from));
-					modifiers[SelectionState.range_end] = Boolean(from && to && dateLib.isSameDay(date$3, to));
-					modifiers[SelectionState.range_middle] = rangeIncludesDate(selectedValue, date$3, true, dateLib);
+					modifiers[SelectionState.range_start] = Boolean(from && to && dateLib.isSameDay(date$4, from));
+					modifiers[SelectionState.range_end] = Boolean(from && to && dateLib.isSameDay(date$4, to));
+					modifiers[SelectionState.range_middle] = rangeIncludesDate(selectedValue, date$4, true, dateLib);
 				}
 				const style$1 = getStyleForModifiers(modifiers, styles, props.modifiersStyles);
 				const className$1 = getClassNamesForModifiers(modifiers, classNames, props.modifiersClassNames);
-				const ariaLabel = !isInteractive && !modifiers.hidden ? labelGridcell$1(date$3, modifiers, dateLib.options, dateLib) : void 0;
+				const ariaLabel = !isInteractive && !modifiers.hidden ? labelGridcell$1(date$4, modifiers, dateLib.options, dateLib) : void 0;
 				return import_react.createElement(components.Day, {
 					key: `${day.isoDate}_${day.displayMonthId}`,
 					day,
@@ -39171,14 +39174,14 @@ function DayPicker(initialProps) {
 					disabled: !modifiers.focused && modifiers.disabled || void 0,
 					"aria-disabled": modifiers.focused && modifiers.disabled || void 0,
 					tabIndex: isFocusTarget(day) ? 0 : -1,
-					"aria-label": labelDayButton$1(date$3, modifiers, dateLib.options, dateLib),
+					"aria-label": labelDayButton$1(date$4, modifiers, dateLib.options, dateLib),
 					onClick: handleDayClick(day, modifiers),
 					onBlur: handleDayBlur(day, modifiers),
 					onFocus: handleDayFocus(day, modifiers),
 					onKeyDown: handleDayKeyDown(day, modifiers),
 					onMouseEnter: handleDayMouseEnter(day, modifiers),
 					onMouseLeave: handleDayMouseLeave(day, modifiers)
-				}, formatDay$1(date$3, dateLib.options, dateLib)) : !modifiers.hidden && formatDay$1(day.date, dateLib.options, dateLib));
+				}, formatDay$1(date$4, dateLib.options, dateLib)) : !modifiers.hidden && formatDay$1(day.date, dateLib.options, dateLib));
 			}));
 		}))));
 	})), props.footer && import_react.createElement(components.Footer, {
@@ -39321,7 +39324,7 @@ function Calendar({ className, classNames, showOutsideDays = true, captionLayout
 		className: cn("bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent", String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`, String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`, className),
 		captionLayout,
 		formatters: {
-			formatMonthDropdown: (date$3) => date$3.toLocaleString("default", { month: "short" }),
+			formatMonthDropdown: (date$4) => date$4.toLocaleString("default", { month: "short" }),
 			...formatters$1
 		},
 		classNames: {
@@ -48373,21 +48376,21 @@ function threshold() {
 }
 var t0 = /* @__PURE__ */ new Date(), t1 = /* @__PURE__ */ new Date();
 function timeInterval(floori, offseti, count$3, field) {
-	function interval(date$3) {
-		return floori(date$3 = arguments.length === 0 ? /* @__PURE__ */ new Date() : /* @__PURE__ */ new Date(+date$3)), date$3;
+	function interval(date$4) {
+		return floori(date$4 = arguments.length === 0 ? /* @__PURE__ */ new Date() : /* @__PURE__ */ new Date(+date$4)), date$4;
 	}
-	interval.floor = (date$3) => {
-		return floori(date$3 = /* @__PURE__ */ new Date(+date$3)), date$3;
+	interval.floor = (date$4) => {
+		return floori(date$4 = /* @__PURE__ */ new Date(+date$4)), date$4;
 	};
-	interval.ceil = (date$3) => {
-		return floori(date$3 = /* @__PURE__ */ new Date(date$3 - 1)), offseti(date$3, 1), floori(date$3), date$3;
+	interval.ceil = (date$4) => {
+		return floori(date$4 = /* @__PURE__ */ new Date(date$4 - 1)), offseti(date$4, 1), floori(date$4), date$4;
 	};
-	interval.round = (date$3) => {
-		const d0 = interval(date$3), d1 = interval.ceil(date$3);
-		return date$3 - d0 < d1 - date$3 ? d0 : d1;
+	interval.round = (date$4) => {
+		const d0 = interval(date$4), d1 = interval.ceil(date$4);
+		return date$4 - d0 < d1 - date$4 ? d0 : d1;
 	};
-	interval.offset = (date$3, step) => {
-		return offseti(date$3 = /* @__PURE__ */ new Date(+date$3), step == null ? 1 : Math.floor(step)), date$3;
+	interval.offset = (date$4, step) => {
+		return offseti(date$4 = /* @__PURE__ */ new Date(+date$4), step == null ? 1 : Math.floor(step)), date$4;
 	};
 	interval.range = (start, stop, step) => {
 		const range$5 = [];
@@ -48401,11 +48404,11 @@ function timeInterval(floori, offseti, count$3, field) {
 		return range$5;
 	};
 	interval.filter = (test) => {
-		return timeInterval((date$3) => {
-			if (date$3 >= date$3) while (floori(date$3), !test(date$3)) date$3.setTime(date$3 - 1);
-		}, (date$3, step) => {
-			if (date$3 >= date$3) if (step < 0) while (++step <= 0) while (offseti(date$3, -1), !test(date$3));
-			else while (--step >= 0) while (offseti(date$3, 1), !test(date$3));
+		return timeInterval((date$4) => {
+			if (date$4 >= date$4) while (floori(date$4), !test(date$4)) date$4.setTime(date$4 - 1);
+		}, (date$4, step) => {
+			if (date$4 >= date$4) if (step < 0) while (++step <= 0) while (offseti(date$4, -1), !test(date$4));
+			else while (--step >= 0) while (offseti(date$4, 1), !test(date$4));
 		});
 	};
 	if (count$3) {
@@ -48421,8 +48424,8 @@ function timeInterval(floori, offseti, count$3, field) {
 	}
 	return interval;
 }
-const millisecond = timeInterval(() => {}, (date$3, step) => {
-	date$3.setTime(+date$3 + step);
+const millisecond = timeInterval(() => {}, (date$4, step) => {
+	date$4.setTime(+date$4 + step);
 }, (start, end) => {
 	return end - start;
 });
@@ -48430,10 +48433,10 @@ millisecond.every = (k$1) => {
 	k$1 = Math.floor(k$1);
 	if (!isFinite(k$1) || !(k$1 > 0)) return null;
 	if (!(k$1 > 1)) return millisecond;
-	return timeInterval((date$3) => {
-		date$3.setTime(Math.floor(date$3 / k$1) * k$1);
-	}, (date$3, step) => {
-		date$3.setTime(+date$3 + step * k$1);
+	return timeInterval((date$4) => {
+		date$4.setTime(Math.floor(date$4 / k$1) * k$1);
+	}, (date$4, step) => {
+		date$4.setTime(+date$4 + step * k$1);
 	}, (start, end) => {
 		return (end - start) / k$1;
 	});
@@ -48446,84 +48449,84 @@ const durationDay = durationHour * 24;
 const durationWeek = durationDay * 7;
 const durationMonth = durationDay * 30;
 const durationYear = durationDay * 365;
-const second = timeInterval((date$3) => {
-	date$3.setTime(date$3 - date$3.getMilliseconds());
-}, (date$3, step) => {
-	date$3.setTime(+date$3 + step * durationSecond);
+const second = timeInterval((date$4) => {
+	date$4.setTime(date$4 - date$4.getMilliseconds());
+}, (date$4, step) => {
+	date$4.setTime(+date$4 + step * durationSecond);
 }, (start, end) => {
 	return (end - start) / durationSecond;
-}, (date$3) => {
-	return date$3.getUTCSeconds();
+}, (date$4) => {
+	return date$4.getUTCSeconds();
 });
 second.range;
-const timeMinute = timeInterval((date$3) => {
-	date$3.setTime(date$3 - date$3.getMilliseconds() - date$3.getSeconds() * durationSecond);
-}, (date$3, step) => {
-	date$3.setTime(+date$3 + step * durationMinute);
+const timeMinute = timeInterval((date$4) => {
+	date$4.setTime(date$4 - date$4.getMilliseconds() - date$4.getSeconds() * durationSecond);
+}, (date$4, step) => {
+	date$4.setTime(+date$4 + step * durationMinute);
 }, (start, end) => {
 	return (end - start) / durationMinute;
-}, (date$3) => {
-	return date$3.getMinutes();
+}, (date$4) => {
+	return date$4.getMinutes();
 });
 timeMinute.range;
-const utcMinute = timeInterval((date$3) => {
-	date$3.setUTCSeconds(0, 0);
-}, (date$3, step) => {
-	date$3.setTime(+date$3 + step * durationMinute);
+const utcMinute = timeInterval((date$4) => {
+	date$4.setUTCSeconds(0, 0);
+}, (date$4, step) => {
+	date$4.setTime(+date$4 + step * durationMinute);
 }, (start, end) => {
 	return (end - start) / durationMinute;
-}, (date$3) => {
-	return date$3.getUTCMinutes();
+}, (date$4) => {
+	return date$4.getUTCMinutes();
 });
 utcMinute.range;
-const timeHour = timeInterval((date$3) => {
-	date$3.setTime(date$3 - date$3.getMilliseconds() - date$3.getSeconds() * durationSecond - date$3.getMinutes() * durationMinute);
-}, (date$3, step) => {
-	date$3.setTime(+date$3 + step * durationHour);
+const timeHour = timeInterval((date$4) => {
+	date$4.setTime(date$4 - date$4.getMilliseconds() - date$4.getSeconds() * durationSecond - date$4.getMinutes() * durationMinute);
+}, (date$4, step) => {
+	date$4.setTime(+date$4 + step * durationHour);
 }, (start, end) => {
 	return (end - start) / durationHour;
-}, (date$3) => {
-	return date$3.getHours();
+}, (date$4) => {
+	return date$4.getHours();
 });
 timeHour.range;
-const utcHour = timeInterval((date$3) => {
-	date$3.setUTCMinutes(0, 0, 0);
-}, (date$3, step) => {
-	date$3.setTime(+date$3 + step * durationHour);
+const utcHour = timeInterval((date$4) => {
+	date$4.setUTCMinutes(0, 0, 0);
+}, (date$4, step) => {
+	date$4.setTime(+date$4 + step * durationHour);
 }, (start, end) => {
 	return (end - start) / durationHour;
-}, (date$3) => {
-	return date$3.getUTCHours();
+}, (date$4) => {
+	return date$4.getUTCHours();
 });
 utcHour.range;
-const timeDay = timeInterval((date$3) => date$3.setHours(0, 0, 0, 0), (date$3, step) => date$3.setDate(date$3.getDate() + step), (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay, (date$3) => date$3.getDate() - 1);
+const timeDay = timeInterval((date$4) => date$4.setHours(0, 0, 0, 0), (date$4, step) => date$4.setDate(date$4.getDate() + step), (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay, (date$4) => date$4.getDate() - 1);
 timeDay.range;
-const utcDay = timeInterval((date$3) => {
-	date$3.setUTCHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setUTCDate(date$3.getUTCDate() + step);
+const utcDay = timeInterval((date$4) => {
+	date$4.setUTCHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setUTCDate(date$4.getUTCDate() + step);
 }, (start, end) => {
 	return (end - start) / durationDay;
-}, (date$3) => {
-	return date$3.getUTCDate() - 1;
+}, (date$4) => {
+	return date$4.getUTCDate() - 1;
 });
 utcDay.range;
-const unixDay = timeInterval((date$3) => {
-	date$3.setUTCHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setUTCDate(date$3.getUTCDate() + step);
+const unixDay = timeInterval((date$4) => {
+	date$4.setUTCHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setUTCDate(date$4.getUTCDate() + step);
 }, (start, end) => {
 	return (end - start) / durationDay;
-}, (date$3) => {
-	return Math.floor(date$3 / durationDay);
+}, (date$4) => {
+	return Math.floor(date$4 / durationDay);
 });
 unixDay.range;
 function timeWeekday(i$2) {
-	return timeInterval((date$3) => {
-		date$3.setDate(date$3.getDate() - (date$3.getDay() + 7 - i$2) % 7);
-		date$3.setHours(0, 0, 0, 0);
-	}, (date$3, step) => {
-		date$3.setDate(date$3.getDate() + step * 7);
+	return timeInterval((date$4) => {
+		date$4.setDate(date$4.getDate() - (date$4.getDay() + 7 - i$2) % 7);
+		date$4.setHours(0, 0, 0, 0);
+	}, (date$4, step) => {
+		date$4.setDate(date$4.getDate() + step * 7);
 	}, (start, end) => {
 		return (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationWeek;
 	});
@@ -48543,11 +48546,11 @@ timeThursday.range;
 timeFriday.range;
 timeSaturday.range;
 function utcWeekday(i$2) {
-	return timeInterval((date$3) => {
-		date$3.setUTCDate(date$3.getUTCDate() - (date$3.getUTCDay() + 7 - i$2) % 7);
-		date$3.setUTCHours(0, 0, 0, 0);
-	}, (date$3, step) => {
-		date$3.setUTCDate(date$3.getUTCDate() + step * 7);
+	return timeInterval((date$4) => {
+		date$4.setUTCDate(date$4.getUTCDate() - (date$4.getUTCDay() + 7 - i$2) % 7);
+		date$4.setUTCHours(0, 0, 0, 0);
+	}, (date$4, step) => {
+		date$4.setUTCDate(date$4.getUTCDate() + step * 7);
 	}, (start, end) => {
 		return (end - start) / durationWeek;
 	});
@@ -48566,65 +48569,65 @@ utcWednesday.range;
 utcThursday.range;
 utcFriday.range;
 utcSaturday.range;
-const timeMonth = timeInterval((date$3) => {
-	date$3.setDate(1);
-	date$3.setHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setMonth(date$3.getMonth() + step);
+const timeMonth = timeInterval((date$4) => {
+	date$4.setDate(1);
+	date$4.setHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setMonth(date$4.getMonth() + step);
 }, (start, end) => {
 	return end.getMonth() - start.getMonth() + (end.getFullYear() - start.getFullYear()) * 12;
-}, (date$3) => {
-	return date$3.getMonth();
+}, (date$4) => {
+	return date$4.getMonth();
 });
 timeMonth.range;
-const utcMonth = timeInterval((date$3) => {
-	date$3.setUTCDate(1);
-	date$3.setUTCHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setUTCMonth(date$3.getUTCMonth() + step);
+const utcMonth = timeInterval((date$4) => {
+	date$4.setUTCDate(1);
+	date$4.setUTCHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setUTCMonth(date$4.getUTCMonth() + step);
 }, (start, end) => {
 	return end.getUTCMonth() - start.getUTCMonth() + (end.getUTCFullYear() - start.getUTCFullYear()) * 12;
-}, (date$3) => {
-	return date$3.getUTCMonth();
+}, (date$4) => {
+	return date$4.getUTCMonth();
 });
 utcMonth.range;
-const timeYear = timeInterval((date$3) => {
-	date$3.setMonth(0, 1);
-	date$3.setHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setFullYear(date$3.getFullYear() + step);
+const timeYear = timeInterval((date$4) => {
+	date$4.setMonth(0, 1);
+	date$4.setHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setFullYear(date$4.getFullYear() + step);
 }, (start, end) => {
 	return end.getFullYear() - start.getFullYear();
-}, (date$3) => {
-	return date$3.getFullYear();
+}, (date$4) => {
+	return date$4.getFullYear();
 });
 timeYear.every = (k$1) => {
-	return !isFinite(k$1 = Math.floor(k$1)) || !(k$1 > 0) ? null : timeInterval((date$3) => {
-		date$3.setFullYear(Math.floor(date$3.getFullYear() / k$1) * k$1);
-		date$3.setMonth(0, 1);
-		date$3.setHours(0, 0, 0, 0);
-	}, (date$3, step) => {
-		date$3.setFullYear(date$3.getFullYear() + step * k$1);
+	return !isFinite(k$1 = Math.floor(k$1)) || !(k$1 > 0) ? null : timeInterval((date$4) => {
+		date$4.setFullYear(Math.floor(date$4.getFullYear() / k$1) * k$1);
+		date$4.setMonth(0, 1);
+		date$4.setHours(0, 0, 0, 0);
+	}, (date$4, step) => {
+		date$4.setFullYear(date$4.getFullYear() + step * k$1);
 	});
 };
 timeYear.range;
-const utcYear = timeInterval((date$3) => {
-	date$3.setUTCMonth(0, 1);
-	date$3.setUTCHours(0, 0, 0, 0);
-}, (date$3, step) => {
-	date$3.setUTCFullYear(date$3.getUTCFullYear() + step);
+const utcYear = timeInterval((date$4) => {
+	date$4.setUTCMonth(0, 1);
+	date$4.setUTCHours(0, 0, 0, 0);
+}, (date$4, step) => {
+	date$4.setUTCFullYear(date$4.getUTCFullYear() + step);
 }, (start, end) => {
 	return end.getUTCFullYear() - start.getUTCFullYear();
-}, (date$3) => {
-	return date$3.getUTCFullYear();
+}, (date$4) => {
+	return date$4.getUTCFullYear();
 });
 utcYear.every = (k$1) => {
-	return !isFinite(k$1 = Math.floor(k$1)) || !(k$1 > 0) ? null : timeInterval((date$3) => {
-		date$3.setUTCFullYear(Math.floor(date$3.getUTCFullYear() / k$1) * k$1);
-		date$3.setUTCMonth(0, 1);
-		date$3.setUTCHours(0, 0, 0, 0);
-	}, (date$3, step) => {
-		date$3.setUTCFullYear(date$3.getUTCFullYear() + step * k$1);
+	return !isFinite(k$1 = Math.floor(k$1)) || !(k$1 > 0) ? null : timeInterval((date$4) => {
+		date$4.setUTCFullYear(Math.floor(date$4.getUTCFullYear() / k$1) * k$1);
+		date$4.setUTCMonth(0, 1);
+		date$4.setUTCHours(0, 0, 0, 0);
+	}, (date$4, step) => {
+		date$4.setUTCFullYear(date$4.getUTCFullYear() + step * k$1);
 	});
 };
 utcYear.range;
@@ -48742,17 +48745,17 @@ var [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, unixDay, 
 var [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, timeSunday, timeDay, timeHour, timeMinute);
 function localDate(d) {
 	if (0 <= d.y && d.y < 100) {
-		var date$3 = new Date(-1, d.m, d.d, d.H, d.M, d.S, d.L);
-		date$3.setFullYear(d.y);
-		return date$3;
+		var date$4 = new Date(-1, d.m, d.d, d.H, d.M, d.S, d.L);
+		date$4.setFullYear(d.y);
+		return date$4;
 	}
 	return new Date(d.y, d.m, d.d, d.H, d.M, d.S, d.L);
 }
 function utcDate(d) {
 	if (0 <= d.y && d.y < 100) {
-		var date$3 = new Date(Date.UTC(-1, d.m, d.d, d.H, d.M, d.S, d.L));
-		date$3.setUTCFullYear(d.y);
-		return date$3;
+		var date$4 = new Date(Date.UTC(-1, d.m, d.d, d.H, d.M, d.S, d.L));
+		date$4.setUTCFullYear(d.y);
+		return date$4;
 	}
 	return new Date(Date.UTC(d.y, d.m, d.d, d.H, d.M, d.S, d.L));
 }
@@ -48879,14 +48882,14 @@ function formatLocale(locale$2) {
 	utcFormats.X = newFormat(locale_time, utcFormats);
 	utcFormats.c = newFormat(locale_dateTime, utcFormats);
 	function newFormat(specifier, formats$1) {
-		return function(date$3) {
+		return function(date$4) {
 			var string$2 = [], i$2 = -1, j = 0, n$1 = specifier.length, c$1, pad$1, format$2;
-			if (!(date$3 instanceof Date)) date$3 = /* @__PURE__ */ new Date(+date$3);
+			if (!(date$4 instanceof Date)) date$4 = /* @__PURE__ */ new Date(+date$4);
 			while (++i$2 < n$1) if (specifier.charCodeAt(i$2) === 37) {
 				string$2.push(specifier.slice(j, i$2));
 				if ((pad$1 = pads[c$1 = specifier.charAt(++i$2)]) != null) c$1 = specifier.charAt(++i$2);
 				else pad$1 = c$1 === "e" ? " " : "0";
-				if (format$2 = formats$1[c$1]) c$1 = format$2(date$3, pad$1);
+				if (format$2 = formats$1[c$1]) c$1 = format$2(date$4, pad$1);
 				string$2.push(c$1);
 				j = i$2 + 1;
 			}
@@ -49347,7 +49350,7 @@ function defaultLocale(definition) {
 	locale.utcParse;
 	return locale;
 }
-function date$2(t$1) {
+function date$3(t$1) {
 	return new Date(t$1);
 }
 function number$2(t$1) {
@@ -49356,14 +49359,14 @@ function number$2(t$1) {
 function calendar(ticks$1, tickInterval, year, month, week, day, hour, minute, second$1, format$2) {
 	var scale = continuous(), invert = scale.invert, domain = scale.domain;
 	var formatMillisecond = format$2(".%L"), formatSecond = format$2(":%S"), formatMinute = format$2("%I:%M"), formatHour = format$2("%I %p"), formatDay$1 = format$2("%a %d"), formatWeek = format$2("%b %d"), formatMonth = format$2("%B"), formatYear$1 = format$2("%Y");
-	function tickFormat$1(date$3) {
-		return (second$1(date$3) < date$3 ? formatMillisecond : minute(date$3) < date$3 ? formatSecond : hour(date$3) < date$3 ? formatMinute : day(date$3) < date$3 ? formatHour : month(date$3) < date$3 ? week(date$3) < date$3 ? formatDay$1 : formatWeek : year(date$3) < date$3 ? formatMonth : formatYear$1)(date$3);
+	function tickFormat$1(date$4) {
+		return (second$1(date$4) < date$4 ? formatMillisecond : minute(date$4) < date$4 ? formatSecond : hour(date$4) < date$4 ? formatMinute : day(date$4) < date$4 ? formatHour : month(date$4) < date$4 ? week(date$4) < date$4 ? formatDay$1 : formatWeek : year(date$4) < date$4 ? formatMonth : formatYear$1)(date$4);
 	}
 	scale.invert = function(y$1) {
 		return new Date(invert(y$1));
 	};
 	scale.domain = function(_$1) {
-		return arguments.length ? domain(Array.from(_$1, number$2)) : domain().map(date$2);
+		return arguments.length ? domain(Array.from(_$1, number$2)) : domain().map(date$3);
 	};
 	scale.ticks = function(interval) {
 		var d = domain();
@@ -70398,9 +70401,9 @@ function Dashboard() {
 		}
 		return dateRange.to || today;
 	}, [dateRange, today]);
-	const filterByDate = (date$3) => {
+	const filterByDate = (date$4) => {
 		if (!dateRange.from || !dateRange.to) return true;
-		return isWithinInterval(date$3, {
+		return isWithinInterval(date$4, {
 			start: dateRange.from,
 			end: dateRange.to
 		});
@@ -72917,7 +72920,7 @@ const base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z
 const base64url = /^[A-Za-z0-9_-]*$/;
 const e164 = /^\+[1-9]\d{6,14}$/;
 var dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
-const date$1 = /* @__PURE__ */ new RegExp(`^${dateSource}$`);
+const date$2 = /* @__PURE__ */ new RegExp(`^${dateSource}$`);
 function timeSource(args) {
 	const hhmm = `(?:[01]\\d|2[0-3]):[0-5]\\d`;
 	return typeof args.precision === "number" ? args.precision === -1 ? `${hhmm}` : args.precision === 0 ? `${hhmm}:[0-5]\\d` : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}` : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
@@ -73542,7 +73545,7 @@ const $ZodISODateTime = /* @__PURE__ */ $constructor("$ZodISODateTime", (inst, d
 	$ZodStringFormat.init(inst, def);
 });
 const $ZodISODate = /* @__PURE__ */ $constructor("$ZodISODate", (inst, def) => {
-	def.pattern ?? (def.pattern = date$1);
+	def.pattern ?? (def.pattern = date$2);
 	$ZodStringFormat.init(inst, def);
 });
 const $ZodISOTime = /* @__PURE__ */ $constructor("$ZodISOTime", (inst, def) => {
@@ -73716,6 +73719,25 @@ const $ZodNever = /* @__PURE__ */ $constructor("$ZodNever", (inst, def) => {
 			expected: "never",
 			code: "invalid_type",
 			input: payload.value,
+			inst
+		});
+		return payload;
+	};
+});
+const $ZodDate = /* @__PURE__ */ $constructor("$ZodDate", (inst, def) => {
+	$ZodType.init(inst, def);
+	inst._zod.parse = (payload, _ctx) => {
+		if (def.coerce) try {
+			payload.value = new Date(payload.value);
+		} catch (_err) {}
+		const input = payload.value;
+		const isDate$1 = input instanceof Date;
+		if (isDate$1 && !Number.isNaN(input.getTime())) return payload;
+		payload.issues.push({
+			expected: "date",
+			code: "invalid_type",
+			input,
+			...isDate$1 ? { received: "Invalid Date" } : {},
 			inst
 		});
 		return payload;
@@ -74708,6 +74730,13 @@ function _never(Class, params) {
 	});
 }
 /* @__NO_SIDE_EFFECTS__ */
+function _date(Class, params) {
+	return new Class({
+		type: "date",
+		...normalizeParams(params)
+	});
+}
+/* @__NO_SIDE_EFFECTS__ */
 function _lt(value, params) {
 	return new $ZodCheckLessThan({
 		check: "less_than",
@@ -75235,6 +75264,9 @@ const neverProcessor = (_schema, _ctx, json, _params) => {
 	json.not = {};
 };
 const unknownProcessor = (_schema, _ctx, _json, _params) => {};
+const dateProcessor = (_schema, ctx, _json, _params) => {
+	if (ctx.unrepresentable === "throw") throw new Error("Date cannot be represented in JSON Schema");
+};
 const enumProcessor = (schema, _ctx, json, _params) => {
 	const def = schema._zod.def;
 	const values = getEnumValues(def.entries);
@@ -75527,7 +75559,7 @@ const ZodISODate = /* @__PURE__ */ $constructor("ZodISODate", (inst, def) => {
 	$ZodISODate.init(inst, def);
 	ZodStringFormat.init(inst, def);
 });
-function date(params) {
+function date$1(params) {
 	return /* @__PURE__ */ _isoDate(ZodISODate, params);
 }
 const ZodISOTime = /* @__PURE__ */ $constructor("ZodISOTime", (inst, def) => {
@@ -75704,7 +75736,7 @@ const ZodString = /* @__PURE__ */ $constructor("ZodString", (inst, def) => {
 	inst.cidrv6 = (params) => inst.check(/* @__PURE__ */ _cidrv6(ZodCIDRv6, params));
 	inst.e164 = (params) => inst.check(/* @__PURE__ */ _e164(ZodE164, params));
 	inst.datetime = (params) => inst.check(datetime(params));
-	inst.date = (params) => inst.check(date(params));
+	inst.date = (params) => inst.check(date$1(params));
 	inst.time = (params) => inst.check(time(params));
 	inst.duration = (params) => inst.check(duration(params));
 });
@@ -75839,6 +75871,19 @@ const ZodNever = /* @__PURE__ */ $constructor("ZodNever", (inst, def) => {
 });
 function never(params) {
 	return /* @__PURE__ */ _never(ZodNever, params);
+}
+const ZodDate = /* @__PURE__ */ $constructor("ZodDate", (inst, def) => {
+	$ZodDate.init(inst, def);
+	ZodType.init(inst, def);
+	inst._zod.processJSONSchema = (ctx, json, params) => dateProcessor(inst, ctx, json, params);
+	inst.min = (value, params) => inst.check(/* @__PURE__ */ _gte(value, params));
+	inst.max = (value, params) => inst.check(/* @__PURE__ */ _lte(value, params));
+	const c$1 = inst._zod.bag;
+	inst.minDate = c$1.minimum ? new Date(c$1.minimum) : null;
+	inst.maxDate = c$1.maximum ? new Date(c$1.maximum) : null;
+});
+function date(params) {
+	return /* @__PURE__ */ _date(ZodDate, params);
 }
 const ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
 	$ZodArray.init(inst, def);
@@ -76268,7 +76313,7 @@ const MEASUREMENT_UNITS = [
 		label: "Bag (1400kg)"
 	}
 ];
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
 	type: string().min(1, "Tipo é obrigatório"),
@@ -76280,7 +76325,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -76642,9 +76687,9 @@ function shouldRequireAuth(createdAt) {
 	const createdDate = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
 	return differenceInMinutes(/* @__PURE__ */ new Date(), createdDate) > 5;
 }
-function isRecordLocked(date$3) {
-	if (!date$3) return false;
-	const recordDate = typeof date$3 === "string" ? new Date(date$3) : date$3;
+function isRecordLocked(date$4) {
+	if (!date$4) return false;
+	const recordDate = typeof date$4 === "string" ? new Date(date$4) : date$4;
 	const now$2 = /* @__PURE__ */ new Date();
 	return Math.abs(differenceInHours(now$2, recordDate)) >= 24;
 }
@@ -76791,13 +76836,13 @@ function RawMaterialImportDialog() {
 			const quantityStr = cols[idxQuantity];
 			const unit$1 = cols[idxUnit];
 			const notes = idxNotes !== -1 ? cols[idxNotes] : "";
-			let date$3 = parse(dateStr, "dd/MM/yyyy", /* @__PURE__ */ new Date());
-			if (!isValid(date$3)) date$3 = parse(dateStr, "yyyy-MM-dd", /* @__PURE__ */ new Date());
-			if (!isValid(date$3)) {
+			let date$4 = parse(dateStr, "dd/MM/yyyy", /* @__PURE__ */ new Date());
+			if (!isValid(date$4)) date$4 = parse(dateStr, "yyyy-MM-dd", /* @__PURE__ */ new Date());
+			if (!isValid(date$4)) {
 				errors.push(`Linha ${i$2 + 1}: Data inválida (${dateStr}).`);
 				continue;
 			}
-			date$3.setHours(12, 0, 0, 0);
+			date$4.setHours(12, 0, 0, 0);
 			if (!supplier || supplier.length < 2) {
 				errors.push(`Linha ${i$2 + 1}: Fornecedor inválido.`);
 				continue;
@@ -76817,7 +76862,7 @@ function RawMaterialImportDialog() {
 				continue;
 			}
 			entries.push({
-				date: date$3,
+				date: date$4,
 				supplier,
 				type: normalizedType,
 				quantity,
@@ -76945,19 +76990,19 @@ function RawMaterialImportDialog() {
 		})]
 	});
 }
-function DatePicker({ date: date$3, setDate, className }) {
+function DatePicker({ date: date$4, setDate, className }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 		asChild: true,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
-			className: cn("w-[240px] justify-start text-left font-normal", !date$3 && "text-muted-foreground", className),
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$3 ? format(date$3, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
+			className: cn("w-[240px] justify-start text-left font-normal", !date$4 && "text-muted-foreground", className),
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
 		})
 	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
 		className: "w-auto p-0",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
 			mode: "single",
-			selected: date$3,
+			selected: date$4,
 			onSelect: (d) => d && setDate(d),
 			initialFocus: true,
 			locale: ptBR
@@ -77127,7 +77172,7 @@ function RawMaterial() {
 							className: "flex items-center gap-2",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePicker, {
 								date: historyDate,
-								setDate: (date$3) => setHistoryDate(date$3),
+								setDate: (date$4) => setHistoryDate(date$4),
 								className: "w-full sm:w-[200px]"
 							}), historyDate && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
@@ -77383,7 +77428,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -77402,7 +77447,7 @@ function ProductionForm({ initialData, onSuccess }) {
 	const { addProduction, updateProduction } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -77951,6 +77996,390 @@ function Production() {
 				onSuccess: handleSecuritySuccess,
 				title: "Proteção de Registro",
 				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+			})
+		]
+	});
+}
+var formSchema$6 = object({
+	date: date({ required_error: "A data é obrigatória" }),
+	shift: _enum([
+		"Manhã",
+		"Tarde",
+		"Noite"
+	]),
+	factoryId: string().min(1, "A fábrica é obrigatória"),
+	bloodMealProduced: number().min(0, "O valor deve ser positivo").refine((val) => val > 0, "A produção deve ser maior que 0"),
+	bloodMealBags: number().min(0, "A quantidade de sacos deve ser positiva").int("O número de sacos deve ser inteiro")
+});
+function BloodProductionForm({ initialData, onSuccess, onCancel }) {
+	const { addProduction, updateProduction, factories, currentFactoryId } = useData();
+	const { toast: toast$2 } = useToast();
+	const form = useForm({
+		resolver: a(formSchema$6),
+		defaultValues: {
+			date: initialData?.date || /* @__PURE__ */ new Date(),
+			shift: initialData?.shift || "Manhã",
+			factoryId: initialData?.factoryId || currentFactoryId || "",
+			bloodMealProduced: initialData?.bloodMealProduced || 0,
+			bloodMealBags: initialData?.bloodMealBags || 0
+		}
+	});
+	const bloodMealBags = form.watch("bloodMealBags");
+	(0, import_react.useEffect)(() => {
+		if (form.formState.dirtyFields.bloodMealBags) {
+			const bags = Number(bloodMealBags) || 0;
+			if (bags > 0) form.setValue("bloodMealProduced", bags * 1400, { shouldValidate: true });
+		}
+	}, [bloodMealBags, form]);
+	async function onSubmit(values) {
+		const entryData = {
+			date: values.date,
+			shift: values.shift,
+			factoryId: values.factoryId,
+			bloodMealProduced: values.bloodMealProduced,
+			bloodMealBags: values.bloodMealBags,
+			mpUsed: 0,
+			seboProduced: 0,
+			fcoProduced: 0,
+			farinhetaProduced: 0,
+			losses: 0
+		};
+		try {
+			if (initialData) {
+				updateProduction({
+					...initialData,
+					...entryData,
+					id: initialData.id
+				});
+				toast$2({
+					title: "Registro atualizado",
+					description: "A produção de sangue foi atualizada com sucesso."
+				});
+			} else {
+				addProduction(entryData);
+				toast$2({
+					title: "Registro criado",
+					description: "A produção de sangue foi registrada com sucesso."
+				});
+			}
+			form.reset();
+			onSuccess();
+		} catch (error) {
+			toast$2({
+				title: "Erro",
+				description: "Não foi possível salvar o registro.",
+				variant: "destructive"
+			});
+		}
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+		...form,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: form.handleSubmit(onSubmit),
+			className: "space-y-4 py-2",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-1 md:grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "date",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+							className: "flex flex-col",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data de Produção" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
+									asChild: true,
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+										variant: "outline",
+										className: cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground"),
+										children: [field.value ? format(field.value, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "ml-auto h-4 w-4 opacity-50" })]
+									}) })
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
+									className: "w-auto p-0",
+									align: "start",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
+										mode: "single",
+										selected: field.value,
+										onSelect: field.onChange,
+										disabled: (date$4) => date$4 > /* @__PURE__ */ new Date() || date$4 < /* @__PURE__ */ new Date("1900-01-01"),
+										initialFocus: true,
+										locale: ptBR
+									})
+								})] }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							]
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "shift",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Turno" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+								onValueChange: field.onChange,
+								defaultValue: field.value,
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione o turno" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Manhã",
+										children: "Manhã"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Tarde",
+										children: "Tarde"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Noite",
+										children: "Noite"
+									})
+								] })]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "factoryId",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fábrica" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+							onValueChange: field.onChange,
+							defaultValue: field.value,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione a fábrica" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: factories.map((factory) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: factory.id,
+								children: factory.name
+							}, factory.id)) })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-1 md:grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-md",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "bloodMealBags",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Quantidade de Sacos" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								min: 0,
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Número total de bags produzidos" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "bloodMealProduced",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Produção (kg)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								min: 0,
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Total em quilogramas (aprox. 1400kg/bag)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex justify-end gap-2 pt-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "button",
+						variant: "outline",
+						onClick: onCancel,
+						children: "Cancelar"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "submit",
+						children: "Salvar Registro"
+					})]
+				})
+			]
+		})
+	});
+}
+function BloodProduction() {
+	const { production, deleteProduction, factories } = useData();
+	const { toast: toast$2 } = useToast();
+	useIsMobile();
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
+	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const handleEditClick = (item) => {
+		if (canEditRecord(item.createdAt)) {
+			setEditingItem(item);
+			setIsOpen(true);
+		} else {
+			setSecurityAction({
+				type: "edit",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleDeleteClick = (item) => {
+		if (canEditRecord(item.createdAt)) setDeleteId(item.id);
+		else {
+			setSecurityAction({
+				type: "delete",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleSecuritySuccess = () => {
+		setIsSecurityOpen(false);
+		if (securityAction) {
+			if (securityAction.type === "edit") {
+				setEditingItem(securityAction.item);
+				setIsOpen(true);
+			} else if (securityAction.type === "delete") setDeleteId(securityAction.item.id);
+			setSecurityAction(null);
+		}
+	};
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteProduction(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "A produção foi removida com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const handleOpenChange = (open) => {
+		setIsOpen(open);
+		if (!open) setEditingItem(void 0);
+	};
+	const filteredRecords = production.filter((item) => item.bloodMealProduced > 0).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
+	const getFactoryName = (id) => {
+		if (!id) return "-";
+		const factory = factories.find((f) => f.id === id);
+		return factory ? factory.name : "Desconhecida";
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+					className: "text-2xl font-bold tracking-tight flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Droplet, { className: "h-6 w-6 text-red-600" }), "Produção de Sangue"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-muted-foreground",
+					children: "Gerenciamento de produção de farinha de sangue."
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+					open: isOpen,
+					onOpenChange: handleOpenChange,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+						asChild: true,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2 w-full sm:w-auto",
+							onClick: () => setEditingItem(void 0),
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Produção"]
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+						className: "sm:max-w-[500px]",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Informe os dados de processamento de sangue." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodProductionForm, {
+							initialData: editingItem,
+							onSuccess: () => setIsOpen(false),
+							onCancel: () => setIsOpen(false)
+						})]
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+				className: "pb-3",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "flex items-center justify-between gap-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Produção" })
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registros recentes de farinha de sangue." })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "hidden md:table-cell",
+					children: "Fábrica"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "text-right",
+					children: "Produção (kg)"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "text-right",
+					children: "Sacos"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "w-[100px] text-right",
+					children: "Ações"
+				})
+			] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+				colSpan: 6,
+				className: "text-center h-24 text-muted-foreground",
+				children: "Nenhum registro encontrado."
+			}) }) : filteredRecords.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+				className: "hover:bg-muted/50",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "font-medium",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "h-3 w-3 text-muted-foreground" }), format(entry.date, "dd/MM/yyyy")]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "hidden md:table-cell text-muted-foreground",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Factory, { className: "h-3 w-3" }), getFactoryName(entry.factoryId)]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "text-right font-mono font-medium",
+						children: entry.bloodMealProduced.toLocaleString("pt-BR")
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "text-right font-mono text-muted-foreground",
+						children: entry.bloodMealBags || "-"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "text-right",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex justify-end gap-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								size: "icon",
+								className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
+								onClick: () => handleEditClick(entry),
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-3.5 w-3.5" })
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								size: "icon",
+								className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
+								onClick: () => handleDeleteClick(entry),
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-3.5 w-3.5" })
+							})]
+						})
+					})
+				]
+			}, entry.id)) })] }) })] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover este registro? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+				isOpen: isSecurityOpen,
+				onOpenChange: setIsSecurityOpen,
+				onSuccess: handleSecuritySuccess
 			})
 		]
 	});
@@ -78758,7 +79187,7 @@ function AcidityForm({ initialData, onSubmit, onCancel }) {
 		})
 	});
 }
-function DatePickerWithRange({ className, date: date$3, setDate }) {
+function DatePickerWithRange({ className, date: date$4, setDate }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 		className: cn("grid gap-2", className),
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
@@ -78766,13 +79195,13 @@ function DatePickerWithRange({ className, date: date$3, setDate }) {
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 				id: "date",
 				variant: "outline",
-				className: cn("w-full justify-start text-left font-normal", !date$3 && "text-muted-foreground"),
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$3?.from ? date$3.to ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-					format(date$3.from, "dd/MM/yyyy"),
+				className: cn("w-full justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$4?.from ? date$4.to ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+					format(date$4.from, "dd/MM/yyyy"),
 					" -",
 					" ",
-					format(date$3.to, "dd/MM/yyyy")
-				] }) : format(date$3.from, "dd/MM/yyyy") : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione um período" })]
+					format(date$4.to, "dd/MM/yyyy")
+				] }) : format(date$4.from, "dd/MM/yyyy") : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione um período" })]
 			})
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
 			className: "w-auto p-0",
@@ -78780,8 +79209,8 @@ function DatePickerWithRange({ className, date: date$3, setDate }) {
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
 				initialFocus: true,
 				mode: "range",
-				defaultMonth: date$3?.from,
-				selected: date$3,
+				defaultMonth: date$4?.from,
+				selected: date$4,
 				onSelect: setDate,
 				numberOfMonths: 2,
 				locale: ptBR
@@ -80283,8 +80712,8 @@ function Shipping() {
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
-	const handleProtectedAction = (date$3, action) => {
-		if (isRecordLocked(date$3)) {
+	const handleProtectedAction = (date$4, action) => {
+		if (isRecordLocked(date$4)) {
 			setPendingAction(() => action);
 			setSecurityOpen(true);
 		} else action();
@@ -80671,8 +81100,8 @@ var formatValue$1 = (value) => {
 	if (value instanceof Date) return format(value, "dd/MM/yyyy HH:mm");
 	if (typeof value === "string") {
 		if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
-			const date$3 = new Date(value);
-			if (!isNaN(date$3.getTime())) return format(date$3, "dd/MM/yyyy HH:mm");
+			const date$4 = new Date(value);
+			if (!isNaN(date$4.getTime())) return format(date$4, "dd/MM/yyyy HH:mm");
 		}
 		return value;
 	}
@@ -81078,8 +81507,8 @@ var formatValue = (value) => {
 	if (value === null || value === void 0) return "";
 	if (typeof value === "boolean") return value ? "Sim" : "Não";
 	if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
-		const date$3 = new Date(value);
-		if (!isNaN(date$3.getTime())) return format(date$3, "dd/MM/yyyy HH:mm");
+		const date$4 = new Date(value);
+		if (!isNaN(date$4.getTime())) return format(date$4, "dd/MM/yyyy HH:mm");
 	}
 	return String(value);
 };
@@ -82900,14 +83329,14 @@ function QualityReport() {
 function YieldsReport() {
 	const { production } = useData();
 	const [viewMode, setViewMode] = (0, import_react.useState)("daily");
-	const [date$3, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
+	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	const handleViewChange = (val) => {
 		setViewMode(val);
 	};
 	const metrics = (0, import_react.useMemo)(() => {
 		const filtered = production.filter((item) => {
-			if (viewMode === "daily") return isSameDay(item.date, date$3);
-			else return isSameMonth(item.date, date$3) && isSameYear(item.date, date$3);
+			if (viewMode === "daily") return isSameDay(item.date, date$4);
+			else return isSameMonth(item.date, date$4) && isSameYear(item.date, date$4);
 		});
 		const totals = filtered.reduce((acc, curr) => ({
 			mpUsed: acc.mpUsed + curr.mpUsed,
@@ -82930,10 +83359,10 @@ function YieldsReport() {
 	}, [
 		production,
 		viewMode,
-		date$3
+		date$4
 	]);
 	const MonthPicker = () => {
-		const [year, setYear$1] = (0, import_react.useState)(date$3.getFullYear());
+		const [year, setYear$1] = (0, import_react.useState)(date$4.getFullYear());
 		const months = Array.from({ length: 12 }, (_$1, i$2) => i$2);
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "flex flex-col gap-2 p-3",
@@ -82962,7 +83391,7 @@ function YieldsReport() {
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "grid grid-cols-3 gap-2",
 				children: months.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					variant: m === date$3.getMonth() && year === date$3.getFullYear() ? "default" : "outline",
+					variant: m === date$4.getMonth() && year === date$4.getFullYear() ? "default" : "outline",
 					className: "h-8 text-xs",
 					onClick: () => {
 						setDate(new Date(year, m, 1));
@@ -83012,15 +83441,15 @@ function YieldsReport() {
 					asChild: true,
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "outline",
-						className: cn("w-full sm:w-[240px] justify-start text-left font-normal border-primary/20", !date$3 && "text-muted-foreground"),
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4 text-primary" }), viewMode === "daily" ? format(date$3, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : format(date$3, "MMMM 'de' yyyy", { locale: ptBR })]
+						className: cn("w-full sm:w-[240px] justify-start text-left font-normal border-primary/20", !date$4 && "text-muted-foreground"),
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4 text-primary" }), viewMode === "daily" ? format(date$4, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : format(date$4, "MMMM 'de' yyyy", { locale: ptBR })]
 					})
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
 					className: "w-auto p-0",
 					align: "end",
 					children: viewMode === "daily" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
 						mode: "single",
-						selected: date$3,
+						selected: date$4,
 						onSelect: (d) => d && setDate(d),
 						initialFocus: true,
 						className: "p-3"
@@ -83110,10 +83539,10 @@ var parseLocalDate = (dateStr) => {
 	const [year, month, day] = dateStr.split("-").map(Number);
 	return new Date(year, month - 1, day);
 };
-const fetchSeboInventory = async (date$3, factoryId) => {
-	if (!date$3 || isNaN(date$3.getTime())) throw new Error("Data inválida fornecida.");
+const fetchSeboInventory = async (date$4, factoryId) => {
+	if (!date$4 || isNaN(date$4.getTime())) throw new Error("Data inválida fornecida.");
 	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	const dateStr = format(date$3, "yyyy-MM-dd");
+	const dateStr = format(date$4, "yyyy-MM-dd");
 	try {
 		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).eq("date", dateStr).order("created_at", { ascending: true });
 		if (error) throw error;
@@ -83446,7 +83875,7 @@ function SeboInventory() {
 	const { currentFactoryId } = useData();
 	const { user } = useAuth();
 	const { toast: toast$2 } = useToast();
-	const [date$3, setDate] = (0, import_react.useState)(startOfDay(/* @__PURE__ */ new Date()));
+	const [date$4, setDate] = (0, import_react.useState)(startOfDay(/* @__PURE__ */ new Date()));
 	const [chartMonth, setChartMonth] = (0, import_react.useState)(startOfMonth(/* @__PURE__ */ new Date()));
 	const [loading, setLoading] = (0, import_react.useState)(false);
 	const [saving, setSaving] = (0, import_react.useState)(false);
@@ -83468,7 +83897,7 @@ function SeboInventory() {
 	const createEmptyRecord = (0, import_react.useCallback)((category) => ({
 		factoryId: currentFactoryId,
 		userId: user?.id || "",
-		date: date$3,
+		date: date$4,
 		quantityLt: 0,
 		quantityKg: 0,
 		category,
@@ -83477,13 +83906,13 @@ function SeboInventory() {
 	}), [
 		currentFactoryId,
 		user,
-		date$3
+		date$4
 	]);
 	const loadData = (0, import_react.useCallback)(async () => {
 		if (!currentFactoryId) return;
 		setLoading(true);
 		try {
-			const data = await fetchSeboInventory(date$3, currentFactoryId);
+			const data = await fetchSeboInventory(date$4, currentFactoryId);
 			const fetchedTanks = data.filter((r$2) => r$2.category === "tank");
 			const fetchedExtras = data.filter((r$2) => r$2.category === "extra");
 			const newTankRows = [...fetchedTanks];
@@ -83509,7 +83938,7 @@ function SeboInventory() {
 			setLoading(false);
 		}
 	}, [
-		date$3,
+		date$4,
 		currentFactoryId,
 		createEmptyRecord,
 		toast$2
@@ -83646,7 +84075,7 @@ function SeboInventory() {
 			const validExtras = extraRows.filter((r$2) => r$2.quantityKg > 0 || r$2.description && r$2.description.trim() !== "");
 			const sanitizedRecords = [...validTanks, ...validExtras].map((r$2) => ({
 				...r$2,
-				date: date$3,
+				date: date$4,
 				factoryId: currentFactoryId,
 				userId: r$2.userId || user.id
 			}));
@@ -83739,15 +84168,15 @@ function SeboInventory() {
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								id: "date-picker",
 								variant: "outline",
-								className: cn("w-[240px] justify-start text-left font-normal", !date$3 && "text-muted-foreground"),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$3 ? format(date$3, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
+								className: cn("w-[240px] justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
 							})
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
 							className: "w-auto p-0",
 							align: "end",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, {
 								mode: "single",
-								selected: date$3,
+								selected: date$4,
 								onSelect: (d) => d && setDate(startOfDay(d)),
 								initialFocus: true,
 								locale: ptBR
@@ -83781,7 +84210,7 @@ function SeboInventory() {
 						className: "bg-muted/40 pb-4 flex flex-row items-center justify-between",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 							className: "text-sm font-medium uppercase tracking-wider text-muted-foreground",
-							children: ["Estoque de Sebo - ", format(date$3, "dd/MMM", { locale: ptBR })]
+							children: ["Estoque de Sebo - ", format(date$4, "dd/MMM", { locale: ptBR })]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "ghost",
 							size: "icon",
@@ -84584,9 +85013,9 @@ function DowntimeManager() {
 		})]
 	});
 }
-function calculateDailyMetrics(date$3, cookingRecords, downtimeRecords, productionRecords, now$2 = /* @__PURE__ */ new Date()) {
+function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, productionRecords, now$2 = /* @__PURE__ */ new Date()) {
 	const activeMinutesArray = new Int8Array(1440).fill(0);
-	cookingRecords.filter((r$2) => isSameDay(r$2.date, date$3)).forEach((record) => {
+	cookingRecords.filter((r$2) => isSameDay(r$2.date, date$4)).forEach((record) => {
 		const [startH, startM] = record.startTime.split(":").map(Number);
 		let startMin = startH * 60 + startM;
 		let endMin = 1440;
@@ -84594,22 +85023,22 @@ function calculateDailyMetrics(date$3, cookingRecords, downtimeRecords, producti
 			const [endH, endM] = record.endTime.split(":").map(Number);
 			endMin = endH * 60 + endM;
 			if (endMin < startMin) endMin = 1440;
-		} else if (isSameDay(date$3, now$2)) endMin = now$2.getHours() * 60 + now$2.getMinutes();
+		} else if (isSameDay(date$4, now$2)) endMin = now$2.getHours() * 60 + now$2.getMinutes();
 		startMin = Math.max(0, Math.min(1440, startMin));
 		endMin = Math.max(0, Math.min(1440, endMin));
 		for (let i$2 = startMin; i$2 < endMin; i$2++) activeMinutesArray[i$2] = 1;
 	});
 	const rawActiveMinutes = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
 	const dayDowntime = downtimeRecords.filter((r$2) => {
-		if (r$2.startTime) return isSameDay(new Date(r$2.startTime), date$3);
-		return isSameDay(r$2.date, date$3);
+		if (r$2.startTime) return isSameDay(new Date(r$2.startTime), date$4);
+		return isSameDay(r$2.date, date$4);
 	});
 	let manualDowntimeMinutes = 0;
 	let timestampedDowntimeMinutes = 0;
 	dayDowntime.forEach((record) => {
 		if (record.startTime) {
 			const start = new Date(record.startTime);
-			const end = record.endTime ? new Date(record.endTime) : isSameDay(date$3, now$2) ? now$2 : endOfDay(date$3);
+			const end = record.endTime ? new Date(record.endTime) : isSameDay(date$4, now$2) ? now$2 : endOfDay(date$4);
 			const startMin = start.getHours() * 60 + start.getMinutes();
 			let endMin = end.getHours() * 60 + end.getMinutes();
 			if (endMin < startMin) endMin = 1440;
@@ -84625,7 +85054,7 @@ function calculateDailyMetrics(date$3, cookingRecords, downtimeRecords, producti
 	const netActiveMinutes = Math.max(0, grossActiveMinutes - manualDowntimeMinutes);
 	const netActiveHours = netActiveMinutes / 60;
 	const totalDowntimeMinutes = rawActiveMinutes - grossActiveMinutes + manualDowntimeMinutes;
-	const totalConsumption = productionRecords.filter((p) => isSameDay(p.date, date$3)).reduce((acc, curr) => acc + (curr.mpUsed || 0), 0);
+	const totalConsumption = productionRecords.filter((p) => isSameDay(p.date, date$4)).reduce((acc, curr) => acc + (curr.mpUsed || 0), 0);
 	const rateKg = netActiveHours > 0 ? totalConsumption / netActiveHours : 0;
 	return {
 		activeMinutesArray,
@@ -84639,12 +85068,12 @@ function calculateDailyMetrics(date$3, cookingRecords, downtimeRecords, producti
 		rateTon: rateKg / 1e3
 	};
 }
-function HourlyProductionEfficiencyChart({ date: date$3 }) {
+function HourlyProductionEfficiencyChart({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
 	const [internalDate, setInternalDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	const [unit$1, setUnit] = (0, import_react.useState)("kg");
 	const [now$2, setNow] = (0, import_react.useState)(/* @__PURE__ */ new Date());
-	const selectedDate = date$3 || internalDate;
+	const selectedDate = date$4 || internalDate;
 	(0, import_react.useEffect)(() => {
 		const interval = setInterval(() => setNow(/* @__PURE__ */ new Date()), 6e4);
 		return () => clearInterval(interval);
@@ -84798,9 +85227,9 @@ function HourlyProductionEfficiencyChart({ date: date$3 }) {
 		}) })]
 	});
 }
-function ProcessMetricsCard({ date: date$3 }) {
+function ProcessMetricsCard({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
-	const metrics = calculateDailyMetrics(date$3, cookingTimeRecords, downtimeRecords, production);
+	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords, downtimeRecords, production);
 	const TARGET_FLOW_RATE = 7.125;
 	const flowRateDiff = metrics.rateTon - TARGET_FLOW_RATE;
 	const isBelowTarget = flowRateDiff < 0;
@@ -85987,12 +86416,12 @@ function SteamCharts() {
 	const [expandedChartId, setExpandedChartId] = (0, import_react.useState)(null);
 	const processedData = (0, import_react.useMemo)(() => {
 		const dataMap = /* @__PURE__ */ new Map();
-		const getEntry = (date$3) => {
-			const dateKey = format(date$3, "yyyy-MM-dd");
+		const getEntry = (date$4) => {
+			const dateKey = format(date$4, "yyyy-MM-dd");
 			if (!dataMap.has(dateKey)) dataMap.set(dateKey, {
-				date: date$3,
+				date: date$4,
 				dateStr: dateKey,
-				displayDate: format(date$3, "dd/MM", { locale: ptBR }),
+				displayDate: format(date$4, "dd/MM", { locale: ptBR }),
 				steamConsumption: 0,
 				woodChips: 0,
 				mpUsed: 0,
@@ -87238,6 +87667,11 @@ var operationalItems = [
 		icon: Factory
 	},
 	{
+		title: "Produção de Sangue",
+		url: "/operacional/producao-sangue",
+		icon: Droplet
+	},
+	{
 		title: "Rendimentos",
 		url: "/rendimentos",
 		icon: ChartPie
@@ -87499,6 +87933,7 @@ function DashboardLayout() {
 			case "/": return "Dashboard Operacional";
 			case "/entrada-mp": return "Entrada de Matéria-Prima";
 			case "/producao": return "Produção Diária";
+			case "/operacional/producao-sangue": return "Produção de Sangue";
 			case "/rendimentos": return "Análise de Rendimentos";
 			case "/acidez-diaria": return "Controle de Acidez";
 			case "/qualidade": return "Gestão de Qualidade";
@@ -87627,6 +88062,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Production, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/operacional/producao-sangue",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodProduction, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/rendimentos",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Yields, {})
 					}),
@@ -87686,4 +88125,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D1UQiTEQ.js.map
+//# sourceMappingURL=index-CM4MCkFH.js.map
