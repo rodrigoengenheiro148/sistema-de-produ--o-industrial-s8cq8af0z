@@ -44,7 +44,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 
 interface YieldHistoryChartProps {
   data: ProductionEntry[]
@@ -103,11 +103,14 @@ export function YieldHistoryChart({
   ])
 
   const { chartData, chartConfig } = useMemo(() => {
+    // Filter out blood records
+    const industrialData = data.filter((p) => !isBloodRecord(p))
+
     let processedData: any[] = []
 
     // 1. Prepare Base Data
     if (timeScale === 'daily') {
-      processedData = data
+      processedData = industrialData
         .sort((a, b) => a.date.getTime() - b.date.getTime())
         .map((p) => ({
           date: format(p.date, 'dd/MM'),
@@ -119,7 +122,7 @@ export function YieldHistoryChart({
     } else {
       // Monthly Aggregation
       const monthlyData = new Map<string, any>()
-      const sortedData = [...data].sort(
+      const sortedData = [...industrialData].sort(
         (a, b) => a.date.getTime() - b.date.getTime(),
       )
 
@@ -194,7 +197,7 @@ export function YieldHistoryChart({
         <CardHeader>
           <CardTitle>Histórico de Rendimentos</CardTitle>
           <CardDescription>
-            Evolução percentual dos rendimentos com tendência
+            Evolução percentual dos rendimentos industriais
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
@@ -346,7 +349,7 @@ export function YieldHistoryChart({
         <div>
           <CardTitle>Histórico de Rendimentos</CardTitle>
           <CardDescription>
-            Evolução percentual dos rendimentos com tendência
+            Evolução percentual dos rendimentos industriais com tendência
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -415,8 +418,8 @@ export function YieldHistoryChart({
               <DialogHeader>
                 <DialogTitle>Histórico de Rendimentos</DialogTitle>
                 <DialogDescription>
-                  Visualização detalhada dos rendimentos com análise de
-                  tendência.
+                  Visualização detalhada dos rendimentos industriais com análise
+                  de tendência.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 w-full min-h-0 py-4">

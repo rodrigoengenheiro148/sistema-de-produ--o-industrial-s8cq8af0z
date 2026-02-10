@@ -1,12 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -15,15 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  format,
-  isSameDay,
-  isSameMonth,
-  isSameYear,
-  startOfMonth,
-  addMonths,
-  subMonths,
-} from 'date-fns'
+import { format, isSameDay, isSameMonth, isSameYear } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   CalendarIcon,
@@ -34,7 +20,7 @@ import {
   ChevronRight,
   Database,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 
 export function YieldsReport() {
   const { production } = useData()
@@ -48,8 +34,11 @@ export function YieldsReport() {
   }
 
   const metrics = useMemo(() => {
-    // Filter production data based on view mode and selected date
+    // Filter production data based on view mode, selected date AND industrial type
     const filtered = production.filter((item) => {
+      // Exclude blood records
+      if (isBloodRecord(item)) return false
+
       if (viewMode === 'daily') {
         return isSameDay(item.date, date)
       } else {

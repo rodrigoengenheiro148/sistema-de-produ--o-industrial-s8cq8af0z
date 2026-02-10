@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 
 interface LossAnalysisChartProps {
   data: ProductionEntry[]
@@ -43,12 +43,8 @@ export function LossAnalysisChart({
 }: LossAnalysisChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
     // Filter out blood production records as per acceptance criteria:
-    // A record is "Blood Production" if bloodMealProduced > 0 OR bloodMealBags > 0
-    const filteredData = data.filter((p) => {
-      const isBloodRecord =
-        p.bloodMealProduced > 0 || (p.bloodMealBags && p.bloodMealBags > 0)
-      return !isBloodRecord
-    })
+    // Loss analysis should reflect the industrial process.
+    const filteredData = data.filter((p) => !isBloodRecord(p))
 
     let processedData = []
 

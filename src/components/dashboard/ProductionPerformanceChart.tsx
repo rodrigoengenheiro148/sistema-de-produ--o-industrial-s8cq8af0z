@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
+import { isBloodRecord } from '@/lib/utils'
 
 interface ProductionPerformanceChartProps {
   data: ProductionEntry[]
@@ -50,12 +51,15 @@ export function ProductionPerformanceChart({
   className,
 }: ProductionPerformanceChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
+    // Filter out blood records for strict industrial performance view
+    const industrialData = data.filter((p) => !isBloodRecord(p))
+
     let processedData = []
 
     if (timeScale === 'monthly') {
       const monthlyData = new Map<string, any>()
 
-      data.forEach((p) => {
+      industrialData.forEach((p) => {
         const dateKey = format(p.date, 'yyyy-MM')
         const displayDate = format(p.date, 'MMM/yy', { locale: ptBR })
 
@@ -79,7 +83,7 @@ export function ProductionPerformanceChart({
       )
     } else {
       // Daily
-      processedData = data
+      processedData = industrialData
         .map((p) => ({
           date: format(p.date, 'dd/MM'),
           fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
@@ -92,7 +96,7 @@ export function ProductionPerformanceChart({
 
     const config: ChartConfig = {
       producao: {
-        label: 'Produção Total',
+        label: 'Produção Total (Industrial)',
         color: '#166534', // Dark Green (emerald-800)
       },
       mp: {
@@ -116,7 +120,9 @@ export function ProductionPerformanceChart({
       <Card className={`shadow-sm border-primary/10 ${className}`}>
         <CardHeader>
           <CardTitle>Desempenho de Produção</CardTitle>
-          <CardDescription>Comparativo diário de processamento</CardDescription>
+          <CardDescription>
+            Comparativo diário de processamento industrial
+          </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
           Nenhum dado disponível.
@@ -207,7 +213,9 @@ export function ProductionPerformanceChart({
             <TrendingUp className="h-5 w-5 text-primary" />
             Desempenho de Produção
           </CardTitle>
-          <CardDescription>Comparativo diário de processamento</CardDescription>
+          <CardDescription>
+            Comparativo diário de processamento industrial (exclui sangue)
+          </CardDescription>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -218,9 +226,10 @@ export function ProductionPerformanceChart({
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Desempenho de Produção</DialogTitle>
+              <DialogTitle>Desempenho de Produção Industrial</DialogTitle>
               <DialogDescription>
-                Visualização detalhada do processamento de MP e produção total.
+                Visualização detalhada do processamento de MP e produção total
+                (excluindo linha de sangue).
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">

@@ -21551,6 +21551,9 @@ var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
 function cn(...inputs) {
 	return twMerge(clsx(inputs));
 }
+function isBloodRecord(record) {
+	return record.bloodMealProduced > 0 || record.bloodMealBags !== void 0 && record.bloodMealBags > 0;
+}
 var ToastProvider = Provider$1;
 var ToastViewport = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Viewport$2, {
 	ref,
@@ -65850,8 +65853,9 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 		"farinheta"
 	]);
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const industrialData = data.filter((p) => !isBloodRecord(p));
 		let processedData = [];
-		if (timeScale === "daily") processedData = data.sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((p) => ({
+		if (timeScale === "daily") processedData = industrialData.sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((p) => ({
 			date: format(p.date, "dd/MM"),
 			fullDate: p.date,
 			sebo: p.mpUsed > 0 ? p.seboProduced / p.mpUsed * 100 : 0,
@@ -65860,7 +65864,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 		}));
 		else {
 			const monthlyData = /* @__PURE__ */ new Map();
-			[...data].sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).forEach((p) => {
+			[...industrialData].sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).forEach((p) => {
 				const monthKey = format(p.date, "yyyy-MM");
 				const displayDate = format(p.date, "MMM/yy", { locale: ptBR });
 				if (!monthlyData.has(monthKey)) monthlyData.set(monthKey, {
@@ -65927,7 +65931,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 	}, [data, timeScale]);
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos com tendência" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos industriais" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[350px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado de rendimento disponível."
 		})]
@@ -66067,7 +66071,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 		className: cn("shadow-sm border-primary/10 flex flex-col", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
 			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2 gap-4",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos com tendência" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos industriais com tendência" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -66132,7 +66136,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						})
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 						className: "max-w-[90vw] h-[80vh] flex flex-col",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada dos rendimentos com análise de tendência." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada dos rendimentos industriais com análise de tendência." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "flex-1 w-full min-h-0 py-4",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
 						})]
@@ -66148,14 +66152,15 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 function YieldBarChart({ data, isMobile = false, className }) {
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		if (!data || data.length === 0) return {
+		const industrialData = data.filter((p) => !isBloodRecord(p));
+		if (!industrialData || industrialData.length === 0) return {
 			chartData: [],
 			chartConfig: {}
 		};
 		let processedData = [];
 		if (timeScale === "daily") {
 			const dailyMap = /* @__PURE__ */ new Map();
-			data.forEach((item) => {
+			industrialData.forEach((item) => {
 				const key = format(item.date, "yyyy-MM-dd");
 				if (!dailyMap.has(key)) dailyMap.set(key, {
 					date: item.date,
@@ -66174,7 +66179,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 			})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime());
 		} else {
 			const monthlyMap = /* @__PURE__ */ new Map();
-			data.forEach((item) => {
+			industrialData.forEach((item) => {
 				const key = format(item.date, "yyyy-MM");
 				if (!monthlyMap.has(key)) monthlyMap.set(key, {
 					date: item.date,
@@ -66195,14 +66200,14 @@ function YieldBarChart({ data, isMobile = false, className }) {
 		return {
 			chartData: processedData,
 			chartConfig: { yield: {
-				label: "Rendimento Total",
+				label: "Rendimento Total (Industrial)",
 				color: "hsl(var(--primary))"
 			} }
 		};
 	}, [data, timeScale]);
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Visualização do rendimento total da fábrica" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Visualização do rendimento industrial (Sebo + FCO + Farinheta)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado disponível."
 		})]
@@ -66270,7 +66275,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 					className: "flex items-center gap-2",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartColumn, { className: "h-5 w-5 text-primary" }), "Performance de Rendimento"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Rendimento total calculado sobre MP processada" })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Rendimento industrial sobre MP processada (exclui sangue)" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -66298,7 +66303,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 					})
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 					className: "max-w-[90vw] h-[80vh] flex flex-col",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização expandida do rendimento total." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização expandida do rendimento industrial." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "flex-1 w-full min-h-0 py-4",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
 					})]
@@ -66601,7 +66606,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords, acidityRecords, steamRecords = [], fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords, steamRecords = [], fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u = unit$1?.toLowerCase() || "";
@@ -66616,10 +66621,14 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		const bloodMealProduced = production.reduce((acc, curr) => acc + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
 		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced;
 		const totalRevenue = shipping.reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0);
-		const mpUsedMainLine = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const seboYield = mpUsedMainLine > 0 ? seboProduced / mpUsedMainLine * 100 : 0;
-		const fcoYield = mpUsedMainLine > 0 ? fcoProduced / mpUsedMainLine * 100 : 0;
-		const farinhetaYield = mpUsedMainLine > 0 ? farinhetaProduced / mpUsedMainLine * 100 : 0;
+		const industrialRecords = production.filter((p) => !isBloodRecord(p));
+		const mpUsedMainLine = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const seboProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced, 0);
+		const fcoProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.fcoProduced, 0);
+		const farinhetaProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
+		const seboYield = mpUsedMainLine > 0 ? seboProducedIndustrial / mpUsedMainLine * 100 : 0;
+		const fcoYield = mpUsedMainLine > 0 ? fcoProducedIndustrial / mpUsedMainLine * 100 : 0;
+		const farinhetaYield = mpUsedMainLine > 0 ? farinhetaProducedIndustrial / mpUsedMainLine * 100 : 0;
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
 		const previousDate = subDays(referenceDate || /* @__PURE__ */ new Date(), 1);
@@ -67053,10 +67062,11 @@ function LoadForecast({ referenceDate, className }) {
 }
 function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = false, className }) {
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const industrialData = data.filter((p) => !isBloodRecord(p));
 		let processedData = [];
 		if (timeScale === "monthly") {
 			const monthlyData = /* @__PURE__ */ new Map();
-			data.forEach((p) => {
+			industrialData.forEach((p) => {
 				const dateKey = format(p.date, "yyyy-MM");
 				const displayDate = format(p.date, "MMM/yy", { locale: ptBR });
 				if (!monthlyData.has(dateKey)) monthlyData.set(dateKey, {
@@ -67071,7 +67081,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				entry.mp += p.mpUsed;
 			});
 			processedData = Array.from(monthlyData.values()).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
-		} else processedData = data.map((p) => ({
+		} else processedData = industrialData.map((p) => ({
 			date: format(p.date, "dd/MM"),
 			fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
 			originalDate: p.date,
@@ -67082,7 +67092,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 			chartData: processedData,
 			chartConfig: {
 				producao: {
-					label: "Produção Total",
+					label: "Produção Total (Industrial)",
 					color: "#166534"
 				},
 				mp: {
@@ -67098,7 +67108,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	};
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: `shadow-sm border-primary/10 ${className}`,
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Desempenho de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Desempenho de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado disponível."
 		})]
@@ -67197,7 +67207,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 					className: "flex items-center gap-2",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-primary" }), "Desempenho de Produção"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento" })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
@@ -67211,7 +67221,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				})
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 				className: "max-w-[90vw] h-[80vh] flex flex-col",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Desempenho de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada do processamento de MP e produção total." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Desempenho de Produção Industrial" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada do processamento de MP e produção total (excluindo linha de sangue)." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "flex-1 w-full min-h-0 py-4",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
 				})]
@@ -67960,10 +67970,12 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		let globalFco = 0;
 		let globalFarinheta = 0;
 		allProductionData.forEach((p) => {
-			globalTotalMp += p.mpUsed;
-			globalSebo += p.seboProduced;
-			globalFco += p.fcoProduced;
-			globalFarinheta += p.farinhetaProduced;
+			if (!isBloodRecord(p)) {
+				globalTotalMp += p.mpUsed;
+				globalSebo += p.seboProduced;
+				globalFco += p.fcoProduced;
+				globalFarinheta += p.farinhetaProduced;
+			}
 		});
 		const globalYields = {
 			Sebo: globalTotalMp > 0 ? globalSebo / globalTotalMp : .15,
@@ -68003,10 +68015,12 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		let totalFco = 0;
 		let totalFarinheta = 0;
 		productionData.forEach((p) => {
-			totalMp += p.mpUsed;
-			totalSebo += p.seboProduced;
-			totalFco += p.fcoProduced;
-			totalFarinheta += p.farinhetaProduced;
+			if (!isBloodRecord(p)) {
+				totalMp += p.mpUsed;
+				totalSebo += p.seboProduced;
+				totalFco += p.fcoProduced;
+				totalFarinheta += p.farinhetaProduced;
+			}
 		});
 		const yields = {
 			Sebo: totalMp > 0 ? totalSebo / totalMp : globalYields["Sebo"],
@@ -68552,9 +68566,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 }
 function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, className }) {
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const filteredData = data.filter((p) => {
-			return !(p.bloodMealProduced > 0 || p.bloodMealBags && p.bloodMealBags > 0);
-		});
+		const filteredData = data.filter((p) => !isBloodRecord(p));
 		let processedData = [];
 		if (timeScale === "monthly") {
 			const monthlyData = /* @__PURE__ */ new Map();
@@ -70484,9 +70496,7 @@ function Dashboard() {
 	const avgFarinhetaAcidity = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhetaQuality.length : 0;
 	const avgFarinhetaProtein = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhetaQuality.length : 0;
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
-		const industrialRecords = filteredProduction.filter((p) => {
-			return !(p.bloodMealProduced && p.bloodMealProduced > 0 || p.bloodMealBags && p.bloodMealBags > 0);
-		});
+		const industrialRecords = filteredProduction.filter((p) => !isBloodRecord(p));
 		const totalMp = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced, 0);
 		return {
@@ -83407,6 +83417,7 @@ function YieldsReport() {
 	};
 	const metrics = (0, import_react.useMemo)(() => {
 		const filtered = production.filter((item) => {
+			if (isBloodRecord(item)) return false;
 			if (viewMode === "daily") return isSameDay(item.date, date$4);
 			else return isSameMonth(item.date, date$4) && isSameYear(item.date, date$4);
 		});
@@ -88207,4 +88218,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Cl4lxX5-.js.map
+//# sourceMappingURL=index-BEP0aKD9.js.map

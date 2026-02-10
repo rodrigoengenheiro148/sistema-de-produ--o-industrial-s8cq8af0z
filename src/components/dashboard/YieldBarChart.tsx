@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, CalendarDays, CalendarRange, BarChart3 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 
 interface YieldBarChartProps {
   data: ProductionEntry[]
@@ -42,7 +42,11 @@ export function YieldBarChart({
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
 
   const { chartData, chartConfig } = useMemo(() => {
-    if (!data || data.length === 0) return { chartData: [], chartConfig: {} }
+    // Filter out blood records to ensure industrial yield accuracy
+    const industrialData = data.filter((p) => !isBloodRecord(p))
+
+    if (!industrialData || industrialData.length === 0)
+      return { chartData: [], chartConfig: {} }
 
     let processedData: any[] = []
 
@@ -52,7 +56,7 @@ export function YieldBarChart({
         { date: Date; mp: number; prod: number }
       >()
 
-      data.forEach((item) => {
+      industrialData.forEach((item) => {
         const key = format(item.date, 'yyyy-MM-dd')
         if (!dailyMap.has(key)) {
           dailyMap.set(key, { date: item.date, mp: 0, prod: 0 })
@@ -77,7 +81,7 @@ export function YieldBarChart({
         { date: Date; mp: number; prod: number }
       >()
 
-      data.forEach((item) => {
+      industrialData.forEach((item) => {
         const key = format(item.date, 'yyyy-MM')
         if (!monthlyMap.has(key)) {
           monthlyMap.set(key, { date: item.date, mp: 0, prod: 0 })
@@ -100,7 +104,7 @@ export function YieldBarChart({
 
     const config = {
       yield: {
-        label: 'Rendimento Total',
+        label: 'Rendimento Total (Industrial)',
         color: 'hsl(var(--primary))',
       },
     } satisfies ChartConfig
@@ -114,7 +118,7 @@ export function YieldBarChart({
         <CardHeader>
           <CardTitle>Performance de Rendimento</CardTitle>
           <CardDescription>
-            Visualização do rendimento total da fábrica
+            Visualização do rendimento industrial (Sebo + FCO + Farinheta)
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -139,7 +143,6 @@ export function YieldBarChart({
           minTickGap={30}
           fontSize={12}
         />
-        {/* We can optionally hide YAxis or keep it for scale reference */}
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
           cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
@@ -175,7 +178,7 @@ export function YieldBarChart({
             Performance de Rendimento
           </CardTitle>
           <CardDescription>
-            Rendimento total calculado sobre MP processada
+            Rendimento industrial sobre MP processada (exclui sangue)
           </CardDescription>
         </div>
 
@@ -210,7 +213,7 @@ export function YieldBarChart({
               <DialogHeader>
                 <DialogTitle>Performance de Rendimento</DialogTitle>
                 <DialogDescription>
-                  Visualização expandida do rendimento total.
+                  Visualização expandida do rendimento industrial.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 w-full min-h-0 py-4">

@@ -15,7 +15,6 @@ import {
   ArrowDownRight,
   CalendarDays,
   Flame,
-  FlaskConical,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -27,7 +26,7 @@ import {
   AcidityEntry,
   SteamControlRecord,
 } from '@/lib/types'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 import { useMemo } from 'react'
 import { subDays, isSameDay, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -51,7 +50,6 @@ export function OverviewCards({
   production,
   shipping,
   cookingTimeRecords,
-  acidityRecords,
   steamRecords = [],
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
@@ -97,28 +95,42 @@ export function OverviewCards({
     const totalProduction =
       seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
 
-    // 3. Rendimento Geral - Removed
-
     // 4. Faturamento
     const totalRevenue = shipping.reduce(
       (acc, curr) => acc + curr.quantity * curr.unitPrice,
       0,
     )
 
-    // 5. Vol. Acidez Analisado - Removed
-
-    // 6, 7, 8. Specific Yields
-    const mpUsedMainLine = production.reduce(
+    // 6, 7, 8. Specific Yields (Industrial Only)
+    // Filter out blood records for MP denominator calculation to ensure accurate industrial yield
+    const industrialRecords = production.filter((p) => !isBloodRecord(p))
+    const mpUsedMainLine = industrialRecords.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
+    // Numerators must come from industrial records (though blood records shouldn't have these > 0, we use filtered set for consistency)
+    const seboProducedIndustrial = industrialRecords.reduce(
+      (acc, curr) => acc + curr.seboProduced,
+      0,
+    )
+    const fcoProducedIndustrial = industrialRecords.reduce(
+      (acc, curr) => acc + curr.fcoProduced,
+      0,
+    )
+    const farinhetaProducedIndustrial = industrialRecords.reduce(
+      (acc, curr) => acc + curr.farinhetaProduced,
+      0,
+    )
+
     const seboYield =
-      mpUsedMainLine > 0 ? (seboProduced / mpUsedMainLine) * 100 : 0
+      mpUsedMainLine > 0 ? (seboProducedIndustrial / mpUsedMainLine) * 100 : 0
     const fcoYield =
-      mpUsedMainLine > 0 ? (fcoProduced / mpUsedMainLine) * 100 : 0
+      mpUsedMainLine > 0 ? (fcoProducedIndustrial / mpUsedMainLine) * 100 : 0
     const farinhetaYield =
-      mpUsedMainLine > 0 ? (farinhetaProduced / mpUsedMainLine) * 100 : 0
+      mpUsedMainLine > 0
+        ? (farinhetaProducedIndustrial / mpUsedMainLine) * 100
+        : 0
 
     // 11. Rendimento sangue
     const bloodInputKg = rawMaterials
@@ -370,8 +382,6 @@ export function OverviewCards({
         borderColor="border-l-amber-500"
       />
 
-      {/* 3. Rendimento Geral - REMOVED */}
-
       {/* 4. Faturamento */}
       <MetricCard
         title="Faturamento"
@@ -380,8 +390,6 @@ export function OverviewCards({
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
       />
-
-      {/* 5. Vol. Acidez Analisado - REMOVED */}
 
       {/* 6. Rendimento Sebo */}
       <MetricCard

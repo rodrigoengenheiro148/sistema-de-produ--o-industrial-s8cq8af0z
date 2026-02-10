@@ -26,7 +26,7 @@ import {
   ReferenceLine,
   LabelList,
 } from 'recharts'
-import { format, isSameDay, addDays, subDays } from 'date-fns'
+import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
@@ -47,7 +47,7 @@ import {
   ArrowDownRight,
   Filter,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -174,11 +174,14 @@ export function RevenueChart({
     let globalFco = 0
     let globalFarinheta = 0
 
+    // Filter global production data to exclude blood records for yield accuracy
     allProductionData.forEach((p) => {
-      globalTotalMp += p.mpUsed
-      globalSebo += p.seboProduced
-      globalFco += p.fcoProduced
-      globalFarinheta += p.farinhetaProduced
+      if (!isBloodRecord(p)) {
+        globalTotalMp += p.mpUsed
+        globalSebo += p.seboProduced
+        globalFco += p.fcoProduced
+        globalFarinheta += p.farinhetaProduced
+      }
     })
 
     const globalYields: Record<string, number> = {
@@ -193,11 +196,10 @@ export function RevenueChart({
     const globalAvgPrices: Record<string, number> = {}
 
     productsToCheck.forEach((product) => {
-      // Find all sales for this product, sort by date desc
       const productSales = allData
         .filter((s) => s.product === product)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 10) // Take last 10
+        .slice(0, 10)
 
       if (productSales.length > 0) {
         const sumPrice = productSales.reduce((acc, s) => acc + s.unitPrice, 0)
@@ -207,7 +209,7 @@ export function RevenueChart({
       }
     })
 
-    // 1. Calculate Local Averages (for existing data visualization context)
+    // 1. Calculate Local Averages
     // --------------------------------------------------------------------
     const prices: Record<string, number> = {}
     const counts: Record<string, number> = {}
@@ -227,17 +229,19 @@ export function RevenueChart({
       avgPrices[p] = counts[p] > 0 ? prices[p] / counts[p] : 0
     })
 
-    // Local Yields
+    // Local Yields - Filter out blood records
     let totalMp = 0
     let totalSebo = 0
     let totalFco = 0
     let totalFarinheta = 0
 
     productionData.forEach((p) => {
-      totalMp += p.mpUsed
-      totalSebo += p.seboProduced
-      totalFco += p.fcoProduced
-      totalFarinheta += p.farinhetaProduced
+      if (!isBloodRecord(p)) {
+        totalMp += p.mpUsed
+        totalSebo += p.seboProduced
+        totalFco += p.fcoProduced
+        totalFarinheta += p.farinhetaProduced
+      }
     })
 
     const yields: Record<string, number> = {
@@ -295,7 +299,7 @@ export function RevenueChart({
       entry.totalRevenue += revenue
     })
 
-    // 4. Process Raw Materials for Forecast (Projected Revenue based on ACTUAL MP)
+    // 4. Process Raw Materials for Forecast
     const rawMaterialDates = new Set<string>()
     rawMaterials.forEach((r) => {
       if (!r.date) return
@@ -362,22 +366,17 @@ export function RevenueChart({
 
     // 5. EXTENSION: 7-Day Forecast based on Global Averages
     if (timeScale === 'daily') {
-      const forecastStart = new Date() // Start from today/tomorrow
+      const forecastStart = new Date()
 
       for (let i = 1; i <= 7; i++) {
         const futureDate = addDays(forecastStart, i)
         const dateKey = format(futureDate, 'yyyy-MM-dd')
 
-        // If data already exists (e.g. future booked material), we skip overwriting
-        // to prioritize actual scheduled data.
         if (!dateMap.has(dateKey)) {
           const displayDate = format(futureDate, 'dd/MM')
           const fullDate = format(futureDate, "dd 'de' MMMM", { locale: ptBR })
 
           let projectedRevenue = 0
-
-          // Formula: (Avg Daily MP) * (Product Yield %) * (Average Product Price)
-          // Summed for selected filters
 
           if (currentFilter.includes('Sebo')) {
             projectedRevenue +=
@@ -425,7 +424,6 @@ export function RevenueChart({
     const avg =
       processedData.length > 0 ? globalTotal / processedData.length : 0
 
-    // Find peak (realized)
     let max = 0
     let mDate = ''
     processedData.forEach((d) => {
@@ -564,7 +562,6 @@ export function RevenueChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {/* Actual Revenue Bars */}
         {keys.map((key) => (
           <Bar
             key={key}
@@ -591,7 +588,6 @@ export function RevenueChart({
           </Bar>
         ))}
 
-        {/* Forecast Line */}
         <Line
           type="monotone"
           dataKey="forecastRevenue"
@@ -634,7 +630,6 @@ export function RevenueChart({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-            {/* Client Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
@@ -683,7 +678,6 @@ export function RevenueChart({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Material Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
@@ -787,7 +781,6 @@ export function RevenueChart({
           </div>
         </div>
 
-        {/* Forecast Summary Section */}
         {forecastMetrics && (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-muted/20 rounded-lg p-3 border border-border/50 gap-2">
             <div className="flex flex-col">

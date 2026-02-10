@@ -9,14 +9,13 @@ import {
 } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { CalendarIcon, ClipboardCheck } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OverviewCards } from '@/components/dashboard/OverviewCards'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
@@ -26,6 +25,7 @@ import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { useMemo, useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Dashboard() {
   const {
@@ -151,16 +151,12 @@ export default function Dashboard() {
         farinhetaQuality.length
       : 0
 
-  // Calculate Yield for Gauge
+  // Calculate Yield for Gauge (Industrial Only)
   const { currentYield, yieldTarget } = useMemo(() => {
-    // Filter industrial records for the gauge calculation
-    // Exclude records related to blood production (where bloodMealProduced > 0 or bags > 0)
-    const industrialRecords = filteredProduction.filter((p) => {
-      const isBloodRecord =
-        (p.bloodMealProduced && p.bloodMealProduced > 0) ||
-        (p.bloodMealBags && p.bloodMealBags > 0)
-      return !isBloodRecord
-    })
+    // Filter out blood records
+    const industrialRecords = filteredProduction.filter(
+      (p) => !isBloodRecord(p),
+    )
 
     const totalMp = industrialRecords.reduce(
       (acc, curr) => acc + curr.mpUsed,
