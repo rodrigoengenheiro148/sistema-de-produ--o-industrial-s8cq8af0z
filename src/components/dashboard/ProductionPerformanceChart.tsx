@@ -15,7 +15,14 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
+} from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -97,6 +104,13 @@ export function ProductionPerformanceChart({
     return { chartData: processedData, chartConfig: config }
   }, [data, timeScale])
 
+  const formatValue = (value: number) => {
+    if (value >= 1000) {
+      return (value / 1000).toFixed(0) + 'k'
+    }
+    return value.toString()
+  }
+
   if (!data || data.length === 0) {
     return (
       <Card className={`shadow-sm border-primary/10 ${className}`}>
@@ -153,7 +167,16 @@ export function ProductionPerformanceChart({
           dot={false}
           activeDot={{ r: 6, fill: 'var(--color-producao)' }}
           animationDuration={1000}
-        />
+        >
+          <LabelList
+            dataKey="producao"
+            position="top"
+            offset={12}
+            className="fill-foreground font-bold"
+            fontSize={isMobile ? 8 : 10}
+            formatter={formatValue}
+          />
+        </Line>
         <Line
           type="monotone"
           dataKey="mp"
@@ -162,7 +185,16 @@ export function ProductionPerformanceChart({
           dot={false}
           activeDot={{ r: 6, fill: 'var(--color-mp)' }}
           animationDuration={1000}
-        />
+        >
+          <LabelList
+            dataKey="mp"
+            position="top"
+            offset={12}
+            className="fill-foreground font-bold"
+            fontSize={isMobile ? 8 : 10}
+            formatter={formatValue}
+          />
+        </Line>
       </LineChart>
     </ChartContainer>
   )

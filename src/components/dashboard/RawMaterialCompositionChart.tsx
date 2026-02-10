@@ -15,7 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
 import {
   Dialog,
   DialogContent,
@@ -121,6 +121,7 @@ export function RawMaterialCompositionChart({
           displayDate,
           fullDateLabel,
           timestamp: item.date.getTime(),
+          total: 0,
           // Initialize categories to 0
           ...CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
         })
@@ -146,6 +147,7 @@ export function RawMaterialCompositionChart({
         }
 
         entry[category] += quantity
+        entry.total += quantity
       }
     })
 
@@ -248,7 +250,7 @@ export function RawMaterialCompositionChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {activeCategories.map((category) => (
+        {activeCategories.map((category, index) => (
           <Bar
             key={category}
             dataKey={category}
@@ -256,7 +258,17 @@ export function RawMaterialCompositionChart({
             fill={`var(--color-${category})`}
             radius={[0, 0, 0, 0]}
             maxBarSize={50}
-          />
+          >
+            {index === activeCategories.length - 1 && (
+              <LabelList
+                dataKey="total"
+                position="top"
+                className="fill-foreground font-bold"
+                fontSize={isMobile ? 9 : 10}
+                formatter={formatYAxis}
+              />
+            )}
+          </Bar>
         ))}
       </BarChart>
     </ChartContainer>

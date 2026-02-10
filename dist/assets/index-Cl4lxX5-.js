@@ -67092,6 +67092,10 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 			}
 		};
 	}, [data, timeScale]);
+	const formatValue$2 = (value) => {
+		if (value >= 1e3) return (value / 1e3).toFixed(0) + "k";
+		return value.toString();
+	};
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: `shadow-sm border-primary/10 ${className}`,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Desempenho de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
@@ -67151,7 +67155,15 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 						r: 6,
 						fill: "var(--color-producao)"
 					},
-					animationDuration: 1e3
+					animationDuration: 1e3,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "producao",
+						position: "top",
+						offset: 12,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 8 : 10,
+						formatter: formatValue$2
+					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 					type: "monotone",
@@ -67163,7 +67175,15 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 						r: 6,
 						fill: "var(--color-mp)"
 					},
-					animationDuration: 1e3
+					animationDuration: 1e3,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "mp",
+						position: "top",
+						offset: 12,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 8 : 10,
+						formatter: formatValue$2
+					})
 				})
 			]
 		})
@@ -70000,6 +70020,7 @@ function RawMaterialCompositionChart({ data, isMobile = false, className }) {
 				displayDate,
 				fullDateLabel,
 				timestamp: item.date.getTime(),
+				total: 0,
 				...CATEGORIES.reduce((acc, cat) => ({
 					...acc,
 					[cat]: 0
@@ -70013,6 +70034,7 @@ function RawMaterialCompositionChart({ data, isMobile = false, className }) {
 				if (unit$1.includes("bag")) quantity = quantity * 1400;
 				else if (unit$1.includes("ton")) quantity = quantity * 1e3;
 				entry[category] += quantity;
+				entry.total += quantity;
 			}
 		});
 		return Array.from(dailyMap.values()).sort((a$2, b$1) => a$2.timestamp - b$1.timestamp);
@@ -70105,7 +70127,7 @@ function RawMaterialCompositionChart({ data, isMobile = false, className }) {
 					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				activeCategories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+				activeCategories.map((category, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: category,
 					stackId: "a",
 					fill: `var(--color-${category})`,
@@ -70115,7 +70137,14 @@ function RawMaterialCompositionChart({ data, isMobile = false, className }) {
 						0,
 						0
 					],
-					maxBarSize: 50
+					maxBarSize: 50,
+					children: index$1 === activeCategories.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "total",
+						position: "top",
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 9 : 10,
+						formatter: formatYAxis
+					})
 				}, category))
 			]
 		})
@@ -88178,4 +88207,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DDkr35F9.js.map
+//# sourceMappingURL=index-Cl4lxX5-.js.map
