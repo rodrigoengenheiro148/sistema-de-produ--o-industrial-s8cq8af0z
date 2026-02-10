@@ -36368,6 +36368,12 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("steam_control_records").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
+	const clearSteamRecords = async () => {
+		if (!currentFactoryId) return;
+		const { error } = await supabase.from("steam_control_records").delete().eq("factory_id", currentFactoryId);
+		if (error) throw error;
+		await fetchOperationalData();
+	};
 	const addFactory = async (entry) => {
 		const { error } = await supabase.from("factories").insert({
 			name: entry.name,
@@ -36540,6 +36546,7 @@ const DataProvider = ({ children }) => {
 			addSteamRecord,
 			updateSteamRecord,
 			deleteSteamRecord,
+			clearSteamRecords,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -86740,8 +86747,10 @@ function SteamCharts() {
 }
 function SteamControl() {
 	const [isDialogOpen, setIsDialogOpen] = (0, import_react.useState)(false);
+	const [isClearDataOpen, setIsClearDataOpen] = (0, import_react.useState)(false);
 	const isMobile = useIsMobile();
-	const { steamRecords, dateRange } = useData();
+	const { steamRecords, dateRange, clearSteamRecords } = useData();
+	const { toast: toast$2 } = useToast();
 	const woodChipsStats = (0, import_react.useMemo)(() => {
 		if (!dateRange.from || !dateRange.to) return {
 			current: 0,
@@ -86756,6 +86765,23 @@ function SteamControl() {
 			previous: steamRecords.filter((r$2) => r$2.date >= prevFrom && r$2.date <= prevTo).reduce((sum, r$2) => sum + (r$2.woodChips || 0), 0)
 		};
 	}, [steamRecords, dateRange]);
+	const handleClearDataSuccess = async () => {
+		setIsClearDataOpen(false);
+		try {
+			await clearSteamRecords();
+			toast$2({
+				title: "Dados limpos",
+				description: "Todos os registros de vapor foram excluídos com sucesso."
+			});
+		} catch (error) {
+			console.error("Error clearing steam records:", error);
+			toast$2({
+				title: "Erro",
+				description: "Erro ao limpar dados.",
+				variant: "destructive"
+			});
+		}
+	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [
@@ -86769,29 +86795,40 @@ function SteamControl() {
 					children: "Monitoramento de eficiência de caldeira e consumo de biomassa."
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						variant: "ghost",
-						size: "icon",
-						title: "O 'Entrada MP' é calculado automaticamente baseado na soma das matérias-primas do dia.",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-5 w-5 text-muted-foreground" })
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-						open: isDialogOpen,
-						onOpenChange: setIsDialogOpen,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								className: "gap-2",
-								size: isMobile ? "sm" : "default",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
-							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-							className: "sm:max-w-[600px]",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Novo Registro de Vapor" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
-								onSuccess: () => setIsDialogOpen(false),
-								onCancel: () => setIsDialogOpen(false)
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							size: "icon",
+							title: "O 'Entrada MP' é calculado automaticamente baseado na soma das matérias-primas do dia.",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-5 w-5 text-muted-foreground" })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							variant: "outline",
+							className: "gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300",
+							size: isMobile ? "sm" : "default",
+							onClick: () => setIsClearDataOpen(true),
+							title: "Limpar todos os dados",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" }), isMobile ? "" : "Limpar Dados"]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+							open: isDialogOpen,
+							onOpenChange: setIsDialogOpen,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+								asChild: true,
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+									className: "gap-2",
+									size: isMobile ? "sm" : "default",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+								})
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+								className: "sm:max-w-[600px]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Novo Registro de Vapor" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
+									onSuccess: () => setIsDialogOpen(false),
+									onCancel: () => setIsDialogOpen(false)
+								})]
 							})]
-						})]
-					})]
+						})
+					]
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -86805,7 +86842,14 @@ function SteamControl() {
 				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCharts, {}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+				isOpen: isClearDataOpen,
+				onOpenChange: setIsClearDataOpen,
+				onSuccess: handleClearDataSuccess,
+				title: "Limpar Dados de Vapor",
+				description: "Esta ação excluirá TODOS os registros de vapor desta fábrica. Digite a senha para confirmar."
+			})
 		]
 	});
 }
@@ -88285,4 +88329,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-iOZBCT7E.js.map
+//# sourceMappingURL=index-DMlHVI6g.js.map

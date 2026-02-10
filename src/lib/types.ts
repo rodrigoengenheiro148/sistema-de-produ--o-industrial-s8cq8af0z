@@ -248,6 +248,7 @@ export interface DataContextType {
   addSteamRecord: (entry: Omit<SteamControlRecord, 'id'>) => void
   updateSteamRecord: (entry: SteamControlRecord) => void
   deleteSteamRecord: (id: string) => void
+  clearSteamRecords: () => Promise<void>
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

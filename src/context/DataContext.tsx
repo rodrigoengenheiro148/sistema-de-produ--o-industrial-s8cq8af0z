@@ -766,6 +766,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const clearSteamRecords = async () => {
+    if (!currentFactoryId) return
+    const { error } = await supabase
+      .from('steam_control_records')
+      .delete()
+      .eq('factory_id', currentFactoryId)
+
+    if (error) throw error
+    await fetchOperationalData()
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -975,6 +986,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addSteamRecord,
         updateSteamRecord,
         deleteSteamRecord,
+        clearSteamRecords,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},

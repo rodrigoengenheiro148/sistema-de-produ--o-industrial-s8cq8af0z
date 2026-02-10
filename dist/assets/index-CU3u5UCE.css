@@ -3032,6 +3032,10 @@ img[src*='skip.svg'] {
 .hover\:border-input:hover{
   border-color: hsl(var(--input));
 }
+.hover\:border-red-300:hover{
+  --tw-border-opacity: 1;
+  border-color: rgb(252 165 165 / var(--tw-border-opacity, 1));
+}
 .hover\:border-l-muted-foreground\/30:hover{
   border-left-color: hsl(var(--muted-foreground) / 0.3);
 }
@@ -3158,6 +3162,10 @@ img[src*='skip.svg'] {
 .hover\:text-red-600:hover{
   --tw-text-opacity: 1;
   color: rgb(220 38 38 / var(--tw-text-opacity, 1));
+}
+.hover\:text-red-700:hover{
+  --tw-text-opacity: 1;
+  color: rgb(185 28 28 / var(--tw-text-opacity, 1));
 }
 .hover\:text-sidebar-accent-foreground:hover{
   color: hsl(var(--sidebar-accent-foreground));
