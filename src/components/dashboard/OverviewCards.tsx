@@ -6,7 +6,6 @@ import {
   Bone,
   Wheat,
   Droplet,
-  FlaskConical,
   Factory,
   Activity,
   Package,
@@ -16,6 +15,7 @@ import {
   ArrowDownRight,
   CalendarDays,
   Flame,
+  FlaskConical,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -97,19 +97,7 @@ export function OverviewCards({
     const totalProduction =
       seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
 
-    // 3. Rendimento Geral
-    const mpUsedMainLine = production.reduce(
-      (acc, curr) => acc + curr.mpUsed,
-      0,
-    )
-
-    const bloodInputKg = rawMaterials
-      .filter((r) => r.type?.toLowerCase() === 'sangue')
-      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
-
-    const totalInput = mpUsedMainLine + bloodInputKg
-    const generalYield =
-      totalInput > 0 ? (totalProduction / totalInput) * 100 : 0
+    // 3. Rendimento Geral - Removed
 
     // 4. Faturamento
     const totalRevenue = shipping.reduce(
@@ -117,13 +105,14 @@ export function OverviewCards({
       0,
     )
 
-    // 5. Vol. Acidez Analisado
-    const totalAcidityVolume = acidityRecords.reduce(
-      (acc, curr) => acc + (curr.volume || 0),
+    // 5. Vol. Acidez Analisado - Removed
+
+    // 6, 7, 8. Specific Yields
+    const mpUsedMainLine = production.reduce(
+      (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
-    // 6, 7, 8. Specific Yields
     const seboYield =
       mpUsedMainLine > 0 ? (seboProduced / mpUsedMainLine) * 100 : 0
     const fcoYield =
@@ -132,6 +121,10 @@ export function OverviewCards({
       mpUsedMainLine > 0 ? (farinhetaProduced / mpUsedMainLine) * 100 : 0
 
     // 11. Rendimento sangue
+    const bloodInputKg = rawMaterials
+      .filter((r) => r.type?.toLowerCase() === 'sangue')
+      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
@@ -210,9 +203,7 @@ export function OverviewCards({
     return {
       rawMaterialInputKg,
       totalProduction,
-      generalYield,
       totalRevenue,
-      totalAcidityVolume,
       seboYield,
       fcoYield,
       farinhetaYield,
@@ -229,7 +220,6 @@ export function OverviewCards({
     rawMaterials,
     production,
     shipping,
-    acidityRecords,
     steamRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
@@ -380,14 +370,7 @@ export function OverviewCards({
         borderColor="border-l-amber-500"
       />
 
-      {/* 3. Rendimento Geral */}
-      <MetricCard
-        title="Rendimento Geral"
-        value={formatPercentage(metrics.generalYield)}
-        icon={Activity}
-        iconColor="text-emerald-600"
-        borderColor="border-l-emerald-600"
-      />
+      {/* 3. Rendimento Geral - REMOVED */}
 
       {/* 4. Faturamento */}
       <MetricCard
@@ -398,14 +381,7 @@ export function OverviewCards({
         borderColor="border-l-emerald-600"
       />
 
-      {/* 5. Vol. Acidez Analisado */}
-      <MetricCard
-        title="Vol. Acidez Analisado"
-        value={formatNumber(metrics.totalAcidityVolume, 'L')}
-        icon={FlaskConical}
-        iconColor="text-blue-500"
-        borderColor="border-l-blue-500"
-      />
+      {/* 5. Vol. Acidez Analisado - REMOVED */}
 
       {/* 6. Rendimento Sebo */}
       <MetricCard

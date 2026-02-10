@@ -66594,15 +66594,12 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
 		const bloodMealProduced = production.reduce((acc, curr) => acc + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
 		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced;
-		const mpUsedMainLine = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
-		const totalInput = mpUsedMainLine + bloodInputKg;
-		const generalYield = totalInput > 0 ? totalProduction / totalInput * 100 : 0;
 		const totalRevenue = shipping.reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0);
-		const totalAcidityVolume = acidityRecords.reduce((acc, curr) => acc + (curr.volume || 0), 0);
+		const mpUsedMainLine = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboYield = mpUsedMainLine > 0 ? seboProduced / mpUsedMainLine * 100 : 0;
 		const fcoYield = mpUsedMainLine > 0 ? fcoProduced / mpUsedMainLine * 100 : 0;
 		const farinhetaYield = mpUsedMainLine > 0 ? farinhetaProduced / mpUsedMainLine * 100 : 0;
+		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
 		const previousDate = subDays(referenceDate || /* @__PURE__ */ new Date(), 1);
 		const totalProductionKgD1 = fullProductionHistory.filter((p) => isSameDay(p.date, previousDate)).reduce((acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced + (p.bloodMealBags && p.bloodMealBags > 0 ? p.bloodMealBags * 1400 : p.bloodMealProduced || 0), 0);
@@ -66631,9 +66628,7 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		return {
 			rawMaterialInputKg,
 			totalProduction,
-			generalYield,
 			totalRevenue,
-			totalAcidityVolume,
 			seboYield,
 			fcoYield,
 			farinhetaYield,
@@ -66650,7 +66645,6 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		rawMaterials,
 		production,
 		shipping,
-		acidityRecords,
 		steamRecords,
 		fullProductionHistory,
 		fullCookingTimeRecords,
@@ -66769,25 +66763,11 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 				borderColor: "border-l-amber-500"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Rendimento Geral",
-				value: formatPercentage(metrics.generalYield),
-				icon: Activity,
-				iconColor: "text-emerald-600",
-				borderColor: "border-l-emerald-600"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Faturamento",
 				value: formatCurrency(metrics.totalRevenue),
 				icon: DollarSign,
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Vol. Acidez Analisado",
-				value: formatNumber(metrics.totalAcidityVolume, "L"),
-				icon: FlaskConical,
-				iconColor: "text-blue-500",
-				borderColor: "border-l-blue-500"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Sebo",
@@ -87706,4 +87686,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index--VCW4kOa.js.map
+//# sourceMappingURL=index-D1UQiTEQ.js.map
