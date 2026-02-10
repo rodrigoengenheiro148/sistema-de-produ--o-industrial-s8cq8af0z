@@ -51,6 +51,7 @@ export function OverviewCards({
   shipping,
   cookingTimeRecords,
   steamRecords = [],
+  notificationSettings,
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
   referenceDate,
@@ -238,6 +239,45 @@ export function OverviewCards({
     referenceDate,
   ])
 
+  // Logic for Conditional Styling
+  const getYieldStyle = (current: number, threshold: number = 0) => {
+    // If the calculated yield is lower than its corresponding threshold value,
+    // the card must display a red visual state. Otherwise green.
+    const isBelow = current < threshold
+
+    if (isBelow) {
+      return {
+        iconColor: 'text-red-600',
+        borderColor: 'border-l-red-600',
+        textColor: 'text-red-600',
+        bgClass: 'bg-red-50/50 dark:bg-red-900/10',
+      }
+    }
+
+    return {
+      iconColor: 'text-emerald-600',
+      borderColor: 'border-l-emerald-600',
+      textColor: 'text-emerald-600',
+      bgClass: 'bg-emerald-50/50 dark:bg-emerald-900/10',
+    }
+  }
+
+  // Calculate styles for each product
+  const seboStyle = getYieldStyle(
+    metrics.seboYield,
+    notificationSettings.seboThreshold,
+  )
+  const fcoStyle = getYieldStyle(
+    metrics.fcoYield,
+    notificationSettings.fcoThreshold ||
+      notificationSettings.farinhaThreshold ||
+      0,
+  )
+  const farinhetaStyle = getYieldStyle(
+    metrics.farinhetaYield,
+    notificationSettings.farinhetaThreshold,
+  )
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -391,34 +431,37 @@ export function OverviewCards({
         borderColor="border-l-emerald-600"
       />
 
-      {/* 6. Rendimento Sebo */}
+      {/* 6. Rendimento Sebo - Styled dynamically */}
       <MetricCard
         title="Rendimento Sebo"
         value={formatPercentage(metrics.seboYield)}
         icon={Droplets}
-        iconColor="text-emerald-600"
-        borderColor="border-l-emerald-600"
-        textColor="text-emerald-600"
+        iconColor={seboStyle.iconColor}
+        borderColor={seboStyle.borderColor}
+        textColor={seboStyle.textColor}
+        className={seboStyle.bgClass}
       />
 
-      {/* 7. Rendimento FCO */}
+      {/* 7. Rendimento FCO - Styled dynamically */}
       <MetricCard
         title="Rendimento FCO"
         value={formatPercentage(metrics.fcoYield)}
         icon={Bone}
-        iconColor="text-orange-500"
-        borderColor="border-l-orange-500"
-        textColor="text-emerald-600"
+        iconColor={fcoStyle.iconColor}
+        borderColor={fcoStyle.borderColor}
+        textColor={fcoStyle.textColor}
+        className={fcoStyle.bgClass}
       />
 
-      {/* 8. Rendimento Farinheta */}
+      {/* 8. Rendimento Farinheta - Styled dynamically */}
       <MetricCard
         title="Rendimento Farinheta"
         value={formatPercentage(metrics.farinhetaYield)}
         icon={Wheat}
-        iconColor="text-emerald-600"
-        borderColor="border-l-emerald-600"
-        textColor="text-red-600"
+        iconColor={farinhetaStyle.iconColor}
+        borderColor={farinhetaStyle.borderColor}
+        textColor={farinhetaStyle.textColor}
+        className={farinhetaStyle.bgClass}
       />
 
       {/* 9. Total de entrada de sangue */}

@@ -1890,6 +1890,9 @@ section[aria-label='Notifications alt+T'] {
   --tw-bg-opacity: 1;
   background-color: rgb(236 253 245 / var(--tw-bg-opacity, 1));
 }
+.bg-emerald-50\/50{
+  background-color: rgb(236 253 245 / 0.5);
+}
 .bg-foreground{
   background-color: hsl(var(--foreground));
 }
@@ -1966,6 +1969,9 @@ section[aria-label='Notifications alt+T'] {
 .bg-red-50{
   --tw-bg-opacity: 1;
   background-color: rgb(254 242 242 / var(--tw-bg-opacity, 1));
+}
+.bg-red-50\/50{
+  background-color: rgb(254 242 242 / 0.5);
 }
 .bg-red-500{
   --tw-bg-opacity: 1;
@@ -3933,6 +3939,9 @@ img[src*='skip.svg'] {
 .dark\:bg-blue-950\/10:is(.dark *){
   background-color: rgb(23 37 84 / 0.1);
 }
+.dark\:bg-emerald-900\/10:is(.dark *){
+  background-color: rgb(6 78 59 / 0.1);
+}
 .dark\:bg-emerald-900\/20:is(.dark *){
   background-color: rgb(6 78 59 / 0.2);
 }
@@ -3956,6 +3965,9 @@ img[src*='skip.svg'] {
 }
 .dark\:bg-orange-900\/20:is(.dark *){
   background-color: rgb(124 45 18 / 0.2);
+}
+.dark\:bg-red-900\/10:is(.dark *){
+  background-color: rgb(127 29 29 / 0.1);
 }
 .dark\:bg-red-900\/20:is(.dark *){
   background-color: rgb(127 29 29 / 0.2);

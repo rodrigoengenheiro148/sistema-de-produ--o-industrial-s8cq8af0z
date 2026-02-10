@@ -66606,7 +66606,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords, steamRecords = [], fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords, steamRecords = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u = unit$1?.toLowerCase() || "";
@@ -66680,6 +66680,23 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		fullCookingTimeRecords,
 		referenceDate
 	]);
+	const getYieldStyle = (current, threshold$1 = 0) => {
+		if (current < threshold$1) return {
+			iconColor: "text-red-600",
+			borderColor: "border-l-red-600",
+			textColor: "text-red-600",
+			bgClass: "bg-red-50/50 dark:bg-red-900/10"
+		};
+		return {
+			iconColor: "text-emerald-600",
+			borderColor: "border-l-emerald-600",
+			textColor: "text-emerald-600",
+			bgClass: "bg-emerald-50/50 dark:bg-emerald-900/10"
+		};
+	};
+	const seboStyle = getYieldStyle(metrics.seboYield, notificationSettings.seboThreshold);
+	const fcoStyle = getYieldStyle(metrics.fcoYield, notificationSettings.fcoThreshold || notificationSettings.farinhaThreshold || 0);
+	const farinhetaStyle = getYieldStyle(metrics.farinhetaYield, notificationSettings.farinhetaThreshold);
 	const formatCurrency = (val) => {
 		return new Intl.NumberFormat("pt-BR", {
 			style: "currency",
@@ -66803,25 +66820,28 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 				title: "Rendimento Sebo",
 				value: formatPercentage(metrics.seboYield),
 				icon: Droplets,
-				iconColor: "text-emerald-600",
-				borderColor: "border-l-emerald-600",
-				textColor: "text-emerald-600"
+				iconColor: seboStyle.iconColor,
+				borderColor: seboStyle.borderColor,
+				textColor: seboStyle.textColor,
+				className: seboStyle.bgClass
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento FCO",
 				value: formatPercentage(metrics.fcoYield),
 				icon: Bone,
-				iconColor: "text-orange-500",
-				borderColor: "border-l-orange-500",
-				textColor: "text-emerald-600"
+				iconColor: fcoStyle.iconColor,
+				borderColor: fcoStyle.borderColor,
+				textColor: fcoStyle.textColor,
+				className: fcoStyle.bgClass
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Farinheta",
 				value: formatPercentage(metrics.farinhetaYield),
 				icon: Wheat,
-				iconColor: "text-emerald-600",
-				borderColor: "border-l-emerald-600",
-				textColor: "text-red-600"
+				iconColor: farinhetaStyle.iconColor,
+				borderColor: farinhetaStyle.borderColor,
+				textColor: farinhetaStyle.textColor,
+				className: farinhetaStyle.bgClass
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de entrada de sangue",
@@ -88218,4 +88238,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BEP0aKD9.js.map
+//# sourceMappingURL=index-RBWpNzQj.js.map
