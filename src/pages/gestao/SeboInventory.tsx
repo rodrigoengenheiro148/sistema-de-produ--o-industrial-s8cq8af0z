@@ -44,6 +44,7 @@ import {
   setYear,
   getMonth,
   getYear,
+  getDaysInMonth,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -86,6 +87,9 @@ export default function SeboInventory() {
   // Initialize chart reference month to start of current month
   const [chartMonth, setChartMonth] = useState<Date>(startOfMonth(new Date()))
 
+  // Initialize selected day filter for chart
+  const [selectedDay, setSelectedDay] = useState<string>('all')
+
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -102,6 +106,27 @@ export default function SeboInventory() {
   // Derived dates for the chart view based on selected month
   const chartStartDate = useMemo(() => startOfMonth(chartMonth), [chartMonth])
   const chartEndDate = useMemo(() => endOfMonth(chartMonth), [chartMonth])
+
+  // Calculate available days in the selected month
+  const daysInMonth = useMemo(() => {
+    const days = getDaysInMonth(chartMonth)
+    return Array.from({ length: days }, (_, i) => String(i + 1))
+  }, [chartMonth])
+
+  // Computed start/end dates for the chart component based on selected day filter
+  const { viewStart, viewEnd } = useMemo(() => {
+    if (selectedDay !== 'all') {
+      const day = parseInt(selectedDay)
+      // Construct date from chartMonth year/month and selected day
+      const specificDate = new Date(
+        getYear(chartMonth),
+        getMonth(chartMonth),
+        day,
+      )
+      return { viewStart: specificDate, viewEnd: specificDate }
+    }
+    return { viewStart: chartStartDate, viewEnd: chartEndDate }
+  }, [selectedDay, chartMonth, chartStartDate, chartEndDate])
 
   // Generate Year Options dynamically (Current Year +/- 2)
   const yearOptions = useMemo(() => {
@@ -175,6 +200,7 @@ export default function SeboInventory() {
 
     setHistoryLoading(true)
     try {
+      // Always fetch the full month data
       const history = await fetchSeboInventoryHistory(
         chartStartDate,
         chartEndDate,
@@ -209,11 +235,13 @@ export default function SeboInventory() {
   const handleChartMonthChange = (value: string) => {
     const newDate = setMonth(chartMonth, parseInt(value))
     setChartMonth(newDate)
+    setSelectedDay('all') // Reset day filter
   }
 
   const handleChartYearChange = (value: string) => {
     const newDate = setYear(chartMonth, parseInt(value))
     setChartMonth(newDate)
+    setSelectedDay('all') // Reset day filter
   }
 
   // Handlers for Tank Inputs
@@ -407,25 +435,50 @@ export default function SeboInventory() {
   }
 
   const chartControls = (
-    <div className="flex items-center gap-2">
-      <div className="hidden sm:block text-sm font-medium text-muted-foreground mr-1">
-        Filtrar por Mês:
+    <div className="flex items-center gap-2 flex-wrap justify-end">
+      {/* Day Filter */}
+      <div className="flex items-center gap-2">
+        <span className="hidden sm:block text-sm font-medium text-muted-foreground">
+          Filtrar por Dia:
+        </span>
+        <Select value={selectedDay} onValueChange={setSelectedDay}>
+          <SelectTrigger className="w-[70px] sm:w-[80px] h-8 text-xs sm:text-sm">
+            <SelectValue placeholder="Dia" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {daysInMonth.map((d) => (
+              <SelectItem key={d} value={d}>
+                {d}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <Select
-        value={String(getMonth(chartMonth))}
-        onValueChange={handleChartMonthChange}
-      >
-        <SelectTrigger className="w-[110px] sm:w-[130px] h-8 text-xs sm:text-sm">
-          <SelectValue placeholder="Mês" />
-        </SelectTrigger>
-        <SelectContent>
-          {MONTHS.map((m, index) => (
-            <SelectItem key={index} value={String(index)}>
-              {m}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+
+      {/* Month Filter */}
+      <div className="flex items-center gap-2 ml-2">
+        <span className="hidden sm:block text-sm font-medium text-muted-foreground">
+          Mês:
+        </span>
+        <Select
+          value={String(getMonth(chartMonth))}
+          onValueChange={handleChartMonthChange}
+        >
+          <SelectTrigger className="w-[110px] sm:w-[130px] h-8 text-xs sm:text-sm">
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent>
+            {MONTHS.map((m, index) => (
+              <SelectItem key={index} value={String(index)}>
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Year Filter */}
       <Select
         value={String(getYear(chartMonth))}
         onValueChange={handleChartYearChange}
@@ -514,8 +567,8 @@ export default function SeboInventory() {
         {/* Inventory Chart */}
         <SeboInventoryChart
           data={historyRecords}
-          startDate={chartStartDate}
-          endDate={chartEndDate}
+          startDate={viewStart}
+          endDate={viewEnd}
           isLoading={historyLoading}
           headerControls={chartControls}
         />

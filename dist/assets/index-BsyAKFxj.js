@@ -84097,6 +84097,7 @@ function SeboInventory() {
 	const { toast: toast$2 } = useToast();
 	const [date$4, setDate] = (0, import_react.useState)(startOfDay(/* @__PURE__ */ new Date()));
 	const [chartMonth, setChartMonth] = (0, import_react.useState)(startOfMonth(/* @__PURE__ */ new Date()));
+	const [selectedDay, setSelectedDay] = (0, import_react.useState)("all");
 	const [loading, setLoading] = (0, import_react.useState)(false);
 	const [saving, setSaving] = (0, import_react.useState)(false);
 	const [historyLoading, setHistoryLoading] = (0, import_react.useState)(false);
@@ -84105,6 +84106,29 @@ function SeboInventory() {
 	const [historyRecords, setHistoryRecords] = (0, import_react.useState)([]);
 	const chartStartDate = (0, import_react.useMemo)(() => startOfMonth(chartMonth), [chartMonth]);
 	const chartEndDate = (0, import_react.useMemo)(() => endOfMonth(chartMonth), [chartMonth]);
+	const daysInMonth = (0, import_react.useMemo)(() => {
+		const days = getDaysInMonth(chartMonth);
+		return Array.from({ length: days }, (_$1, i$2) => String(i$2 + 1));
+	}, [chartMonth]);
+	const { viewStart, viewEnd } = (0, import_react.useMemo)(() => {
+		if (selectedDay !== "all") {
+			const day = parseInt(selectedDay);
+			const specificDate = new Date(getYear(chartMonth), getMonth(chartMonth), day);
+			return {
+				viewStart: specificDate,
+				viewEnd: specificDate
+			};
+		}
+		return {
+			viewStart: chartStartDate,
+			viewEnd: chartEndDate
+		};
+	}, [
+		selectedDay,
+		chartMonth,
+		chartStartDate,
+		chartEndDate
+	]);
 	const yearOptions = (0, import_react.useMemo)(() => {
 		const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
 		return [
@@ -84192,9 +84216,11 @@ function SeboInventory() {
 	}, [loadHistory]);
 	const handleChartMonthChange = (value) => {
 		setChartMonth(setMonth(chartMonth, parseInt(value)));
+		setSelectedDay("all");
 	};
 	const handleChartYearChange = (value) => {
 		setChartMonth(setYear(chartMonth, parseInt(value)));
+		setSelectedDay("all");
 	};
 	const handleTankChange = (index$1, field, value) => {
 		const newRows = [...tankRows];
@@ -84334,22 +84360,44 @@ function SeboInventory() {
 		return "";
 	};
 	const chartControls = /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "flex items-center gap-2",
+		className: "flex items-center gap-2 flex-wrap justify-end",
 		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "hidden sm:block text-sm font-medium text-muted-foreground mr-1",
-				children: "Filtrar por Mês:"
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "hidden sm:block text-sm font-medium text-muted-foreground",
+					children: "Filtrar por Dia:"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+					value: selectedDay,
+					onValueChange: setSelectedDay,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+						className: "w-[70px] sm:w-[80px] h-8 text-xs sm:text-sm",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Dia" })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+						value: "all",
+						children: "Todos"
+					}), daysInMonth.map((d) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+						value: d,
+						children: d
+					}, d))] })]
+				})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
-				value: String(getMonth(chartMonth)),
-				onValueChange: handleChartMonthChange,
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
-					className: "w-[110px] sm:w-[130px] h-8 text-xs sm:text-sm",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Mês" })
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: MONTHS.map((m, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-					value: String(index$1),
-					children: m
-				}, index$1)) })]
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-2 ml-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "hidden sm:block text-sm font-medium text-muted-foreground",
+					children: "Mês:"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+					value: String(getMonth(chartMonth)),
+					onValueChange: handleChartMonthChange,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+						className: "w-[110px] sm:w-[130px] h-8 text-xs sm:text-sm",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Mês" })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: MONTHS.map((m, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+						value: String(index$1),
+						children: m
+					}, index$1)) })]
+				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
 				value: String(getYear(chartMonth)),
@@ -84420,8 +84468,8 @@ function SeboInventory() {
 				className: "grid grid-cols-1 gap-6",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SeboInventoryChart, {
 					data: historyRecords,
-					startDate: chartStartDate,
-					endDate: chartEndDate,
+					startDate: viewStart,
+					endDate: viewEnd,
 					isLoading: historyLoading,
 					headerControls: chartControls
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
@@ -88348,4 +88396,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Dwe-8DQC.js.map
+//# sourceMappingURL=index-BsyAKFxj.js.map
