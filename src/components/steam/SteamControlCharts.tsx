@@ -20,15 +20,11 @@ import {
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  PieChart,
-  Pie,
   Cell,
-  ResponsiveContainer,
+  LabelList,
 } from 'recharts'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
@@ -87,8 +83,8 @@ export function SteamControlCharts() {
       .filter((d) => d.steamConsumption > 0 || d.entradaMp > 0) // Hide empty days
   }, [steamControlRecords, production, dateRange])
 
-  // Pie Chart Data (Totals)
-  const pieData = useMemo(() => {
+  // Fuel Data for Bar Chart (Aggregated Totals)
+  const fuelData = useMemo(() => {
     const totals = filteredData.reduce(
       (acc, curr) => ({
         soyWaste: acc.soyWaste + curr.soyWaste,
@@ -129,6 +125,12 @@ export function SteamControlCharts() {
     },
   } satisfies ChartConfig
 
+  const fuelConfig = {
+    value: {
+      label: 'Quantidade',
+    },
+  } satisfies ChartConfig
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -151,7 +153,7 @@ export function SteamControlCharts() {
           <CardContent>
             <ChartContainer
               config={consumptionConfig}
-              className="h-[300px] w-full"
+              className="aspect-auto h-[300px] w-full"
             >
               <BarChart
                 data={filteredData}
@@ -172,13 +174,45 @@ export function SteamControlCharts() {
                   fill="var(--color-steamConsumption)"
                   radius={[4, 4, 0, 0]}
                   name="Vapor"
-                />
+                >
+                  <LabelList
+                    dataKey="steamConsumption"
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(val: number) =>
+                      val === 0
+                        ? ''
+                        : val.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })
+                    }
+                  />
+                </Bar>
                 <Bar
                   dataKey="entradaMp"
                   fill="var(--color-entradaMp)"
                   radius={[4, 4, 0, 0]}
                   name="MP"
-                />
+                >
+                  <LabelList
+                    dataKey="entradaMp"
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(val: number) =>
+                      val === 0
+                        ? ''
+                        : val.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })
+                    }
+                  />
+                </Bar>
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -193,10 +227,13 @@ export function SteamControlCharts() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={ratioConfig} className="h-[300px] w-full">
-              <LineChart
+            <ChartContainer
+              config={ratioConfig}
+              className="aspect-auto h-[300px] w-full"
+            >
+              <BarChart
                 data={filteredData}
-                margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+                margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
@@ -208,21 +245,51 @@ export function SteamControlCharts() {
                 <YAxis tickLine={false} axisLine={false} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="ratioMpVapor"
-                  stroke="var(--color-ratioMpVapor)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
+                  fill="var(--color-ratioMpVapor)"
+                  radius={[4, 4, 0, 0]}
+                  name="MP vs Vapor"
+                >
+                  <LabelList
+                    dataKey="ratioMpVapor"
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(val: number) =>
+                      val === 0
+                        ? ''
+                        : val.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                    }
+                  />
+                </Bar>
+                <Bar
                   dataKey="ratioCavacoVapor"
-                  stroke="var(--color-ratioCavacoVapor)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
+                  fill="var(--color-ratioCavacoVapor)"
+                  radius={[4, 4, 0, 0]}
+                  name="Cavaco vs Vapor"
+                >
+                  <LabelList
+                    dataKey="ratioCavacoVapor"
+                    position="top"
+                    offset={12}
+                    className="fill-foreground"
+                    fontSize={12}
+                    formatter={(val: number) =>
+                      val === 0
+                        ? ''
+                        : val.toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                    }
+                  />
+                </Bar>
+              </BarChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -235,32 +302,53 @@ export function SteamControlCharts() {
               Total consumido no período selecionado
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px] flex items-center justify-center">
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
+          <CardContent className="h-[300px]">
+            <ChartContainer
+              config={fuelConfig}
+              className="aspect-auto h-full w-full"
+            >
+              {fuelData.length > 0 ? (
+                <BarChart
+                  data={fuelData}
+                  margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis tickLine={false} axisLine={false} />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent hideLabel />}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {fuelData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
-                  </Pie>
-                  <ChartTooltip />
-                  <ChartLegend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-muted-foreground">
-                Sem dados de combustível para o período.
-              </div>
-            )}
+                    <LabelList
+                      dataKey="value"
+                      position="top"
+                      offset={12}
+                      className="fill-foreground"
+                      fontSize={12}
+                      formatter={(val: number) =>
+                        val.toLocaleString('pt-BR', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })
+                      }
+                    />
+                  </Bar>
+                </BarChart>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  Sem dados de combustível para o período.
+                </div>
+              )}
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

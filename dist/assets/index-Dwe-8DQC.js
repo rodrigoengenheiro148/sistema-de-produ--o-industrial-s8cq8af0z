@@ -86523,7 +86523,7 @@ function SteamControlCharts() {
 		production,
 		dateRange
 	]);
-	const pieData = (0, import_react.useMemo)(() => {
+	const fuelData = (0, import_react.useMemo)(() => {
 		const totals = filteredData.reduce((acc, curr) => ({
 			soyWaste: acc.soyWaste + curr.soyWaste,
 			firewood: acc.firewood + curr.firewood,
@@ -86581,7 +86581,7 @@ function SteamControlCharts() {
 							color: "hsl(var(--chart-2))"
 						}
 					},
-					className: "h-[300px] w-full",
+					className: "aspect-auto h-[300px] w-full",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 						data: filteredData,
 						margin: {
@@ -86616,7 +86616,18 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Vapor"
+								name: "Vapor",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "steamConsumption",
+									position: "top",
+									offset: 12,
+									className: "fill-foreground",
+									fontSize: 12,
+									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
+										minimumFractionDigits: 1,
+										maximumFractionDigits: 1
+									})
+								})
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "entradaMp",
@@ -86627,7 +86638,18 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "MP"
+								name: "MP",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "entradaMp",
+									position: "top",
+									offset: 12,
+									className: "fill-foreground",
+									fontSize: 12,
+									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
+										minimumFractionDigits: 1,
+										maximumFractionDigits: 1
+									})
+								})
 							})
 						]
 					})
@@ -86643,12 +86665,12 @@ function SteamControlCharts() {
 							color: "hsl(var(--chart-4))"
 						}
 					},
-					className: "h-[300px] w-full",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+					className: "aspect-auto h-[300px] w-full",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 						data: filteredData,
 						margin: {
 							top: 20,
-							right: 10,
+							right: 0,
 							left: 0,
 							bottom: 0
 						},
@@ -86669,19 +86691,49 @@ function SteamControlCharts() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-								type: "monotone",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "ratioMpVapor",
-								stroke: "var(--color-ratioMpVapor)",
-								strokeWidth: 2,
-								dot: false
+								fill: "var(--color-ratioMpVapor)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "MP vs Vapor",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "ratioMpVapor",
+									position: "top",
+									offset: 12,
+									className: "fill-foreground",
+									fontSize: 12,
+									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2
+									})
+								})
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-								type: "monotone",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "ratioCavacoVapor",
-								stroke: "var(--color-ratioCavacoVapor)",
-								strokeWidth: 2,
-								dot: false
+								fill: "var(--color-ratioCavacoVapor)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Cavaco vs Vapor",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "ratioCavacoVapor",
+									position: "top",
+									offset: 12,
+									className: "fill-foreground",
+									fontSize: 12,
+									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2
+									})
+								})
 							})
 						]
 					})
@@ -86689,27 +86741,62 @@ function SteamControlCharts() {
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 					className: "md:col-span-2",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Distribuição de Combustível" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Total consumido no período selecionado" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-						className: "h-[300px] flex items-center justify-center",
-						children: pieData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
-							width: "100%",
-							height: "100%",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(PieChart, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pie, {
-									data: pieData,
-									cx: "50%",
-									cy: "50%",
-									innerRadius: 60,
-									outerRadius: 100,
-									paddingAngle: 5,
-									dataKey: "value",
-									children: pieData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: entry.color }, `cell-${index$1}`))
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, {})
-							] })
-						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "text-muted-foreground",
-							children: "Sem dados de combustível para o período."
+						className: "h-[300px]",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+							config: { value: { label: "Quantidade" } },
+							className: "aspect-auto h-full w-full",
+							children: fuelData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+								data: fuelData,
+								margin: {
+									top: 20,
+									right: 0,
+									left: 0,
+									bottom: 0
+								},
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+										vertical: false,
+										strokeDasharray: "3 3"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+										dataKey: "name",
+										tickLine: false,
+										axisLine: false,
+										tickMargin: 8
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+										tickLine: false,
+										axisLine: false
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+										cursor: false,
+										content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { hideLabel: true })
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Bar, {
+										dataKey: "value",
+										radius: [
+											4,
+											4,
+											0,
+											0
+										],
+										children: [fuelData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: entry.color }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+											dataKey: "value",
+											position: "top",
+											offset: 12,
+											className: "fill-foreground",
+											fontSize: 12,
+											formatter: (val) => val.toLocaleString("pt-BR", {
+												minimumFractionDigits: 1,
+												maximumFractionDigits: 1
+											})
+										})]
+									})
+								]
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "flex h-full items-center justify-center text-muted-foreground",
+								children: "Sem dados de combustível para o período."
+							})
 						})
 					})]
 				})
@@ -88261,4 +88348,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CSNhFLDi.js.map
+//# sourceMappingURL=index-Dwe-8DQC.js.map
