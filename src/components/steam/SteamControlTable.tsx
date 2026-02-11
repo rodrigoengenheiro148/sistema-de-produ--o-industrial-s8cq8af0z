@@ -151,7 +151,7 @@ export function SteamControlTable() {
 
         return true
       })
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort DESC (Newest first)
 
     // Map to include calculated fields and factory name
     return filtered.map((record) => {
@@ -202,7 +202,7 @@ export function SteamControlTable() {
       // 1. MPs VS VAPOR: (Total MP / Steam Consumption)
       const mpVsVapor = steamConsumption > 0 ? mpEntry / steamConsumption : 0
 
-      // 2. MPs m³ CAVACO: NOW DISPLAYING RAW WOOD CHIPS VALUE
+      // 2. MPs m³ CAVACO: NOW DISPLAYING RAW WOOD CHIPS VALUE (as per legacy requirement/comment)
       const mpVsCavaco = woodChips
 
       // 3. TONELADAS VAPOR VS MPs: (Steam Consumption / Total MP)

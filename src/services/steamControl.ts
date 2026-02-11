@@ -1,19 +1,11 @@
 import { supabase } from '@/lib/supabase/client'
 import { SteamControlRecord } from '@/lib/types'
 import { format } from 'date-fns'
-
-const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
-  if (!dateStr) return new Date()
-  if (dateStr instanceof Date) return dateStr
-  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return new Date(`${dateStr}T12:00:00`)
-  }
-  return new Date(dateStr)
-}
+import { parseAsLocalNoon } from '@/lib/utils'
 
 export const mapSteamRecord = (item: any): SteamControlRecord => ({
   id: item.id,
-  date: parseDateSafe(item.date),
+  date: parseAsLocalNoon(item.date),
   soyWaste: Number(item.soy_waste) || 0,
   firewood: Number(item.firewood) || 0,
   riceHusk: Number(item.rice_husk) || 0,

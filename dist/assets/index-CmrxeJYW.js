@@ -21561,6 +21561,16 @@ function cn(...inputs) {
 function isBloodRecord(record) {
 	return record.bloodMealProduced > 0 || record.bloodMealBags !== void 0 && record.bloodMealBags > 0;
 }
+function parseAsLocalNoon(dateStr) {
+	if (!dateStr) return /* @__PURE__ */ new Date();
+	if (dateStr instanceof Date) return dateStr;
+	const match$2 = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (match$2) {
+		const [_$1, y$1, m, d] = match$2;
+		return new Date(Number(y$1), Number(m) - 1, Number(d), 12, 0, 0);
+	}
+	return new Date(dateStr);
+}
 var ToastProvider = Provider$1;
 var ToastViewport = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Viewport$2, {
 	ref,
@@ -35832,15 +35842,9 @@ const AuthProvider = ({ children }) => {
 		children
 	});
 };
-var parseDateSafe$1 = (dateStr) => {
-	if (!dateStr) return /* @__PURE__ */ new Date();
-	if (dateStr instanceof Date) return dateStr;
-	if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return /* @__PURE__ */ new Date(`${dateStr}T12:00:00`);
-	return new Date(dateStr);
-};
 const mapSteamRecord = (item) => ({
 	id: item.id,
-	date: parseDateSafe$1(item.date),
+	date: parseAsLocalNoon(item.date),
 	soyWaste: Number(item.soy_waste) || 0,
 	firewood: Number(item.firewood) || 0,
 	riceHusk: Number(item.rice_husk) || 0,
@@ -35903,16 +35907,10 @@ var DEFAULT_NOTIFICATION_SETTINGS = {
 	smtpUser: "",
 	smtpPassword: ""
 };
-var parseDateSafe = (dateStr) => {
-	if (!dateStr) return /* @__PURE__ */ new Date();
-	if (dateStr instanceof Date) return dateStr;
-	if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return /* @__PURE__ */ new Date(`${dateStr}T12:00:00`);
-	return new Date(dateStr);
-};
 var mapData = (data) => {
 	return data.map((item) => ({
 		...item,
-		date: parseDateSafe(item.date),
+		date: parseAsLocalNoon(item.date),
 		createdAt: item.created_at ? new Date(item.created_at) : void 0,
 		mpUsed: item.mp_used,
 		seboProduced: item.sebo_produced,
@@ -36066,7 +36064,7 @@ const DataProvider = ({ children }) => {
 			if (forecasts) setDailyForecasts(forecasts.map((f) => ({
 				id: f.id,
 				factoryId: f.factory_id,
-				date: parseDateSafe(f.date),
+				date: parseAsLocalNoon(f.date),
 				mpForecast: f.mp_forecast,
 				materialType: f.material_type,
 				userId: f.user_id,
@@ -86175,7 +86173,7 @@ function SteamControlTable() {
 				if (mpFilter === "woodChips" && (record.woodChips || 0) <= 0) return false;
 			}
 			return true;
-		}).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((record) => {
+		}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
 			const factory = factories.find((f) => f.id === record.factoryId);
 			const factoryName = factory ? factory.name : "N/A";
 			const mpEntry = rawMaterials.filter((rm) => isSameDay(rm.date, record.date) && rm.type !== "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
@@ -88711,4 +88709,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BrwYzn2n.js.map
+//# sourceMappingURL=index-CmrxeJYW.js.map

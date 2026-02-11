@@ -35,6 +35,7 @@ import {
   deleteSteamRecordsRange as deleteSteamRecordsRangeService,
 } from '@/services/steamControl'
 import { saveForecast, deleteForecast } from '@/services/forecast'
+import { parseAsLocalNoon } from '@/lib/utils'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -68,19 +69,10 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   smtpPassword: '',
 }
 
-const parseDateSafe = (dateStr: string | Date | null | undefined): Date => {
-  if (!dateStr) return new Date()
-  if (dateStr instanceof Date) return dateStr
-  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return new Date(`${dateStr}T12:00:00`)
-  }
-  return new Date(dateStr)
-}
-
 const mapData = (data: any[]) => {
   return data.map((item) => ({
     ...item,
-    date: parseDateSafe(item.date),
+    date: parseAsLocalNoon(item.date),
     createdAt: item.created_at ? new Date(item.created_at) : undefined,
     mpUsed: item.mp_used,
     seboProduced: item.sebo_produced,
@@ -345,7 +337,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           forecasts.map((f: any) => ({
             id: f.id,
             factoryId: f.factory_id,
-            date: parseDateSafe(f.date),
+            date: parseAsLocalNoon(f.date),
             mpForecast: f.mp_forecast,
             materialType: f.material_type,
             userId: f.user_id,
