@@ -66062,7 +66062,38 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 					tickFormatter: (value) => `${value}%`,
 					domain: [0, "auto"]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+					cursor: false,
+					content: ({ active, payload, label }) => {
+						if (!active || !payload || !payload.length) return null;
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "font-medium",
+								children: label
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "grid gap-1.5",
+								children: payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "h-2 w-2 shrink-0 rounded-[2px]",
+											style: { backgroundColor: item.color || item.payload?.fill || item.fill }
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "text-muted-foreground",
+											children: [item.name, ":"]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "font-mono font-medium tabular-nums text-foreground",
+											children: [Number(item.value).toFixed(2), "%"]
+										})
+									]
+								}, item.dataKey || item.name))
+							})]
+						});
+					}
+				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
 				selectedProducts.includes("sebo") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: "sebo",
@@ -66081,7 +66112,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						offset: 5,
 						className: "fill-foreground font-bold",
 						fontSize: 10,
-						formatter: (value) => value > 0 ? `${value.toFixed(1)}%` : ""
+						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
 					})
 				}),
 				selectedProducts.includes("fco") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
@@ -66101,7 +66132,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						offset: 5,
 						className: "fill-foreground font-bold",
 						fontSize: 10,
-						formatter: (value) => value > 0 ? `${value.toFixed(1)}%` : ""
+						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
 					})
 				}),
 				selectedProducts.includes("farinheta") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
@@ -66121,7 +66152,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						offset: 5,
 						className: "fill-foreground font-bold",
 						fontSize: 10,
-						formatter: (value) => value > 0 ? `${value.toFixed(1)}%` : ""
+						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
 					})
 				}),
 				selectedProducts.includes("sebo") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
@@ -70594,7 +70625,7 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 												children: "Rendimento"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-bold text-red-600",
-												children: [data.yield.toLocaleString("pt-BR", { maximumFractionDigits: 1 }), "%"]
+												children: [data.yield.toFixed(2), "%"]
 											})]
 										}),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -70638,7 +70669,7 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "yield",
 						position: "top",
-						formatter: (val) => `${val.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`,
+						formatter: (val) => `${val.toFixed(2)}%`,
 						className: "fill-foreground font-bold",
 						fontSize: isMobile ? 10 : 12
 					})
@@ -88709,4 +88740,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Diqz8Aj9.js.map
+//# sourceMappingURL=index-BL0W5Om6.js.map

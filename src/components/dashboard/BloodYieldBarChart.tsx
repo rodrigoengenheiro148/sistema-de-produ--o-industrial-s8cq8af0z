@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { ProductionEntry, RawMaterialEntry } from '@/lib/types'
 import {
   Card,
@@ -10,11 +10,10 @@ import {
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, LabelList, YAxis } from 'recharts'
-import { format, isSameDay } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
@@ -25,7 +24,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, CalendarDays, Droplet } from 'lucide-react'
+import { Maximize2, Droplet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface BloodYieldBarChartProps {
@@ -170,10 +169,7 @@ export function BloodYieldBarChart({
                         Rendimento
                       </span>
                       <span className="font-bold text-red-600">
-                        {data.yield.toLocaleString('pt-BR', {
-                          maximumFractionDigits: 1,
-                        })}
-                        %
+                        {data.yield.toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex flex-col">
@@ -209,9 +205,7 @@ export function BloodYieldBarChart({
           <LabelList
             dataKey="yield"
             position="top"
-            formatter={(val: number) =>
-              `${val.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
-            }
+            formatter={(val: number) => `${val.toFixed(2)}%`}
             className="fill-foreground font-bold"
             fontSize={isMobile ? 10 : 12}
           />
