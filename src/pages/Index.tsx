@@ -36,7 +36,6 @@ export default function Dashboard() {
     downtimeRecords,
     qualityRecords,
     acidityRecords,
-    steamRecords,
     dateRange,
     setDateRange,
     factories,
@@ -92,7 +91,6 @@ export default function Dashboard() {
     filteredDowntime,
     filteredQuality,
     filteredAcidity,
-    filteredSteamRecords,
   } = useMemo(() => {
     return {
       filteredProduction: production
@@ -110,7 +108,6 @@ export default function Dashboard() {
       filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
       filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
       filteredAcidity: acidityRecords.filter((a) => filterByDate(a.date)),
-      filteredSteamRecords: steamRecords.filter((s) => filterByDate(s.date)),
     }
   }, [
     production,
@@ -120,7 +117,6 @@ export default function Dashboard() {
     downtimeRecords,
     qualityRecords,
     acidityRecords,
-    steamRecords,
     dateRange,
   ])
 
@@ -260,7 +256,6 @@ export default function Dashboard() {
             cookingTimeRecords={filteredCookingTime}
             downtimeRecords={filteredDowntime}
             acidityRecords={filteredAcidity}
-            steamRecords={filteredSteamRecords}
             notificationSettings={notificationSettings}
             fullProductionHistory={production}
             fullCookingTimeRecords={cookingTimeRecords}

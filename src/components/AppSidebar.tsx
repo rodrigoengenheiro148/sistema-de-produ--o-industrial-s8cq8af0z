@@ -12,7 +12,6 @@ import {
   LineChart,
   Database,
   Timer,
-  Flame,
   Droplet,
   TrendingUp,
 } from 'lucide-react'
@@ -107,11 +106,6 @@ const managementItems = [
     title: 'Tempos de Processo',
     url: '/gestao/processo',
     icon: Timer,
-  },
-  {
-    title: 'Controle de Vapor',
-    url: '/gestao/vapor',
-    icon: Flame,
   },
 ]
 

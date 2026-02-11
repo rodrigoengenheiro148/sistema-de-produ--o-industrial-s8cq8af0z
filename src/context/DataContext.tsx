@@ -23,17 +23,12 @@ import {
   NotificationSettings,
   CookingTimeRecord,
   DowntimeRecord,
-  SteamControlRecord,
   DailyProductionForecast,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
-import {
-  mapSteamRecord,
-  deleteSteamRecordsRange as deleteSteamRecordsRangeService,
-} from '@/services/steamControl'
 import { saveForecast, deleteForecast } from '@/services/forecast'
 import { parseAsLocalNoon } from '@/lib/utils'
 
@@ -133,7 +128,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     CookingTimeRecord[]
   >([])
   const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
-  const [steamRecords, setSteamRecords] = useState<SteamControlRecord[]>([])
   const [dailyForecasts, setDailyForecasts] = useState<
     DailyProductionForecast[]
   >([])
@@ -260,7 +254,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setQualityRecords([])
       setCookingTimeRecords([])
       setDowntimeRecords([])
-      setSteamRecords([])
       setDailyForecasts([])
       return
     }
@@ -274,7 +267,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: qual },
         { data: cooking },
         { data: downtime },
-        { data: steam },
         { data: forecasts },
       ] = await Promise.all([
         supabase
@@ -313,11 +305,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('factory_id', currentFactoryId)
           .order('date', { ascending: false }),
         supabase
-          .from('steam_control_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
           .from('daily_production_forecasts')
           .select('*')
           .eq('factory_id', currentFactoryId)
@@ -331,7 +318,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (qual) setQualityRecords(mapData(qual))
       if (cooking) setCookingTimeRecords(mapData(cooking))
       if (downtime) setDowntimeRecords(mapData(downtime))
-      if (steam) setSteamRecords(steam.map(mapSteamRecord))
       if (forecasts) {
         setDailyForecasts(
           forecasts.map((f: any) => ({
@@ -407,7 +393,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'quality_records',
       'cooking_time_records',
       'downtime_records',
-      'steam_control_records',
       'daily_production_forecasts',
     ]
 
@@ -753,74 +738,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
-  const addSteamRecord = async (entry: Omit<SteamControlRecord, 'id'>) => {
-    if (!currentFactoryId) return
-    const { error } = await supabase.from('steam_control_records').insert({
-      date: entry.date.toISOString(),
-      soy_waste: entry.soyWaste,
-      firewood: entry.firewood,
-      rice_husk: entry.riceHusk,
-      wood_chips: entry.woodChips,
-      steam_consumption: entry.steamConsumption,
-      meter_start: entry.meterStart,
-      meter_end: entry.meterEnd,
-      user_id: user?.id,
-      factory_id: currentFactoryId,
-    })
-    if (!error) fetchOperationalData()
-  }
-
-  const updateSteamRecord = async (entry: SteamControlRecord) => {
-    const { error } = await supabase
-      .from('steam_control_records')
-      .update({
-        date: entry.date.toISOString(),
-        soy_waste: entry.soyWaste,
-        firewood: entry.firewood,
-        rice_husk: entry.riceHusk,
-        wood_chips: entry.woodChips,
-        steam_consumption: entry.steamConsumption,
-        meter_start: entry.meterStart,
-        meter_end: entry.meterEnd,
-      })
-      .eq('id', entry.id)
-    if (!error) fetchOperationalData()
-  }
-
-  const deleteSteamRecord = async (id: string) => {
-    const { error } = await supabase
-      .from('steam_control_records')
-      .delete()
-      .eq('id', id)
-    if (error) throw error
-    await fetchOperationalData()
-  }
-
-  const deleteSteamRecordsRange = async (
-    from: Date | undefined,
-    to: Date | undefined,
-  ) => {
-    if (!currentFactoryId) return
-    try {
-      await deleteSteamRecordsRangeService(currentFactoryId, from, to)
-      await fetchOperationalData()
-    } catch (error) {
-      console.error('Error deleting steam records range:', error)
-      throw error
-    }
-  }
-
-  const clearSteamRecords = async () => {
-    if (!currentFactoryId) return
-    const { error } = await supabase
-      .from('steam_control_records')
-      .delete()
-      .eq('factory_id', currentFactoryId)
-
-    if (error) throw error
-    await fetchOperationalData()
-  }
-
   const saveDailyForecast = async (
     date: Date,
     mpForecast: number,
@@ -1062,12 +979,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addDowntimeRecord,
         updateDowntimeRecord,
         deleteDowntimeRecord,
-        steamRecords,
-        addSteamRecord,
-        updateSteamRecord,
-        deleteSteamRecord,
-        deleteSteamRecordsRange,
-        clearSteamRecords,
         dailyForecasts,
         saveDailyForecast,
         deleteDailyForecast,

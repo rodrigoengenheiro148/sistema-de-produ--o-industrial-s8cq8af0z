@@ -19418,10 +19418,6 @@ var FileText = createLucideIcon("file-text", [
 		key: "z1uh3a"
 	}]
 ]);
-var Flame = createLucideIcon("flame", [["path", {
-	d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4",
-	key: "1slcih"
-}]]);
 var FlaskConical = createLucideIcon("flask-conical", [
 	["path", {
 		d: "M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2",
@@ -35842,27 +35838,6 @@ const AuthProvider = ({ children }) => {
 		children
 	});
 };
-const mapSteamRecord = (item) => ({
-	id: item.id,
-	date: parseAsLocalNoon(item.date),
-	soyWaste: Number(item.soy_waste) || 0,
-	firewood: Number(item.firewood) || 0,
-	riceHusk: Number(item.rice_husk) || 0,
-	woodChips: Number(item.wood_chips) || 0,
-	steamConsumption: Number(item.steam_consumption) || 0,
-	meterStart: Number(item.meter_start) || 0,
-	meterEnd: Number(item.meter_end) || 0,
-	factoryId: item.factory_id,
-	userId: item.user_id,
-	createdAt: item.created_at ? new Date(item.created_at) : void 0
-});
-const deleteSteamRecordsRange = async (factoryId, from, to) => {
-	let query = supabase.from("steam_control_records").delete().eq("factory_id", factoryId);
-	if (from) query = query.gte("date", format(from, "yyyy-MM-dd"));
-	if (to) query = query.lte("date", format(to, "yyyy-MM-dd"));
-	const { error } = await query;
-	if (error) throw error;
-};
 const saveForecast = async (date$4, mpForecast, materialType, factoryId, userId) => {
 	const dateStr = format(date$4, "yyyy-MM-dd");
 	const { data, error } = await supabase.from("daily_production_forecasts").upsert({
@@ -35950,7 +35925,6 @@ const DataProvider = ({ children }) => {
 	const [qualityRecords, setQualityRecords] = (0, import_react.useState)([]);
 	const [cookingTimeRecords, setCookingTimeRecords] = (0, import_react.useState)([]);
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
-	const [steamRecords, setSteamRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
@@ -36037,12 +36011,11 @@ const DataProvider = ({ children }) => {
 			setQualityRecords([]);
 			setCookingTimeRecords([]);
 			setDowntimeRecords([]);
-			setSteamRecords([]);
 			setDailyForecasts([]);
 			return;
 		}
 		try {
-			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
+			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: forecasts }] = await Promise.all([
 				supabase.from("raw_materials").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("production").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("shipping").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
@@ -36050,7 +36023,6 @@ const DataProvider = ({ children }) => {
 				supabase.from("quality_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("cooking_time_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("downtime_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("steam_control_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("daily_production_forecasts").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false })
 			]);
 			if (raw) setRawMaterials(mapData(raw));
@@ -36060,7 +36032,6 @@ const DataProvider = ({ children }) => {
 			if (qual) setQualityRecords(mapData(qual));
 			if (cooking) setCookingTimeRecords(mapData(cooking));
 			if (downtime) setDowntimeRecords(mapData(downtime));
-			if (steam) setSteamRecords(steam.map(mapSteamRecord));
 			if (forecasts) setDailyForecasts(forecasts.map((f) => ({
 				id: f.id,
 				factoryId: f.factory_id,
@@ -36112,7 +36083,6 @@ const DataProvider = ({ children }) => {
 			"quality_records",
 			"cooking_time_records",
 			"downtime_records",
-			"steam_control_records",
 			"daily_production_forecasts"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
@@ -36380,56 +36350,6 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("downtime_records").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
-	const addSteamRecord = async (entry) => {
-		if (!currentFactoryId) return;
-		const { error } = await supabase.from("steam_control_records").insert({
-			date: entry.date.toISOString(),
-			soy_waste: entry.soyWaste,
-			firewood: entry.firewood,
-			rice_husk: entry.riceHusk,
-			wood_chips: entry.woodChips,
-			steam_consumption: entry.steamConsumption,
-			meter_start: entry.meterStart,
-			meter_end: entry.meterEnd,
-			user_id: user?.id,
-			factory_id: currentFactoryId
-		});
-		if (!error) fetchOperationalData();
-	};
-	const updateSteamRecord = async (entry) => {
-		const { error } = await supabase.from("steam_control_records").update({
-			date: entry.date.toISOString(),
-			soy_waste: entry.soyWaste,
-			firewood: entry.firewood,
-			rice_husk: entry.riceHusk,
-			wood_chips: entry.woodChips,
-			steam_consumption: entry.steamConsumption,
-			meter_start: entry.meterStart,
-			meter_end: entry.meterEnd
-		}).eq("id", entry.id);
-		if (!error) fetchOperationalData();
-	};
-	const deleteSteamRecord = async (id) => {
-		const { error } = await supabase.from("steam_control_records").delete().eq("id", id);
-		if (error) throw error;
-		await fetchOperationalData();
-	};
-	const deleteSteamRecordsRange$1 = async (from, to) => {
-		if (!currentFactoryId) return;
-		try {
-			await deleteSteamRecordsRange(currentFactoryId, from, to);
-			await fetchOperationalData();
-		} catch (error) {
-			console.error("Error deleting steam records range:", error);
-			throw error;
-		}
-	};
-	const clearSteamRecords = async () => {
-		if (!currentFactoryId) return;
-		const { error } = await supabase.from("steam_control_records").delete().eq("factory_id", currentFactoryId);
-		if (error) throw error;
-		await fetchOperationalData();
-	};
 	const saveDailyForecast = async (date$4, mpForecast, materialType = "Geral") => {
 		if (!currentFactoryId || !user?.id) return;
 		try {
@@ -36618,12 +36538,6 @@ const DataProvider = ({ children }) => {
 			addDowntimeRecord,
 			updateDowntimeRecord,
 			deleteDowntimeRecord,
-			steamRecords,
-			addSteamRecord,
-			updateSteamRecord,
-			deleteSteamRecord,
-			deleteSteamRecordsRange: deleteSteamRecordsRange$1,
-			clearSteamRecords,
 			dailyForecasts,
 			saveDailyForecast,
 			deleteDailyForecast,
@@ -66724,7 +66638,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords, steamRecords = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials, production, shipping, notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u = unit$1?.toLowerCase() || "";
@@ -66777,11 +66691,6 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 			totalHoursD1 = totalMinutesD1 / 60;
 		}
 		const tonPerHourD1 = totalHoursD1 > 0 ? totalProductionOutputD1 / 1e3 / totalHoursD1 : 0;
-		const processTimeD1Display = `${Math.floor(totalMinutesD1 / 60)}h ${Math.round(totalMinutesD1 % 60).toString().padStart(2, "0")}m`;
-		const previousDateFormatted = format(previousDate, "dd/MM", { locale: ptBR });
-		const totalSteamAdjusted = steamRecords.reduce((acc, curr) => {
-			return acc + (curr.soyWaste || 0) + (curr.firewood || 0) + (curr.riceHusk || 0) + (curr.woodChips || 0);
-		}, 0);
 		return {
 			rawMaterialInputKg,
 			totalProduction,
@@ -66792,17 +66701,14 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 			bloodInputKg,
 			bloodMealProduced,
 			bloodYield,
-			processTimeD1Display,
+			processTimeD1Display: `${Math.floor(totalMinutesD1 / 60)}h ${Math.round(totalMinutesD1 % 60).toString().padStart(2, "0")}m`,
 			tonPerHourD1,
-			previousDateFormatted,
-			mpPerSteam: totalSteamAdjusted > 0 ? rawMaterialInputKg / totalSteamAdjusted : 0,
-			totalSteamAdjusted
+			previousDateFormatted: format(previousDate, "dd/MM", { locale: ptBR })
 		};
 	}, [
 		rawMaterials,
 		production,
 		shipping,
-		steamRecords,
 		fullProductionHistory,
 		fullCookingTimeRecords,
 		referenceDate
@@ -66839,12 +66745,6 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2
 		}) + "%";
-	};
-	const formatDecimal = (val) => {
-		return new Intl.NumberFormat("pt-BR", {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		}).format(val);
 	};
 	const TARGET_RATE = 14.125;
 	const MetricCard = ({ title, value, icon: Icon$2, iconColor = "text-muted-foreground", borderColor = "border-l-transparent", textColor = "text-foreground", className, children }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
@@ -66928,13 +66828,6 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 						})]
 					})
 				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "MPs m³ CAVACO",
-				value: metrics.totalSteamAdjusted > 0 ? formatDecimal(metrics.mpPerSteam) : "-",
-				icon: Flame,
-				iconColor: "text-amber-500",
-				borderColor: "border-l-amber-500"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Faturamento",
@@ -70712,7 +70605,7 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 	});
 }
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, steamRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
@@ -70740,7 +70633,7 @@ function Dashboard() {
 			end: dateRange.to
 		});
 	};
-	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, filteredSteamRecords } = (0, import_react.useMemo)(() => {
+	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity } = (0, import_react.useMemo)(() => {
 		return {
 			filteredProduction: production.filter((p) => filterByDate(p.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
 			filteredRawMaterials: rawMaterials.filter((r$2) => filterByDate(r$2.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
@@ -70748,8 +70641,7 @@ function Dashboard() {
 			filteredCookingTime: cookingTimeRecords.filter((c$1) => filterByDate(c$1.date)),
 			filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
 			filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
-			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date)),
-			filteredSteamRecords: steamRecords.filter((s$3) => filterByDate(s$3.date))
+			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date))
 		};
 	}, [
 		production,
@@ -70759,7 +70651,6 @@ function Dashboard() {
 		downtimeRecords,
 		qualityRecords,
 		acidityRecords,
-		steamRecords,
 		dateRange
 	]);
 	const farinhaQuality = filteredQuality.filter((q) => q.product === "Farinha");
@@ -70858,7 +70749,6 @@ function Dashboard() {
 							cookingTimeRecords: filteredCookingTime,
 							downtimeRecords: filteredDowntime,
 							acidityRecords: filteredAcidity,
-							steamRecords: filteredSteamRecords,
 							notificationSettings,
 							fullProductionHistory: production,
 							fullCookingTimeRecords: cookingTimeRecords,
@@ -76590,7 +76480,7 @@ const MEASUREMENT_UNITS = [
 		label: "Bag (1400kg)"
 	}
 ];
-var formSchema$8 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
 	type: string().min(1, "Tipo é obrigatório"),
@@ -76602,7 +76492,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$8),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -77705,7 +77595,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$7 = object({
+var formSchema$6 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -77722,7 +77612,7 @@ function ProductionForm({ initialData, onSuccess }) {
 	const { addProduction, updateProduction } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -78228,7 +78118,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$6 = object({
+var formSchema$5 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -78244,7 +78134,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const { addProduction, updateProduction, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -79245,7 +79135,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$5 = object({
+var formSchema$4 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -79258,7 +79148,7 @@ var formSchema$5 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -79838,7 +79728,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$4 = object({
+var formSchema$3 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -79850,7 +79740,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$3),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -80774,7 +80664,7 @@ function Inventory() {
 		]
 	});
 }
-var formSchema$3 = object({
+var formSchema$2 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -80792,7 +80682,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const { addShipping, updateShipping } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$2),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -82949,7 +82839,7 @@ function Settings() {
 		})]
 	});
 }
-var formSchema$2 = object({
+var formSchema$1 = object({
 	name: string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 	location: string().min(2, "Localização é obrigatória"),
 	manager: string().min(2, "Nome do responsável é obrigatório"),
@@ -82959,7 +82849,7 @@ function FactoryForm({ initialData, onSuccess }) {
 	const { addFactory, updateFactory } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$2),
+		resolver: a(formSchema$1),
 		defaultValues: {
 			name: initialData?.name || "",
 			location: initialData?.location || "",
@@ -84760,7 +84650,7 @@ function SeboInventory() {
 		]
 	});
 }
-var formSchema$1 = object({
+var formSchema = object({
 	date: string().min(1, "Data é obrigatória"),
 	totalHours: number().min(.1, "Horas devem ser maiores que 0").max(24, "Máximo 24 horas")
 });
@@ -84781,7 +84671,7 @@ function CookingTimeForm() {
 		setPendingAction(null);
 	};
 	const form = useForm({
-		resolver: a(formSchema$1),
+		resolver: a(formSchema),
 		defaultValues: {
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			totalHours: 0
@@ -85885,1168 +85775,6 @@ function ProcessManagement() {
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(HourlyProductionEfficiencyChart, { date: analysisDate })
 					})
 				]
-			})
-		]
-	});
-}
-var formSchema = object({
-	date: string().min(1, "Data é obrigatória"),
-	meterStart: number().min(0, "Valor deve ser positivo"),
-	meterEnd: number().min(0, "Valor deve ser positivo"),
-	soyWaste: number().min(0, "Valor deve ser positivo"),
-	firewood: number().min(0, "Valor deve ser positivo"),
-	riceHusk: number().min(0, "Valor deve ser positivo"),
-	woodChips: number().min(0, "Valor deve ser positivo"),
-	steamConsumption: number().optional()
-});
-function SteamControlForm({ initialData, onSuccess, onCancel }) {
-	const { addSteamRecord, updateSteamRecord, rawMaterials } = useData();
-	const { toast: toast$2 } = useToast();
-	const form = useForm({
-		resolver: a(formSchema),
-		defaultValues: {
-			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
-			meterStart: initialData?.meterStart || 0,
-			meterEnd: initialData?.meterEnd || 0,
-			soyWaste: initialData?.soyWaste || 0,
-			firewood: initialData?.firewood || 0,
-			riceHusk: initialData?.riceHusk || 0,
-			woodChips: initialData?.woodChips || 0,
-			steamConsumption: initialData?.steamConsumption || 0
-		}
-	});
-	const selectedDateStr = form.watch("date");
-	const meterStart = form.watch("meterStart");
-	const meterEnd = form.watch("meterEnd");
-	(0, import_react.useEffect)(() => {
-		const start = Number(meterStart) || 0;
-		const diff = (Number(meterEnd) || 0) - start;
-		form.setValue("steamConsumption", diff);
-	}, [
-		meterStart,
-		meterEnd,
-		form
-	]);
-	const calculatedMpEntry = (0, import_react.useMemo)(() => {
-		if (!selectedDateStr) return 0;
-		const selectedDate = /* @__PURE__ */ new Date(`${selectedDateStr}T12:00:00`);
-		return rawMaterials.filter((rm) => isSameDay(rm.date, selectedDate) && rm.type !== "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
-	}, [selectedDateStr, rawMaterials]);
-	function onSubmit(values) {
-		const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
-		const calculatedConsumption = values.meterEnd - values.meterStart;
-		try {
-			if (initialData) {
-				updateSteamRecord({
-					...initialData,
-					date: dateObj,
-					meterStart: values.meterStart,
-					meterEnd: values.meterEnd,
-					soyWaste: values.soyWaste,
-					firewood: values.firewood,
-					riceHusk: values.riceHusk,
-					woodChips: values.woodChips,
-					steamConsumption: calculatedConsumption
-				});
-				toast$2({
-					title: "Registro atualizado",
-					description: "Dados de vapor salvos com sucesso."
-				});
-			} else {
-				addSteamRecord({
-					date: dateObj,
-					meterStart: values.meterStart,
-					meterEnd: values.meterEnd,
-					soyWaste: values.soyWaste,
-					firewood: values.firewood,
-					riceHusk: values.riceHusk,
-					woodChips: values.woodChips,
-					steamConsumption: calculatedConsumption,
-					factoryId: "",
-					userId: ""
-				});
-				toast$2({
-					title: "Registro criado",
-					description: "Dados de vapor salvos com sucesso."
-				});
-			}
-			if (onSuccess) onSuccess();
-		} catch (error) {
-			console.error("Error saving steam record:", error);
-			toast$2({
-				title: "Erro ao salvar",
-				description: "Ocorreu um erro ao salvar o registro. Tente novamente mais tarde.",
-				variant: "destructive"
-			});
-		}
-	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: "border-none shadow-none",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
-			className: "p-0 pb-4",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-				className: "flex items-center gap-2 text-base",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flame, { className: "h-4 w-4 text-primary" }), initialData ? "Editar Registro" : "Novo Registro Diário"]
-			})
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "p-0",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
-				...form,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-					onSubmit: form.handleSubmit(onSubmit),
-					className: "space-y-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "grid grid-cols-1 md:grid-cols-2 gap-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "date",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "date",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada MP (Automático)" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									value: calculatedMpEntry.toLocaleString("pt-BR"),
-									disabled: true,
-									className: "bg-muted font-bold"
-								}) }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "text-[10px] text-muted-foreground",
-									children: "Soma das matérias-primas do dia selecionado."
-								})
-							] }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "meterStart",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Medidor Início" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "meterEnd",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Medidor Fim" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "soyWaste",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Resíduos de Soja" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "firewood",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Lenha" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "riceHusk",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Palha de Arroz" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "woodChips",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cavaco" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "number",
-										step: "0.01",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "steamConsumption",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
-									className: "md:col-span-2",
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, {
-											className: "text-primary font-bold",
-											children: "Consumo Vapor (Calculado)"
-										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											step: "0.01",
-											className: "border-primary/30 bg-primary/5 font-bold",
-											...field,
-											readOnly: true
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									]
-								})
-							})
-						]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex justify-end gap-2 pt-2",
-						children: [onCancel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							type: "button",
-							variant: "outline",
-							onClick: onCancel,
-							children: "Cancelar"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							type: "submit",
-							children: "Salvar Registro"
-						})]
-					})]
-				})
-			})
-		})]
-	});
-}
-function SteamControlTable() {
-	const { steamRecords, rawMaterials, production, deleteSteamRecord, factories } = useData();
-	const { toast: toast$2 } = useToast();
-	const [dateRange, setDateRange] = (0, import_react.useState)({
-		from: startOfMonth(/* @__PURE__ */ new Date()),
-		to: endOfMonth(/* @__PURE__ */ new Date())
-	});
-	const [mpFilter, setMpFilter] = (0, import_react.useState)("all");
-	const [editingRecord, setEditingRecord] = (0, import_react.useState)(null);
-	const [recordToDelete, setRecordToDelete] = (0, import_react.useState)(null);
-	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
-	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
-	const handleProtectedAction = (createdAt, action) => {
-		if (shouldRequireAuth(createdAt)) {
-			setPendingAction(() => action);
-			setSecurityOpen(true);
-		} else action();
-	};
-	const handleSecuritySuccess = () => {
-		setSecurityOpen(false);
-		if (pendingAction) pendingAction();
-		setPendingAction(null);
-	};
-	const handleDeleteClick = (record) => {
-		setRecordToDelete(record);
-	};
-	const confirmDelete = () => {
-		if (!recordToDelete) return;
-		const id = recordToDelete.id;
-		const createdAt = recordToDelete.createdAt;
-		setRecordToDelete(null);
-		handleProtectedAction(createdAt, async () => {
-			try {
-				await deleteSteamRecord(id);
-				toast$2({
-					title: "Registro excluído",
-					description: "O registro foi removido com sucesso."
-				});
-			} catch (error) {
-				console.error("Error deleting record:", error);
-				toast$2({
-					title: "Erro ao excluir",
-					description: "Não foi possível remover o registro. Tente novamente.",
-					variant: "destructive"
-				});
-			}
-		});
-	};
-	const tableData = (0, import_react.useMemo)(() => {
-		return steamRecords.filter((record) => {
-			if (dateRange?.from) {
-				const fromDate = startOfDay(dateRange.from);
-				if (record.date < fromDate) return false;
-			}
-			if (dateRange?.to) {
-				const toDate$1 = endOfDay(dateRange.to);
-				if (record.date > toDate$1) return false;
-			}
-			if (mpFilter !== "all") {
-				if (mpFilter === "soyWaste" && (record.soyWaste || 0) <= 0) return false;
-				if (mpFilter === "firewood" && (record.firewood || 0) <= 0) return false;
-				if (mpFilter === "riceHusk" && (record.riceHusk || 0) <= 0) return false;
-				if (mpFilter === "woodChips" && (record.woodChips || 0) <= 0) return false;
-			}
-			return true;
-		}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
-			const factory = factories.find((f) => f.id === record.factoryId);
-			const factoryName = factory ? factory.name : "N/A";
-			const mpEntry = rawMaterials.filter((rm) => isSameDay(rm.date, record.date) && rm.type !== "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
-			const dailyProduction = production.filter((prod) => isSameDay(prod.date, record.date)).reduce((acc, curr) => {
-				return acc + (curr.seboProduced || 0) + (curr.fcoProduced || 0) + (curr.farinhetaProduced || 0) + (curr.bloodMealProduced || 0);
-			}, 0);
-			const biomassTotal = (record.soyWaste || 0) + (record.firewood || 0) + (record.riceHusk || 0) + (record.woodChips || 0);
-			const meterStart = record.meterStart || 0;
-			const meterEnd = record.meterEnd || 0;
-			const steamConsumption = record.meterEnd !== void 0 && record.meterStart !== void 0 ? meterEnd - meterStart : record.steamConsumption || 0;
-			const woodChips = record.woodChips || 0;
-			const mpVsVapor = steamConsumption > 0 ? mpEntry / steamConsumption : 0;
-			const mpVsCavaco = woodChips;
-			const vaporVsMp = mpEntry > 0 ? steamConsumption / mpEntry * 1e3 : 0;
-			const tonsVsMp = mpEntry > 0 ? dailyProduction / mpEntry : 0;
-			const cavacoVsVapor = biomassTotal > 0 ? steamConsumption / biomassTotal : 0;
-			return {
-				...record,
-				factoryName,
-				mpEntry,
-				dailyProduction,
-				biomassTotal,
-				steamConsumption,
-				woodChips,
-				mpVsVapor,
-				mpVsCavaco,
-				vaporVsMp,
-				tonsVsMp,
-				cavacoVsVapor
-			};
-		});
-	}, [
-		steamRecords,
-		rawMaterials,
-		production,
-		dateRange,
-		factories,
-		mpFilter
-	]);
-	const totals = (0, import_react.useMemo)(() => {
-		const sums = tableData.reduce((acc, curr) => ({
-			mpEntry: acc.mpEntry + curr.mpEntry,
-			dailyProduction: acc.dailyProduction + curr.dailyProduction,
-			soyWaste: acc.soyWaste + (curr.soyWaste || 0),
-			firewood: acc.firewood + (curr.firewood || 0),
-			riceHusk: acc.riceHusk + (curr.riceHusk || 0),
-			woodChips: acc.woodChips + (curr.woodChips || 0),
-			biomassTotal: acc.biomassTotal + curr.biomassTotal,
-			steamConsumption: acc.steamConsumption + curr.steamConsumption
-		}), {
-			mpEntry: 0,
-			dailyProduction: 0,
-			soyWaste: 0,
-			firewood: 0,
-			riceHusk: 0,
-			woodChips: 0,
-			biomassTotal: 0,
-			steamConsumption: 0
-		});
-		return {
-			...sums,
-			cavacoVsVapor: sums.biomassTotal ? sums.steamConsumption / sums.biomassTotal : 0,
-			mpVsVapor: sums.steamConsumption ? sums.mpEntry / sums.steamConsumption : 0,
-			mpVsCavaco: sums.woodChips,
-			vaporVsMp: sums.mpEntry ? sums.steamConsumption / sums.mpEntry * 1e3 : 0,
-			tonsVsMp: sums.mpEntry ? sums.dailyProduction / sums.mpEntry : 0
-		};
-	}, [tableData]);
-	const formatNumber = (num) => {
-		if (num === void 0 || num === null) return "-";
-		return num.toLocaleString("pt-BR", {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		});
-	};
-	const formatRatio = (num) => !isFinite(num) || num === 0 ? "-" : num.toLocaleString("pt-BR", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	});
-	const formatValueOrDash = (num) => {
-		if (!num || num === 0) return "-";
-		return num.toLocaleString("pt-BR", {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		});
-	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-4",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "w-full sm:w-[300px] space-y-1",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
-						className: "text-xs text-muted-foreground uppercase font-bold",
-						children: "Período"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
-						date: dateRange,
-						setDate: setDateRange
-					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "w-full sm:w-[200px] space-y-1",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
-						className: "text-xs text-muted-foreground uppercase font-bold",
-						children: "Tipo de Biomassa"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
-						value: mpFilter,
-						onValueChange: setMpFilter,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione..." }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "all",
-								children: "Todas"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "woodChips",
-								children: "Cavaco"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "firewood",
-								children: "Lenha"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "riceHusk",
-								children: "Casca de Arroz"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "soyWaste",
-								children: "Resíduo de Soja"
-							})
-						] })]
-					})]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "rounded-md border overflow-x-auto",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
-					className: "min-w-[1500px]",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-							className: "bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 min-w-[100px]",
-									children: "DATA"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 min-w-[120px]",
-									children: "FÁBRICA"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "MEDIDOR INÍCIO"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "MEDIDOR FIM"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									title: "Medidor Fim - Medidor Início",
-									children: "CONSUMO DE VAPOR"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "RESÍDUO DE SOJA"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "LENHA"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "CASCA DE ARROZ"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "CAVACO (M³)"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30",
-									title: "Soma de todos os combustíveis",
-									children: "TOTAL (AJUSTADO)"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right text-xs",
-									children: "CAVACOS VS TONELADAS VAPOR"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right text-xs",
-									title: "Total MP / Consumo Vapor",
-									children: "MPs VS VAPOR"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right text-xs",
-									title: "Quantidade de Cavaco",
-									children: "MPs m³ CAVACO"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right text-xs",
-									title: "Consumo Vapor / Total MP",
-									children: "TONELADAS VAPOR VS MPs"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-									className: "font-bold text-green-900 dark:text-green-100 text-right text-xs",
-									title: "Produção Total / Total MP",
-									children: "TONS VS MPs"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[80px]" })
-							]
-						}) }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							colSpan: 16,
-							className: "text-center h-24 text-muted-foreground",
-							children: "Nenhum registro encontrado no período."
-						}) }) : tableData.map((row) => {
-							const isLocked = shouldRequireAuth(row.createdAt);
-							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-								className: "hover:bg-muted/50",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "font-medium bg-green-50/50 dark:bg-green-950/10",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "flex items-center gap-2",
-											children: [format(row.date, "dd/MM/yyyy"), isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })]
-										})
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-sm text-muted-foreground bg-green-50/50 dark:bg-green-950/10",
-										children: row.factoryName
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.meterStart)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.meterEnd)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono font-bold text-foreground",
-										children: formatNumber(row.steamConsumption)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.soyWaste)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.firewood)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.riceHusk)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-muted-foreground",
-										children: formatNumber(row.woodChips)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono font-bold text-blue-600 dark:text-blue-400 bg-green-50/50 dark:bg-green-950/10",
-										children: formatNumber(row.biomassTotal)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-xs",
-										children: formatRatio(row.cavacoVsVapor)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400",
-										children: formatRatio(row.mpVsVapor)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400",
-										children: formatValueOrDash(row.mpVsCavaco)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400",
-										children: formatRatio(row.vaporVsMp)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-										className: "text-right font-mono text-xs font-medium text-emerald-600 dark:text-emerald-400",
-										children: formatRatio(row.tonsVsMp)
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-										className: "flex items-center gap-1",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-											variant: "ghost",
-											size: "icon",
-											className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
-											onClick: () => handleProtectedAction(row.createdAt, () => setEditingRecord(row)),
-											title: "Editar Registro",
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-											variant: "ghost",
-											size: "icon",
-											className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
-											onClick: () => handleDeleteClick(row),
-											title: "Excluir Registro",
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-										})]
-									})
-								]
-							}, row.id);
-						}) }),
-						tableData.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tfoot", {
-							className: "bg-green-100 dark:bg-green-900/30 font-bold border-t-2 border-green-200",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: "TOTAL" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: "-" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: "-"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: "-"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: formatNumber(totals.steamConsumption)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: formatNumber(totals.soyWaste)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: formatNumber(totals.firewood)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: formatNumber(totals.riceHusk)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right",
-									children: formatNumber(totals.woodChips)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-blue-600 dark:text-blue-400",
-									children: formatNumber(totals.biomassTotal)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-xs",
-									children: formatRatio(totals.cavacoVsVapor)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-xs",
-									children: formatRatio(totals.mpVsVapor)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-xs",
-									children: formatValueOrDash(totals.mpVsCavaco)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-xs",
-									children: formatRatio(totals.vaporVsMp)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right text-xs",
-									children: formatRatio(totals.tonsVsMp)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {})
-							] })
-						})
-					]
-				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
-				open: !!editingRecord,
-				onOpenChange: (open) => !open && setEditingRecord(null),
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-					className: "sm:max-w-[600px]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Editar Registro de Vapor" }) }), editingRecord && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
-						initialData: editingRecord,
-						onSuccess: () => setEditingRecord(null),
-						onCancel: () => setEditingRecord(null)
-					})]
-				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
-				open: !!recordToDelete,
-				onOpenChange: (open) => !open && setRecordToDelete(null),
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogTitle, {
-					className: "flex items-center gap-2 text-destructive",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-5 w-5" }), "Confirmar exclusão"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja excluir este registro de vapor? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
-					onClick: confirmDelete,
-					className: "bg-destructive hover:bg-destructive/90",
-					children: "Excluir"
-				})] })] })
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
-				isOpen: securityOpen,
-				onOpenChange: setSecurityOpen,
-				onSuccess: handleSecuritySuccess
-			})
-		]
-	});
-}
-function SteamChartCard({ title, description, data, config: config$1, bars: bars$1, onExpand, onDelete, disableDelete, showLegend = false, className, chartHeight = "h-[300px]", hideHeader = false }) {
-	const formatNumber = (value) => {
-		return value.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
-	};
-	const tooltipFormatter = (value) => {
-		return value.toLocaleString("pt-BR", {
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 2
-		});
-	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("flex flex-col", className),
-		children: [!hideHeader && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-start justify-between space-y-0 pb-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "space-y-1",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: title }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: description })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex items-center gap-1",
-				children: [onDelete && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-					variant: "ghost",
-					size: "icon",
-					onClick: onDelete,
-					disabled: disableDelete,
-					title: disableDelete ? "Nenhum dado para excluir" : "Excluir dados deste gráfico",
-					className: "shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "sr-only",
-						children: "Excluir"
-					})]
-				}), onExpand && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-					variant: "ghost",
-					size: "icon",
-					onClick: onExpand,
-					className: "shrink-0 text-muted-foreground hover:text-foreground",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "sr-only",
-						children: "Expandir"
-					})]
-				})]
-			})]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: cn("flex-1 min-h-0", hideHeader ? "pt-6" : ""),
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-				config: config$1,
-				className: cn("w-full", chartHeight),
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-					data,
-					margin: {
-						top: 20,
-						right: 30,
-						left: 20,
-						bottom: 5
-					},
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, { vertical: false }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-							dataKey: "displayDate",
-							tickLine: false,
-							tickMargin: 10,
-							axisLine: false
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-							tickLine: false,
-							axisLine: false
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: tooltipFormatter }) }),
-						showLegend && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-						bars$1.map((bar) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-							dataKey: bar.dataKey,
-							name: bar.name,
-							fill: bar.fill || `var(--color-${bar.dataKey})`,
-							radius: [
-								4,
-								4,
-								0,
-								0
-							],
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-								dataKey: bar.dataKey,
-								position: "top",
-								formatter: formatNumber,
-								className: "fill-foreground text-xs"
-							})
-						}, bar.dataKey))
-					]
-				})
-			})
-		})]
-	});
-}
-var COLORS = {
-	emerald700: "#047857",
-	amber500: "#f59e0b",
-	green500: "#22c55e",
-	blue500: "#3b82f6"
-};
-function SteamCharts() {
-	const { steamRecords, production, rawMaterials, dateRange, deleteSteamRecordsRange: deleteSteamRecordsRange$1 } = useData();
-	const [expandedChartId, setExpandedChartId] = (0, import_react.useState)(null);
-	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = (0, import_react.useState)(false);
-	const { toast: toast$2 } = useToast();
-	const processedData = (0, import_react.useMemo)(() => {
-		const dataMap = /* @__PURE__ */ new Map();
-		const getEntry = (date$4) => {
-			const dateKey = format(date$4, "yyyy-MM-dd");
-			if (!dataMap.has(dateKey)) dataMap.set(dateKey, {
-				date: date$4,
-				dateStr: dateKey,
-				displayDate: format(date$4, "dd/MM", { locale: ptBR }),
-				steamConsumption: 0,
-				woodChips: 0,
-				mpUsed: 0,
-				totalProduction: 0
-			});
-			return dataMap.get(dateKey);
-		};
-		const normalizeToKg = (quantity, unit$1) => {
-			const u = unit$1?.toLowerCase() || "";
-			if (u.includes("bag")) return quantity * 1400;
-			if (u.includes("ton")) return quantity * 1e3;
-			return quantity;
-		};
-		steamRecords.forEach((record) => {
-			if (dateRange.from && (record.date < dateRange.from || dateRange.to && record.date > dateRange.to)) return;
-			const entry = getEntry(record.date);
-			entry.steamConsumption += record.steamConsumption || 0;
-			entry.woodChips += record.woodChips || 0;
-		});
-		rawMaterials.forEach((rm) => {
-			if (rm.type === "Sangue") return;
-			if (dateRange.from && (rm.date < dateRange.from || dateRange.to && rm.date > dateRange.to)) return;
-			const entry = getEntry(rm.date);
-			entry.mpUsed += normalizeToKg(rm.quantity, rm.unit);
-		});
-		production.forEach((prod) => {
-			if (dateRange.from && (prod.date < dateRange.from || dateRange.to && prod.date > dateRange.to)) return;
-			const entry = getEntry(prod.date);
-			entry.totalProduction += (prod.seboProduced || 0) + (prod.fcoProduced || 0) + (prod.farinhetaProduced || 0);
-		});
-		return Array.from(dataMap.values()).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime());
-	}, [
-		steamRecords,
-		production,
-		rawMaterials,
-		dateRange
-	]);
-	const hasSteamRecordsInRange = (0, import_react.useMemo)(() => {
-		return steamRecords.some((r$2) => {
-			if (dateRange.from && r$2.date < dateRange.from) return false;
-			if (dateRange.to && r$2.date > dateRange.to) return false;
-			return true;
-		});
-	}, [steamRecords, dateRange]);
-	const handleDeleteConfirm = async () => {
-		try {
-			await deleteSteamRecordsRange$1(dateRange.from, dateRange.to);
-			toast$2({
-				title: "Dados excluídos com sucesso",
-				description: "Os registros de vapor foram removidos."
-			});
-		} catch (error) {
-			console.error("Error deleting steam records:", error);
-			toast$2({
-				title: "Erro ao excluir",
-				description: "Não foi possível excluir os dados.",
-				variant: "destructive"
-			});
-		} finally {
-			setIsDeleteAlertOpen(false);
-		}
-	};
-	const chartConfig$1 = {
-		steamConsumption: {
-			label: "Vapor (t)",
-			color: COLORS.emerald700
-		},
-		woodChips: {
-			label: "Cavaco (m³)",
-			color: COLORS.amber500
-		},
-		mpUsed: {
-			label: "Matéria-Prima (kg)",
-			color: COLORS.green500
-		},
-		totalProduction: {
-			label: "Produção (kg)",
-			color: COLORS.blue500
-		}
-	};
-	const charts = [
-		{
-			id: "steam",
-			title: "Consumo de Vapor",
-			description: "Total diário (t)",
-			showLegend: false,
-			bars: [{
-				dataKey: "steamConsumption",
-				fill: COLORS.emerald700
-			}]
-		},
-		{
-			id: "cavacoVsVapor",
-			title: "Cavacos vs. Toneladas Vapor",
-			description: "Comparativo Diário",
-			showLegend: true,
-			bars: [{
-				dataKey: "woodChips",
-				fill: COLORS.amber500
-			}, {
-				dataKey: "steamConsumption",
-				fill: COLORS.emerald700
-			}]
-		},
-		{
-			id: "mpVsCavaco",
-			title: "MPs vs. m³ Cavaco",
-			description: "Relação MP e Combustível",
-			showLegend: true,
-			bars: [{
-				dataKey: "mpUsed",
-				fill: COLORS.green500
-			}, {
-				dataKey: "woodChips",
-				fill: COLORS.amber500
-			}]
-		},
-		{
-			id: "mpVsVapor",
-			title: "MPs vs. Vapor",
-			description: "Relação MP e Consumo de Vapor",
-			showLegend: true,
-			bars: [{
-				dataKey: "mpUsed",
-				fill: COLORS.green500
-			}, {
-				dataKey: "steamConsumption",
-				fill: COLORS.emerald700
-			}]
-		},
-		{
-			id: "vaporVsMp",
-			title: "Vapor vs MPs",
-			description: "Eficiência Vapor/Matéria-Prima",
-			showLegend: true,
-			bars: [{
-				dataKey: "steamConsumption",
-				fill: COLORS.emerald700
-			}, {
-				dataKey: "mpUsed",
-				fill: COLORS.green500
-			}]
-		},
-		{
-			id: "tonsVsMp",
-			title: "Tons vs. MPs",
-			description: "Produção Total vs Matéria-Prima",
-			showLegend: true,
-			bars: [{
-				dataKey: "totalProduction",
-				name: "Tons (Produção)",
-				fill: COLORS.blue500
-			}, {
-				dataKey: "mpUsed",
-				name: "MPs (Entrada)",
-				fill: COLORS.green500
-			}]
-		}
-	];
-	const expandedChart = charts.find((c$1) => c$1.id === expandedChartId);
-	if (processedData.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: "flex flex-col items-center justify-center p-8 border rounded-lg bg-muted/10 text-muted-foreground",
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Nenhum dado encontrado para o período selecionado." })
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-			className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
-			children: charts.map((chart) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
-				title: chart.title,
-				description: chart.description,
-				data: processedData,
-				config: chartConfig$1,
-				bars: chart.bars,
-				showLegend: chart.showLegend,
-				onExpand: () => setExpandedChartId(chart.id),
-				onDelete: () => setIsDeleteAlertOpen(true),
-				disableDelete: !hasSteamRecordsInRange
-			}, chart.id))
-		}),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
-			open: !!expandedChartId,
-			onOpenChange: (open) => !open && setExpandedChartId(null),
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-				className: "max-w-[95vw] w-full h-[90vh] flex flex-col sm:rounded-xl",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, {
-					className: "shrink-0",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, {
-						className: "text-xl",
-						children: expandedChart?.title
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: expandedChart?.description })]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "flex-1 min-h-0 w-full pt-2",
-					children: expandedChart && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
-						title: expandedChart.title,
-						description: expandedChart.description,
-						data: processedData,
-						config: chartConfig$1,
-						bars: expandedChart.bars,
-						showLegend: expandedChart.showLegend,
-						chartHeight: "h-full",
-						className: "h-full border-none shadow-none bg-transparent",
-						hideHeader: true
-					})
-				})]
-			})
-		}),
-		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
-			open: isDeleteAlertOpen,
-			onOpenChange: setIsDeleteAlertOpen,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogTitle, {
-				className: "flex items-center gap-2 text-destructive",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-5 w-5" }), "Confirmar Exclusão"]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Deseja realmente excluir os registros de controle de vapor para a fábrica e o período selecionados? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
-				onClick: handleDeleteConfirm,
-				className: "bg-destructive hover:bg-destructive/90",
-				children: "Excluir"
-			})] })] })
-		})
-	] });
-}
-function SteamControl() {
-	const [isDialogOpen, setIsDialogOpen] = (0, import_react.useState)(false);
-	const [isClearDataOpen, setIsClearDataOpen] = (0, import_react.useState)(false);
-	const isMobile = useIsMobile();
-	const { clearSteamRecords, dateRange, setDateRange } = useData();
-	const { toast: toast$2 } = useToast();
-	const handleClearDataSuccess = async () => {
-		setIsClearDataOpen(false);
-		try {
-			await clearSteamRecords();
-			toast$2({
-				title: "Dados limpos",
-				description: "Todos os registros de vapor foram excluídos com sucesso."
-			});
-		} catch (error) {
-			console.error("Error clearing steam records:", error);
-			toast$2({
-				title: "Erro",
-				description: "Erro ao limpar dados.",
-				variant: "destructive"
-			});
-		}
-	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-6",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
-					className: "text-2xl font-bold tracking-tight flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flame, { className: "h-6 w-6 text-primary" }), "Controle de Vapor"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "text-muted-foreground",
-					children: "Monitoramento de eficiência de caldeira e consumo de biomassa."
-				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 flex-wrap sm:flex-nowrap",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "ghost",
-							size: "icon",
-							title: "O 'Entrada MP' é calculado automaticamente baseado na soma das matérias-primas do dia.",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-5 w-5 text-muted-foreground" })
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-							variant: "outline",
-							className: "gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300",
-							size: isMobile ? "sm" : "default",
-							onClick: () => setIsClearDataOpen(true),
-							title: "Limpar todos os dados",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" }), isMobile ? "" : "Limpar Dados"]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-							open: isDialogOpen,
-							onOpenChange: setIsDialogOpen,
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-								asChild: true,
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-									className: "gap-2",
-									size: isMobile ? "sm" : "default",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
-								})
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-								className: "sm:max-w-[600px]",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Novo Registro de Vapor" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
-									onSuccess: () => setIsDialogOpen(false),
-									onCancel: () => setIsDialogOpen(false)
-								})]
-							})]
-						})
-					]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
-				defaultValue: "dashboard",
-				className: "w-full",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
-						className: "grid w-full grid-cols-2 lg:w-[400px]",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-							value: "dashboard",
-							children: "Dashboard"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-							value: "history",
-							children: "Histórico"
-						})]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
-						value: "dashboard",
-						className: "space-y-4 mt-4",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-sm text-muted-foreground mr-2",
-								children: "Período dos Gráficos:"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
-								date: dateRange,
-								setDate: setDateRange,
-								className: "w-full sm:w-[260px]"
-							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCharts, {})]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
-						value: "history",
-						className: "mt-4",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
-					})
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
-				isOpen: isClearDataOpen,
-				onOpenChange: setIsClearDataOpen,
-				onSuccess: handleClearDataSuccess,
-				title: "Limpar Dados de Vapor",
-				description: "Esta ação excluirá TODOS os registros de vapor desta fábrica. Digite a senha para confirmar."
 			})
 		]
 	});
@@ -88328,11 +87056,6 @@ var managementItems = [
 		title: "Tempos de Processo",
 		url: "/gestao/processo",
 		icon: Timer
-	},
-	{
-		title: "Controle de Vapor",
-		url: "/gestao/vapor",
-		icon: Flame
 	}
 ];
 function AppSidebar() {
@@ -88554,7 +87277,6 @@ function DashboardLayout() {
 			case "/settings": return "Configurações do Sistema";
 			case "/gestao/estoque-sebo": return "Estoque de Sebo Bovino";
 			case "/gestao/processo": return "Gestão de Processos";
-			case "/gestao/vapor": return "Controle de Vapor";
 			default: return "Grupo BR Render";
 		}
 	};
@@ -88717,10 +87439,6 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProcessManagement, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
-						path: "/gestao/vapor",
-						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControl, {})
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/gestao/previsao-mp",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastManagement, {})
 					}),
@@ -88740,4 +87458,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DkqUabDW.js.map
+//# sourceMappingURL=index-DgNhz-RR.js.map

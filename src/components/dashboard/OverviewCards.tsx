@@ -14,7 +14,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
-  Flame,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -24,7 +23,6 @@ import {
   DowntimeRecord,
   NotificationSettings,
   AcidityEntry,
-  SteamControlRecord,
 } from '@/lib/types'
 import { cn, isBloodRecord } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -38,7 +36,6 @@ interface OverviewCardsProps {
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
   acidityRecords: AcidityEntry[]
-  steamRecords?: SteamControlRecord[]
   notificationSettings: NotificationSettings
   fullProductionHistory?: ProductionEntry[]
   fullCookingTimeRecords?: CookingTimeRecord[]
@@ -49,8 +46,6 @@ export function OverviewCards({
   rawMaterials,
   production,
   shipping,
-  cookingTimeRecords,
-  steamRecords = [],
   notificationSettings,
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
@@ -212,20 +207,6 @@ export function OverviewCards({
       locale: ptBR,
     })
 
-    // 13. MPs m³ CAVACO
-    const totalSteamAdjusted = steamRecords.reduce((acc, curr) => {
-      return (
-        acc +
-        (curr.soyWaste || 0) +
-        (curr.firewood || 0) +
-        (curr.riceHusk || 0) +
-        (curr.woodChips || 0)
-      )
-    }, 0)
-
-    const mpPerSteam =
-      totalSteamAdjusted > 0 ? rawMaterialInputKg / totalSteamAdjusted : 0
-
     return {
       rawMaterialInputKg,
       totalProduction,
@@ -239,14 +220,11 @@ export function OverviewCards({
       processTimeD1Display,
       tonPerHourD1,
       previousDateFormatted,
-      mpPerSteam,
-      totalSteamAdjusted,
     }
   }, [
     rawMaterials,
     production,
     shipping,
-    steamRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
     referenceDate,
@@ -313,13 +291,6 @@ export function OverviewCards({
         maximumFractionDigits: 2,
       }) + '%'
     )
-  }
-
-  const formatDecimal = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val)
   }
 
   const TARGET_RATE = 14.125
@@ -421,19 +392,6 @@ export function OverviewCards({
           </div>
         </div>
       </MetricCard>
-
-      {/* 13. MPs m³ CAVACO (Efficiency) */}
-      <MetricCard
-        title="MPs m³ CAVACO"
-        value={
-          metrics.totalSteamAdjusted > 0
-            ? formatDecimal(metrics.mpPerSteam)
-            : '-'
-        }
-        icon={Flame}
-        iconColor="text-amber-500"
-        borderColor="border-l-amber-500"
-      />
 
       {/* 4. Faturamento */}
       <MetricCard
