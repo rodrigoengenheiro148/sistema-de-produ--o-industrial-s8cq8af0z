@@ -414,6 +414,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'daily_production_forecasts',
     ]
 
+    // Ensure we are robust against missing tables in publication by catching errors in subscription
     tables.forEach((table) => {
       channel.on(
         'postgres_changes',
@@ -441,6 +442,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           `Realtime subscription error on ${channelName}:`,
           errorMessage,
         )
+        // If subscription fails, we might still be able to fetch data manually, but status is error
         setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
@@ -453,6 +455,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       // Cleanup: unsubscribe from the channel
       if (operationalChannelRef.current) {
+        console.log(`Unsubscribing from realtime channel: ${channelName}`)
         supabase.removeChannel(operationalChannelRef.current)
         operationalChannelRef.current = null
       }

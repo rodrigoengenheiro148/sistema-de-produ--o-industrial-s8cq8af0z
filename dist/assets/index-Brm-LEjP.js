@@ -36133,6 +36133,7 @@ const DataProvider = ({ children }) => {
 		operationalChannelRef.current = channel;
 		return () => {
 			if (operationalChannelRef.current) {
+				console.log(`Unsubscribing from realtime channel: ${channelName}`);
 				supabase.removeChannel(operationalChannelRef.current);
 				operationalChannelRef.current = null;
 			}
@@ -88538,4 +88539,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BVzRaDeN.js.map
+//# sourceMappingURL=index-Brm-LEjP.js.map
