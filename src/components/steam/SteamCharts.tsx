@@ -321,9 +321,8 @@ export function SteamCharts() {
               Confirmar Exclusão
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir os registros de controle de vapor
-              para o período exibido neste gráfico? Esta ação não pode ser
-              desfeita.
+              Deseja realmente excluir os registros de controle de vapor para a
+              fábrica e o período selecionados? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
