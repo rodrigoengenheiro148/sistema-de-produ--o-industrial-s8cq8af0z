@@ -83872,6 +83872,9 @@ function Skeleton({ className, ...props }) {
 	});
 }
 function SeboInventoryChart({ data, startDate, endDate, className, isLoading = false, headerControls }) {
+	const isSingleDayView = (0, import_react.useMemo)(() => {
+		return !!(startDate && endDate && isSameDay(startDate, endDate));
+	}, [startDate, endDate]);
 	const { chartData, chartConfig: chartConfig$1, uniqueTanks, hasExtras } = (0, import_react.useMemo)(() => {
 		if (!data) return {
 			chartData: [],
@@ -83879,6 +83882,70 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 			uniqueTanks: [],
 			hasExtras: false
 		};
+		if (isSingleDayView && startDate) {
+			const targetDate = startDate;
+			const dayRecords = data.filter((r$2) => isSameDay(r$2.date, targetDate));
+			const tankMap = /* @__PURE__ */ new Map();
+			let extrasTotal = 0;
+			dayRecords.forEach((r$2) => {
+				const qty = Number(r$2.quantityKg) || 0;
+				if (r$2.category === "tank" && r$2.tankNumber) {
+					const current = tankMap.get(r$2.tankNumber) || 0;
+					tankMap.set(r$2.tankNumber, current + qty);
+				} else extrasTotal += qty;
+			});
+			const sortedTanks$1 = Array.from(tankMap.keys()).sort((a$2, b$1) => a$2.localeCompare(b$1, void 0, {
+				numeric: true,
+				sensitivity: "base"
+			}));
+			const tankColors$1 = [
+				"hsl(var(--chart-1))",
+				"hsl(var(--chart-2))",
+				"hsl(var(--chart-3))",
+				"hsl(var(--chart-4))",
+				"hsl(var(--chart-5))"
+			];
+			const config$2 = { quantity: {
+				label: "Quantidade (Kg)",
+				color: "hsl(var(--primary))"
+			} };
+			const singleDayData = sortedTanks$1.map((tank, index$1) => {
+				const color$1 = tankColors$1[index$1 % tankColors$1.length];
+				config$2[`tank_${tank}`] = {
+					label: `Tanque ${tank}`,
+					color: color$1
+				};
+				return {
+					name: `Tanque ${tank}`,
+					shortName: `T. ${tank}`,
+					value: tankMap.get(tank) || 0,
+					fill: color$1,
+					originalName: tank,
+					type: "tank"
+				};
+			});
+			if (extrasTotal > 0) {
+				const color$1 = "hsl(var(--muted-foreground))";
+				config$2["extras"] = {
+					label: "Outros/Extras",
+					color: color$1
+				};
+				singleDayData.push({
+					name: "Outros/Extras",
+					shortName: "Extras",
+					value: extrasTotal,
+					fill: color$1,
+					originalName: "Extras",
+					type: "extra"
+				});
+			}
+			return {
+				chartData: singleDayData,
+				chartConfig: config$2,
+				uniqueTanks: sortedTanks$1,
+				hasExtras: extrasTotal > 0
+			};
+		}
 		const tankSet = /* @__PURE__ */ new Set();
 		data.forEach((record) => {
 			if (record.category === "tank" && record.tankNumber) tankSet.add(record.tankNumber);
@@ -83946,14 +84013,71 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 	}, [
 		data,
 		startDate,
-		endDate
+		endDate,
+		isSingleDayView
 	]);
 	const ChartContent = ({ height = "h-[300px]" }) => {
 		if ((!(chartData && chartData.length > 0) || chartData.every((d) => {
+			if (isSingleDayView) return d.value === 0;
 			return Object.values(d).filter((v) => typeof v === "number").reduce((a$2, b$1) => a$2 + b$1, 0) === 0;
 		})) && !isLoading) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 			className: `flex items-center justify-center text-muted-foreground ${height}`,
-			children: "Nenhum dado encontrado para o período."
+			children: isSingleDayView ? "Nenhum dado encontrado para esta data." : "Nenhum dado encontrado para o período."
+		});
+		if (isSingleDayView) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: chartConfig$1,
+			className: `${height} w-full`,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				data: chartData,
+				margin: {
+					top: 20,
+					right: 10,
+					left: 10,
+					bottom: 20
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						vertical: false,
+						strokeDasharray: "3 3"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "shortName",
+						tickLine: false,
+						axisLine: false,
+						tickMargin: 10,
+						fontSize: 12
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+						hide: true,
+						domain: [0, "auto"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+						cursor: { fill: "hsl(var(--muted)/0.4)" },
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { hideLabel: true })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Bar, {
+						dataKey: "value",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						maxBarSize: 80,
+						children: [chartData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: entry.fill }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							dataKey: "value",
+							position: "top",
+							offset: 12,
+							className: "fill-foreground font-bold",
+							fontSize: 12,
+							formatter: (val) => val.toLocaleString("pt-BR", {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2
+							})
+						})]
+					})
+				]
+			})
 		});
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 			config: chartConfig$1,
@@ -84046,8 +84170,8 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 				className: "space-y-1",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartColumn, { className: "h-5 w-5 text-primary" }), "Evolução do Estoque"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Quantidade total de sebo (Kg) por dia, detalhado por tanque" })]
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartColumn, { className: "h-5 w-5 text-primary" }), isSingleDayView ? "Detalhamento por Tanque" : "Evolução do Estoque"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: isSingleDayView ? `Quantidade total (Kg) por tanque em ${startDate ? format(startDate, "dd 'de' MMMM", { locale: ptBR }) : ""}` : "Quantidade total de sebo (Kg) por dia, detalhado por tanque" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: [headerControls, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
@@ -84063,7 +84187,7 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 					})
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 					className: "max-w-[90vw] h-[80vh] flex flex-col",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Evolução Detalhada do Estoque" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização expandida do estoque diário de Sebo Bovino." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: isSingleDayView ? "Detalhamento de Estoque por Tanque" : "Evolução Detalhada do Estoque" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: isSingleDayView ? `Visualização detalhada do dia ${startDate ? format(startDate, "dd/MM/yyyy") : ""}` : "Visualização expandida do estoque diário de Sebo Bovino." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "flex-1 w-full min-h-0 py-4",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
 					})]
@@ -88396,4 +88520,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BsyAKFxj.js.map
+//# sourceMappingURL=index-Ck9Ep7is.js.map

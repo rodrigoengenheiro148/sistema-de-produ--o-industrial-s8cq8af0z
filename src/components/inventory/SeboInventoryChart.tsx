@@ -14,8 +14,16 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
-import { format, eachDayOfInterval } from 'date-fns'
+import {
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  LabelList,
+  Cell,
+} from 'recharts'
+import { format, eachDayOfInterval, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SeboInventoryRecord } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -48,6 +56,10 @@ export function SeboInventoryChart({
   isLoading = false,
   headerControls,
 }: SeboInventoryChartProps) {
+  const isSingleDayView = useMemo(() => {
+    return !!(startDate && endDate && isSameDay(startDate, endDate))
+  }, [startDate, endDate])
+
   const { chartData, chartConfig, uniqueTanks, hasExtras } = useMemo(() => {
     if (!data)
       return {
@@ -56,6 +68,89 @@ export function SeboInventoryChart({
         uniqueTanks: [],
         hasExtras: false,
       }
+
+    // --- SINGLE DAY VIEW LOGIC ---
+    if (isSingleDayView && startDate) {
+      const targetDate = startDate
+      const dayRecords = data.filter((r) => isSameDay(r.date, targetDate))
+
+      const tankMap = new Map<string, number>()
+      let extrasTotal = 0
+
+      dayRecords.forEach((r) => {
+        const qty = Number(r.quantityKg) || 0
+        if (r.category === 'tank' && r.tankNumber) {
+          const current = tankMap.get(r.tankNumber) || 0
+          tankMap.set(r.tankNumber, current + qty)
+        } else {
+          extrasTotal += qty
+        }
+      })
+
+      // Sort tanks: Numeric sort if possible, otherwise alphabetic
+      const sortedTanks = Array.from(tankMap.keys()).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }),
+      )
+
+      // Colors for individual tanks
+      const tankColors = [
+        'hsl(var(--chart-1))',
+        'hsl(var(--chart-2))',
+        'hsl(var(--chart-3))',
+        'hsl(var(--chart-4))',
+        'hsl(var(--chart-5))',
+      ]
+
+      const config: ChartConfig = {
+        quantity: {
+          label: 'Quantidade (Kg)',
+          color: 'hsl(var(--primary))',
+        },
+      }
+
+      const singleDayData = sortedTanks.map((tank, index) => {
+        const color = tankColors[index % tankColors.length]
+        // Add to config for tooltip
+        config[`tank_${tank}`] = {
+          label: `Tanque ${tank}`,
+          color: color,
+        }
+
+        return {
+          name: `Tanque ${tank}`,
+          shortName: `T. ${tank}`,
+          value: tankMap.get(tank) || 0,
+          fill: color,
+          originalName: tank,
+          type: 'tank',
+        }
+      })
+
+      if (extrasTotal > 0) {
+        const color = 'hsl(var(--muted-foreground))'
+        config['extras'] = {
+          label: 'Outros/Extras',
+          color: color,
+        }
+        singleDayData.push({
+          name: 'Outros/Extras',
+          shortName: 'Extras',
+          value: extrasTotal,
+          fill: color,
+          originalName: 'Extras',
+          type: 'extra',
+        })
+      }
+
+      return {
+        chartData: singleDayData,
+        chartConfig: config,
+        uniqueTanks: sortedTanks,
+        hasExtras: extrasTotal > 0,
+      }
+    }
+
+    // --- MULTI-DAY / RANGE VIEW LOGIC ---
 
     // 1. Identify all unique tank numbers from the dataset
     const tankSet = new Set<string>()
@@ -112,7 +207,6 @@ export function SeboInventoryChart({
       }
     } else {
       // If no range, find unique days in data
-      // This is a fallback, usually startDate and endDate are provided
       const uniqueDates = Array.from(
         new Set(data.map((r) => format(r.date, 'yyyy-MM-dd'))),
       )
@@ -144,7 +238,6 @@ export function SeboInventoryChart({
           (sum, r) => sum + (Number(r.quantityKg) || 0),
           0,
         )
-        // Store as number (even if 0, so stacks align correctly if needed, though recharts handles gaps)
         row[`tank_${tank}`] = total
       })
 
@@ -170,7 +263,7 @@ export function SeboInventoryChart({
       uniqueTanks: sortedTanks,
       hasExtras: extrasExist,
     }
-  }, [data, startDate, endDate])
+  }, [data, startDate, endDate, isSingleDayView])
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => {
     // Determine if we should show chart or empty state inside content
@@ -178,6 +271,11 @@ export function SeboInventoryChart({
     const isEmpty =
       !hasData ||
       chartData.every((d) => {
+        if (isSingleDayView) {
+          // In single day view, data is flat objects with 'value' property
+          return (d as any).value === 0
+        }
+        // In multi-day view, check sum of all numeric values
         const values = Object.values(d).filter((v) => typeof v === 'number')
         return values.reduce((a: any, b: any) => a + b, 0) === 0
       })
@@ -187,11 +285,60 @@ export function SeboInventoryChart({
         <div
           className={`flex items-center justify-center text-muted-foreground ${height}`}
         >
-          Nenhum dado encontrado para o período.
+          {isSingleDayView
+            ? 'Nenhum dado encontrado para esta data.'
+            : 'Nenhum dado encontrado para o período.'}
         </div>
       )
     }
 
+    // --- RENDER SINGLE DAY CHART ---
+    if (isSingleDayView) {
+      return (
+        <ChartContainer config={chartConfig} className={`${height} w-full`}>
+          <BarChart
+            data={chartData}
+            margin={{ top: 20, right: 10, left: 10, bottom: 20 }}
+          >
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="shortName"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={10}
+              fontSize={12}
+            />
+            <YAxis hide domain={[0, 'auto']} />
+            <ChartTooltip
+              cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+              content={<ChartTooltipContent hideLabel />}
+            />
+            {/* Legend is optional here as bars are labeled, but we can keep it for extras vs tanks if needed, or remove it */}
+
+            <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={80}>
+              {chartData.map((entry: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+              <LabelList
+                dataKey="value"
+                position="top"
+                offset={12}
+                className="fill-foreground font-bold"
+                fontSize={12}
+                formatter={(val: number) =>
+                  val.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })
+                }
+              />
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      )
+    }
+
+    // --- RENDER MULTI-DAY STACKED CHART ---
     return (
       <ChartContainer config={chartConfig} className={`${height} w-full`}>
         <BarChart
@@ -276,10 +423,14 @@ export function SeboInventoryChart({
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            Evolução do Estoque
+            {isSingleDayView
+              ? 'Detalhamento por Tanque'
+              : 'Evolução do Estoque'}
           </CardTitle>
           <CardDescription>
-            Quantidade total de sebo (Kg) por dia, detalhado por tanque
+            {isSingleDayView
+              ? `Quantidade total (Kg) por tanque em ${startDate ? format(startDate, "dd 'de' MMMM", { locale: ptBR }) : ''}`
+              : 'Quantidade total de sebo (Kg) por dia, detalhado por tanque'}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
@@ -297,9 +448,15 @@ export function SeboInventoryChart({
             </DialogTrigger>
             <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
               <DialogHeader>
-                <DialogTitle>Evolução Detalhada do Estoque</DialogTitle>
+                <DialogTitle>
+                  {isSingleDayView
+                    ? 'Detalhamento de Estoque por Tanque'
+                    : 'Evolução Detalhada do Estoque'}
+                </DialogTitle>
                 <DialogDescription>
-                  Visualização expandida do estoque diário de Sebo Bovino.
+                  {isSingleDayView
+                    ? `Visualização detalhada do dia ${startDate ? format(startDate, 'dd/MM/yyyy') : ''}`
+                    : 'Visualização expandida do estoque diário de Sebo Bovino.'}
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 w-full min-h-0 py-4">
