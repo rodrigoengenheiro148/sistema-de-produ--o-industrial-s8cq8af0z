@@ -393,8 +393,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const normalizedFactoryId = currentFactoryId.toLowerCase()
-    // Append a timestamp to ensure channel uniqueness on re-subscription and avoid race conditions
-    const channelName = `operational-data-${normalizedFactoryId}-${Date.now()}`
+
+    // Use a stable channel name (per factory) to prevent race conditions and excessive subscriptions
+    // Removing the timestamp allows the Supabase client to manage deduplication more effectively
+    const channelName = `operational-data-${normalizedFactoryId}`
     const channel = supabase.channel(channelName)
 
     const tables = [
@@ -433,11 +435,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             ? (err as any).message
             : JSON.stringify(err) || 'Unknown error'
 
-        console.error(
-          `Realtime subscription error on ${channelName}:`,
+        console.warn(
+          `Realtime subscription issue on ${channelName}:`,
           errorMessage,
         )
-        // If subscription fails, we might still be able to fetch data manually, but status is error
+        // Set error status but don't crash, allowing auto-reconnect attempts by client
         setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)

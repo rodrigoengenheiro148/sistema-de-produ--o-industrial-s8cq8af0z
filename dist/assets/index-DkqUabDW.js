@@ -36102,7 +36102,7 @@ const DataProvider = ({ children }) => {
 			return;
 		}
 		const normalizedFactoryId = currentFactoryId.toLowerCase();
-		const channelName = `operational-data-${normalizedFactoryId}-${Date.now()}`;
+		const channelName = `operational-data-${normalizedFactoryId}`;
 		const channel = supabase.channel(channelName);
 		[
 			"raw_materials",
@@ -36128,7 +36128,7 @@ const DataProvider = ({ children }) => {
 				setConnectionStatus("online");
 			} else if (status === "CHANNEL_ERROR") {
 				const errorMessage = typeof err === "object" && err !== null && "message" in err ? err.message : JSON.stringify(err) || "Unknown error";
-				console.error(`Realtime subscription error on ${channelName}:`, errorMessage);
+				console.warn(`Realtime subscription issue on ${channelName}:`, errorMessage);
 				setConnectionStatus("error");
 			} else if (status === "TIMED_OUT") {
 				console.warn(`Realtime subscription timed out on ${channelName}`);
@@ -88740,4 +88740,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BL0W5Om6.js.map
+//# sourceMappingURL=index-DkqUabDW.js.map
