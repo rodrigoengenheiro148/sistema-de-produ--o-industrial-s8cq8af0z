@@ -48,6 +48,8 @@ export default function DashboardLayout() {
         return 'Estoque de Sebo Bovino'
       case '/gestao/processo':
         return 'Gestão de Processos'
+      case '/gestao/controle-vapor':
+        return 'Controle de Vapor'
       default:
         return 'Grupo BR Render'
     }

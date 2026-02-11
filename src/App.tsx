@@ -17,6 +17,7 @@ import AdvancedReports from './pages/AdvancedReports'
 import SeboInventory from './pages/gestao/SeboInventory'
 import ProcessManagement from './pages/gestao/ProcessManagement'
 import ForecastManagement from './pages/gestao/ForecastManagement'
+import SteamControl from './pages/gestao/SteamControl'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import AuthPage from './pages/Auth'
@@ -71,6 +72,7 @@ const App = () => (
                 path="/gestao/previsao-mp"
                 element={<ForecastManagement />}
               />
+              <Route path="/gestao/controle-vapor" element={<SteamControl />} />
 
               <Route path="/access-denied" element={<AccessDenied />} />
             </Route>

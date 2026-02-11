@@ -106,6 +106,21 @@ export interface DowntimeRecord {
   createdAt?: Date
 }
 
+export interface SteamControlEntry {
+  id: string
+  factoryId: string
+  userId: string
+  date: Date
+  soyWaste: number
+  firewood: number
+  riceHusk: number
+  woodChips: number
+  meterStart: number
+  meterEnd: number
+  steamConsumption: number
+  createdAt?: Date
+}
+
 export interface DailyProductionForecast {
   id: string
   factoryId: string
@@ -208,6 +223,7 @@ export interface DataContextType {
   qualityRecords: QualityEntry[]
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
+  steamControlRecords: SteamControlEntry[]
   dailyForecasts: DailyProductionForecast[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
@@ -240,6 +256,10 @@ export interface DataContextType {
   addDowntimeRecord: (entry: Omit<DowntimeRecord, 'id'>) => void
   updateDowntimeRecord: (entry: DowntimeRecord) => void
   deleteDowntimeRecord: (id: string) => void
+
+  addSteamControlRecord: (entry: Omit<SteamControlEntry, 'id'>) => void
+  updateSteamControlRecord: (entry: SteamControlEntry) => void
+  deleteSteamControlRecord: (id: string) => void
 
   saveDailyForecast: (
     date: Date,

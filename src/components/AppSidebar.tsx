@@ -14,6 +14,7 @@ import {
   Timer,
   Droplet,
   TrendingUp,
+  Gauge,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -106,6 +107,11 @@ const managementItems = [
     title: 'Tempos de Processo',
     url: '/gestao/processo',
     icon: Timer,
+  },
+  {
+    title: 'Controle de Vapor',
+    url: '/gestao/controle-vapor',
+    icon: Gauge,
   },
 ]
 

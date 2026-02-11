@@ -19075,6 +19075,24 @@ var Calendar$1 = createLucideIcon("calendar", [
 		key: "8toen8"
 	}]
 ]);
+var ChartBar = createLucideIcon("chart-bar", [
+	["path", {
+		d: "M3 3v16a2 2 0 0 0 2 2h16",
+		key: "c24i48"
+	}],
+	["path", {
+		d: "M7 16h8",
+		key: "srdodz"
+	}],
+	["path", {
+		d: "M7 11h12",
+		key: "127s9w"
+	}],
+	["path", {
+		d: "M7 6h3",
+		key: "w9rmul"
+	}]
+]);
 var ChartColumn = createLucideIcon("chart-column", [
 	["path", {
 		d: "M3 3v16a2 2 0 0 0 2 2h16",
@@ -19916,6 +19934,28 @@ var Smartphone = createLucideIcon("smartphone", [["rect", {
 	d: "M12 18h.01",
 	key: "mhygvu"
 }]]);
+var Table = createLucideIcon("table", [
+	["path", {
+		d: "M12 3v18",
+		key: "108xh3"
+	}],
+	["rect", {
+		width: "18",
+		height: "18",
+		x: "3",
+		y: "3",
+		rx: "2",
+		key: "afitv7"
+	}],
+	["path", {
+		d: "M3 9h18",
+		key: "1pudct"
+	}],
+	["path", {
+		d: "M3 15h18",
+		key: "5xshup"
+	}]
+]);
 var Target = createLucideIcon("target", [
 	["circle", {
 		cx: "12",
@@ -35900,7 +35940,14 @@ var mapData = (data) => {
 		startTime: item.start_time ? typeof item.start_time === "string" && item.start_time.includes("T") ? new Date(item.start_time) : item.start_time : void 0,
 		endTime: item.end_time ? typeof item.end_time === "string" && item.end_time.includes("T") ? new Date(item.end_time) : item.end_time : void 0,
 		durationHours: item.duration_hours,
-		totalHours: item.total_hours ? Number(item.total_hours) : void 0
+		totalHours: item.total_hours ? Number(item.total_hours) : void 0,
+		soyWaste: item.soy_waste,
+		firewood: item.firewood,
+		riceHusk: item.rice_husk,
+		woodChips: item.wood_chips,
+		meterStart: item.meter_start,
+		meterEnd: item.meter_end,
+		steamConsumption: item.steam_consumption
 	}));
 };
 const useData = () => {
@@ -35925,6 +35972,7 @@ const DataProvider = ({ children }) => {
 	const [qualityRecords, setQualityRecords] = (0, import_react.useState)([]);
 	const [cookingTimeRecords, setCookingTimeRecords] = (0, import_react.useState)([]);
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
+	const [steamControlRecords, setSteamControlRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
@@ -36011,11 +36059,12 @@ const DataProvider = ({ children }) => {
 			setQualityRecords([]);
 			setCookingTimeRecords([]);
 			setDowntimeRecords([]);
+			setSteamControlRecords([]);
 			setDailyForecasts([]);
 			return;
 		}
 		try {
-			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: forecasts }] = await Promise.all([
+			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
 				supabase.from("raw_materials").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("production").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("shipping").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
@@ -36023,6 +36072,7 @@ const DataProvider = ({ children }) => {
 				supabase.from("quality_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("cooking_time_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("downtime_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
+				supabase.from("steam_control_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("daily_production_forecasts").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false })
 			]);
 			if (raw) setRawMaterials(mapData(raw));
@@ -36032,6 +36082,7 @@ const DataProvider = ({ children }) => {
 			if (qual) setQualityRecords(mapData(qual));
 			if (cooking) setCookingTimeRecords(mapData(cooking));
 			if (downtime) setDowntimeRecords(mapData(downtime));
+			if (steam) setSteamControlRecords(mapData(steam));
 			if (forecasts) setDailyForecasts(forecasts.map((f) => ({
 				id: f.id,
 				factoryId: f.factory_id,
@@ -36083,6 +36134,7 @@ const DataProvider = ({ children }) => {
 			"quality_records",
 			"cooking_time_records",
 			"downtime_records",
+			"steam_control_records",
 			"daily_production_forecasts"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
@@ -36097,8 +36149,7 @@ const DataProvider = ({ children }) => {
 				console.log(`Subscribed to realtime channel: ${channelName}`);
 				setConnectionStatus("online");
 			} else if (status === "CHANNEL_ERROR") {
-				const errorMessage = typeof err === "object" && err !== null && "message" in err ? err.message : JSON.stringify(err) || "Unknown error";
-				console.warn(`Realtime subscription issue on ${channelName}:`, errorMessage);
+				console.warn(`Realtime subscription issue on ${channelName}`);
 				setConnectionStatus("error");
 			} else if (status === "TIMED_OUT") {
 				console.warn(`Realtime subscription timed out on ${channelName}`);
@@ -36108,7 +36159,6 @@ const DataProvider = ({ children }) => {
 		operationalChannelRef.current = channel;
 		return () => {
 			if (operationalChannelRef.current) {
-				console.log(`Unsubscribing from realtime channel: ${channelName}`);
 				supabase.removeChannel(operationalChannelRef.current);
 				operationalChannelRef.current = null;
 			}
@@ -36350,6 +36400,39 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("downtime_records").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
+	const addSteamControlRecord = async (entry) => {
+		if (!currentFactoryId) return;
+		const { error } = await supabase.from("steam_control_records").insert({
+			date: entry.date.toISOString(),
+			soy_waste: entry.soyWaste,
+			firewood: entry.firewood,
+			rice_husk: entry.riceHusk,
+			wood_chips: entry.woodChips,
+			meter_start: entry.meterStart,
+			meter_end: entry.meterEnd,
+			steam_consumption: entry.steamConsumption,
+			user_id: user?.id,
+			factory_id: currentFactoryId
+		});
+		if (!error) fetchOperationalData();
+	};
+	const updateSteamControlRecord = async (entry) => {
+		const { error } = await supabase.from("steam_control_records").update({
+			date: entry.date.toISOString(),
+			soy_waste: entry.soyWaste,
+			firewood: entry.firewood,
+			rice_husk: entry.riceHusk,
+			wood_chips: entry.woodChips,
+			meter_start: entry.meterStart,
+			meter_end: entry.meterEnd,
+			steam_consumption: entry.steamConsumption
+		}).eq("id", entry.id);
+		if (!error) fetchOperationalData();
+	};
+	const deleteSteamControlRecord = async (id) => {
+		const { error } = await supabase.from("steam_control_records").delete().eq("id", id);
+		if (!error) fetchOperationalData();
+	};
 	const saveDailyForecast = async (date$4, mpForecast, materialType = "Geral") => {
 		if (!currentFactoryId || !user?.id) return;
 		try {
@@ -36538,6 +36621,10 @@ const DataProvider = ({ children }) => {
 			addDowntimeRecord,
 			updateDowntimeRecord,
 			deleteDowntimeRecord,
+			steamControlRecords,
+			addSteamControlRecord,
+			updateSteamControlRecord,
+			deleteSteamControlRecord,
 			dailyForecasts,
 			saveDailyForecast,
 			deleteDailyForecast,
@@ -70873,7 +70960,7 @@ function Dashboard() {
 		})]
 	});
 }
-var Table = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+var Table$1 = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 	className: "relative w-full overflow-auto",
 	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("table", {
 		ref,
@@ -70881,7 +70968,7 @@ var Table = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE
 		...props
 	})
 }));
-Table.displayName = "Table";
+Table$1.displayName = "Table";
 var TableHeader = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", {
 	ref,
 	className: cn("[&_tr]:border-b", className),
@@ -76480,7 +76567,7 @@ const MEASUREMENT_UNITS = [
 		label: "Bag (1400kg)"
 	}
 ];
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
 	type: string().min(1, "Tipo é obrigatório"),
@@ -76492,7 +76579,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -77459,7 +77546,7 @@ function RawMaterial() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Matéria-Prima" }),
@@ -77595,7 +77682,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -77612,7 +77699,7 @@ function ProductionForm({ initialData, onSuccess }) {
 	const { addProduction, updateProduction } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -78012,7 +78099,7 @@ function Production() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -78118,7 +78205,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$5 = object({
+var formSchema$6 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -78134,7 +78221,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const { addProduction, updateProduction, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -78431,7 +78518,7 @@ function BloodProduction() {
 					className: "flex items-center justify-between gap-4",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Produção" })
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registros recentes de farinha de sangue." })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -78896,7 +78983,7 @@ function Yields() {
 								})
 							}, entry.id);
 						})
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -79135,7 +79222,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$4 = object({
+var formSchema$5 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -79148,7 +79235,7 @@ var formSchema$4 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -79609,7 +79696,7 @@ function DailyAcidity() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Hora" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Tanque" }),
@@ -79728,7 +79815,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$3 = object({
+var formSchema$4 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -79740,7 +79827,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -80242,7 +80329,7 @@ function Quality() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Produto" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -80664,7 +80751,7 @@ function Inventory() {
 		]
 	});
 }
-var formSchema$2 = object({
+var formSchema$3 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -80682,7 +80769,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const { addShipping, updateShipping } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$2),
+		resolver: a(formSchema$3),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -81017,7 +81104,7 @@ function Shipping() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Cliente" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Produto" }),
@@ -82839,7 +82926,7 @@ function Settings() {
 		})]
 	});
 }
-var formSchema$1 = object({
+var formSchema$2 = object({
 	name: string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 	location: string().min(2, "Localização é obrigatória"),
 	manager: string().min(2, "Nome do responsável é obrigatório"),
@@ -82849,7 +82936,7 @@ function FactoryForm({ initialData, onSuccess }) {
 	const { addFactory, updateFactory } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$1),
+		resolver: a(formSchema$2),
 		defaultValues: {
 			name: initialData?.name || "",
 			location: initialData?.location || "",
@@ -84360,7 +84447,7 @@ function SeboInventory() {
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "h-8 w-8 animate-spin text-primary" })
 						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "overflow-x-auto",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, {
 								className: "border-collapse",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 									className: "bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30",
@@ -84650,7 +84737,7 @@ function SeboInventory() {
 		]
 	});
 }
-var formSchema = object({
+var formSchema$1 = object({
 	date: string().min(1, "Data é obrigatória"),
 	totalHours: number().min(.1, "Horas devem ser maiores que 0").max(24, "Máximo 24 horas")
 });
@@ -84671,7 +84758,7 @@ function CookingTimeForm() {
 		setPendingAction(null);
 	};
 	const form = useForm({
-		resolver: a(formSchema),
+		resolver: a(formSchema$1),
 		defaultValues: {
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			totalHours: 0
@@ -84756,7 +84843,7 @@ function CookingTimeForm() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "rounded-md border",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table$1, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						colSpan: 3,
 						className: "text-center text-muted-foreground",
 						children: "Nenhum registro para este dia."
@@ -85031,7 +85118,7 @@ function DowntimeManager() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "rounded-md border",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Dia" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Duração (Horas)" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Motivo" }),
@@ -85918,7 +86005,7 @@ function ForecastManagement() {
 			className: "grid gap-4 md:grid-cols-3",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 				className: "md:col-span-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, { children: ["Previsões para ", format(date$4, "dd/MM/yyyy")] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Lista de materiais previstos para o ciclo de 24h." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, { children: ["Previsões para ", format(date$4, "dd/MM/yyyy")] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Lista de materiais previstos para o ciclo de 24h." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Material" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
@@ -85980,6 +86067,712 @@ function ForecastManagement() {
 					children: "Esta previsão é utilizada para o cálculo de fluxo e capacidade no Dashboard Logístico."
 				})] })]
 			})]
+		})]
+	});
+}
+var formSchema = object({
+	date: string().min(1, "Data é obrigatória"),
+	soyWaste: number().min(0, "Deve ser maior ou igual a 0"),
+	firewood: number().min(0, "Deve ser maior ou igual a 0"),
+	riceHusk: number().min(0, "Deve ser maior ou igual a 0"),
+	woodChips: number().min(0, "Deve ser maior ou igual a 0"),
+	meterStart: number().min(0, "Deve ser maior ou igual a 0"),
+	meterEnd: number().min(0, "Deve ser maior ou igual a 0")
+});
+function SteamControlForm({ initialData, onSuccess, onCancel }) {
+	const { addSteamControlRecord, updateSteamControlRecord } = useData();
+	const { toast: toast$2 } = useToast();
+	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
+	const form = useForm({
+		resolver: a(formSchema),
+		defaultValues: {
+			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
+			soyWaste: initialData?.soyWaste || 0,
+			firewood: initialData?.firewood || 0,
+			riceHusk: initialData?.riceHusk || 0,
+			woodChips: initialData?.woodChips || 0,
+			meterStart: initialData?.meterStart || 0,
+			meterEnd: initialData?.meterEnd || 0
+		}
+	});
+	function onSubmit(values) {
+		setIsSubmitting(true);
+		try {
+			const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
+			const steamConsumption = values.meterEnd - values.meterStart;
+			const entry = {
+				date: dateObj,
+				soyWaste: values.soyWaste,
+				firewood: values.firewood,
+				riceHusk: values.riceHusk,
+				woodChips: values.woodChips,
+				meterStart: values.meterStart,
+				meterEnd: values.meterEnd,
+				steamConsumption: steamConsumption < 0 ? 0 : steamConsumption,
+				userId: "",
+				factoryId: ""
+			};
+			if (initialData) {
+				updateSteamControlRecord({
+					...entry,
+					id: initialData.id
+				});
+				toast$2({
+					title: "Registro atualizado",
+					description: "Os dados de controle de vapor foram atualizados."
+				});
+			} else {
+				addSteamControlRecord(entry);
+				toast$2({
+					title: "Registro salvo",
+					description: "Os dados de controle de vapor foram registrados."
+				});
+			}
+			if (onSuccess) onSuccess();
+		} catch (error) {
+			toast$2({
+				variant: "destructive",
+				title: "Erro ao salvar",
+				description: "Verifique os dados e tente novamente."
+			});
+		} finally {
+			setIsSubmitting(false);
+		}
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+		...form,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: form.handleSubmit(onSubmit),
+			className: "space-y-4",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "date",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data do Registro" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "date",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "meterStart",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Início PR (Medidor)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "meterEnd",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Término PR (Medidor)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "soyWaste",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Resíduos de Soja" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "firewood",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Lenha" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "riceHusk",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Palha Arroz" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "woodChips",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cavaco" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex justify-end gap-2 pt-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "button",
+						variant: "outline",
+						onClick: onCancel,
+						disabled: isSubmitting,
+						children: "Cancelar"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "submit",
+						disabled: isSubmitting,
+						children: isSubmitting ? "Salvando..." : "Salvar"
+					})]
+				})
+			]
+		})
+	});
+}
+function SteamControlTable() {
+	const { steamControlRecords, production, deleteSteamControlRecord } = useData();
+	const { toast: toast$2 } = useToast();
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const tableData = (0, import_react.useMemo)(() => {
+		return [...steamControlRecords].sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
+			const entradaMp = production.filter((p) => isSameDay(p.date, record.date)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
+			const consumoVap = record.meterEnd - record.meterStart;
+			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
+			const mpVsVapor = consumoVap > 0 ? entradaMp / consumoVap : 0;
+			const mpVsCavaco = totalFuel > 0 ? entradaMp / totalFuel : 0;
+			const m3VsMp = entradaMp > 0 ? totalFuel / entradaMp * 1e3 : 0;
+			const vaporVsMp = entradaMp > 0 ? consumoVap / entradaMp * 1e3 : 0;
+			return {
+				...record,
+				entradaMp,
+				totalFuel,
+				consumoVap,
+				cavacoVsVapor,
+				mpVsVapor,
+				mpVsCavaco,
+				m3VsMp,
+				vaporVsMp
+			};
+		});
+	}, [steamControlRecords, production]);
+	const formatNumber = (val) => val.toLocaleString("pt-BR", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	});
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteSteamControlRecord(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "O registro foi removido com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const handleEdit = (item) => {
+		setEditingItem(item);
+		setIsEditDialogOpen(true);
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "rounded-md border overflow-x-auto",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+					className: "bg-muted/50",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "min-w-[100px]",
+							children: "Data"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px]",
+							children: "Entrada MP"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px]",
+							children: "Res. Soja"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[80px]",
+							children: "Lenha"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px]",
+							children: "Palha Arroz"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[80px]",
+							children: "Cavaco"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] font-bold",
+							children: "Total Comb."
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px]",
+							children: "Início PR"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px]",
+							children: "Término PR"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] font-bold",
+							children: "Consumo Vap"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-blue-50/50",
+							children: "Cavaco vs Vapor"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-blue-50/50",
+							children: "MP vs Vapor"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-blue-50/50",
+							children: "MP vs Cavaco"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-green-50/50",
+							children: "M³ vs MP"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-green-50/50",
+							children: "Vapor vs MP"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
+					]
+				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 16,
+					className: "text-center h-24 text-muted-foreground",
+					children: "Nenhum registro encontrado."
+				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+					className: "hover:bg-muted/50",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "font-medium whitespace-nowrap",
+							children: format(row.date, "dd/MM/yyyy")
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: formatNumber(row.entradaMp)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: formatNumber(row.soyWaste)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: formatNumber(row.firewood)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: formatNumber(row.riceHusk)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: formatNumber(row.woodChips)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold",
+							children: formatNumber(row.totalFuel)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right text-muted-foreground",
+							children: formatNumber(row.meterStart)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right text-muted-foreground",
+							children: formatNumber(row.meterEnd)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold",
+							children: formatNumber(row.consumoVap)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-blue-50/30 font-mono text-xs",
+							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-blue-50/30 font-mono text-xs",
+							children: row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : "-"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-blue-50/30 font-mono text-xs",
+							children: row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : "-"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-green-50/30 font-mono text-xs",
+							children: row.entradaMp > 0 ? formatNumber(row.m3VsMp) : "-"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-green-50/30 font-mono text-xs",
+							children: row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : "-"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+							asChild: true,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								size: "icon",
+								className: "h-8 w-8",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+							align: "end",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+								onClick: () => handleEdit(row),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+								onClick: () => setDeleteId(row.id),
+								className: "text-red-600",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
+							})]
+						})] }) })
+					]
+				}, row.id)) })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+				open: isEditDialogOpen,
+				onOpenChange: setIsEditDialogOpen,
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Editar Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Atualize os dados de controle de vapor." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
+					initialData: editingItem,
+					onSuccess: () => setIsEditDialogOpen(false),
+					onCancel: () => setIsEditDialogOpen(false)
+				})] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover este registro?" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			})
+		]
+	});
+}
+function SteamControlCharts() {
+	const { steamControlRecords, production } = useData();
+	const [dateRange, setDateRange] = (0, import_react.useState)({
+		from: subDays(/* @__PURE__ */ new Date(), 30),
+		to: /* @__PURE__ */ new Date()
+	});
+	const filteredData = (0, import_react.useMemo)(() => {
+		if (!dateRange?.from || !dateRange?.to) return [];
+		return eachDayOfInterval({
+			start: dateRange.from,
+			end: dateRange.to
+		}).map((day) => {
+			const record = steamControlRecords.find((r$2) => isSameDay(r$2.date, day));
+			const entradaMp = production.filter((p) => isSameDay(p.date, day)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+			const steamConsumption = record ? record.meterEnd - record.meterStart : 0;
+			const totalFuel = record ? record.soyWaste + record.firewood + record.riceHusk + record.woodChips : 0;
+			const ratioMpVapor = steamConsumption > 0 ? entradaMp / steamConsumption : 0;
+			const ratioCavacoVapor = totalFuel > 0 ? steamConsumption / totalFuel : 0;
+			return {
+				date: format(day, "dd/MM"),
+				fullDate: format(day, "d 'de' MMMM", { locale: ptBR }),
+				steamConsumption,
+				entradaMp,
+				ratioMpVapor: Number(ratioMpVapor.toFixed(2)),
+				ratioCavacoVapor: Number(ratioCavacoVapor.toFixed(2)),
+				soyWaste: record?.soyWaste || 0,
+				firewood: record?.firewood || 0,
+				riceHusk: record?.riceHusk || 0,
+				woodChips: record?.woodChips || 0
+			};
+		}).filter((d) => d.steamConsumption > 0 || d.entradaMp > 0);
+	}, [
+		steamControlRecords,
+		production,
+		dateRange
+	]);
+	const pieData = (0, import_react.useMemo)(() => {
+		const totals = filteredData.reduce((acc, curr) => ({
+			soyWaste: acc.soyWaste + curr.soyWaste,
+			firewood: acc.firewood + curr.firewood,
+			riceHusk: acc.riceHusk + curr.riceHusk,
+			woodChips: acc.woodChips + curr.woodChips
+		}), {
+			soyWaste: 0,
+			firewood: 0,
+			riceHusk: 0,
+			woodChips: 0
+		});
+		return [
+			{
+				name: "Res. Soja",
+				value: totals.soyWaste,
+				color: "#f59e0b"
+			},
+			{
+				name: "Lenha",
+				value: totals.firewood,
+				color: "#854d0e"
+			},
+			{
+				name: "Palha Arroz",
+				value: totals.riceHusk,
+				color: "#eab308"
+			},
+			{
+				name: "Cavaco",
+				value: totals.woodChips,
+				color: "#10b981"
+			}
+		].filter((d) => d.value > 0);
+	}, [filteredData]);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "flex justify-end",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+				date: dateRange,
+				setDate: setDateRange,
+				className: "w-[300px]"
+			})
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "grid gap-6 md:grid-cols-2",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Consumo de Vapor x MP" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Relação diária entre consumo de vapor e entrada de matéria-prima" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+					config: {
+						steamConsumption: {
+							label: "Consumo Vapor (t)",
+							color: "hsl(var(--chart-1))"
+						},
+						entradaMp: {
+							label: "Entrada MP (t)",
+							color: "hsl(var(--chart-2))"
+						}
+					},
+					className: "h-[300px] w-full",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data: filteredData,
+						margin: {
+							top: 20,
+							right: 0,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								vertical: false,
+								strokeDasharray: "3 3"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "date",
+								tickLine: false,
+								axisLine: false,
+								tickMargin: 8
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								tickLine: false,
+								axisLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "steamConsumption",
+								fill: "var(--color-steamConsumption)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Vapor"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "entradaMp",
+								fill: "var(--color-entradaMp)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "MP"
+							})
+						]
+					})
+				}) })] }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Indicadores de Eficiência" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução dos índices de produtividade térmica" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+					config: {
+						ratioMpVapor: {
+							label: "MP vs Vapor",
+							color: "hsl(var(--chart-3))"
+						},
+						ratioCavacoVapor: {
+							label: "Cavaco vs Vapor",
+							color: "hsl(var(--chart-4))"
+						}
+					},
+					className: "h-[300px] w-full",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+						data: filteredData,
+						margin: {
+							top: 20,
+							right: 10,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								vertical: false,
+								strokeDasharray: "3 3"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "date",
+								tickLine: false,
+								axisLine: false,
+								tickMargin: 8
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								tickLine: false,
+								axisLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+								type: "monotone",
+								dataKey: "ratioMpVapor",
+								stroke: "var(--color-ratioMpVapor)",
+								strokeWidth: 2,
+								dot: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+								type: "monotone",
+								dataKey: "ratioCavacoVapor",
+								stroke: "var(--color-ratioCavacoVapor)",
+								strokeWidth: 2,
+								dot: false
+							})
+						]
+					})
+				}) })] }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+					className: "md:col-span-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Distribuição de Combustível" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Total consumido no período selecionado" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+						className: "h-[300px] flex items-center justify-center",
+						children: pieData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+							width: "100%",
+							height: "100%",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(PieChart, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pie, {
+									data: pieData,
+									cx: "50%",
+									cy: "50%",
+									innerRadius: 60,
+									outerRadius: 100,
+									paddingAngle: 5,
+									dataKey: "value",
+									children: pieData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: entry.color }, `cell-${index$1}`))
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, {})
+							] })
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "text-muted-foreground",
+							children: "Sem dados de combustível para o período."
+						})
+					})]
+				})
+			]
+		})]
+	});
+}
+function SteamControl() {
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+				className: "text-3xl font-bold tracking-tight flex items-center gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-8 w-8 text-primary" }), "Controle de Vapor"]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-muted-foreground",
+				children: "Monitoramento de consumo de combustível e geração de vapor."
+			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+				open: isOpen,
+				onOpenChange: setIsOpen,
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+					asChild: true,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						className: "gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+					})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+					className: "sm:max-w-[550px]",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Controle de Vapor" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Insira os dados de consumo de combustível e leituras do medidor." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
+						onSuccess: () => setIsOpen(false),
+						onCancel: () => setIsOpen(false)
+					})]
+				})]
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+			defaultValue: "records",
+			className: "space-y-4",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+					className: "grid w-full grid-cols-2 max-w-[400px]",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+						value: "records",
+						className: "gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { className: "h-4 w-4" }), " Registros"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+						value: "charts",
+						className: "gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartBar, { className: "h-4 w-4" }), " Gráficos"]
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+					value: "records",
+					className: "space-y-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+					value: "charts",
+					className: "space-y-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlCharts, {})
+				})
+			]
 		})]
 	});
 }
@@ -87056,6 +87849,11 @@ var managementItems = [
 		title: "Tempos de Processo",
 		url: "/gestao/processo",
 		icon: Timer
+	},
+	{
+		title: "Controle de Vapor",
+		url: "/gestao/controle-vapor",
+		icon: Gauge
 	}
 ];
 function AppSidebar() {
@@ -87277,6 +88075,7 @@ function DashboardLayout() {
 			case "/settings": return "Configurações do Sistema";
 			case "/gestao/estoque-sebo": return "Estoque de Sebo Bovino";
 			case "/gestao/processo": return "Gestão de Processos";
+			case "/gestao/controle-vapor": return "Controle de Vapor";
 			default: return "Grupo BR Render";
 		}
 	};
@@ -87443,6 +88242,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastManagement, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/gestao/controle-vapor",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControl, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/access-denied",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccessDenied, {})
 					})
@@ -87458,4 +88261,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DgNhz-RR.js.map
+//# sourceMappingURL=index-CSNhFLDi.js.map

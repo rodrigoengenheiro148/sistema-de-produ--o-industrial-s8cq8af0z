@@ -24,6 +24,7 @@ import {
   CookingTimeRecord,
   DowntimeRecord,
   DailyProductionForecast,
+  SteamControlEntry,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -91,6 +92,13 @@ const mapData = (data: any[]) => {
       : undefined,
     durationHours: item.duration_hours,
     totalHours: item.total_hours ? Number(item.total_hours) : undefined,
+    soyWaste: item.soy_waste,
+    firewood: item.firewood,
+    riceHusk: item.rice_husk,
+    woodChips: item.wood_chips,
+    meterStart: item.meter_start,
+    meterEnd: item.meter_end,
+    steamConsumption: item.steam_consumption,
   }))
 }
 
@@ -128,6 +136,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     CookingTimeRecord[]
   >([])
   const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
+  const [steamControlRecords, setSteamControlRecords] = useState<
+    SteamControlEntry[]
+  >([])
   const [dailyForecasts, setDailyForecasts] = useState<
     DailyProductionForecast[]
   >([])
@@ -254,6 +265,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setQualityRecords([])
       setCookingTimeRecords([])
       setDowntimeRecords([])
+      setSteamControlRecords([])
       setDailyForecasts([])
       return
     }
@@ -267,6 +279,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: qual },
         { data: cooking },
         { data: downtime },
+        { data: steam },
         { data: forecasts },
       ] = await Promise.all([
         supabase
@@ -305,6 +318,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('factory_id', currentFactoryId)
           .order('date', { ascending: false }),
         supabase
+          .from('steam_control_records')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
+        supabase
           .from('daily_production_forecasts')
           .select('*')
           .eq('factory_id', currentFactoryId)
@@ -318,6 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (qual) setQualityRecords(mapData(qual))
       if (cooking) setCookingTimeRecords(mapData(cooking))
       if (downtime) setDowntimeRecords(mapData(downtime))
+      if (steam) setSteamControlRecords(mapData(steam))
       if (forecasts) {
         setDailyForecasts(
           forecasts.map((f: any) => ({
@@ -355,7 +374,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [currentFactoryId, fetchOperationalData])
 
-  // Debounced fetch handler for realtime updates
   const handleRealtimeUpdate = useCallback(() => {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current)
@@ -363,14 +381,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     refreshTimeoutRef.current = setTimeout(() => {
       console.log('Refreshing operational data from realtime update...')
       fetchOperationalData()
-    }, 1500) // Debounce for 1.5 seconds to batch multiple rapid updates
+    }, 1500)
   }, [fetchOperationalData])
 
-  // Realtime Subscription Setup
   useEffect(() => {
     if (!user?.id || !currentFactoryId) return
 
-    // Strict validation of UUID for Factory ID to prevent subscription errors
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(currentFactoryId)) {
@@ -379,9 +395,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const normalizedFactoryId = currentFactoryId.toLowerCase()
-
-    // Use a stable channel name (per factory) to prevent race conditions and excessive subscriptions
-    // Removing the timestamp allows the Supabase client to manage deduplication more effectively
     const channelName = `operational-data-${normalizedFactoryId}`
     const channel = supabase.channel(channelName)
 
@@ -393,10 +406,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'quality_records',
       'cooking_time_records',
       'downtime_records',
+      'steam_control_records',
       'daily_production_forecasts',
     ]
 
-    // Ensure we are robust against missing tables in publication by catching errors in subscription
     tables.forEach((table) => {
       channel.on(
         'postgres_changes',
@@ -415,16 +428,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log(`Subscribed to realtime channel: ${channelName}`)
         setConnectionStatus('online')
       } else if (status === 'CHANNEL_ERROR') {
-        const errorMessage =
-          typeof err === 'object' && err !== null && 'message' in err
-            ? (err as any).message
-            : JSON.stringify(err) || 'Unknown error'
-
-        console.warn(
-          `Realtime subscription issue on ${channelName}:`,
-          errorMessage,
-        )
-        // Set error status but don't crash, allowing auto-reconnect attempts by client
+        console.warn(`Realtime subscription issue on ${channelName}`)
         setConnectionStatus('error')
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
@@ -435,19 +439,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     operationalChannelRef.current = channel
 
     return () => {
-      // Cleanup: unsubscribe from the channel
       if (operationalChannelRef.current) {
-        console.log(`Unsubscribing from realtime channel: ${channelName}`)
         supabase.removeChannel(operationalChannelRef.current)
         operationalChannelRef.current = null
       }
-      // Clear any pending debounce timeout
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current)
         refreshTimeoutRef.current = null
       }
     }
   }, [user?.id, currentFactoryId, handleRealtimeUpdate])
+
+  // ... (previous add/update/delete functions)
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
@@ -738,6 +741,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const addSteamControlRecord = async (
+    entry: Omit<SteamControlEntry, 'id'>,
+  ) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('steam_control_records').insert({
+      date: entry.date.toISOString(),
+      soy_waste: entry.soyWaste,
+      firewood: entry.firewood,
+      rice_husk: entry.riceHusk,
+      wood_chips: entry.woodChips,
+      meter_start: entry.meterStart,
+      meter_end: entry.meterEnd,
+      steam_consumption: entry.steamConsumption,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const updateSteamControlRecord = async (entry: SteamControlEntry) => {
+    const { error } = await supabase
+      .from('steam_control_records')
+      .update({
+        date: entry.date.toISOString(),
+        soy_waste: entry.soyWaste,
+        firewood: entry.firewood,
+        rice_husk: entry.riceHusk,
+        wood_chips: entry.woodChips,
+        meter_start: entry.meterStart,
+        meter_end: entry.meterEnd,
+        steam_consumption: entry.steamConsumption,
+      })
+      .eq('id', entry.id)
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteSteamControlRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('steam_control_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const saveDailyForecast = async (
     date: Date,
     mpForecast: number,
@@ -979,6 +1026,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addDowntimeRecord,
         updateDowntimeRecord,
         deleteDowntimeRecord,
+        steamControlRecords,
+        addSteamControlRecord,
+        updateSteamControlRecord,
+        deleteSteamControlRecord,
         dailyForecasts,
         saveDailyForecast,
         deleteDailyForecast,
