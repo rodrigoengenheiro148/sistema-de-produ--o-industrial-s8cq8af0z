@@ -19626,6 +19626,13 @@ var LayoutGrid = createLucideIcon("layout-grid", [
 		key: "1bb6yr"
 	}]
 ]);
+var Link$1 = createLucideIcon("link", [["path", {
+	d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71",
+	key: "1cjeqo"
+}], ["path", {
+	d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
+	key: "19qd67"
+}]]);
 var LoaderCircle = createLucideIcon("loader-circle", [["path", {
 	d: "M21 12a9 9 0 1 1-6.219-8.56",
 	key: "13zald"
@@ -35986,7 +35993,9 @@ const DataProvider = ({ children }) => {
 		password: "",
 		syncInventory: false,
 		syncProduction: false,
-		isActive: false
+		isActive: false,
+		apiToken: "",
+		apiDocumentationUrl: ""
 	});
 	const [notificationSettings, setNotificationSettings] = (0, import_react.useState)(DEFAULT_NOTIFICATION_SETTINGS);
 	const [dateRange, setDateRange] = (0, import_react.useState)({
@@ -36004,17 +36013,22 @@ const DataProvider = ({ children }) => {
 				supabase.from("notification_settings").select("*").limit(1).maybeSingle()
 			]);
 			if (fact) setFactories(mapData(fact));
-			if (integration) setProtheusConfig({
-				id: integration.id,
-				baseUrl: integration.base_url || "",
-				clientId: integration.client_id || "",
-				clientSecret: integration.client_secret || "",
-				username: integration.username || "",
-				password: integration.password || "",
-				syncInventory: integration.sync_inventory || false,
-				syncProduction: integration.sync_production || false,
-				isActive: integration.is_active || false
-			});
+			if (integration) {
+				const configData = integration;
+				setProtheusConfig({
+					id: configData.id,
+					baseUrl: configData.base_url || "",
+					clientId: configData.client_id || "",
+					clientSecret: configData.client_secret || "",
+					username: configData.username || "",
+					password: configData.password || "",
+					syncInventory: configData.sync_inventory || false,
+					syncProduction: configData.sync_production || false,
+					isActive: configData.is_active || false,
+					apiToken: configData.api_token || "",
+					apiDocumentationUrl: configData.api_documentation_url || ""
+				});
+			}
 			if (notifications) {
 				const settings = {
 					id: notifications.id,
@@ -36492,6 +36506,8 @@ const DataProvider = ({ children }) => {
 			sync_inventory: config$1.syncInventory,
 			sync_production: config$1.syncProduction,
 			is_active: config$1.isActive,
+			api_token: config$1.apiToken,
+			api_documentation_url: config$1.apiDocumentationUrl,
 			user_id: user?.id
 		};
 		if (config$1.id) await supabase.from("integration_configs").update(dataToUpsert).eq("id", config$1.id);
@@ -76567,7 +76583,7 @@ const MEASUREMENT_UNITS = [
 		label: "Bag (1400kg)"
 	}
 ];
-var formSchema$8 = object({
+var formSchema$9 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
 	type: string().min(1, "Tipo é obrigatório"),
@@ -76579,7 +76595,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$8),
+		resolver: a(formSchema$9),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -77682,7 +77698,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -77699,7 +77715,7 @@ function ProductionForm({ initialData, onSuccess }) {
 	const { addProduction, updateProduction } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -78205,7 +78221,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -78221,7 +78237,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const { addProduction, updateProduction, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -79222,7 +79238,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$5 = object({
+var formSchema$6 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -79235,7 +79251,7 @@ var formSchema$5 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -79815,7 +79831,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$4 = object({
+var formSchema$5 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -79827,7 +79843,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -80751,7 +80767,7 @@ function Inventory() {
 		]
 	});
 }
-var formSchema$3 = object({
+var formSchema$4 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -80769,7 +80785,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const { addShipping, updateShipping } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -82127,6 +82143,121 @@ function CsvExport() {
 		]
 	});
 }
+var formSchema$3 = object({
+	baseUrl: string().optional(),
+	apiToken: string().optional(),
+	apiDocumentationUrl: string().optional()
+});
+function SkipAiConfig() {
+	const { protheusConfig, updateProtheusConfig } = useData();
+	const { toast: toast$2 } = useToast();
+	const form = useForm({
+		resolver: a(formSchema$3),
+		defaultValues: {
+			baseUrl: protheusConfig.baseUrl,
+			apiToken: protheusConfig.apiToken,
+			apiDocumentationUrl: protheusConfig.apiDocumentationUrl
+		}
+	});
+	(0, import_react.useEffect)(() => {
+		form.reset({
+			baseUrl: protheusConfig.baseUrl || "",
+			apiToken: protheusConfig.apiToken || "",
+			apiDocumentationUrl: protheusConfig.apiDocumentationUrl || ""
+		});
+	}, [protheusConfig, form]);
+	async function onSubmit(values) {
+		const configToSave = {
+			...protheusConfig,
+			baseUrl: values.baseUrl || "",
+			apiToken: values.apiToken || "",
+			apiDocumentationUrl: values.apiDocumentationUrl || ""
+		};
+		try {
+			updateProtheusConfig(configToSave);
+			toast$2({
+				title: "Configurações de Dados Salvas",
+				description: "As credenciais de integração foram atualizadas com sucesso."
+			});
+		} catch (error) {
+			toast$2({
+				title: "Erro ao Salvar",
+				description: "Ocorreu um problema ao salvar as configurações.",
+				variant: "destructive"
+			});
+		}
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "border-indigo-200 bg-indigo-50/10 dark:border-indigo-900/50",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+			className: "flex items-center gap-2 text-indigo-700 dark:text-indigo-400",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings$1, { className: "h-5 w-5" }), "Configuração Skip AI"]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Gerencie as credenciais e endpoints para integração com a API de produção industrial." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+			...form,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: form.handleSubmit(onSubmit),
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "baseUrl",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Endpoint de API" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								placeholder: "https://api.industrial.com/v1",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "URL base para as requisições de dados." }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "apiToken",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Token de autenticação" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "password",
+								placeholder: "Bearer token...",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Chave de segurança para acesso aos serviços externos." }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "apiDocumentationUrl",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Documentação da API" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									placeholder: "https://docs.api.com",
+									...field
+								}), field.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									type: "button",
+									variant: "outline",
+									size: "icon",
+									onClick: () => window.open(field.value, "_blank"),
+									title: "Abrir documentação",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link$1, { className: "h-4 w-4" })
+								})]
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, { children: "Link para referência técnica da integração." }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						type: "submit",
+						className: "w-full sm:w-auto gap-2 bg-indigo-600 hover:bg-indigo-700",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "h-4 w-4" }), " Salvar Credenciais"]
+					})
+				]
+			})
+		}) })]
+	});
+}
 function Settings() {
 	const { protheusConfig, updateProtheusConfig, testProtheusConnection, syncProtheusData, connectionStatus, clearAllData, systemSettings, updateSystemSettings, notificationSettings, updateNotificationSettings } = useData();
 	const { toast: toast$2 } = useToast();
@@ -82884,6 +83015,7 @@ function Settings() {
 					value: "data",
 					className: "space-y-4",
 					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SkipAiConfig, {}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExcelExport, {}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CsvExport, {}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DataExport, {}),
@@ -88520,4 +88652,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Ck9Ep7is.js.map
+//# sourceMappingURL=index-DOIK7SX7.js.map

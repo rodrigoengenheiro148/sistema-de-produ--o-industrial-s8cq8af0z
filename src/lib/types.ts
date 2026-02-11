@@ -168,6 +168,8 @@ export interface ProtheusConfig {
   syncInventory: boolean
   syncProduction: boolean
   isActive: boolean
+  apiToken?: string
+  apiDocumentationUrl?: string
 }
 
 export interface NotificationSettings {

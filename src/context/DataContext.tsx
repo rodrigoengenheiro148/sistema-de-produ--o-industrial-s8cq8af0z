@@ -160,6 +160,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     syncInventory: false,
     syncProduction: false,
     isActive: false,
+    apiToken: '',
+    apiDocumentationUrl: '',
   })
 
   const [notificationSettings, setNotificationSettings] =
@@ -198,16 +200,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (integration) {
+        // Cast to any to access new columns if they are not yet in the types
+        const configData = integration as any
         setProtheusConfig({
-          id: integration.id,
-          baseUrl: integration.base_url || '',
-          clientId: integration.client_id || '',
-          clientSecret: integration.client_secret || '',
-          username: integration.username || '',
-          password: integration.password || '',
-          syncInventory: integration.sync_inventory || false,
-          syncProduction: integration.sync_production || false,
-          isActive: integration.is_active || false,
+          id: configData.id,
+          baseUrl: configData.base_url || '',
+          clientId: configData.client_id || '',
+          clientSecret: configData.client_secret || '',
+          username: configData.username || '',
+          password: configData.password || '',
+          syncInventory: configData.sync_inventory || false,
+          syncProduction: configData.sync_production || false,
+          isActive: configData.is_active || false,
+          apiToken: configData.api_token || '',
+          apiDocumentationUrl: configData.api_documentation_url || '',
         })
       }
 
@@ -863,6 +869,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       sync_inventory: config.syncInventory,
       sync_production: config.syncProduction,
       is_active: config.isActive,
+      api_token: config.apiToken,
+      api_documentation_url: config.apiDocumentationUrl,
       user_id: user?.id,
     }
     if (config.id) {

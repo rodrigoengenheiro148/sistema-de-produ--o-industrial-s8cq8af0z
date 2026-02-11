@@ -47,6 +47,7 @@ import { DataExport } from '@/components/settings/DataExport'
 import { PowerBIExport } from '@/components/settings/PowerBIExport'
 import { ExcelExport } from '@/components/settings/ExcelExport'
 import { CsvExport } from '@/components/settings/CsvExport'
+import { SkipAiConfig } from '@/components/settings/SkipAiConfig'
 
 export default function Settings() {
   const {
@@ -790,6 +791,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="data" className="space-y-4">
+          <SkipAiConfig />
           <ExcelExport />
           <CsvExport />
           <DataExport />
