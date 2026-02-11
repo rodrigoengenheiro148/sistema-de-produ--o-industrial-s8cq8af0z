@@ -66979,10 +66979,23 @@ Separator.displayName = Root$3.displayName;
 function LoadForecast({ referenceDate, className }) {
 	const { rawMaterials, dailyForecasts } = useData();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
-	const dailyForecastTotal = (0, import_react.useMemo)(() => {
-		return dailyForecasts.filter((f) => isSameDay(f.date, targetDate)).reduce((acc, curr) => acc + curr.mpForecast, 0);
-	}, [dailyForecasts, targetDate]);
-	const activeMpValue = dailyForecastTotal > 0 ? dailyForecastTotal : rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate)).reduce((acc, curr) => acc + curr.quantity, 0);
+	const forecastData = (0, import_react.useMemo)(() => {
+		const forecasts$1 = dailyForecasts.filter((f) => isSameDay(f.date, targetDate));
+		const mainLineForecast = forecasts$1.filter((f) => f.materialType !== "Sangue").reduce((acc, curr) => acc + curr.mpForecast, 0);
+		const bloodForecast = forecasts$1.filter((f) => f.materialType === "Sangue").reduce((acc, curr) => acc + curr.mpForecast, 0);
+		const realizedMain = rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate) && r$2.type !== "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
+		const realizedBlood = rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate) && r$2.type === "Sangue").reduce((acc, curr) => acc + curr.quantity, 0);
+		return {
+			main: mainLineForecast > 0 ? mainLineForecast : realizedMain,
+			blood: bloodForecast > 0 ? bloodForecast : realizedBlood
+		};
+	}, [
+		dailyForecasts,
+		rawMaterials,
+		targetDate
+	]);
+	const activeMpValue = forecastData.main;
+	const activeBloodValue = forecastData.blood;
 	const HOURS_IN_DAY = 24;
 	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const FIXED_FLOW_1450 = 5.8;
@@ -66990,10 +67003,11 @@ function LoadForecast({ referenceDate, className }) {
 	const YIELD_FACTORS = {
 		sebo: .15,
 		fco: .2,
-		farinheta: .05
+		farinheta: .05,
+		sangue: .18
 	};
-	const calculateMetrics = (yieldFactor) => {
-		const estProdKg = activeMpValue * yieldFactor;
+	const calculateMetrics = (yieldFactor, inputVal) => {
+		const estProdKg = inputVal * yieldFactor;
 		return {
 			estProdTons: estProdKg / 1e3,
 			bags1450: Math.floor(estProdKg / 1450),
@@ -67001,9 +67015,10 @@ function LoadForecast({ referenceDate, className }) {
 		};
 	};
 	const forecasts = {
-		sebo: calculateMetrics(YIELD_FACTORS.sebo),
-		fco: calculateMetrics(YIELD_FACTORS.fco),
-		farinheta: calculateMetrics(YIELD_FACTORS.farinheta)
+		sebo: calculateMetrics(YIELD_FACTORS.sebo, activeMpValue),
+		fco: calculateMetrics(YIELD_FACTORS.fco, activeMpValue),
+		farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
+		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
 	};
 	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data }) => {
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -67123,6 +67138,78 @@ function LoadForecast({ referenceDate, className }) {
 			})]
 		});
 	};
+	const BloodForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data, inputValue }) => {
+		const calculatedFlow = data.estProdTons > 0 ? data.estProdTons / 24 : 0;
+		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: cn("p-4 flex items-center gap-3 border-b", bgClass),
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: cn("p-2 rounded-full bg-white/90 shadow-sm", colorClass),
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon$2, { className: "h-5 w-5" })
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "font-bold text-base",
+					children: title
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "p-5 space-y-6 flex-1 flex flex-col justify-between",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-4",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "bg-muted/30 p-3 rounded-md border border-border/40 flex justify-between items-center",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-xs font-medium text-muted-foreground uppercase",
+								children: "Previsão MP"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-sm font-bold font-mono",
+								children: [(inputValue / 1e3).toFixed(1), "t"]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-2 gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-[10px] text-muted-foreground font-bold uppercase mb-1",
+									children: "Fluxo (t/h)"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-xl font-bold",
+									children: calculatedFlow.toFixed(2)
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-[10px] text-muted-foreground font-bold uppercase mb-1",
+									children: "Est. Prod (t)"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-xl font-bold",
+									children: data.estProdTons.toFixed(1)
+								})]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: cn("p-4 rounded-md border text-center", bgClass.replace("border-", "border-opacity-50 ")),
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-[10px] text-muted-foreground font-bold uppercase block mb-1",
+									children: "Bags Estimados"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: cn("text-3xl font-bold", colorClass),
+									children: data.bags1450
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-[10px] text-muted-foreground block mt-1",
+									children: "(Base 1400kg)"
+								})
+							]
+						})
+					]
+				})
+			})]
+		});
+	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
@@ -67138,7 +67225,7 @@ function LoadForecast({ referenceDate, className }) {
 						className: "flex flex-col px-2",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "text-[10px] uppercase font-bold text-muted-foreground tracking-wider",
-							children: "Previsão Total MP"
+							children: "Previsão Total (Ind.)"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "flex items-baseline gap-1",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
@@ -67162,7 +67249,7 @@ function LoadForecast({ referenceDate, className }) {
 				})]
 			})
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "grid gap-6 md:grid-cols-3",
+			className: "grid gap-6 md:grid-cols-2 lg:grid-cols-4",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Sebo",
@@ -67184,6 +67271,14 @@ function LoadForecast({ referenceDate, className }) {
 					colorClass: "text-orange-600 dark:text-orange-400",
 					bgClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30",
 					data: forecasts.farinheta
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
+					title: "Farinha de Sangue",
+					icon: Droplet,
+					colorClass: "text-red-600 dark:text-red-400",
+					bgClass: "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30",
+					data: forecasts.sangue,
+					inputValue: activeBloodValue
 				})
 			]
 		}) })]
@@ -77572,8 +77667,6 @@ var formSchema$7 = object({
 	sebo: number().min(0, "Valor deve ser positivo"),
 	fco: number().min(0, "Valor deve ser positivo"),
 	farinheta: number().min(0, "Valor deve ser positivo"),
-	bloodMealBags: number().min(0, "Valor deve ser positivo").int("Deve ser um número inteiro"),
-	bloodMeal: number().min(0, "Valor deve ser positivo"),
 	losses: number()
 });
 function ProductionForm({ initialData, onSuccess }) {
@@ -77588,8 +77681,6 @@ function ProductionForm({ initialData, onSuccess }) {
 			sebo: initialData?.seboProduced || 0,
 			fco: initialData?.fcoProduced || 0,
 			farinheta: initialData?.farinhetaProduced || 0,
-			bloodMealBags: initialData?.bloodMealBags || 0,
-			bloodMeal: initialData?.bloodMealProduced || 0,
 			losses: initialData?.losses || 0
 		}
 	});
@@ -77597,15 +77688,6 @@ function ProductionForm({ initialData, onSuccess }) {
 	const sebo = form.watch("sebo");
 	const fco = form.watch("fco");
 	const farinheta = form.watch("farinheta");
-	const bloodMealBags = form.watch("bloodMealBags");
-	(0, import_react.useEffect)(() => {
-		const bags = Number(bloodMealBags) || 0;
-		form.setValue("bloodMeal", bags * 1400, {
-			shouldValidate: true,
-			shouldDirty: true,
-			shouldTouch: true
-		});
-	}, [bloodMealBags, form]);
 	(0, import_react.useEffect)(() => {
 		const calculatedLosses = (Number(mpUsed) || 0) - ((Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0));
 		form.setValue("losses", Math.max(0, calculatedLosses), {
@@ -77628,13 +77710,15 @@ function ProductionForm({ initialData, onSuccess }) {
 			seboProduced: values.sebo,
 			fcoProduced: values.fco,
 			farinhetaProduced: values.farinheta,
-			bloodMealProduced: values.bloodMeal,
-			bloodMealBags: values.bloodMealBags,
-			losses: values.losses
+			losses: values.losses,
+			bloodMealProduced: 0,
+			bloodMealBags: 0
 		};
 		if (initialData) {
 			updateProduction({
 				...entryData,
+				bloodMealProduced: initialData.bloodMealProduced || 0,
+				bloodMealBags: initialData.bloodMealBags || 0,
 				id: initialData.id
 			});
 			toast$2({
@@ -77774,44 +77858,6 @@ function ProductionForm({ initialData, onSuccess }) {
 						})
 					]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "bg-red-50 dark:bg-red-900/20 p-4 rounded-lg space-y-4 border border-red-100 dark:border-red-900/30",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-						className: "font-medium text-sm text-red-600 dark:text-red-400",
-						children: "Linha de Sangue"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "grid grid-cols-2 gap-4",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-							control: form.control,
-							name: "bloodMealBags",
-							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Qtd. Bags" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									type: "number",
-									...field
-								}) }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormDescription, {
-									className: "text-xs",
-									children: "1 bag = 1400kg"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-							] })
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-							control: form.control,
-							name: "bloodMeal",
-							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha de Sangue (kg)" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									type: "number",
-									...field,
-									readOnly: true,
-									className: "bg-muted"
-								}) }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-							] })
-						})]
-					})]
-				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					className: "w-full",
@@ -77880,7 +77926,7 @@ function Production() {
 		if (dateRange.from && dateRange.to) {
 			if (item.date < dateRange.from || item.date > dateRange.to) return false;
 		}
-		return true;
+		return item.seboProduced > 0 || item.fcoProduced > 0 || item.farinhetaProduced > 0 || item.losses > 0 || item.mpUsed > 0 && item.bloodMealProduced === 0;
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
@@ -78358,7 +78404,6 @@ function BloodProduction() {
 	const { toast: toast$2 } = useToast();
 	useIsMobile();
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
-	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
@@ -78409,12 +78454,7 @@ function BloodProduction() {
 		setIsOpen(open);
 		if (!open) setEditingItem(void 0);
 	};
-	const filteredRecords = production.filter((item) => item.bloodMealProduced > 0).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
-	const getFactoryName = (id) => {
-		if (!id) return "-";
-		const factory = factories.find((f) => f.id === id);
-		return factory ? factory.name : "Desconhecida";
-	};
+	const filteredRecords = production.filter((item) => item.bloodMealProduced > 0 || item.bloodMealBags && item.bloodMealBags > 0).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [
@@ -78456,8 +78496,8 @@ function BloodProduction() {
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-					className: "hidden md:table-cell",
-					children: "Fábrica"
+					className: "text-right",
+					children: "MP Utilizada (kg)"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 					className: "text-right",
@@ -78476,7 +78516,7 @@ function BloodProduction() {
 				className: "text-center h-24 text-muted-foreground",
 				children: "Nenhum registro encontrado."
 			}) }) : filteredRecords.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-				className: "hover:bg-muted/50",
+				className: "hover:bg-white bg-white/50",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						className: "font-medium",
@@ -78487,19 +78527,16 @@ function BloodProduction() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-						className: "hidden md:table-cell text-muted-foreground",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex items-center gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Factory, { className: "h-3 w-3" }), getFactoryName(entry.factoryId)]
-						})
+						className: "text-right font-mono text-muted-foreground",
+						children: entry.mpUsed.toLocaleString("pt-BR")
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						className: "text-right font-mono font-medium",
 						children: entry.bloodMealProduced.toLocaleString("pt-BR")
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-						className: "text-right font-mono text-muted-foreground",
-						children: entry.bloodMealBags || "-"
+						className: "text-right font-mono text-red-600",
+						children: entry.bloodMealBags || "0"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						className: "text-right",
@@ -78508,15 +78545,15 @@ function BloodProduction() {
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
-								className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
+								className: "h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50",
 								onClick: () => handleEditClick(entry),
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-3.5 w-3.5" })
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
-								className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
+								className: "h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50",
 								onClick: () => handleDeleteClick(entry),
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-3.5 w-3.5" })
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
 							})]
 						})
 					})
@@ -88035,7 +88072,7 @@ var operationalItems = [
 	},
 	{
 		title: "Produção de Sangue",
-		url: "/operacional/producao-sangue",
+		url: "/producao-sangue",
 		icon: Droplet
 	},
 	{
@@ -88434,7 +88471,7 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Production, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
-						path: "/operacional/producao-sangue",
+						path: "/producao-sangue",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodProduction, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
@@ -88501,4 +88538,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CoJ899l3.js.map
+//# sourceMappingURL=index-BVzRaDeN.js.map

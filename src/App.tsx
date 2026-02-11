@@ -52,10 +52,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/entrada-mp" element={<RawMaterial />} />
               <Route path="/producao" element={<Production />} />
-              <Route
-                path="/operacional/producao-sangue"
-                element={<BloodProduction />}
-              />
+              <Route path="/producao-sangue" element={<BloodProduction />} />
               <Route path="/rendimentos" element={<Yields />} />
               <Route path="/acidez-diaria" element={<DailyAcidity />} />
               <Route path="/qualidade" element={<Quality />} />

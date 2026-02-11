@@ -52,7 +52,7 @@ const operationalItems = [
   },
   {
     title: 'Produção de Sangue',
-    url: '/operacional/producao-sangue',
+    url: '/producao-sangue',
     icon: Droplet,
   },
   {

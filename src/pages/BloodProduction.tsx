@@ -41,7 +41,6 @@ import {
   Trash2,
   CalendarIcon,
   Factory,
-  Search,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -49,7 +48,6 @@ import { useToast } from '@/hooks/use-toast'
 import { BloodProductionForm } from '@/components/BloodProductionForm'
 import { ProductionEntry } from '@/lib/types'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Input } from '@/components/ui/input'
 import { SecurityGate } from '@/components/SecurityGate'
 import { canEditRecord } from '@/lib/security'
 
@@ -58,7 +56,6 @@ export default function BloodProduction() {
   const { toast } = useToast()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
   const [editingItem, setEditingItem] = useState<ProductionEntry | undefined>(
     undefined,
   )
@@ -121,7 +118,11 @@ export default function BloodProduction() {
 
   // Filter only blood meal entries (> 0)
   const filteredRecords = production
-    .filter((item) => item.bloodMealProduced > 0)
+    .filter(
+      (item) =>
+        item.bloodMealProduced > 0 ||
+        (item.bloodMealBags && item.bloodMealBags > 0),
+    )
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   const getFactoryName = (id?: string) => {
@@ -173,7 +174,6 @@ export default function BloodProduction() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-4">
             <CardTitle>Histórico de Produção</CardTitle>
-            {/* Simple search placeholder for UI consistency, though functional filter logic could be added if needed */}
           </div>
           <CardDescription>
             Registros recentes de farinha de sangue.
@@ -185,7 +185,7 @@ export default function BloodProduction() {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Turno</TableHead>
-                <TableHead className="hidden md:table-cell">Fábrica</TableHead>
+                <TableHead className="text-right">MP Utilizada (kg)</TableHead>
                 <TableHead className="text-right">Produção (kg)</TableHead>
                 <TableHead className="text-right">Sacos</TableHead>
                 <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -203,7 +203,10 @@ export default function BloodProduction() {
                 </TableRow>
               ) : (
                 filteredRecords.map((entry) => (
-                  <TableRow key={entry.id} className="hover:bg-muted/50">
+                  <TableRow
+                    key={entry.id}
+                    className="hover:bg-white bg-white/50"
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <CalendarIcon className="h-3 w-3 text-muted-foreground" />
@@ -211,35 +214,32 @@ export default function BloodProduction() {
                       </div>
                     </TableCell>
                     <TableCell>{entry.shift}</TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Factory className="h-3 w-3" />
-                        {getFactoryName(entry.factoryId)}
-                      </div>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {entry.mpUsed.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
                       {entry.bloodMealProduced.toLocaleString('pt-BR')}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-muted-foreground">
-                      {entry.bloodMealBags || '-'}
+                    <TableCell className="text-right font-mono text-red-600">
+                      {entry.bloodMealBags || '0'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                          className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                           onClick={() => handleEditClick(entry)}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50"
                           onClick={() => handleDeleteClick(entry)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

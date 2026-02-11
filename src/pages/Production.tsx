@@ -115,10 +115,20 @@ export default function Production() {
 
   const filteredProduction = production
     .filter((item) => {
+      // Date Filter
       if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false
       }
-      return true
+      // Content Filter: Exclude purely blood records (assuming 0 main production)
+      const hasMainProduction =
+        item.seboProduced > 0 ||
+        item.fcoProduced > 0 ||
+        item.farinhetaProduced > 0 ||
+        item.losses > 0 ||
+        // If MP Used is > 0 but nothing produced yet, it might be a start of shift for main line
+        (item.mpUsed > 0 && item.bloodMealProduced === 0)
+
+      return hasMainProduction
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 

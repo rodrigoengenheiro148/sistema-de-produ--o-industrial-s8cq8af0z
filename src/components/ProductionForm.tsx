@@ -19,7 +19,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
 import { SheetFooter } from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
@@ -33,11 +32,6 @@ const formSchema = z.object({
   sebo: z.coerce.number().min(0, 'Valor deve ser positivo'),
   fco: z.coerce.number().min(0, 'Valor deve ser positivo'),
   farinheta: z.coerce.number().min(0, 'Valor deve ser positivo'),
-  bloodMealBags: z.coerce
-    .number()
-    .min(0, 'Valor deve ser positivo')
-    .int('Deve ser um número inteiro'),
-  bloodMeal: z.coerce.number().min(0, 'Valor deve ser positivo'),
   losses: z.coerce.number(),
 })
 
@@ -64,8 +58,6 @@ export function ProductionForm({
       sebo: initialData?.seboProduced || 0,
       fco: initialData?.fcoProduced || 0,
       farinheta: initialData?.farinhetaProduced || 0,
-      bloodMealBags: initialData?.bloodMealBags || 0,
-      bloodMeal: initialData?.bloodMealProduced || 0,
       losses: initialData?.losses || 0,
     },
   })
@@ -74,23 +66,10 @@ export function ProductionForm({
   const sebo = form.watch('sebo')
   const fco = form.watch('fco')
   const farinheta = form.watch('farinheta')
-  const bloodMealBags = form.watch('bloodMealBags')
-
-  // Auto-calculate bloodMeal (kg) when bags change
-  useEffect(() => {
-    const bags = Number(bloodMealBags) || 0
-    form.setValue('bloodMeal', bags * 1400, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    })
-  }, [bloodMealBags, form])
 
   useEffect(() => {
-    // Note: Blood meal is usually a separate process, so it might not subtract from the main MP line in the same way.
-    // However, if it's considered part of the total output for loss calculation of the factory, we might include it.
-    // For now, preserving existing logic: Losses = Input (MP) - Output (Sebo + FCO + Farinheta).
-    // Assuming Blood processing is a parallel line with its own input (Sangue), so it doesn't affect main line losses directly here.
+    // Loss Calculation for Industrial Line
+    // Losses = Input (MP) - Output (Sebo + FCO + Farinheta)
     const input = Number(mpUsed) || 0
     const output =
       (Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0)
@@ -104,7 +83,7 @@ export function ProductionForm({
   }, [mpUsed, sebo, fco, farinheta, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
+    // Append T12:00:00 to force local noon interpretation
     const entryData = {
       date: new Date(`${values.date}T12:00:00`),
       shift: values.shift,
@@ -112,13 +91,26 @@ export function ProductionForm({
       seboProduced: values.sebo,
       fcoProduced: values.fco,
       farinhetaProduced: values.farinheta,
-      bloodMealProduced: values.bloodMeal,
-      bloodMealBags: values.bloodMealBags,
       losses: values.losses,
+      // Zero out blood values for this main line form
+      bloodMealProduced: 0,
+      bloodMealBags: 0,
     }
 
     if (initialData) {
-      updateProduction({ ...entryData, id: initialData.id })
+      // Preserve existing blood values if we are editing a record that might have them (legacy mixed records)
+      // However, the new direction is separation.
+      // Ideally, if the user edits here, they are editing the MAIN production part.
+      // If we want to support mixed records, we should pass initialData.bloodMeal... etc.
+      // But given the separation requirement, enforcing 0 or keeping existing values is a choice.
+      // Let's keep existing values if they exist to avoid data loss on legacy records.
+      const updatedData = {
+        ...entryData,
+        bloodMealProduced: initialData.bloodMealProduced || 0,
+        bloodMealBags: initialData.bloodMealBags || 0,
+      }
+
+      updateProduction({ ...updatedData, id: initialData.id })
       toast({
         title: 'Sucesso',
         description: 'Produção atualizada com sucesso!',
@@ -249,48 +241,6 @@ export function ProductionForm({
                       readOnly
                       tabIndex={-1}
                       className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg space-y-4 border border-red-100 dark:border-red-900/30">
-          <h3 className="font-medium text-sm text-red-600 dark:text-red-400">
-            Linha de Sangue
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="bloodMealBags"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qtd. Bags</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    1 bag = 1400kg
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bloodMeal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Farinha de Sangue (kg)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      readOnly
-                      className="bg-muted"
                     />
                   </FormControl>
                   <FormMessage />
