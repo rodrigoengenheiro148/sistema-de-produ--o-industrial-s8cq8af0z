@@ -66329,7 +66329,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
 					cursor: { fill: "hsl(var(--muted)/0.4)" },
-					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {})
+					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value) => `${Number(value).toFixed(2)}%` })
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: "yield",
@@ -66345,7 +66345,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "yield",
 						position: "top",
-						formatter: (val) => `${val.toFixed(1)}%`,
+						formatter: (val) => `${val.toFixed(2)}%`,
 						className: "fill-foreground font-bold",
 						fontSize: isMobile ? 10 : 12
 					})
@@ -88709,4 +88709,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CmrxeJYW.js.map
+//# sourceMappingURL=index-Diqz8Aj9.js.map

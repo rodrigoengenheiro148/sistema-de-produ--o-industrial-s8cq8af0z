@@ -146,7 +146,11 @@ export function YieldBarChart({
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
           cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-          content={<ChartTooltipContent />}
+          content={
+            <ChartTooltipContent
+              formatter={(value) => `${Number(value).toFixed(2)}%`}
+            />
+          }
         />
         <Bar
           dataKey="yield"
@@ -158,7 +162,7 @@ export function YieldBarChart({
           <LabelList
             dataKey="yield"
             position="top"
-            formatter={(val: number) => `${val.toFixed(1)}%`}
+            formatter={(val: number) => `${val.toFixed(2)}%`}
             className="fill-foreground font-bold"
             fontSize={isMobile ? 10 : 12}
           />
