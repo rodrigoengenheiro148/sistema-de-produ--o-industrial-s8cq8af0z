@@ -147,19 +147,14 @@ export function OverviewCards({
     // Previous Date (D-1)
     const previousDate = subDays(targetDate, 1)
 
-    // Filter Production for D-1
+    // Filter Production for D-1 (Only industrial output relevant for process time efficiency usually?)
+    // Actually, "Tons/Hour" usually refers to main line production.
+    // Based on user story: (sebo + fco + farinheta) / total_hours
     const prevDayProduction = fullProductionHistory.filter((p) =>
       isSameDay(p.date, previousDate),
     )
-    const totalProductionKgD1 = prevDayProduction.reduce(
-      (acc, p) =>
-        acc +
-        p.seboProduced +
-        p.fcoProduced +
-        p.farinhetaProduced +
-        (p.bloodMealBags && p.bloodMealBags > 0
-          ? p.bloodMealBags * 1400
-          : p.bloodMealProduced || 0),
+    const totalProductionOutputD1 = prevDayProduction.reduce(
+      (acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced,
       0,
     )
 
@@ -168,29 +163,47 @@ export function OverviewCards({
       isSameDay(c.date, previousDate),
     )
 
-    const totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
-      if (!curr.startTime || !curr.endTime) return acc
-      const toMinutes = (timeStr: string) => {
-        const parts = timeStr.split(':')
-        if (parts.length < 2) return 0
-        return parseInt(parts[0]) * 60 + parseInt(parts[1])
-      }
+    // Calculate total hours using new field or fallback
+    let totalHoursD1 = 0
+    let totalMinutesD1 = 0
 
-      if (
-        typeof curr.startTime === 'string' &&
-        typeof curr.endTime === 'string'
-      ) {
-        const start = toMinutes(curr.startTime)
-        const end = toMinutes(curr.endTime)
-        let diff = end - start
-        if (diff < 0) diff += 24 * 60 // Overnight assumption
-        return acc + diff
-      }
-      return acc
-    }, 0)
+    const recordsWithTotalHours = prevDayCooking.filter(
+      (r) => r.totalHours !== undefined && r.totalHours !== null,
+    )
 
-    const hoursD1 = totalMinutesD1 / 60
-    const tonPerHourD1 = hoursD1 > 0 ? totalProductionKgD1 / 1000 / hoursD1 : 0
+    if (recordsWithTotalHours.length > 0) {
+      totalHoursD1 = recordsWithTotalHours.reduce(
+        (acc, curr) => acc + (curr.totalHours || 0),
+        0,
+      )
+      totalMinutesD1 = totalHoursD1 * 60
+    } else {
+      // Legacy Calculation
+      totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
+        if (!curr.startTime || !curr.endTime) return acc
+        const toMinutes = (timeStr: string) => {
+          const parts = timeStr.split(':')
+          if (parts.length < 2) return 0
+          return parseInt(parts[0]) * 60 + parseInt(parts[1])
+        }
+
+        if (
+          typeof curr.startTime === 'string' &&
+          typeof curr.endTime === 'string'
+        ) {
+          const start = toMinutes(curr.startTime)
+          const end = toMinutes(curr.endTime)
+          let diff = end - start
+          if (diff < 0) diff += 24 * 60 // Overnight assumption
+          return acc + diff
+        }
+        return acc
+      }, 0)
+      totalHoursD1 = totalMinutesD1 / 60
+    }
+
+    const tonPerHourD1 =
+      totalHoursD1 > 0 ? totalProductionOutputD1 / 1000 / totalHoursD1 : 0
 
     const processTimeHours = Math.floor(totalMinutesD1 / 60)
     const processTimeMinutes = Math.round(totalMinutesD1 % 60)

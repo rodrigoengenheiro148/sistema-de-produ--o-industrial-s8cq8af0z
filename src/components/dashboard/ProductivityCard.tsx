@@ -28,27 +28,36 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       .reduce((acc, curr) => acc + curr.quantity, 0)
   }, [rawMaterials, now])
 
-  // 2. Find Active Process (for status indication)
+  // 2. Find Active Process (for status indication - LEGACY SUPPORT)
   const activeProcess = useMemo(() => {
     const todaysRecords = cookingTimeRecords.filter((r) =>
       isSameDay(r.date, now),
     )
-    const sortedRecords = [...todaysRecords].sort((a, b) => {
-      return b.startTime.localeCompare(a.startTime)
-    })
-    const active = sortedRecords.find((r) => !r.endTime)
-    if (!active) return null
 
-    const [h, m, s] = active.startTime.split(':').map(Number)
-    const startDate = new Date(active.date)
-    startDate.setHours(h, m, s || 0, 0)
+    // Legacy support: Look for running timer
+    const running = todaysRecords.find(
+      (r) => r.startTime && !r.endTime && !r.totalHours,
+    )
+    if (running && running.startTime) {
+      const [h, m, s] = running.startTime.split(':').map(Number)
+      const startDate = new Date(running.date)
+      startDate.setHours(h, m, s || 0, 0)
 
-    if (startDate > now) return null
-
-    return {
-      ...active,
-      startDateTime: startDate,
+      // If started today or active now
+      if (startDate <= now) {
+        return {
+          ...running,
+          startDateTime: startDate,
+        }
+      }
     }
+
+    // If we have totalHours records, we consider it "Active" generally if hours > 0,
+    // but we can't show a timer.
+    // For now, if using simplified input, we just don't show "stopped" unless specified?
+    // Actually, simple input is post-factum usually.
+    // So "Realtime Status" becomes less relevant or static.
+    return null
   }, [cookingTimeRecords, now])
 
   // 3. Calculate Metrics using Shared Logic
@@ -61,7 +70,9 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       now,
     )
 
-    const remainingKg = totalDailyInputKg - dailyMetrics.totalConsumption
+    const remainingKg = totalDailyInputKg - dailyMetrics.totalConsumption // Using Consumption (Input) for remaining calc
+
+    // Check stopped status (Legacy)
     const isStopped =
       !!activeProcess && downtimeRecords.some((d) => d.startTime && !d.endTime)
 
@@ -89,7 +100,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
       remainingVal,
       remainingUnit,
       elapsedString: `${hh}:${mm}:${ss}`,
-      isActive: !!activeProcess,
+      isActive: dailyMetrics.netActiveMinutes > 0, // General activity indicator
       isStopped,
       totalConsumption: dailyMetrics.totalConsumption,
     }
@@ -160,7 +171,7 @@ export function ProductivityCard({ className }: ProductivityCardProps) {
 
         <div className="flex flex-col gap-1 mt-1">
           <p className={cn('text-xs', subTextClass)}>
-            Restante: {metrics.remainingVal.toFixed(2)}
+            Restante (Estimado): {metrics.remainingVal.toFixed(2)}
             {metrics.remainingUnit}
           </p>
 

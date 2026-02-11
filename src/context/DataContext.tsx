@@ -98,6 +98,7 @@ const mapData = (data: any[]) => {
         : item.end_time
       : undefined,
     durationHours: item.duration_hours,
+    totalHours: item.total_hours ? Number(item.total_hours) : undefined,
   }))
 }
 
@@ -662,6 +663,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       date: entry.date.toISOString(),
       start_time: entry.startTime,
       end_time: entry.endTime,
+      total_hours: entry.totalHours,
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
@@ -675,6 +677,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         date: entry.date.toISOString(),
         start_time: entry.startTime,
         end_time: entry.endTime,
+        total_hours: entry.totalHours,
       })
       .eq('id', entry.id)
     if (!error) fetchOperationalData()

@@ -35896,7 +35896,8 @@ var mapData = (data) => {
 		factoryId: item.factory_id,
 		startTime: item.start_time ? typeof item.start_time === "string" && item.start_time.includes("T") ? new Date(item.start_time) : item.start_time : void 0,
 		endTime: item.end_time ? typeof item.end_time === "string" && item.end_time.includes("T") ? new Date(item.end_time) : item.end_time : void 0,
-		durationHours: item.duration_hours
+		durationHours: item.duration_hours,
+		totalHours: item.total_hours ? Number(item.total_hours) : void 0
 	}));
 };
 const useData = () => {
@@ -36291,6 +36292,7 @@ const DataProvider = ({ children }) => {
 			date: entry.date.toISOString(),
 			start_time: entry.startTime,
 			end_time: entry.endTime,
+			total_hours: entry.totalHours,
 			user_id: user?.id,
 			factory_id: currentFactoryId
 		});
@@ -36300,7 +36302,8 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("cooking_time_records").update({
 			date: entry.date.toISOString(),
 			start_time: entry.startTime,
-			end_time: entry.endTime
+			end_time: entry.endTime,
+			total_hours: entry.totalHours
 		}).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
@@ -66639,24 +66642,33 @@ function OverviewCards({ rawMaterials, production, shipping, cookingTimeRecords,
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
 		const previousDate = subDays(referenceDate || /* @__PURE__ */ new Date(), 1);
-		const totalProductionKgD1 = fullProductionHistory.filter((p) => isSameDay(p.date, previousDate)).reduce((acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced + (p.bloodMealBags && p.bloodMealBags > 0 ? p.bloodMealBags * 1400 : p.bloodMealProduced || 0), 0);
-		const totalMinutesD1 = fullCookingTimeRecords.filter((c$1) => isSameDay(c$1.date, previousDate)).reduce((acc, curr) => {
-			if (!curr.startTime || !curr.endTime) return acc;
-			const toMinutes = (timeStr) => {
-				const parts = timeStr.split(":");
-				if (parts.length < 2) return 0;
-				return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-			};
-			if (typeof curr.startTime === "string" && typeof curr.endTime === "string") {
-				const start = toMinutes(curr.startTime);
-				let diff = toMinutes(curr.endTime) - start;
-				if (diff < 0) diff += 1440;
-				return acc + diff;
-			}
-			return acc;
-		}, 0);
-		const hoursD1 = totalMinutesD1 / 60;
-		const tonPerHourD1 = hoursD1 > 0 ? totalProductionKgD1 / 1e3 / hoursD1 : 0;
+		const totalProductionOutputD1 = fullProductionHistory.filter((p) => isSameDay(p.date, previousDate)).reduce((acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced, 0);
+		const prevDayCooking = fullCookingTimeRecords.filter((c$1) => isSameDay(c$1.date, previousDate));
+		let totalHoursD1 = 0;
+		let totalMinutesD1 = 0;
+		const recordsWithTotalHours = prevDayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
+		if (recordsWithTotalHours.length > 0) {
+			totalHoursD1 = recordsWithTotalHours.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
+			totalMinutesD1 = totalHoursD1 * 60;
+		} else {
+			totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
+				if (!curr.startTime || !curr.endTime) return acc;
+				const toMinutes = (timeStr) => {
+					const parts = timeStr.split(":");
+					if (parts.length < 2) return 0;
+					return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+				};
+				if (typeof curr.startTime === "string" && typeof curr.endTime === "string") {
+					const start = toMinutes(curr.startTime);
+					let diff = toMinutes(curr.endTime) - start;
+					if (diff < 0) diff += 1440;
+					return acc + diff;
+				}
+				return acc;
+			}, 0);
+			totalHoursD1 = totalMinutesD1 / 60;
+		}
+		const tonPerHourD1 = totalHoursD1 > 0 ? totalProductionOutputD1 / 1e3 / totalHoursD1 : 0;
 		const processTimeD1Display = `${Math.floor(totalMinutesD1 / 60)}h ${Math.round(totalMinutesD1 % 60).toString().padStart(2, "0")}m`;
 		const previousDateFormatted = format(previousDate, "dd/MM", { locale: ptBR });
 		const totalSteamAdjusted = steamRecords.reduce((acc, curr) => {
@@ -74235,24 +74247,6 @@ const $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
 		return payload;
 	};
 });
-const $ZodLiteral = /* @__PURE__ */ $constructor("$ZodLiteral", (inst, def) => {
-	$ZodType.init(inst, def);
-	if (def.values.length === 0) throw new Error("Cannot create literal schema with no valid values");
-	const values = new Set(def.values);
-	inst._zod.values = values;
-	inst._zod.pattern = /* @__PURE__ */ new RegExp(`^(${def.values.map((o$1) => typeof o$1 === "string" ? escapeRegex(o$1) : o$1 ? escapeRegex(o$1.toString()) : String(o$1)).join("|")})$`);
-	inst._zod.parse = (payload, _ctx) => {
-		const input = payload.value;
-		if (values.has(input)) return payload;
-		payload.issues.push({
-			code: "invalid_value",
-			values: def.values,
-			input,
-			inst
-		});
-		return payload;
-	};
-});
 const $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) => {
 	$ZodType.init(inst, def);
 	inst._zod.parse = (payload, ctx) => {
@@ -75361,27 +75355,6 @@ const enumProcessor = (schema, _ctx, json, _params) => {
 	if (values.every((v) => typeof v === "string")) json.type = "string";
 	json.enum = values;
 };
-const literalProcessor = (schema, ctx, json, _params) => {
-	const def = schema._zod.def;
-	const vals = [];
-	for (const val of def.values) if (val === void 0) {
-		if (ctx.unrepresentable === "throw") throw new Error("Literal `undefined` cannot be represented in JSON Schema");
-	} else if (typeof val === "bigint") if (ctx.unrepresentable === "throw") throw new Error("BigInt literals cannot be represented in JSON Schema");
-	else vals.push(Number(val));
-	else vals.push(val);
-	if (vals.length === 0) {} else if (vals.length === 1) {
-		const val = vals[0];
-		json.type = val === null ? "null" : typeof val;
-		if (ctx.target === "draft-04" || ctx.target === "openapi-3.0") json.enum = [val];
-		else json.const = val;
-	} else {
-		if (vals.every((v) => typeof v === "number")) json.type = "number";
-		if (vals.every((v) => typeof v === "string")) json.type = "string";
-		if (vals.every((v) => typeof v === "boolean")) json.type = "boolean";
-		if (vals.every((v) => v === null)) json.type = "null";
-		json.enum = vals;
-	}
-};
 const customProcessor = (_schema, ctx, _json, _params) => {
 	if (ctx.unrepresentable === "throw") throw new Error("Custom types cannot be represented in JSON Schema");
 };
@@ -76092,23 +76065,6 @@ function _enum(values, params) {
 	return new ZodEnum({
 		type: "enum",
 		entries: Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values,
-		...normalizeParams(params)
-	});
-}
-const ZodLiteral = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
-	$ZodLiteral.init(inst, def);
-	ZodType.init(inst, def);
-	inst._zod.processJSONSchema = (ctx, json, params) => literalProcessor(inst, ctx, json, params);
-	inst.values = new Set(def.values);
-	Object.defineProperty(inst, "value", { get() {
-		if (def.values.length > 1) throw new Error("This schema contains multiple valid literal values. Use `.values` instead.");
-		return def.values[0];
-	} });
-});
-function literal(value, params) {
-	return new ZodLiteral({
-		type: "literal",
-		values: Array.isArray(value) ? value : [value],
 		...normalizeParams(params)
 	});
 }
@@ -84629,15 +84585,11 @@ function SeboInventory() {
 }
 var formSchema$1 = object({
 	date: string().min(1, "Data é obrigatória"),
-	startTime: string().min(1, "Hora Início é obrigatória"),
-	endTime: string().optional().or(literal(""))
+	totalHours: number().min(.1, "Horas devem ser maiores que 0").max(24, "Máximo 24 horas")
 });
 function CookingTimeForm() {
 	const { addCookingTimeRecord, cookingTimeRecords, deleteCookingTimeRecord, updateCookingTimeRecord } = useData();
 	const { toast: toast$2 } = useToast();
-	const [finishingRecord, setFinishingRecord] = (0, import_react.useState)(null);
-	const [finishTime, setFinishTime] = (0, import_react.useState)("");
-	const [openDialog, setOpenDialog] = (0, import_react.useState)(false);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
 	const handleProtectedAction = (createdAt, action) => {
@@ -84655,49 +84607,25 @@ function CookingTimeForm() {
 		resolver: a(formSchema$1),
 		defaultValues: {
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
-			startTime: "",
-			endTime: ""
+			totalHours: 0
 		}
 	});
 	function onSubmit(values) {
 		addCookingTimeRecord({
 			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-			startTime: values.startTime,
-			endTime: values.endTime || null,
+			totalHours: values.totalHours,
 			userId: "",
 			factoryId: ""
 		});
 		toast$2({
 			title: "Registro salvo",
-			description: values.endTime ? "Tempo de cozimento adicionado." : "Processo iniciado com sucesso."
+			description: "Horas de produção registradas com sucesso."
 		});
 		form.reset({
 			date: values.date,
-			startTime: "",
-			endTime: ""
+			totalHours: 0
 		});
 	}
-	const handleFinish = () => {
-		if (finishingRecord && finishTime) {
-			updateCookingTimeRecord({
-				...finishingRecord,
-				endTime: finishTime
-			});
-			setOpenDialog(false);
-			setFinishingRecord(null);
-			setFinishTime("");
-			toast$2({
-				title: "Processo finalizado",
-				description: "Hora de término registrada com sucesso."
-			});
-		}
-	};
-	const openFinishDialog = (record) => {
-		setFinishingRecord(record);
-		const now$2 = /* @__PURE__ */ new Date();
-		setFinishTime(`${String(now$2.getHours()).padStart(2, "0")}:${String(now$2.getMinutes()).padStart(2, "0")}`);
-		setOpenDialog(true);
-	};
 	const todayStr = form.watch("date");
 	const displayedRecords = cookingTimeRecords.filter((r$2) => {
 		try {
@@ -84710,8 +84638,8 @@ function CookingTimeForm() {
 		className: "shadow-sm border",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 			className: "flex items-center gap-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-5 w-5 text-primary" }), "Tempo de Cozimento"]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registre os tempos de processo do digestor." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-5 w-5 text-primary" }), "Tempo de Processo"]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registre as horas totais de produção diária." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
 			className: "space-y-6",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
@@ -84737,28 +84665,15 @@ function CookingTimeForm() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 								control: form.control,
-								name: "startTime",
+								name: "totalHours",
 								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
 									className: "flex-1",
 									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Hora Início" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Horas de Produção" }),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "time",
-											...field
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									]
-								})
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-								control: form.control,
-								name: "endTime",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
-									className: "flex-1",
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Hora Fim (Opcional)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "time",
+											type: "number",
+											step: "0.1",
+											placeholder: "Ex: 10.5",
 											...field
 										}) }),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
@@ -84767,7 +84682,7 @@ function CookingTimeForm() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								type: "submit",
-								children: "Adicionar"
+								children: "Salvar"
 							})
 						]
 					})
@@ -84782,66 +84697,29 @@ function CookingTimeForm() {
 						const isLocked = shouldRequireAuth(record.createdAt);
 						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "flex items-center gap-2",
-							children: [record.endTime ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleStop, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-								record.startTime,
-								" - ",
-								record.endTime
-							] })] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CirclePlay, { className: "h-4 w-4 text-green-500 animate-pulse" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-								className: "font-medium text-green-600",
-								children: [record.startTime, " - Em andamento"]
-							})] }), isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50 ml-1" })]
-						}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-							className: "text-right flex items-center justify-end gap-2",
-							children: [!record.endTime && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								variant: "outline",
-								size: "sm",
-								className: "h-8 gap-1 text-xs",
-								onClick: () => handleProtectedAction(record.createdAt, () => openFinishDialog(record)),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, { className: "h-3 w-3" }), "Finalizar"]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, { className: "h-4 w-4 text-green-500" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "font-medium",
+									children: record.totalHours ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [record.totalHours, " horas"] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										record.startTime,
+										" - ",
+										record.endTime || "..."
+									] })
+								}),
+								isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50 ml-1" })
+							]
+						}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								onClick: () => handleProtectedAction(record.createdAt, () => deleteCookingTimeRecord(record.id)),
 								className: "h-8 w-8 text-destructive hover:text-destructive/90",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-							})]
+							})
 						})] }, record.id);
 					}) }) })
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
-					open: openDialog,
-					onOpenChange: setOpenDialog,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-						className: "sm:max-w-sm",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Finalizar Processo" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Informe a hora de término para encerrar este ciclo." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "space-y-4 py-4",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "space-y-2",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Label, { children: ["Hora Início: ", finishingRecord?.startTime] })
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "space-y-2",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
-										htmlFor: "finish-time",
-										children: "Hora Fim"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										id: "finish-time",
-										type: "time",
-										value: finishTime,
-										onChange: (e) => setFinishTime(e.target.value),
-										autoFocus: true
-									})]
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									onClick: handleFinish,
-									className: "w-full",
-									disabled: !finishTime,
-									children: "Confirmar Término"
-								})
-							]
-						})]
-					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
 					isOpen: securityOpen,
@@ -85125,20 +85003,27 @@ function DowntimeManager() {
 }
 function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, productionRecords, now$2 = /* @__PURE__ */ new Date()) {
 	const activeMinutesArray = new Int8Array(1440).fill(0);
-	cookingRecords.filter((r$2) => isSameDay(r$2.date, date$4)).forEach((record) => {
-		const [startH, startM] = record.startTime.split(":").map(Number);
-		let startMin = startH * 60 + startM;
-		let endMin = 1440;
-		if (record.endTime) {
-			const [endH, endM] = record.endTime.split(":").map(Number);
-			endMin = endH * 60 + endM;
-			if (endMin < startMin) endMin = 1440;
-		} else if (isSameDay(date$4, now$2)) endMin = now$2.getHours() * 60 + now$2.getMinutes();
-		startMin = Math.max(0, Math.min(1440, startMin));
-		endMin = Math.max(0, Math.min(1440, endMin));
-		for (let i$2 = startMin; i$2 < endMin; i$2++) activeMinutesArray[i$2] = 1;
+	const dayCooking = cookingRecords.filter((r$2) => isSameDay(r$2.date, date$4));
+	const recordsWithTotalHours = dayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
+	const hasTotalHoursInput = recordsWithTotalHours.length > 0;
+	let totalManualHours = 0;
+	if (hasTotalHoursInput) totalManualHours = recordsWithTotalHours.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
+	dayCooking.forEach((record) => {
+		if (record.startTime) {
+			const [startH, startM] = record.startTime.split(":").map(Number);
+			let startMin = startH * 60 + startM;
+			let endMin = 1440;
+			if (record.endTime) {
+				const [endH, endM] = record.endTime.split(":").map(Number);
+				endMin = endH * 60 + endM;
+				if (endMin < startMin) endMin = 1440;
+			} else if (isSameDay(date$4, now$2)) endMin = now$2.getHours() * 60 + now$2.getMinutes();
+			startMin = Math.max(0, Math.min(1440, startMin));
+			endMin = Math.max(0, Math.min(1440, endMin));
+			for (let i$2 = startMin; i$2 < endMin; i$2++) activeMinutesArray[i$2] = 1;
+		}
 	});
-	const rawActiveMinutes = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
+	const rawActiveMinutesLegacy = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
 	const dayDowntime = downtimeRecords.filter((r$2) => {
 		if (r$2.startTime) return isSameDay(new Date(r$2.startTime), date$4);
 		return isSameDay(r$2.date, date$4);
@@ -85161,21 +85046,32 @@ function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, producti
 		} else manualDowntimeMinutes += record.durationHours * 60;
 	});
 	const grossActiveMinutes = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
-	const netActiveMinutes = Math.max(0, grossActiveMinutes - manualDowntimeMinutes);
-	const netActiveHours = netActiveMinutes / 60;
-	const totalDowntimeMinutes = rawActiveMinutes - grossActiveMinutes + manualDowntimeMinutes;
+	let netActiveMinutes = 0;
+	let netActiveHours = 0;
+	if (hasTotalHoursInput) {
+		netActiveHours = totalManualHours;
+		netActiveMinutes = totalManualHours * 60;
+	} else {
+		netActiveMinutes = Math.max(0, grossActiveMinutes - manualDowntimeMinutes);
+		netActiveHours = netActiveMinutes / 60;
+	}
+	const totalDowntimeMinutes = hasTotalHoursInput ? manualDowntimeMinutes + timestampedDowntimeMinutes * 0 : rawActiveMinutesLegacy - grossActiveMinutes + manualDowntimeMinutes;
+	const totalProduction = productionRecords.filter((p) => isSameDay(p.date, date$4)).reduce((acc, curr) => {
+		return acc + (curr.seboProduced || 0) + (curr.fcoProduced || 0) + (curr.farinhetaProduced || 0);
+	}, 0);
+	const rateKg = netActiveHours > 0 ? totalProduction / netActiveHours : 0;
+	const rateTon = rateKg / 1e3;
 	const totalConsumption = productionRecords.filter((p) => isSameDay(p.date, date$4)).reduce((acc, curr) => acc + (curr.mpUsed || 0), 0);
-	const rateKg = netActiveHours > 0 ? totalConsumption / netActiveHours : 0;
 	return {
 		activeMinutesArray,
-		rawActiveMinutes,
+		rawActiveMinutes: hasTotalHoursInput ? netActiveMinutes : rawActiveMinutesLegacy,
 		grossActiveMinutes,
 		netActiveMinutes,
 		netActiveHours,
 		totalConsumption,
 		totalDowntimeMinutes,
 		rateKg,
-		rateTon: rateKg / 1e3
+		rateTon
 	};
 }
 function HourlyProductionEfficiencyChart({ date: date$4 }) {
@@ -85366,11 +85262,11 @@ function ProcessMetricsCard({ date: date$4 }) {
 				className: "flex flex-row items-center justify-between space-y-0 pb-2",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
 					className: "text-sm font-medium",
-					children: "Tempo Bruto"
+					children: "Tempo Líquido"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-4 w-4 text-muted-foreground" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "text-2xl font-bold",
-				children: formatTime(metrics.rawActiveMinutes)
+				children: formatTime(metrics.netActiveMinutes)
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "text-xs text-muted-foreground",
 				children: "Tempo total de cozimento"
@@ -88329,4 +88225,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DMlHVI6g.js.map
+//# sourceMappingURL=index-DOEKSYgj.js.map

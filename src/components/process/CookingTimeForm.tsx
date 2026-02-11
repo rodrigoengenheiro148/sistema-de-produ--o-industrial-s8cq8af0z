@@ -23,30 +23,17 @@ import {
   CardDescription,
 } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import {
-  Trash2,
-  Clock,
-  PlayCircle,
-  StopCircle,
-  Check,
-  Lock,
-} from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { CookingTimeRecord } from '@/lib/types'
+import { Trash2, Clock, Check, Lock, Edit2 } from 'lucide-react'
 import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
+import { cn } from '@/lib/utils'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
-  startTime: z.string().min(1, 'Hora Início é obrigatória'),
-  endTime: z.string().optional().or(z.literal('')),
+  totalHours: z.coerce
+    .number()
+    .min(0.1, 'Horas devem ser maiores que 0')
+    .max(24, 'Máximo 24 horas'),
 })
 
 export function CookingTimeForm() {
@@ -57,10 +44,6 @@ export function CookingTimeForm() {
     updateCookingTimeRecord,
   } = useData()
   const { toast } = useToast()
-  const [finishingRecord, setFinishingRecord] =
-    useState<CookingTimeRecord | null>(null)
-  const [finishTime, setFinishTime] = useState('')
-  const [openDialog, setOpenDialog] = useState(false)
 
   // Security Gate
   const [securityOpen, setSecurityOpen] = useState(false)
@@ -88,8 +71,7 @@ export function CookingTimeForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: format(new Date(), 'yyyy-MM-dd'),
-      startTime: '',
-      endTime: '',
+      totalHours: 0,
     },
   })
 
@@ -97,51 +79,24 @@ export function CookingTimeForm() {
     // Append T12:00:00 to prevent timezone issues with date
     const dateObj = new Date(`${values.date}T12:00:00`)
 
+    // Check if record exists for this date to avoid duplicates if preferred,
+    // but schema allows multiple. For simplicity, we just add.
     addCookingTimeRecord({
       date: dateObj,
-      startTime: values.startTime,
-      endTime: values.endTime || null, // Convert empty string to null
+      totalHours: values.totalHours,
       userId: '', // handled by context/auth
       factoryId: '', // handled by context
     })
 
     toast({
       title: 'Registro salvo',
-      description: values.endTime
-        ? 'Tempo de cozimento adicionado.'
-        : 'Processo iniciado com sucesso.',
+      description: 'Horas de produção registradas com sucesso.',
     })
 
     form.reset({
       date: values.date, // keep date
-      startTime: '',
-      endTime: '',
+      totalHours: 0,
     })
-  }
-
-  const handleFinish = () => {
-    if (finishingRecord && finishTime) {
-      updateCookingTimeRecord({
-        ...finishingRecord,
-        endTime: finishTime,
-      })
-      setOpenDialog(false)
-      setFinishingRecord(null)
-      setFinishTime('')
-      toast({
-        title: 'Processo finalizado',
-        description: 'Hora de término registrada com sucesso.',
-      })
-    }
-  }
-
-  const openFinishDialog = (record: CookingTimeRecord) => {
-    setFinishingRecord(record)
-    // Default to current time for convenience
-    const now = new Date()
-    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    setFinishTime(timeStr)
-    setOpenDialog(true)
   }
 
   // Filter recently added records for display (e.g. current day)
@@ -159,10 +114,10 @@ export function CookingTimeForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
-          Tempo de Cozimento
+          Tempo de Processo
         </CardTitle>
         <CardDescription>
-          Registre os tempos de processo do digestor.
+          Registre as horas totais de produção diária.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -186,31 +141,23 @@ export function CookingTimeForm() {
             />
             <FormField
               control={form.control}
-              name="startTime"
+              name="totalHours"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>Hora Início</FormLabel>
+                  <FormLabel>Horas de Produção</FormLabel>
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 10.5"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="endTime"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Hora Fim (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit">Adicionar</Button>
+            <Button type="submit">Salvar</Button>
           </form>
         </Form>
 
@@ -233,42 +180,23 @@ export function CookingTimeForm() {
                     <TableRow key={record.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          {record.endTime ? (
-                            <>
-                              <StopCircle className="h-4 w-4 text-muted-foreground" />
-                              <span>
-                                {record.startTime} - {record.endTime}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <PlayCircle className="h-4 w-4 text-green-500 animate-pulse" />
-                              <span className="font-medium text-green-600">
-                                {record.startTime} - Em andamento
-                              </span>
-                            </>
-                          )}
+                          <Check className="h-4 w-4 text-green-500" />
+                          <span className="font-medium">
+                            {record.totalHours ? (
+                              <>{record.totalHours} horas</>
+                            ) : (
+                              // Fallback for legacy records
+                              <>
+                                {record.startTime} - {record.endTime || '...'}
+                              </>
+                            )}
+                          </span>
                           {isLocked && (
                             <Lock className="h-3 w-3 text-muted-foreground/50 ml-1" />
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right flex items-center justify-end gap-2">
-                        {!record.endTime && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1 text-xs"
-                            onClick={() =>
-                              handleProtectedAction(record.createdAt, () =>
-                                openFinishDialog(record),
-                              )
-                            }
-                          >
-                            <Check className="h-3 w-3" />
-                            Finalizar
-                          </Button>
-                        )}
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -289,40 +217,6 @@ export function CookingTimeForm() {
             </TableBody>
           </Table>
         </div>
-
-        {/* Finish Dialog */}
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Finalizar Processo</DialogTitle>
-              <DialogDescription>
-                Informe a hora de término para encerrar este ciclo.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Hora Início: {finishingRecord?.startTime}</Label>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="finish-time">Hora Fim</Label>
-                <Input
-                  id="finish-time"
-                  type="time"
-                  value={finishTime}
-                  onChange={(e) => setFinishTime(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <Button
-                onClick={handleFinish}
-                className="w-full"
-                disabled={!finishTime}
-              >
-                Confirmar Término
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         <SecurityGate
           isOpen={securityOpen}

@@ -598,6 +598,9 @@ section[aria-label='Notifications alt+T'] {
 .collapse{
   visibility: collapse;
 }
+.static{
+  position: static;
+}
 .fixed{
   position: fixed;
 }
@@ -2784,6 +2787,9 @@ section[aria-label='Notifications alt+T'] {
 }
 .ease-out{
   animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+.running{
+  animation-play-state: running;
 }
 .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);

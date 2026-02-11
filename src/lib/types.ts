@@ -88,8 +88,9 @@ export interface CookingTimeRecord {
   factoryId: string
   userId: string
   date: Date
-  startTime: string
-  endTime: string | null
+  startTime?: string | null
+  endTime?: string | null
+  totalHours?: number | null
   createdAt?: Date
 }
 
