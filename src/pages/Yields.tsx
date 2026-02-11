@@ -25,7 +25,7 @@ import {
   Info,
   Settings,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, isBloodRecord } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -89,6 +89,10 @@ export default function Yields() {
 
   const filteredProduction = production
     .filter((item) => {
+      // Exclude blood records to ensure only industrial yields are shown
+      // This prevents rows with 0.00% yield from appearing in the table
+      if (isBloodRecord(item)) return false
+
       // Apply global date filter if exists, else show all
       if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false

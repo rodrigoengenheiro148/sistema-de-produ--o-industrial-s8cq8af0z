@@ -78627,6 +78627,7 @@ function Yields() {
 		return output / input * 100;
 	};
 	const filteredProduction = production.filter((item) => {
+		if (isBloodRecord(item)) return false;
 		if (dateRange.from && dateRange.to) {
 			if (item.date < dateRange.from || item.date > dateRange.to) return false;
 		}
@@ -88637,4 +88638,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D31NGcXb.js.map
+//# sourceMappingURL=index-DwV7dsZF.js.map
