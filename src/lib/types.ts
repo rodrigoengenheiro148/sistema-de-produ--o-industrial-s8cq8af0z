@@ -121,6 +121,15 @@ export interface SteamControlRecord {
   createdAt?: Date
 }
 
+export interface DailyProductionForecast {
+  id: string
+  factoryId: string
+  date: Date
+  mpForecast: number
+  userId?: string
+  createdAt?: Date
+}
+
 export interface DateRange {
   from: Date | undefined
   to: Date | undefined
@@ -214,6 +223,7 @@ export interface DataContextType {
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
   steamRecords: SteamControlRecord[]
+  dailyForecasts: DailyProductionForecast[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (
@@ -250,6 +260,8 @@ export interface DataContextType {
   updateSteamRecord: (entry: SteamControlRecord) => void
   deleteSteamRecord: (id: string) => void
   clearSteamRecords: () => Promise<void>
+
+  saveDailyForecast: (date: Date, mpForecast: number) => Promise<void>
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

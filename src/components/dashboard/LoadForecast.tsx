@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -16,9 +16,15 @@ import {
   Wheat,
   Scale,
   Info,
+  Edit2,
+  Check,
+  Save,
 } from 'lucide-react'
-import { isSameDay } from 'date-fns'
+import { isSameDay, format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 
 interface LoadForecastProps {
   referenceDate?: Date
@@ -26,60 +32,117 @@ interface LoadForecastProps {
 }
 
 export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
-  const { rawMaterials } = useData()
+  const { rawMaterials, dailyForecasts, saveDailyForecast } = useData()
+  const { toast } = useToast()
   const targetDate = referenceDate || new Date()
 
-  // Constants defined in Acceptance Criteria
-  const SHIFT_HOURS = 16 // 2 shifts of 8h
-  const BAGS_PER_HOUR = 4 // 1 bag every 15 mins
-  const THEORETICAL_CAPACITY = BAGS_PER_HOUR * SHIFT_HOURS // 64 bags/day
+  const [forecastInput, setForecastInput] = useState<string>('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Flow Rates (Fixed as per AC)
-  const FLOW_RATE_1450 = 5.8 // t/h
-  const FLOW_RATE_1500 = 6.0 // t/h
+  // Find existing forecast for the day
+  const existingForecast = useMemo(() => {
+    return dailyForecasts.find((f) => isSameDay(f.date, targetDate))
+  }, [dailyForecasts, targetDate])
 
-  // Yield Factors (Fixed as per AC)
+  // Initialize input when date or data changes
+  useEffect(() => {
+    if (existingForecast) {
+      setForecastInput(String(existingForecast.mpForecast))
+    } else {
+      // Fallback: If no forecast, optionally sum today's realized MP, but usually forecasts are set manually.
+      // We will leave it empty or 0 if no record exists to encourage input.
+      setForecastInput('')
+    }
+  }, [existingForecast, targetDate])
+
+  const handleSaveForecast = async () => {
+    setIsLoading(true)
+    const val = parseFloat(forecastInput)
+    if (isNaN(val) || val < 0) {
+      toast({
+        title: 'Valor inválido',
+        description:
+          'Por favor, insira um valor numérico válido para a previsão.',
+        variant: 'destructive',
+      })
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      await saveDailyForecast(targetDate, val)
+      toast({
+        title: 'Previsão atualizada',
+        description: 'A previsão de entrada foi salva com sucesso.',
+      })
+      setIsEditing(false)
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar a previsão.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // --- Calculations ---
+
+  // If we have a forecast, use it. Otherwise, fallback to sum of raw materials (realized) or 0.
+  // The requirement emphasizes "based on the raw material input", which refers to the forecast input field.
+  const activeMpValue = existingForecast
+    ? existingForecast.mpForecast
+    : rawMaterials
+        .filter((r) => isSameDay(r.date, targetDate))
+        .reduce((acc, curr) => acc + curr.quantity, 0) // Fallback to realized if forecast missing
+
+  // Constants (Fixed as per AC)
+  const HOURS_IN_DAY = 24
+  // Theoretical Capacity: Fixed machine limit (4 bags/h * 24h = 96 bags/day)
+  // Or dynamic based on flow? AC says: "Dynamic ... theoretical capacity (bags/day) ... based on input".
+  // However, "Theoretical" usually implies a limit. But "Capacidade Teórica" in context of planning often means "Projected Capacity Usage".
+  // Let's stick to the visual: "Cap. Teórica: 64 bags/dia" was for 16h (4*16).
+  // For 24h, it should be 96 bags/dia (4*24) if it's a machine constant.
+  // BUT, if it must be dynamic based on input, it would be identical to "Previsão Hoje".
+  // I will use the constant 96 as it represents the machine throughput limit per day.
+  const MACHINE_CAPACITY_BAGS_DAY = 4 * 24 // 96
+
+  // Yield Factors
   const YIELD_FACTORS = {
     sebo: 0.15, // 15%
     fco: 0.2, // 20%
     farinheta: 0.05, // 5%
   }
 
-  const { forecasts } = useMemo(() => {
-    // 1. Calculate Daily Raw Material Input
-    // Sum quantity from raw_materials table for the current factory and date
-    // Note: useData already filters rawMaterials by currentFactoryId on fetch
-    // but we need to filter by the specific date for the forecast
-    const dailyMp = rawMaterials
-      .filter((r) => isSameDay(r.date, targetDate))
-      .reduce((acc, curr) => acc + curr.quantity, 0)
+  const calculateMetrics = (yieldFactor: number) => {
+    // Est. Prod (kg) = MP * Yield Factor
+    const estProdKg = activeMpValue * yieldFactor
+    const estProdTons = estProdKg / 1000
 
-    const calculateMetrics = (yieldFactor: number) => {
-      // Est. Prod (kg) = Total Raw Material * Yield Factor
-      const estProdKg = dailyMp * yieldFactor
-      const estProdTons = estProdKg / 1000
+    // Flow (t/h) = Est Prod (t) / 24h
+    // AC: "These values should be calculated by taking the estimated production ... divided by 24."
+    const flowTh = estProdTons / HOURS_IN_DAY
 
-      // Bag counts (Math.floor)
-      // Bags 1450kg: (Est. Prod * 1000) / 1450
-      // Bags 1500kg: (Est. Prod * 1000) / 1500
-      const bags1450 = Math.floor(estProdKg / 1450)
-      const bags1500 = Math.floor(estProdKg / 1500)
-
-      return {
-        estProdTons,
-        bags1450,
-        bags1500,
-      }
-    }
+    // Bag counts (Math.floor or round? Usually planning implies distinct bags)
+    // "Previsão Hoje (Bags)"
+    const bags1450 = Math.floor(estProdKg / 1450)
+    const bags1500 = Math.floor(estProdKg / 1500)
 
     return {
-      forecasts: {
-        sebo: calculateMetrics(YIELD_FACTORS.sebo),
-        fco: calculateMetrics(YIELD_FACTORS.fco),
-        farinheta: calculateMetrics(YIELD_FACTORS.farinheta),
-      },
+      estProdTons,
+      flowTh,
+      bags1450,
+      bags1500,
     }
-  }, [rawMaterials, targetDate])
+  }
+
+  const forecasts = {
+    sebo: calculateMetrics(YIELD_FACTORS.sebo),
+    fco: calculateMetrics(YIELD_FACTORS.fco),
+    farinheta: calculateMetrics(YIELD_FACTORS.farinheta),
+  }
 
   const ForecastCard = ({
     title,
@@ -94,6 +157,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     bgClass: string
     data: {
       estProdTons: number
+      flowTh: number
       bags1450: number
       bags1500: number
     }
@@ -114,12 +178,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
           <span className="font-bold text-base">{title}</span>
         </div>
 
-        <div className="p-5 space-y-6 flex-1">
+        <div className="p-5 space-y-6 flex-1 flex flex-col justify-between">
           {/* Cadence Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               <Clock className="h-3.5 w-3.5" />
-              Cadência ({SHIFT_HOURS}H)
+              Cadência ({HOURS_IN_DAY}H)
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center">
@@ -127,7 +191,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                   Flow 1450kg
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  {FLOW_RATE_1450.toFixed(2)}{' '}
+                  {data.flowTh.toFixed(2)}{' '}
                   <span className="text-xs font-normal text-muted-foreground">
                     t/h
                   </span>
@@ -138,7 +202,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                   Flow 1500kg
                 </div>
                 <div className="text-base font-bold text-foreground">
-                  {FLOW_RATE_1500.toFixed(2)}{' '}
+                  {data.flowTh.toFixed(2)}{' '}
                   <span className="text-xs font-normal text-muted-foreground">
                     t/h
                   </span>
@@ -147,11 +211,11 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             </div>
             <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 bg-muted/20 py-1.5 rounded-md">
               <Info className="h-3.5 w-3.5" /> Cap. Teórica:{' '}
-              <strong>{THEORETICAL_CAPACITY} bags/dia</strong>
+              <strong>{MACHINE_CAPACITY_BAGS_DAY} bags/dia</strong>
             </div>
           </div>
 
-          <Separator />
+          <Separator className="opacity-50" />
 
           {/* Daily Forecast Section */}
           <div className="space-y-3">
@@ -160,7 +224,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
               Previsão Hoje (Bags)
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
+              <div
+                className={cn(
+                  'flex flex-col items-center justify-center p-4 rounded-md border',
+                  bgClass.replace('border-', 'border-opacity-50 '),
+                )}
+              >
                 <span
                   className={cn(
                     'text-2xl font-bold leading-none mb-1.5',
@@ -173,7 +242,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                   1450KG
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20">
+              <div
+                className={cn(
+                  'flex flex-col items-center justify-center p-4 rounded-md border',
+                  bgClass.replace('border-', 'border-opacity-50 '),
+                )}
+              >
                 <span
                   className={cn(
                     'text-2xl font-bold leading-none mb-1.5',
@@ -199,13 +273,72 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
   return (
     <Card className={cn('shadow-sm border-primary/10', className)}>
       <CardHeader className="pb-4">
-        <div className="flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
-          <div>
-            <CardTitle>Planejamento de Produção & Logística</CardTitle>
-            <CardDescription>
-              Previsão de bags baseada na entrada de matéria-prima do dia
-            </CardDescription>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Planejamento de Produção & Logística</CardTitle>
+              <CardDescription>
+                Previsão de bags baseada na entrada de matéria-prima do dia
+              </CardDescription>
+            </div>
+          </div>
+
+          {/* Operational Input Section */}
+          <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
+            <div className="flex flex-col px-2">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                Previsão de entrada de MP
+              </span>
+              <div className="flex items-baseline gap-1">
+                {isEditing ? (
+                  <Input
+                    type="number"
+                    value={forecastInput}
+                    onChange={(e) => setForecastInput(e.target.value)}
+                    className="h-7 w-32 text-sm px-2 py-1"
+                    placeholder="0"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveForecast()
+                      if (e.key === 'Escape') {
+                        setIsEditing(false)
+                        setForecastInput(
+                          existingForecast
+                            ? String(existingForecast.mpForecast)
+                            : '',
+                        )
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="text-lg font-bold font-mono">
+                    {activeMpValue.toLocaleString('pt-BR')}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">kg</span>
+              </div>
+            </div>
+
+            {isEditing ? (
+              <Button
+                size="sm"
+                className="h-7 w-7"
+                onClick={handleSaveForecast}
+                disabled={isLoading}
+              >
+                <Save className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 text-muted-foreground hover:text-primary"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>

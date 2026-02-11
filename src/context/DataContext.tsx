@@ -24,8 +24,9 @@ import {
   CookingTimeRecord,
   DowntimeRecord,
   SteamControlRecord,
+  DailyProductionForecast,
 } from '@/lib/types'
-import { startOfMonth, endOfMonth } from 'date-fns'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -137,6 +138,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   >([])
   const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
   const [steamRecords, setSteamRecords] = useState<SteamControlRecord[]>([])
+  const [dailyForecasts, setDailyForecasts] = useState<
+    DailyProductionForecast[]
+  >([])
+
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
 
@@ -260,6 +265,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setCookingTimeRecords([])
       setDowntimeRecords([])
       setSteamRecords([])
+      setDailyForecasts([])
       return
     }
 
@@ -273,6 +279,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: cooking },
         { data: downtime },
         { data: steam },
+        { data: forecasts },
       ] = await Promise.all([
         supabase
           .from('raw_materials')
@@ -314,6 +321,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('*')
           .eq('factory_id', currentFactoryId)
           .order('date', { ascending: false }),
+        supabase
+          .from('daily_production_forecasts')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .order('date', { ascending: false }),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -324,6 +336,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       if (cooking) setCookingTimeRecords(mapData(cooking))
       if (downtime) setDowntimeRecords(mapData(downtime))
       if (steam) setSteamRecords(steam.map(mapSteamRecord))
+      if (forecasts) {
+        setDailyForecasts(
+          forecasts.map((f: any) => ({
+            id: f.id,
+            factoryId: f.factory_id,
+            date: parseDateSafe(f.date),
+            mpForecast: f.mp_forecast,
+            userId: f.user_id,
+            createdAt: f.created_at ? new Date(f.created_at) : undefined,
+          })),
+        )
+      }
 
       setLastProtheusSync(new Date())
     } catch (error) {
@@ -385,6 +409,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'cooking_time_records',
       'downtime_records',
       'steam_control_records',
+      'daily_production_forecasts',
     ]
 
     tables.forEach((table) => {
@@ -511,7 +536,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const updateProduction = async (entry: ProductionEntry) => {
-    // If updating, ideally we shouldn't change factory_id unless intended
     const payload: any = {
       date: entry.date.toISOString(),
       shift: entry.shift,
@@ -780,6 +804,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchOperationalData()
   }
 
+  const saveDailyForecast = async (date: Date, mpForecast: number) => {
+    if (!currentFactoryId || !user?.id) return
+
+    const dateStr = format(date, 'yyyy-MM-dd')
+
+    const { error } = await supabase.from('daily_production_forecasts').upsert(
+      {
+        date: dateStr,
+        mp_forecast: mpForecast,
+        factory_id: currentFactoryId,
+        user_id: user.id,
+      },
+      { onConflict: 'factory_id,date' },
+    )
+
+    if (error) {
+      console.error('Error saving daily forecast:', error)
+      throw error
+    } else {
+      fetchOperationalData()
+    }
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -949,6 +996,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('cooking_time_records').delete().eq('user_id', user.id),
       supabase.from('downtime_records').delete().eq('user_id', user.id),
       supabase.from('steam_control_records').delete().eq('user_id', user.id),
+      supabase
+        .from('daily_production_forecasts')
+        .delete()
+        .eq('user_id', user.id),
     ])
     fetchOperationalData()
   }
@@ -990,6 +1041,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         updateSteamRecord,
         deleteSteamRecord,
         clearSteamRecords,
+        dailyForecasts,
+        saveDailyForecast,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},

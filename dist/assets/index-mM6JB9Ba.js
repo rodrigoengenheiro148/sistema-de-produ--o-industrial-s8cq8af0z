@@ -19720,6 +19720,10 @@ var PanelLeft = createLucideIcon("panel-left", [["rect", {
 	d: "M9 3v18",
 	key: "fh3hqa"
 }]]);
+var Pen = createLucideIcon("pen", [["path", {
+	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+	key: "1a8usu"
+}]]);
 var Pencil = createLucideIcon("pencil", [["path", {
 	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
 	key: "1a8usu"
@@ -35923,6 +35927,7 @@ const DataProvider = ({ children }) => {
 	const [cookingTimeRecords, setCookingTimeRecords] = (0, import_react.useState)([]);
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
 	const [steamRecords, setSteamRecords] = (0, import_react.useState)([]);
+	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
 	const [systemSettings, setSystemSettings] = (0, import_react.useState)(DEFAULT_SETTINGS);
@@ -36009,10 +36014,11 @@ const DataProvider = ({ children }) => {
 			setCookingTimeRecords([]);
 			setDowntimeRecords([]);
 			setSteamRecords([]);
+			setDailyForecasts([]);
 			return;
 		}
 		try {
-			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }] = await Promise.all([
+			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
 				supabase.from("raw_materials").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("production").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("shipping").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
@@ -36020,7 +36026,8 @@ const DataProvider = ({ children }) => {
 				supabase.from("quality_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("cooking_time_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
 				supabase.from("downtime_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("steam_control_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false })
+				supabase.from("steam_control_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
+				supabase.from("daily_production_forecasts").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false })
 			]);
 			if (raw) setRawMaterials(mapData(raw));
 			if (prod) setProduction(mapData(prod));
@@ -36030,6 +36037,14 @@ const DataProvider = ({ children }) => {
 			if (cooking) setCookingTimeRecords(mapData(cooking));
 			if (downtime) setDowntimeRecords(mapData(downtime));
 			if (steam) setSteamRecords(steam.map(mapSteamRecord));
+			if (forecasts) setDailyForecasts(forecasts.map((f) => ({
+				id: f.id,
+				factoryId: f.factory_id,
+				date: parseDateSafe(f.date),
+				mpForecast: f.mp_forecast,
+				userId: f.user_id,
+				createdAt: f.created_at ? new Date(f.created_at) : void 0
+			})));
 			setLastProtheusSync(/* @__PURE__ */ new Date());
 		} catch (error) {
 			console.error("Error fetching operational data:", error);
@@ -36072,7 +36087,8 @@ const DataProvider = ({ children }) => {
 			"quality_records",
 			"cooking_time_records",
 			"downtime_records",
-			"steam_control_records"
+			"steam_control_records",
+			"daily_production_forecasts"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
 				event: "*",
@@ -36377,6 +36393,20 @@ const DataProvider = ({ children }) => {
 		if (error) throw error;
 		await fetchOperationalData();
 	};
+	const saveDailyForecast = async (date$4, mpForecast) => {
+		if (!currentFactoryId || !user?.id) return;
+		const dateStr = format(date$4, "yyyy-MM-dd");
+		const { error } = await supabase.from("daily_production_forecasts").upsert({
+			date: dateStr,
+			mp_forecast: mpForecast,
+			factory_id: currentFactoryId,
+			user_id: user.id
+		}, { onConflict: "factory_id,date" });
+		if (error) {
+			console.error("Error saving daily forecast:", error);
+			throw error;
+		} else fetchOperationalData();
+	};
 	const addFactory = async (entry) => {
 		const { error } = await supabase.from("factories").insert({
 			name: entry.name,
@@ -36510,7 +36540,8 @@ const DataProvider = ({ children }) => {
 			supabase.from("quality_records").delete().eq("user_id", user.id),
 			supabase.from("cooking_time_records").delete().eq("user_id", user.id),
 			supabase.from("downtime_records").delete().eq("user_id", user.id),
-			supabase.from("steam_control_records").delete().eq("user_id", user.id)
+			supabase.from("steam_control_records").delete().eq("user_id", user.id),
+			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id)
 		]);
 		fetchOperationalData();
 	};
@@ -36550,6 +36581,8 @@ const DataProvider = ({ children }) => {
 			updateSteamRecord,
 			deleteSteamRecord,
 			clearSteamRecords,
+			dailyForecasts,
+			saveDailyForecast,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -66918,33 +66951,71 @@ var Separator = import_react.forwardRef(({ className, orientation = "horizontal"
 }));
 Separator.displayName = Root$3.displayName;
 function LoadForecast({ referenceDate, className }) {
-	const { rawMaterials } = useData();
+	const { rawMaterials, dailyForecasts, saveDailyForecast } = useData();
+	const { toast: toast$2 } = useToast();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
-	const SHIFT_HOURS = 16;
-	const THEORETICAL_CAPACITY = 4 * SHIFT_HOURS;
-	const FLOW_RATE_1450 = 5.8;
-	const FLOW_RATE_1500 = 6;
+	const [forecastInput, setForecastInput] = (0, import_react.useState)("");
+	const [isEditing, setIsEditing] = (0, import_react.useState)(false);
+	const [isLoading, setIsLoading] = (0, import_react.useState)(false);
+	const existingForecast = (0, import_react.useMemo)(() => {
+		return dailyForecasts.find((f) => isSameDay(f.date, targetDate));
+	}, [dailyForecasts, targetDate]);
+	(0, import_react.useEffect)(() => {
+		if (existingForecast) setForecastInput(String(existingForecast.mpForecast));
+		else setForecastInput("");
+	}, [existingForecast, targetDate]);
+	const handleSaveForecast = async () => {
+		setIsLoading(true);
+		const val = parseFloat(forecastInput);
+		if (isNaN(val) || val < 0) {
+			toast$2({
+				title: "Valor inválido",
+				description: "Por favor, insira um valor numérico válido para a previsão.",
+				variant: "destructive"
+			});
+			setIsLoading(false);
+			return;
+		}
+		try {
+			await saveDailyForecast(targetDate, val);
+			toast$2({
+				title: "Previsão atualizada",
+				description: "A previsão de entrada foi salva com sucesso."
+			});
+			setIsEditing(false);
+		} catch (error) {
+			toast$2({
+				title: "Erro ao salvar",
+				description: "Não foi possível salvar a previsão.",
+				variant: "destructive"
+			});
+		} finally {
+			setIsLoading(false);
+		}
+	};
+	const activeMpValue = existingForecast ? existingForecast.mpForecast : rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate)).reduce((acc, curr) => acc + curr.quantity, 0);
+	const HOURS_IN_DAY = 24;
+	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const YIELD_FACTORS = {
 		sebo: .15,
 		fco: .2,
 		farinheta: .05
 	};
-	const { forecasts } = (0, import_react.useMemo)(() => {
-		const dailyMp = rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate)).reduce((acc, curr) => acc + curr.quantity, 0);
-		const calculateMetrics = (yieldFactor) => {
-			const estProdKg = dailyMp * yieldFactor;
-			return {
-				estProdTons: estProdKg / 1e3,
-				bags1450: Math.floor(estProdKg / 1450),
-				bags1500: Math.floor(estProdKg / 1500)
-			};
+	const calculateMetrics = (yieldFactor) => {
+		const estProdKg = activeMpValue * yieldFactor;
+		const estProdTons = estProdKg / 1e3;
+		return {
+			estProdTons,
+			flowTh: estProdTons / HOURS_IN_DAY,
+			bags1450: Math.floor(estProdKg / 1450),
+			bags1500: Math.floor(estProdKg / 1500)
 		};
-		return { forecasts: {
-			sebo: calculateMetrics(YIELD_FACTORS.sebo),
-			fco: calculateMetrics(YIELD_FACTORS.fco),
-			farinheta: calculateMetrics(YIELD_FACTORS.farinheta)
-		} };
-	}, [rawMaterials, targetDate]);
+	};
+	const forecasts = {
+		sebo: calculateMetrics(YIELD_FACTORS.sebo),
+		fco: calculateMetrics(YIELD_FACTORS.fco),
+		farinheta: calculateMetrics(YIELD_FACTORS.farinheta)
+	};
 	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data }) => {
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
@@ -66958,7 +67029,7 @@ function LoadForecast({ referenceDate, className }) {
 					children: title
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "p-5 space-y-6 flex-1",
+				className: "p-5 space-y-6 flex-1 flex flex-col justify-between",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "space-y-3",
@@ -66968,7 +67039,7 @@ function LoadForecast({ referenceDate, className }) {
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3.5 w-3.5" }),
 									"Cadência (",
-									SHIFT_HOURS,
+									HOURS_IN_DAY,
 									"H)"
 								]
 							}),
@@ -66982,7 +67053,7 @@ function LoadForecast({ referenceDate, className }) {
 									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "text-base font-bold text-foreground",
 										children: [
-											FLOW_RATE_1450.toFixed(2),
+											data.flowTh.toFixed(2),
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs font-normal text-muted-foreground",
@@ -66998,7 +67069,7 @@ function LoadForecast({ referenceDate, className }) {
 									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "text-base font-bold text-foreground",
 										children: [
-											FLOW_RATE_1500.toFixed(2),
+											data.flowTh.toFixed(2),
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs font-normal text-muted-foreground",
@@ -67014,12 +67085,12 @@ function LoadForecast({ referenceDate, className }) {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-3.5 w-3.5" }),
 									" Cap. Teórica:",
 									" ",
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [THEORETICAL_CAPACITY, " bags/dia"] })
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [MACHINE_CAPACITY_BAGS_DAY, " bags/dia"] })
 								]
 							})
 						]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator, {}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator, { className: "opacity-50" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "space-y-3",
 						children: [
@@ -67030,7 +67101,7 @@ function LoadForecast({ referenceDate, className }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid grid-cols-2 gap-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20",
+									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 										className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
 										children: data.bags1450
@@ -67039,7 +67110,7 @@ function LoadForecast({ referenceDate, className }) {
 										children: "1450KG"
 									})]
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex flex-col items-center justify-center p-4 rounded-md bg-green-50/50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20",
+									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 										className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
 										children: data.bags1500
@@ -67068,8 +67139,55 @@ function LoadForecast({ referenceDate, className }) {
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
 			className: "pb-4",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex items-center gap-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
+				className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-col px-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-[10px] uppercase font-bold text-muted-foreground tracking-wider",
+							children: "Previsão de entrada de MP"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-baseline gap-1",
+							children: [isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								value: forecastInput,
+								onChange: (e) => setForecastInput(e.target.value),
+								className: "h-7 w-32 text-sm px-2 py-1",
+								placeholder: "0",
+								autoFocus: true,
+								onKeyDown: (e) => {
+									if (e.key === "Enter") handleSaveForecast();
+									if (e.key === "Escape") {
+										setIsEditing(false);
+										setForecastInput(existingForecast ? String(existingForecast.mpForecast) : "");
+									}
+								}
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-lg font-bold font-mono",
+								children: activeMpValue.toLocaleString("pt-BR")
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-xs text-muted-foreground",
+								children: "kg"
+							})]
+						})]
+					}), isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						size: "sm",
+						className: "h-7 w-7",
+						onClick: handleSaveForecast,
+						disabled: isLoading,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "h-3.5 w-3.5" })
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						size: "sm",
+						className: "h-7 w-7 text-muted-foreground hover:text-primary",
+						onClick: () => setIsEditing(true),
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pen, { className: "h-3.5 w-3.5" })
+					})]
+				})]
 			})
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "grid gap-6 md:grid-cols-3",
@@ -88198,4 +88316,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BZvuqx-C.js.map
+//# sourceMappingURL=index-mM6JB9Ba.js.map
