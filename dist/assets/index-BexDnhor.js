@@ -86576,7 +86576,7 @@ var COLORS = {
 	blue500: "#3b82f6"
 };
 function SteamCharts() {
-	const { steamRecords, production, dateRange } = useData();
+	const { steamRecords, production, rawMaterials, dateRange } = useData();
 	const [expandedChartId, setExpandedChartId] = (0, import_react.useState)(null);
 	const processedData = (0, import_react.useMemo)(() => {
 		const dataMap = /* @__PURE__ */ new Map();
@@ -86593,22 +86593,34 @@ function SteamCharts() {
 			});
 			return dataMap.get(dateKey);
 		};
+		const normalizeToKg = (quantity, unit$1) => {
+			const u = unit$1?.toLowerCase() || "";
+			if (u.includes("bag")) return quantity * 1400;
+			if (u.includes("ton")) return quantity * 1e3;
+			return quantity;
+		};
 		steamRecords.forEach((record) => {
 			if (dateRange.from && (record.date < dateRange.from || dateRange.to && record.date > dateRange.to)) return;
 			const entry = getEntry(record.date);
 			entry.steamConsumption += record.steamConsumption || 0;
 			entry.woodChips += record.woodChips || 0;
 		});
+		rawMaterials.forEach((rm) => {
+			if (rm.type === "Sangue") return;
+			if (dateRange.from && (rm.date < dateRange.from || dateRange.to && rm.date > dateRange.to)) return;
+			const entry = getEntry(rm.date);
+			entry.mpUsed += normalizeToKg(rm.quantity, rm.unit);
+		});
 		production.forEach((prod) => {
 			if (dateRange.from && (prod.date < dateRange.from || dateRange.to && prod.date > dateRange.to)) return;
 			const entry = getEntry(prod.date);
-			entry.mpUsed += prod.mpUsed || 0;
 			entry.totalProduction += (prod.seboProduced || 0) + (prod.fcoProduced || 0) + (prod.farinhetaProduced || 0);
 		});
 		return Array.from(dataMap.values()).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime());
 	}, [
 		steamRecords,
 		production,
+		rawMaterials,
 		dateRange
 	]);
 	const chartConfig$1 = {
@@ -88549,4 +88561,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-cCHNkCw2.js.map
+//# sourceMappingURL=index-BexDnhor.js.map

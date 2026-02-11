@@ -29,7 +29,7 @@ const COLORS = {
 }
 
 export function SteamCharts() {
-  const { steamRecords, production, dateRange } = useData()
+  const { steamRecords, production, rawMaterials, dateRange } = useData()
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null)
 
   const processedData = useMemo(() => {
@@ -62,6 +62,14 @@ export function SteamCharts() {
       return dataMap.get(dateKey)!
     }
 
+    // Helper to normalize quantity to kg
+    const normalizeToKg = (quantity: number, unit?: string) => {
+      const u = unit?.toLowerCase() || ''
+      if (u.includes('bag')) return quantity * 1400
+      if (u.includes('ton')) return quantity * 1000
+      return quantity
+    }
+
     // Process Steam Records
     steamRecords.forEach((record) => {
       if (
@@ -77,7 +85,23 @@ export function SteamCharts() {
       entry.woodChips += record.woodChips || 0
     })
 
-    // Process Production Records
+    // Process Raw Materials (Correct Source for MP)
+    rawMaterials.forEach((rm) => {
+      // Exclude 'Sangue' as it is not part of the main steam efficiency metric usually
+      if (rm.type === 'Sangue') return
+
+      if (
+        dateRange.from &&
+        (rm.date < dateRange.from || (dateRange.to && rm.date > dateRange.to))
+      ) {
+        return
+      }
+
+      const entry = getEntry(rm.date)
+      entry.mpUsed += normalizeToKg(rm.quantity, rm.unit)
+    })
+
+    // Process Production Records (Correct Source for Output)
     production.forEach((prod) => {
       if (
         dateRange.from &&
@@ -88,8 +112,7 @@ export function SteamCharts() {
       }
 
       const entry = getEntry(prod.date)
-      // AC: "Matéria-Prima (kg)" series must fetch data from the production table, specifically the mp_used column
-      entry.mpUsed += prod.mpUsed || 0
+      // Aggregate industrial production
       entry.totalProduction +=
         (prod.seboProduced || 0) +
         (prod.fcoProduced || 0) +
@@ -99,7 +122,7 @@ export function SteamCharts() {
     return Array.from(dataMap.values()).sort(
       (a, b) => a.date.getTime() - b.date.getTime(),
     )
-  }, [steamRecords, production, dateRange])
+  }, [steamRecords, production, rawMaterials, dateRange])
 
   const chartConfig: ChartConfig = {
     steamConsumption: {
@@ -133,7 +156,6 @@ export function SteamCharts() {
       title: 'Cavacos vs. Toneladas Vapor',
       description: 'Comparativo Diário',
       showLegend: true,
-      // AC: Color Distinction: Cavaco (Amber-500) vs Vapor (Emerald-700)
       bars: [
         { dataKey: 'woodChips', fill: COLORS.amber500 },
         { dataKey: 'steamConsumption', fill: COLORS.emerald700 },
@@ -144,7 +166,6 @@ export function SteamCharts() {
       title: 'MPs vs. m³ Cavaco',
       description: 'Relação MP e Combustível',
       showLegend: true,
-      // AC: Color Distinction: MP (Green-500) vs Cavaco (Amber-500)
       bars: [
         { dataKey: 'mpUsed', fill: COLORS.green500 },
         { dataKey: 'woodChips', fill: COLORS.amber500 },
