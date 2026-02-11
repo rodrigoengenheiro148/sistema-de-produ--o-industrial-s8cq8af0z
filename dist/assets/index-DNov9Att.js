@@ -86156,7 +86156,10 @@ function SteamControlTable() {
 	const tableData = (0, import_react.useMemo)(() => {
 		return steamRecords.filter((record) => {
 			if (!dateRange.from || !dateRange.to) return true;
-			return record.date >= dateRange.from && record.date <= dateRange.to;
+			const recordDate = record.date;
+			const fromDate = startOfDay(dateRange.from);
+			const toDate$1 = endOfDay(dateRange.to);
+			return recordDate >= fromDate && recordDate <= toDate$1;
 		}).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((record) => {
 			const factory = factories.find((f) => f.id === record.factoryId);
 			const factoryName = factory ? factory.name : "N/A";
@@ -86273,11 +86276,11 @@ function SteamControlTable() {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
 									title: "Medidor Fim - Medidor Início",
-									children: "CONSUMO VAPOR"
+									children: "CONSUMO DE VAPOR"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "RESIDUOS DE SOJA"
+									children: "RESÍDUO DE SOJA"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
@@ -86285,11 +86288,11 @@ function SteamControlTable() {
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "PALHA ARROZ"
+									children: "CASCA DE ARROZ"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right",
-									children: "CAVACO"
+									children: "CAVACO (M³)"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 									className: "font-bold text-green-900 dark:text-green-100 text-right bg-green-200/50 dark:bg-green-800/30",
@@ -86845,22 +86848,8 @@ function SteamControl() {
 	const [isDialogOpen, setIsDialogOpen] = (0, import_react.useState)(false);
 	const [isClearDataOpen, setIsClearDataOpen] = (0, import_react.useState)(false);
 	const isMobile = useIsMobile();
-	const { steamRecords, dateRange, clearSteamRecords } = useData();
+	const { clearSteamRecords } = useData();
 	const { toast: toast$2 } = useToast();
-	const woodChipsStats = (0, import_react.useMemo)(() => {
-		if (!dateRange.from || !dateRange.to) return {
-			current: 0,
-			previous: 0
-		};
-		const currentTotal = steamRecords.filter((r$2) => r$2.date >= dateRange.from && r$2.date <= dateRange.to).reduce((sum, r$2) => sum + (r$2.woodChips || 0), 0);
-		const days = differenceInDays(dateRange.to, dateRange.from) + 1;
-		const prevTo = subDays(dateRange.from, 1);
-		const prevFrom = subDays(prevTo, days - 1);
-		return {
-			current: currentTotal,
-			previous: steamRecords.filter((r$2) => r$2.date >= prevFrom && r$2.date <= prevTo).reduce((sum, r$2) => sum + (r$2.woodChips || 0), 0)
-		};
-	}, [steamRecords, dateRange]);
 	const handleClearDataSuccess = async () => {
 		setIsClearDataOpen(false);
 		try {
@@ -86926,16 +86915,6 @@ function SteamControl() {
 						})
 					]
 				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(StatCard, {
-					title: "MPS M³ CAVACO",
-					value: woodChipsStats.current,
-					prevValue: woodChipsStats.previous,
-					icon: Flame,
-					details: "Total de cavaco utilizado no período"
-				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCharts, {}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {}),
@@ -88638,4 +88617,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-C2m-HmcT.js.map
+//# sourceMappingURL=index-DNov9Att.js.map

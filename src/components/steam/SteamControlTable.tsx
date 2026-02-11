@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '@/context/DataContext'
-import { format, isSameDay } from 'date-fns'
+import { format, isSameDay, startOfDay, endOfDay } from 'date-fns'
 import {
   Table,
   TableBody,
@@ -103,11 +103,18 @@ export function SteamControlTable() {
   }
 
   const tableData = useMemo(() => {
-    // Filter by date range
+    // Filter by date range with improved boundaries
     const filtered = steamRecords
       .filter((record) => {
         if (!dateRange.from || !dateRange.to) return true
-        return record.date >= dateRange.from && record.date <= dateRange.to
+
+        // Use startOfDay and endOfDay to ensure full day coverage
+        // This fixes visibility for records at specific times (e.g., noon) when range boundary is midnight
+        const recordDate = record.date
+        const fromDate = startOfDay(dateRange.from)
+        const toDate = endOfDay(dateRange.to)
+
+        return recordDate >= fromDate && recordDate <= toDate
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime())
 
@@ -280,20 +287,20 @@ export function SteamControlTable() {
                 className="font-bold text-green-900 dark:text-green-100 text-right"
                 title="Medidor Fim - Medidor Início"
               >
-                CONSUMO VAPOR
+                CONSUMO DE VAPOR
               </TableHead>
 
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
-                RESIDUOS DE SOJA
+                RESÍDUO DE SOJA
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
                 LENHA
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
-                PALHA ARROZ
+                CASCA DE ARROZ
               </TableHead>
               <TableHead className="font-bold text-green-900 dark:text-green-100 text-right">
-                CAVACO
+                CAVACO (M³)
               </TableHead>
 
               <TableHead
