@@ -30,7 +30,10 @@ import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
-import { mapSteamRecord } from '@/services/steamControl'
+import {
+  mapSteamRecord,
+  deleteSteamRecordsRange as deleteSteamRecordsRangeService,
+} from '@/services/steamControl'
 import { saveForecast, deleteForecast } from '@/services/forecast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -799,6 +802,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchOperationalData()
   }
 
+  const deleteSteamRecordsRange = async (
+    from: Date | undefined,
+    to: Date | undefined,
+  ) => {
+    if (!currentFactoryId) return
+    try {
+      await deleteSteamRecordsRangeService(currentFactoryId, from, to)
+      await fetchOperationalData()
+    } catch (error) {
+      console.error('Error deleting steam records range:', error)
+      throw error
+    }
+  }
+
   const clearSteamRecords = async () => {
     if (!currentFactoryId) return
     const { error } = await supabase
@@ -1055,6 +1072,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addSteamRecord,
         updateSteamRecord,
         deleteSteamRecord,
+        deleteSteamRecordsRange,
         clearSteamRecords,
         dailyForecasts,
         saveDailyForecast,

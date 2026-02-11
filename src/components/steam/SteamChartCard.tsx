@@ -1,4 +1,4 @@
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, Trash2 } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -31,6 +31,8 @@ interface SteamChartCardProps {
   config: ChartConfig
   bars: BarConfig[]
   onExpand?: () => void
+  onDelete?: () => void
+  disableDelete?: boolean
   showLegend?: boolean
   className?: string
   chartHeight?: string
@@ -44,6 +46,8 @@ export function SteamChartCard({
   config,
   bars,
   onExpand,
+  onDelete,
+  disableDelete,
   showLegend = false,
   className,
   chartHeight = 'h-[300px]',
@@ -71,17 +75,36 @@ export function SteamChartCard({
             <CardTitle>{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          {onExpand && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onExpand}
-              className="shrink-0 text-muted-foreground hover:text-foreground"
-            >
-              <Maximize2 className="h-4 w-4" />
-              <span className="sr-only">Expandir</span>
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDelete}
+                disabled={disableDelete}
+                title={
+                  disableDelete
+                    ? 'Nenhum dado para excluir'
+                    : 'Excluir dados deste gráfico'
+                }
+                className="shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Excluir</span>
+              </Button>
+            )}
+            {onExpand && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onExpand}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="sr-only">Expandir</span>
+              </Button>
+            )}
+          </div>
         </CardHeader>
       )}
       <CardContent className={cn('flex-1 min-h-0', hideHeader ? 'pt-6' : '')}>

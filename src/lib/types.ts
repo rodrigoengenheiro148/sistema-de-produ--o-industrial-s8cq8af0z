@@ -260,6 +260,10 @@ export interface DataContextType {
   addSteamRecord: (entry: Omit<SteamControlRecord, 'id'>) => void
   updateSteamRecord: (entry: SteamControlRecord) => void
   deleteSteamRecord: (id: string) => Promise<void>
+  deleteSteamRecordsRange: (
+    from: Date | undefined,
+    to: Date | undefined,
+  ) => Promise<void>
   clearSteamRecords: () => Promise<void>
 
   saveDailyForecast: (

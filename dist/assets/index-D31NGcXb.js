@@ -35852,6 +35852,13 @@ const mapSteamRecord = (item) => ({
 	userId: item.user_id,
 	createdAt: item.created_at ? new Date(item.created_at) : void 0
 });
+const deleteSteamRecordsRange = async (factoryId, from, to) => {
+	let query = supabase.from("steam_control_records").delete().eq("factory_id", factoryId);
+	if (from) query = query.gte("date", format(from, "yyyy-MM-dd"));
+	if (to) query = query.lte("date", format(to, "yyyy-MM-dd"));
+	const { error } = await query;
+	if (error) throw error;
+};
 const saveForecast = async (date$4, mpForecast, materialType, factoryId, userId) => {
 	const dateStr = format(date$4, "yyyy-MM-dd");
 	const { data, error } = await supabase.from("daily_production_forecasts").upsert({
@@ -36409,6 +36416,16 @@ const DataProvider = ({ children }) => {
 		if (error) throw error;
 		await fetchOperationalData();
 	};
+	const deleteSteamRecordsRange$1 = async (from, to) => {
+		if (!currentFactoryId) return;
+		try {
+			await deleteSteamRecordsRange(currentFactoryId, from, to);
+			await fetchOperationalData();
+		} catch (error) {
+			console.error("Error deleting steam records range:", error);
+			throw error;
+		}
+	};
 	const clearSteamRecords = async () => {
 		if (!currentFactoryId) return;
 		const { error } = await supabase.from("steam_control_records").delete().eq("factory_id", currentFactoryId);
@@ -36607,6 +36624,7 @@ const DataProvider = ({ children }) => {
 			addSteamRecord,
 			updateSteamRecord,
 			deleteSteamRecord,
+			deleteSteamRecordsRange: deleteSteamRecordsRange$1,
 			clearSteamRecords,
 			dailyForecasts,
 			saveDailyForecast,
@@ -86492,7 +86510,7 @@ function SteamControlTable() {
 		]
 	});
 }
-function SteamChartCard({ title, description, data, config: config$1, bars: bars$1, onExpand, showLegend = false, className, chartHeight = "h-[300px]", hideHeader = false }) {
+function SteamChartCard({ title, description, data, config: config$1, bars: bars$1, onExpand, onDelete, disableDelete, showLegend = false, className, chartHeight = "h-[300px]", hideHeader = false }) {
 	const formatNumber = (value) => {
 		return value.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
 	};
@@ -86509,14 +86527,28 @@ function SteamChartCard({ title, description, data, config: config$1, bars: bars
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "space-y-1",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: title }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: description })]
-			}), onExpand && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-				variant: "ghost",
-				size: "icon",
-				onClick: onExpand,
-				className: "shrink-0 text-muted-foreground hover:text-foreground",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "sr-only",
-					children: "Expandir"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-1",
+				children: [onDelete && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					variant: "ghost",
+					size: "icon",
+					onClick: onDelete,
+					disabled: disableDelete,
+					title: disableDelete ? "Nenhum dado para excluir" : "Excluir dados deste gráfico",
+					className: "shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "sr-only",
+						children: "Excluir"
+					})]
+				}), onExpand && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					variant: "ghost",
+					size: "icon",
+					onClick: onExpand,
+					className: "shrink-0 text-muted-foreground hover:text-foreground",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "sr-only",
+						children: "Expandir"
+					})]
 				})]
 			})]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
@@ -86576,8 +86608,10 @@ var COLORS = {
 	blue500: "#3b82f6"
 };
 function SteamCharts() {
-	const { steamRecords, production, rawMaterials, dateRange } = useData();
+	const { steamRecords, production, rawMaterials, dateRange, deleteSteamRecordsRange: deleteSteamRecordsRange$1 } = useData();
 	const [expandedChartId, setExpandedChartId] = (0, import_react.useState)(null);
+	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = (0, import_react.useState)(false);
+	const { toast: toast$2 } = useToast();
 	const processedData = (0, import_react.useMemo)(() => {
 		const dataMap = /* @__PURE__ */ new Map();
 		const getEntry = (date$4) => {
@@ -86623,6 +86657,31 @@ function SteamCharts() {
 		rawMaterials,
 		dateRange
 	]);
+	const hasSteamRecordsInRange = (0, import_react.useMemo)(() => {
+		return steamRecords.some((r$2) => {
+			if (dateRange.from && r$2.date < dateRange.from) return false;
+			if (dateRange.to && r$2.date > dateRange.to) return false;
+			return true;
+		});
+	}, [steamRecords, dateRange]);
+	const handleDeleteConfirm = async () => {
+		try {
+			await deleteSteamRecordsRange$1(dateRange.from, dateRange.to);
+			toast$2({
+				title: "Dados excluídos com sucesso",
+				description: "Os registros de vapor foram removidos."
+			});
+		} catch (error) {
+			console.error("Error deleting steam records:", error);
+			toast$2({
+				title: "Erro ao excluir",
+				description: "Não foi possível excluir os dados.",
+				variant: "destructive"
+			});
+		} finally {
+			setIsDeleteAlertOpen(false);
+		}
+	};
 	const chartConfig$1 = {
 		steamConsumption: {
 			label: "Vapor (t)",
@@ -86725,44 +86784,61 @@ function SteamCharts() {
 		className: "flex flex-col items-center justify-center p-8 border rounded-lg bg-muted/10 text-muted-foreground",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Nenhum dado encontrado para o período selecionado." })
 	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
-		children: charts.map((chart) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
-			title: chart.title,
-			description: chart.description,
-			data: processedData,
-			config: chartConfig$1,
-			bars: chart.bars,
-			showLegend: chart.showLegend,
-			onExpand: () => setExpandedChartId(chart.id)
-		}, chart.id))
-	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
-		open: !!expandedChartId,
-		onOpenChange: (open) => !open && setExpandedChartId(null),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-			className: "max-w-[95vw] w-full h-[90vh] flex flex-col sm:rounded-xl",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, {
-				className: "shrink-0",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, {
-					className: "text-xl",
-					children: expandedChart?.title
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: expandedChart?.description })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "flex-1 min-h-0 w-full pt-2",
-				children: expandedChart && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
-					title: expandedChart.title,
-					description: expandedChart.description,
-					data: processedData,
-					config: chartConfig$1,
-					bars: expandedChart.bars,
-					showLegend: expandedChart.showLegend,
-					chartHeight: "h-full",
-					className: "h-full border-none shadow-none bg-transparent",
-					hideHeader: true
-				})
-			})]
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
+			children: charts.map((chart) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
+				title: chart.title,
+				description: chart.description,
+				data: processedData,
+				config: chartConfig$1,
+				bars: chart.bars,
+				showLegend: chart.showLegend,
+				onExpand: () => setExpandedChartId(chart.id),
+				onDelete: () => setIsDeleteAlertOpen(true),
+				disableDelete: !hasSteamRecordsInRange
+			}, chart.id))
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+			open: !!expandedChartId,
+			onOpenChange: (open) => !open && setExpandedChartId(null),
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+				className: "max-w-[95vw] w-full h-[90vh] flex flex-col sm:rounded-xl",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, {
+					className: "shrink-0",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, {
+						className: "text-xl",
+						children: expandedChart?.title
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: expandedChart?.description })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "flex-1 min-h-0 w-full pt-2",
+					children: expandedChart && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamChartCard, {
+						title: expandedChart.title,
+						description: expandedChart.description,
+						data: processedData,
+						config: chartConfig$1,
+						bars: expandedChart.bars,
+						showLegend: expandedChart.showLegend,
+						chartHeight: "h-full",
+						className: "h-full border-none shadow-none bg-transparent",
+						hideHeader: true
+					})
+				})]
+			})
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+			open: isDeleteAlertOpen,
+			onOpenChange: setIsDeleteAlertOpen,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogTitle, {
+				className: "flex items-center gap-2 text-destructive",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-5 w-5" }), "Confirmar Exclusão"]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja excluir os registros de controle de vapor para o período exibido neste gráfico? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+				onClick: handleDeleteConfirm,
+				className: "bg-destructive hover:bg-destructive/90",
+				children: "Excluir"
+			})] })] })
 		})
-	})] });
+	] });
 }
 function SteamControl() {
 	const [isDialogOpen, setIsDialogOpen] = (0, import_react.useState)(false);
@@ -88561,4 +88637,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BexDnhor.js.map
+//# sourceMappingURL=index-D31NGcXb.js.map

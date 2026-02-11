@@ -10,7 +10,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { SteamChartCard, BarConfig } from '@/components/steam/SteamChartCard'
+import { useToast } from '@/hooks/use-toast'
+import { AlertTriangle } from 'lucide-react'
 
 interface ChartDefinition {
   id: string
@@ -29,8 +41,16 @@ const COLORS = {
 }
 
 export function SteamCharts() {
-  const { steamRecords, production, rawMaterials, dateRange } = useData()
+  const {
+    steamRecords,
+    production,
+    rawMaterials,
+    dateRange,
+    deleteSteamRecordsRange,
+  } = useData()
   const [expandedChartId, setExpandedChartId] = useState<string | null>(null)
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false)
+  const { toast } = useToast()
 
   const processedData = useMemo(() => {
     const dataMap = new Map<
@@ -123,6 +143,34 @@ export function SteamCharts() {
       (a, b) => a.date.getTime() - b.date.getTime(),
     )
   }, [steamRecords, production, rawMaterials, dateRange])
+
+  // Check if there are any steam records in the current range
+  const hasSteamRecordsInRange = useMemo(() => {
+    return steamRecords.some((r) => {
+      if (dateRange.from && r.date < dateRange.from) return false
+      if (dateRange.to && r.date > dateRange.to) return false
+      return true
+    })
+  }, [steamRecords, dateRange])
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteSteamRecordsRange(dateRange.from, dateRange.to)
+      toast({
+        title: 'Dados excluídos com sucesso',
+        description: 'Os registros de vapor foram removidos.',
+      })
+    } catch (error) {
+      console.error('Error deleting steam records:', error)
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir os dados.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleteAlertOpen(false)
+    }
+  }
 
   const chartConfig: ChartConfig = {
     steamConsumption: {
@@ -230,6 +278,8 @@ export function SteamCharts() {
             bars={chart.bars}
             showLegend={chart.showLegend}
             onExpand={() => setExpandedChartId(chart.id)}
+            onDelete={() => setIsDeleteAlertOpen(true)}
+            disableDelete={!hasSteamRecordsInRange}
           />
         ))}
       </div>
@@ -262,6 +312,31 @@ export function SteamCharts() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmar Exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir os registros de controle de vapor
+              para o período exibido neste gráfico? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

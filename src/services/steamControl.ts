@@ -84,3 +84,24 @@ export const deleteSteamRecord = async (id: string) => {
     .eq('id', id)
   if (error) throw error
 }
+
+export const deleteSteamRecordsRange = async (
+  factoryId: string,
+  from: Date | undefined,
+  to: Date | undefined,
+) => {
+  let query = supabase
+    .from('steam_control_records')
+    .delete()
+    .eq('factory_id', factoryId)
+
+  if (from) {
+    query = query.gte('date', format(from, 'yyyy-MM-dd'))
+  }
+  if (to) {
+    query = query.lte('date', format(to, 'yyyy-MM-dd'))
+  }
+
+  const { error } = await query
+  if (error) throw error
+}
