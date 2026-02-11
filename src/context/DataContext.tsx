@@ -795,7 +795,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       .from('steam_control_records')
       .delete()
       .eq('id', id)
-    if (!error) fetchOperationalData()
+    if (error) throw error
+    await fetchOperationalData()
   }
 
   const clearSteamRecords = async () => {

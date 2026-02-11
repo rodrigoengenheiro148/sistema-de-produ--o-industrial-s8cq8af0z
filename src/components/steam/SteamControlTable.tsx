@@ -84,12 +84,21 @@ export function SteamControlTable() {
     setRecordToDelete(null)
 
     // Then proceed with protected action check
-    handleProtectedAction(createdAt, () => {
-      deleteSteamRecord(id)
-      toast({
-        title: 'Registro excluído',
-        description: 'O registro foi removido com sucesso.',
-      })
+    handleProtectedAction(createdAt, async () => {
+      try {
+        await deleteSteamRecord(id)
+        toast({
+          title: 'Registro excluído',
+          description: 'O registro foi removido com sucesso.',
+        })
+      } catch (error) {
+        console.error('Error deleting record:', error)
+        toast({
+          title: 'Erro ao excluir',
+          description: 'Não foi possível remover o registro. Tente novamente.',
+          variant: 'destructive',
+        })
+      }
     })
   }
 

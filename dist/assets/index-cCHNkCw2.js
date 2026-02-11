@@ -36406,7 +36406,8 @@ const DataProvider = ({ children }) => {
 	};
 	const deleteSteamRecord = async (id) => {
 		const { error } = await supabase.from("steam_control_records").delete().eq("id", id);
-		if (!error) fetchOperationalData();
+		if (error) throw error;
+		await fetchOperationalData();
 	};
 	const clearSteamRecords = async () => {
 		if (!currentFactoryId) return;
@@ -86116,12 +86117,21 @@ function SteamControlTable() {
 		const id = recordToDelete.id;
 		const createdAt = recordToDelete.createdAt;
 		setRecordToDelete(null);
-		handleProtectedAction(createdAt, () => {
-			deleteSteamRecord(id);
-			toast$2({
-				title: "Registro excluído",
-				description: "O registro foi removido com sucesso."
-			});
+		handleProtectedAction(createdAt, async () => {
+			try {
+				await deleteSteamRecord(id);
+				toast$2({
+					title: "Registro excluído",
+					description: "O registro foi removido com sucesso."
+				});
+			} catch (error) {
+				console.error("Error deleting record:", error);
+				toast$2({
+					title: "Erro ao excluir",
+					description: "Não foi possível remover o registro. Tente novamente.",
+					variant: "destructive"
+				});
+			}
 		});
 	};
 	const tableData = (0, import_react.useMemo)(() => {
@@ -88539,4 +88549,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Brm-LEjP.js.map
+//# sourceMappingURL=index-cCHNkCw2.js.map
