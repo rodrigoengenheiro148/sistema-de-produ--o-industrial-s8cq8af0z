@@ -4148,6 +4148,9 @@ img[src*='skip.svg'] {
   .sm\:w-\[240px\]{
     width: 240px;
   }
+  .sm\:w-\[260px\]{
+    width: 260px;
+  }
   .sm\:w-\[300px\]{
     width: 300px;
   }
@@ -4186,6 +4189,9 @@ img[src*='skip.svg'] {
   }
   .sm\:flex-col{
     flex-direction: column;
+  }
+  .sm\:flex-nowrap{
+    flex-wrap: nowrap;
   }
   .sm\:items-center{
     align-items: center;
@@ -4351,6 +4357,9 @@ img[src*='skip.svg'] {
 @media (min-width: 1024px){
   .lg\:inline-block{
     display: inline-block;
+  }
+  .lg\:w-\[400px\]{
+    width: 400px;
   }
   .lg\:w-auto{
     width: auto;

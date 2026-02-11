@@ -15,12 +15,14 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { useData } from '@/context/DataContext'
 import { SecurityGate } from '@/components/SecurityGate'
 import { useToast } from '@/hooks/use-toast'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DatePickerWithRange } from '@/components/DateRangePicker'
 
 export default function SteamControl() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isClearDataOpen, setIsClearDataOpen] = useState(false)
   const isMobile = useIsMobile()
-  const { clearSteamRecords } = useData()
+  const { clearSteamRecords, dateRange, setDateRange } = useData()
   const { toast } = useToast()
 
   const handleClearDataSuccess = async () => {
@@ -54,7 +56,7 @@ export default function SteamControl() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <Button
             variant="ghost"
             size="icon"
@@ -93,10 +95,30 @@ export default function SteamControl() {
         </div>
       </div>
 
-      {/* KPI Card removed as requested */}
+      <Tabs defaultValue="dashboard" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
+        </TabsList>
 
-      <SteamCharts />
-      <SteamControlTable />
+        <TabsContent value="dashboard" className="space-y-4 mt-4">
+          <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2">
+            <span className="text-sm text-muted-foreground mr-2">
+              Período dos Gráficos:
+            </span>
+            <DatePickerWithRange
+              date={dateRange}
+              setDate={setDateRange}
+              className="w-full sm:w-[260px]"
+            />
+          </div>
+          <SteamCharts />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
+          <SteamControlTable />
+        </TabsContent>
+      </Tabs>
 
       <SecurityGate
         isOpen={isClearDataOpen}

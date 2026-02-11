@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useData } from '@/context/DataContext'
-import { format, isSameDay, startOfDay, endOfDay } from 'date-fns'
+import {
+  format,
+  isSameDay,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns'
 import {
   Table,
   TableBody,
@@ -29,9 +36,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { SteamControlForm } from './SteamControlForm'
-import { SteamControlRecord } from '@/lib/types'
+import { SteamControlRecord, DateRange } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
+import { DatePickerWithRange } from '@/components/DateRangePicker'
 
 export function SteamControlTable() {
   const {
@@ -39,10 +55,15 @@ export function SteamControlTable() {
     rawMaterials,
     production,
     deleteSteamRecord,
-    dateRange,
     factories,
   } = useData()
   const { toast } = useToast()
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
+  const [mpFilter, setMpFilter] = useState<string>('all')
 
   const [editingRecord, setEditingRecord] = useState<SteamControlRecord | null>(
     null,
@@ -106,15 +127,29 @@ export function SteamControlTable() {
     // Filter by date range with improved boundaries
     const filtered = steamRecords
       .filter((record) => {
-        if (!dateRange.from || !dateRange.to) return true
+        // Date Filter
+        if (dateRange?.from) {
+          const fromDate = startOfDay(dateRange.from)
+          if (record.date < fromDate) return false
+        }
+        if (dateRange?.to) {
+          const toDate = endOfDay(dateRange.to)
+          if (record.date > toDate) return false
+        }
 
-        // Use startOfDay and endOfDay to ensure full day coverage
-        // This fixes visibility for records at specific times (e.g., noon) when range boundary is midnight
-        const recordDate = record.date
-        const fromDate = startOfDay(dateRange.from)
-        const toDate = endOfDay(dateRange.to)
+        // MP Filter
+        if (mpFilter !== 'all') {
+          if (mpFilter === 'soyWaste' && (record.soyWaste || 0) <= 0)
+            return false
+          if (mpFilter === 'firewood' && (record.firewood || 0) <= 0)
+            return false
+          if (mpFilter === 'riceHusk' && (record.riceHusk || 0) <= 0)
+            return false
+          if (mpFilter === 'woodChips' && (record.woodChips || 0) <= 0)
+            return false
+        }
 
-        return recordDate >= fromDate && recordDate <= toDate
+        return true
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime())
 
@@ -196,7 +231,7 @@ export function SteamControlTable() {
         cavacoVsVapor,
       }
     })
-  }, [steamRecords, rawMaterials, production, dateRange, factories])
+  }, [steamRecords, rawMaterials, production, dateRange, factories, mpFilter])
 
   // Calculate Footer Totals
   const totals = useMemo(() => {
@@ -267,6 +302,32 @@ export function SteamControlTable() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20">
+        <div className="w-full sm:w-[300px] space-y-1">
+          <Label className="text-xs text-muted-foreground uppercase font-bold">
+            Período
+          </Label>
+          <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+        </div>
+        <div className="w-full sm:w-[200px] space-y-1">
+          <Label className="text-xs text-muted-foreground uppercase font-bold">
+            Tipo de Biomassa
+          </Label>
+          <Select value={mpFilter} onValueChange={setMpFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="woodChips">Cavaco</SelectItem>
+              <SelectItem value="firewood">Lenha</SelectItem>
+              <SelectItem value="riceHusk">Casca de Arroz</SelectItem>
+              <SelectItem value="soyWaste">Resíduo de Soja</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="rounded-md border overflow-x-auto">
         <Table className="min-w-[1500px]">
           <TableHeader>

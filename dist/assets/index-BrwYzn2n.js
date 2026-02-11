@@ -86111,8 +86111,13 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	});
 }
 function SteamControlTable() {
-	const { steamRecords, rawMaterials, production, deleteSteamRecord, dateRange, factories } = useData();
+	const { steamRecords, rawMaterials, production, deleteSteamRecord, factories } = useData();
 	const { toast: toast$2 } = useToast();
+	const [dateRange, setDateRange] = (0, import_react.useState)({
+		from: startOfMonth(/* @__PURE__ */ new Date()),
+		to: endOfMonth(/* @__PURE__ */ new Date())
+	});
+	const [mpFilter, setMpFilter] = (0, import_react.useState)("all");
 	const [editingRecord, setEditingRecord] = (0, import_react.useState)(null);
 	const [recordToDelete, setRecordToDelete] = (0, import_react.useState)(null);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
@@ -86155,11 +86160,21 @@ function SteamControlTable() {
 	};
 	const tableData = (0, import_react.useMemo)(() => {
 		return steamRecords.filter((record) => {
-			if (!dateRange.from || !dateRange.to) return true;
-			const recordDate = record.date;
-			const fromDate = startOfDay(dateRange.from);
-			const toDate$1 = endOfDay(dateRange.to);
-			return recordDate >= fromDate && recordDate <= toDate$1;
+			if (dateRange?.from) {
+				const fromDate = startOfDay(dateRange.from);
+				if (record.date < fromDate) return false;
+			}
+			if (dateRange?.to) {
+				const toDate$1 = endOfDay(dateRange.to);
+				if (record.date > toDate$1) return false;
+			}
+			if (mpFilter !== "all") {
+				if (mpFilter === "soyWaste" && (record.soyWaste || 0) <= 0) return false;
+				if (mpFilter === "firewood" && (record.firewood || 0) <= 0) return false;
+				if (mpFilter === "riceHusk" && (record.riceHusk || 0) <= 0) return false;
+				if (mpFilter === "woodChips" && (record.woodChips || 0) <= 0) return false;
+			}
+			return true;
 		}).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((record) => {
 			const factory = factories.find((f) => f.id === record.factoryId);
 			const factoryName = factory ? factory.name : "N/A";
@@ -86197,7 +86212,8 @@ function SteamControlTable() {
 		rawMaterials,
 		production,
 		dateRange,
-		factories
+		factories,
+		mpFilter
 	]);
 	const totals = (0, import_react.useMemo)(() => {
 		const sums = tableData.reduce((acc, curr) => ({
@@ -86249,6 +86265,50 @@ function SteamControlTable() {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-4",
 		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row gap-4 p-4 border rounded-lg bg-muted/20",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "w-full sm:w-[300px] space-y-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+						className: "text-xs text-muted-foreground uppercase font-bold",
+						children: "Período"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+						date: dateRange,
+						setDate: setDateRange
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "w-full sm:w-[200px] space-y-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+						className: "text-xs text-muted-foreground uppercase font-bold",
+						children: "Tipo de Biomassa"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+						value: mpFilter,
+						onValueChange: setMpFilter,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione..." }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "all",
+								children: "Todas"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "woodChips",
+								children: "Cavaco"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "firewood",
+								children: "Lenha"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "riceHusk",
+								children: "Casca de Arroz"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "soyWaste",
+								children: "Resíduo de Soja"
+							})
+						] })]
+					})]
+				})]
+			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "rounded-md border overflow-x-auto",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
@@ -86848,7 +86908,7 @@ function SteamControl() {
 	const [isDialogOpen, setIsDialogOpen] = (0, import_react.useState)(false);
 	const [isClearDataOpen, setIsClearDataOpen] = (0, import_react.useState)(false);
 	const isMobile = useIsMobile();
-	const { clearSteamRecords } = useData();
+	const { clearSteamRecords, dateRange, setDateRange } = useData();
 	const { toast: toast$2 } = useToast();
 	const handleClearDataSuccess = async () => {
 		setIsClearDataOpen(false);
@@ -86879,7 +86939,7 @@ function SteamControl() {
 					className: "text-muted-foreground",
 					children: "Monitoramento de eficiência de caldeira e consumo de biomassa."
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2",
+					className: "flex items-center gap-2 flex-wrap sm:flex-nowrap",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "ghost",
@@ -86916,8 +86976,42 @@ function SteamControl() {
 					]
 				})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCharts, {}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "dashboard",
+				className: "w-full",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+						className: "grid w-full grid-cols-2 lg:w-[400px]",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+							value: "dashboard",
+							children: "Dashboard"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+							value: "history",
+							children: "Histórico"
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
+						value: "dashboard",
+						className: "space-y-4 mt-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-col sm:flex-row justify-end items-start sm:items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-sm text-muted-foreground mr-2",
+								children: "Período dos Gráficos:"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+								date: dateRange,
+								setDate: setDateRange,
+								className: "w-full sm:w-[260px]"
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCharts, {})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "history",
+						className: "mt-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
+					})
+				]
+			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
 				isOpen: isClearDataOpen,
 				onOpenChange: setIsClearDataOpen,
@@ -88617,4 +88711,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DNov9Att.js.map
+//# sourceMappingURL=index-BrwYzn2n.js.map
