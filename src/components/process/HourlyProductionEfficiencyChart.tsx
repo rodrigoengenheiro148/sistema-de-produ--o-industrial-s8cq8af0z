@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -11,15 +11,12 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
-import { format, isSameDay } from 'date-fns'
+import { format, subDays, eachDayOfInterval } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { cn } from '@/lib/utils'
-import { calculateDailyMetrics } from '@/lib/process-calculations'
 
 interface HourlyProductionEfficiencyChartProps {
   date?: Date
@@ -28,106 +25,70 @@ interface HourlyProductionEfficiencyChartProps {
 export function HourlyProductionEfficiencyChart({
   date,
 }: HourlyProductionEfficiencyChartProps) {
-  const { production, cookingTimeRecords, downtimeRecords } = useData()
-  const [internalDate, setInternalDate] = useState<Date>(new Date())
+  const { production, cookingTimeRecords } = useData()
   const [unit, setUnit] = useState<'kg' | 't'>('kg')
-  const [now, setNow] = useState(new Date())
 
-  // Use prop date if available, otherwise internal state
-  const selectedDate = date || internalDate
-
-  // Update 'now' every minute to keep the "Active until now" logic fresh for today
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60000)
-    return () => clearInterval(interval)
-  }, [])
+  // Use prop date as end date, default to today
+  const endDate = date || new Date()
+  // Show last 7 days including the selected date
+  const startDate = subDays(endDate, 6)
 
   const chartData = useMemo(() => {
-    // 1. Calculate Daily Metrics using shared logic
-    const dailyMetrics = calculateDailyMetrics(
-      selectedDate,
-      cookingTimeRecords,
-      downtimeRecords,
-      production,
-      now,
-    )
+    // 1. Group Production by Day
+    const productionByDay = new Map<string, number>()
+    production.forEach((p) => {
+      const key = format(p.date, 'yyyy-MM-dd')
+      const total =
+        (p.seboProduced || 0) +
+        (p.fcoProduced || 0) +
+        (p.farinhetaProduced || 0)
+      productionByDay.set(key, (productionByDay.get(key) || 0) + total)
+    })
 
-    // 2. Calculate Rates per Minute (to distribute across active minutes)
-    // We avoid division by zero
-    const netMinutes = dailyMetrics.netActiveMinutes
-    const consumptionPerMinute =
-      netMinutes > 0 ? dailyMetrics.totalConsumption / netMinutes : 0
+    // 2. Group Hours by Day
+    const hoursByDay = new Map<string, number>()
+    cookingTimeRecords.forEach((c) => {
+      const key = format(c.date, 'yyyy-MM-dd')
+      const hours = c.totalHours || 0
+      hoursByDay.set(key, (hoursByDay.get(key) || 0) + hours)
+    })
 
-    // Also calculate production output for the "Produção" bar
-    const totalDailyProduction = production
-      .filter((p) => isSameDay(p.date, selectedDate))
-      .reduce((acc, curr) => {
-        return (
-          acc +
-          (curr.seboProduced || 0) +
-          (curr.fcoProduced || 0) +
-          (curr.farinhetaProduced || 0)
-        )
-      }, 0)
-    const productionPerMinute =
-      netMinutes > 0 ? totalDailyProduction / netMinutes : 0
+    // 3. Generate Interval and Data
+    const days = eachDayOfInterval({ start: startDate, end: endDate })
 
-    // 3. Aggregate into Hours (00-23)
-    const data = []
-    for (let h = 0; h < 24; h++) {
-      let activeMinsInHour = 0
-      const startMin = h * 60
-      const endMin = (h + 1) * 60
+    const data = days.map((day) => {
+      const key = format(day, 'yyyy-MM-dd')
+      const prod = productionByDay.get(key) || 0
+      const hrs = hoursByDay.get(key) || 0
 
-      for (let m = startMin; m < endMin; m++) {
-        if (dailyMetrics.activeMinutesArray[m] === 1) {
-          activeMinsInHour++
-        }
+      let productivity = 0
+      if (hrs > 0) {
+        productivity = prod / hrs
       }
 
-      let hourlyProduction = activeMinsInHour * productionPerMinute
-      let hourlyConsumption = activeMinsInHour * consumptionPerMinute
-
-      // Convert units if needed
       if (unit === 't') {
-        hourlyProduction /= 1000
-        hourlyConsumption /= 1000
+        productivity = productivity / 1000
       }
 
-      data.push({
-        hour: `${h.toString().padStart(2, '0')}:00`,
-        activeMinutes: activeMinsInHour,
-        production: Number(hourlyProduction.toFixed(2)),
-        consumption: Number(hourlyConsumption.toFixed(2)),
-      })
-    }
+      return {
+        date: format(day, 'dd/MM'),
+        fullDate: format(day, "d 'de' MMMM", { locale: ptBR }),
+        productivity: Number(productivity.toFixed(2)),
+        hasData: prod > 0 || hrs > 0,
+      }
+    })
 
-    return {
-      data,
-      hasActivity:
-        dailyMetrics.grossActiveMinutes > 0 ||
-        dailyMetrics.totalConsumption > 0,
-    }
-  }, [production, cookingTimeRecords, downtimeRecords, selectedDate, unit, now])
+    const hasActivity = data.some((d) => d.hasData)
+
+    return { data, hasActivity }
+  }, [production, cookingTimeRecords, startDate, endDate, unit])
 
   const chartConfig = {
-    production: {
-      label: `Produção (${unit})`,
+    productivity: {
+      label: `Produtividade (${unit}/h)`,
       color: 'hsl(var(--chart-1))',
     },
-    consumption: {
-      label: `Consumo Real (${unit})`,
-      color: 'hsl(var(--chart-2))',
-    },
   } satisfies ChartConfig
-
-  const formatLabel = (value: number) => {
-    if (value === 0) return null
-    return value.toLocaleString('pt-BR', {
-      minimumFractionDigits: unit === 't' ? 2 : 0,
-      maximumFractionDigits: unit === 't' ? 2 : 0,
-    })
-  }
 
   return (
     <Card className="shadow-sm border">
@@ -135,19 +96,15 @@ export function HourlyProductionEfficiencyChart({
         <div className="space-y-1">
           <CardTitle>Produção por Hora</CardTitle>
           <CardDescription>
-            Produção vs Consumo Real distruibuído por horas ativas.
+            Histórico de produtividade diária (Produção Total / Horas Ativas)
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Internal date picker removed to rely on parent state if provided, or default behavior */}
-
-          <Tabs value={unit} onValueChange={(v) => setUnit(v as 'kg' | 't')}>
-            <TabsList>
-              <TabsTrigger value="kg">kg</TabsTrigger>
-              <TabsTrigger value="t">t</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
+        <Tabs value={unit} onValueChange={(v) => setUnit(v as 'kg' | 't')}>
+          <TabsList>
+            <TabsTrigger value="kg">kg</TabsTrigger>
+            <TabsTrigger value="t">t</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </CardHeader>
       <CardContent>
         {chartData.hasActivity ? (
@@ -155,48 +112,36 @@ export function HourlyProductionEfficiencyChart({
             <BarChart
               accessibilityLayer
               data={chartData.data}
-              barGap={0}
-              margin={{ top: 20 }}
+              margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
             >
-              <CartesianGrid vertical={false} />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
-                dataKey="hour"
+                dataKey="date"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                interval={2}
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(value) => value.toLocaleString()}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <ChartLegend content={<ChartLegendContent />} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
               <Bar
-                dataKey="production"
-                fill="var(--color-production)"
+                dataKey="productivity"
+                fill="var(--color-productivity)"
                 radius={[4, 4, 0, 0]}
-                name={`Produção (${unit})`}
+                name={`Produtividade (${unit}/h)`}
               >
                 <LabelList
                   position="top"
-                  offset={10}
-                  className="fill-foreground text-[10px]"
-                  formatter={(value: number) => formatLabel(value)}
-                />
-              </Bar>
-              <Bar
-                dataKey="consumption"
-                fill="var(--color-consumption)"
-                radius={[4, 4, 0, 0]}
-                name={`Consumo Real (${unit})`}
-              >
-                <LabelList
-                  position="top"
-                  offset={10}
-                  className="fill-foreground text-[10px]"
-                  formatter={(value: number) => formatLabel(value)}
+                  offset={12}
+                  className="fill-foreground text-[12px]"
+                  fontSize={12}
+                  formatter={(value: number) => value.toLocaleString()}
                 />
               </Bar>
             </BarChart>

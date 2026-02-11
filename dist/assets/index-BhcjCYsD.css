@@ -2290,6 +2290,9 @@ section[aria-label='Notifications alt+T'] {
 .text-\[11px\]{
   font-size: 11px;
 }
+.text-\[12px\]{
+  font-size: 12px;
+}
 .text-base{
   font-size: 1rem;
   line-height: 1.5rem;

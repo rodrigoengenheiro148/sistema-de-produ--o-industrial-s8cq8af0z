@@ -85001,6 +85001,138 @@ function DowntimeManager() {
 		})]
 	});
 }
+function HourlyProductionEfficiencyChart({ date: date$4 }) {
+	const { production, cookingTimeRecords } = useData();
+	const [unit$1, setUnit] = (0, import_react.useState)("kg");
+	const endDate = date$4 || /* @__PURE__ */ new Date();
+	const startDate = subDays(endDate, 6);
+	const chartData = (0, import_react.useMemo)(() => {
+		const productionByDay = /* @__PURE__ */ new Map();
+		production.forEach((p) => {
+			const key = format(p.date, "yyyy-MM-dd");
+			const total = (p.seboProduced || 0) + (p.fcoProduced || 0) + (p.farinhetaProduced || 0);
+			productionByDay.set(key, (productionByDay.get(key) || 0) + total);
+		});
+		const hoursByDay = /* @__PURE__ */ new Map();
+		cookingTimeRecords.forEach((c$1) => {
+			const key = format(c$1.date, "yyyy-MM-dd");
+			const hours = c$1.totalHours || 0;
+			hoursByDay.set(key, (hoursByDay.get(key) || 0) + hours);
+		});
+		const data = eachDayOfInterval({
+			start: startDate,
+			end: endDate
+		}).map((day) => {
+			const key = format(day, "yyyy-MM-dd");
+			const prod = productionByDay.get(key) || 0;
+			const hrs = hoursByDay.get(key) || 0;
+			let productivity = 0;
+			if (hrs > 0) productivity = prod / hrs;
+			if (unit$1 === "t") productivity = productivity / 1e3;
+			return {
+				date: format(day, "dd/MM"),
+				fullDate: format(day, "d 'de' MMMM", { locale: ptBR }),
+				productivity: Number(productivity.toFixed(2)),
+				hasData: prod > 0 || hrs > 0
+			};
+		});
+		return {
+			data,
+			hasActivity: data.some((d) => d.hasData)
+		};
+	}, [
+		production,
+		cookingTimeRecords,
+		startDate,
+		endDate,
+		unit$1
+	]);
+	const chartConfig$1 = { productivity: {
+		label: `Produtividade (${unit$1}/h)`,
+		color: "hsl(var(--chart-1))"
+	} };
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "shadow-sm border",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Produção por Hora" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Histórico de produtividade diária (Produção Total / Horas Ativas)" })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tabs, {
+				value: unit$1,
+				onValueChange: (v) => setUnit(v),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+					value: "kg",
+					children: "kg"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+					value: "t",
+					children: "t"
+				})] })
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: chartData.hasActivity ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: chartConfig$1,
+			className: "h-[300px] w-full",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				accessibilityLayer: true,
+				data: chartData.data,
+				margin: {
+					top: 20,
+					right: 0,
+					left: 0,
+					bottom: 0
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						vertical: false,
+						strokeDasharray: "3 3"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "date",
+						tickLine: false,
+						tickMargin: 10,
+						axisLine: false
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+						tickLine: false,
+						axisLine: false,
+						tickFormatter: (value) => value.toLocaleString()
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+						cursor: false,
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { hideLabel: true })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+						dataKey: "productivity",
+						fill: "var(--color-productivity)",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						name: `Produtividade (${unit$1}/h)`,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							position: "top",
+							offset: 12,
+							className: "fill-foreground text-[12px]",
+							fontSize: 12,
+							formatter: (value) => value.toLocaleString()
+						})
+					})
+				]
+			})
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "h-[300px] w-full flex flex-col gap-2 items-center justify-center text-muted-foreground border border-dashed rounded-md bg-muted/10",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "font-medium",
+				children: "Nenhuma atividade registrada para esta data."
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-sm",
+				children: "Certifique-se de registrar Tempos de Cozimento e Produção."
+			})]
+		}) })]
+	});
+}
 function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, productionRecords, now$2 = /* @__PURE__ */ new Date()) {
 	const activeMinutesArray = new Int8Array(1440).fill(0);
 	const dayCooking = cookingRecords.filter((r$2) => isSameDay(r$2.date, date$4));
@@ -85073,165 +85205,6 @@ function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, producti
 		rateKg,
 		rateTon
 	};
-}
-function HourlyProductionEfficiencyChart({ date: date$4 }) {
-	const { production, cookingTimeRecords, downtimeRecords } = useData();
-	const [internalDate, setInternalDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
-	const [unit$1, setUnit] = (0, import_react.useState)("kg");
-	const [now$2, setNow] = (0, import_react.useState)(/* @__PURE__ */ new Date());
-	const selectedDate = date$4 || internalDate;
-	(0, import_react.useEffect)(() => {
-		const interval = setInterval(() => setNow(/* @__PURE__ */ new Date()), 6e4);
-		return () => clearInterval(interval);
-	}, []);
-	const chartData = (0, import_react.useMemo)(() => {
-		const dailyMetrics = calculateDailyMetrics(selectedDate, cookingTimeRecords, downtimeRecords, production, now$2);
-		const netMinutes = dailyMetrics.netActiveMinutes;
-		const consumptionPerMinute = netMinutes > 0 ? dailyMetrics.totalConsumption / netMinutes : 0;
-		const totalDailyProduction = production.filter((p) => isSameDay(p.date, selectedDate)).reduce((acc, curr) => {
-			return acc + (curr.seboProduced || 0) + (curr.fcoProduced || 0) + (curr.farinhetaProduced || 0);
-		}, 0);
-		const productionPerMinute = netMinutes > 0 ? totalDailyProduction / netMinutes : 0;
-		const data = [];
-		for (let h = 0; h < 24; h++) {
-			let activeMinsInHour = 0;
-			const startMin = h * 60;
-			const endMin = (h + 1) * 60;
-			for (let m = startMin; m < endMin; m++) if (dailyMetrics.activeMinutesArray[m] === 1) activeMinsInHour++;
-			let hourlyProduction = activeMinsInHour * productionPerMinute;
-			let hourlyConsumption = activeMinsInHour * consumptionPerMinute;
-			if (unit$1 === "t") {
-				hourlyProduction /= 1e3;
-				hourlyConsumption /= 1e3;
-			}
-			data.push({
-				hour: `${h.toString().padStart(2, "0")}:00`,
-				activeMinutes: activeMinsInHour,
-				production: Number(hourlyProduction.toFixed(2)),
-				consumption: Number(hourlyConsumption.toFixed(2))
-			});
-		}
-		return {
-			data,
-			hasActivity: dailyMetrics.grossActiveMinutes > 0 || dailyMetrics.totalConsumption > 0
-		};
-	}, [
-		production,
-		cookingTimeRecords,
-		downtimeRecords,
-		selectedDate,
-		unit$1,
-		now$2
-	]);
-	const chartConfig$1 = {
-		production: {
-			label: `Produção (${unit$1})`,
-			color: "hsl(var(--chart-1))"
-		},
-		consumption: {
-			label: `Consumo Real (${unit$1})`,
-			color: "hsl(var(--chart-2))"
-		}
-	};
-	const formatLabel = (value) => {
-		if (value === 0) return null;
-		return value.toLocaleString("pt-BR", {
-			minimumFractionDigits: unit$1 === "t" ? 2 : 0,
-			maximumFractionDigits: unit$1 === "t" ? 2 : 0
-		});
-	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: "shadow-sm border",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "space-y-1",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Produção por Hora" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Produção vs Consumo Real distruibuído por horas ativas." })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "flex items-center gap-2",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tabs, {
-					value: unit$1,
-					onValueChange: (v) => setUnit(v),
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-						value: "kg",
-						children: "kg"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-						value: "t",
-						children: "t"
-					})] })
-				})
-			})]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: chartData.hasActivity ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-			config: chartConfig$1,
-			className: "h-[300px] w-full",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-				accessibilityLayer: true,
-				data: chartData.data,
-				barGap: 0,
-				margin: { top: 20 },
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, { vertical: false }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-						dataKey: "hour",
-						tickLine: false,
-						tickMargin: 10,
-						axisLine: false,
-						interval: 2
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-						tickLine: false,
-						axisLine: false,
-						tickFormatter: (value) => value.toLocaleString()
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-						dataKey: "production",
-						fill: "var(--color-production)",
-						radius: [
-							4,
-							4,
-							0,
-							0
-						],
-						name: `Produção (${unit$1})`,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-							position: "top",
-							offset: 10,
-							className: "fill-foreground text-[10px]",
-							formatter: (value) => formatLabel(value)
-						})
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-						dataKey: "consumption",
-						fill: "var(--color-consumption)",
-						radius: [
-							4,
-							4,
-							0,
-							0
-						],
-						name: `Consumo Real (${unit$1})`,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-							position: "top",
-							offset: 10,
-							className: "fill-foreground text-[10px]",
-							formatter: (value) => formatLabel(value)
-						})
-					})
-				]
-			})
-		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "h-[300px] w-full flex flex-col gap-2 items-center justify-center text-muted-foreground border border-dashed rounded-md bg-muted/10",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "font-medium",
-				children: "Nenhuma atividade registrada para esta data."
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "text-sm",
-				children: "Certifique-se de registrar Tempos de Cozimento e Produção."
-			})]
-		}) })]
-	});
 }
 function ProcessMetricsCard({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
@@ -88225,4 +88198,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DOEKSYgj.js.map
+//# sourceMappingURL=index-BZvuqx-C.js.map
