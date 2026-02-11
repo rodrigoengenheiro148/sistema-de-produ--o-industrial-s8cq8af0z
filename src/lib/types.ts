@@ -126,6 +126,7 @@ export interface DailyProductionForecast {
   factoryId: string
   date: Date
   mpForecast: number
+  materialType?: string
   userId?: string
   createdAt?: Date
 }
@@ -261,7 +262,12 @@ export interface DataContextType {
   deleteSteamRecord: (id: string) => void
   clearSteamRecords: () => Promise<void>
 
-  saveDailyForecast: (date: Date, mpForecast: number) => Promise<void>
+  saveDailyForecast: (
+    date: Date,
+    mpForecast: number,
+    materialType?: string,
+  ) => Promise<void>
+  deleteDailyForecast: (id: string) => Promise<void>
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

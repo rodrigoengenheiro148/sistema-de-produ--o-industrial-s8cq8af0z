@@ -14,6 +14,7 @@ import {
   Timer,
   Flame,
   Droplet,
+  TrendingUp,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -92,6 +93,11 @@ const operationalItems = [
 ]
 
 const managementItems = [
+  {
+    title: 'Previsão Entrada MP',
+    url: '/gestao/previsao-mp',
+    icon: TrendingUp,
+  },
   {
     title: 'Estoque de Sebo',
     url: '/gestao/estoque-sebo',

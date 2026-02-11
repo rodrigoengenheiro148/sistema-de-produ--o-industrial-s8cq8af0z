@@ -18922,6 +18922,13 @@ var ArrowLeft = createLucideIcon("arrow-left", [["path", {
 	d: "M19 12H5",
 	key: "x3x0zl"
 }]]);
+var ArrowRight = createLucideIcon("arrow-right", [["path", {
+	d: "M5 12h14",
+	key: "1ays0h"
+}], ["path", {
+	d: "m12 5 7 7-7 7",
+	key: "xquz4c"
+}]]);
 var ArrowUpRight = createLucideIcon("arrow-up-right", [["path", {
 	d: "M7 7h10v10",
 	key: "1tivn9"
@@ -19719,10 +19726,6 @@ var PanelLeft = createLucideIcon("panel-left", [["rect", {
 }], ["path", {
 	d: "M9 3v18",
 	key: "fh3hqa"
-}]]);
-var Pen = createLucideIcon("pen", [["path", {
-	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
-	key: "1a8usu"
 }]]);
 var Pencil = createLucideIcon("pencil", [["path", {
 	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
@@ -35849,6 +35852,22 @@ const mapSteamRecord = (item) => ({
 	userId: item.user_id,
 	createdAt: item.created_at ? new Date(item.created_at) : void 0
 });
+const saveForecast = async (date$4, mpForecast, materialType, factoryId, userId) => {
+	const dateStr = format(date$4, "yyyy-MM-dd");
+	const { data, error } = await supabase.from("daily_production_forecasts").upsert({
+		date: dateStr,
+		mp_forecast: mpForecast,
+		material_type: materialType,
+		factory_id: factoryId,
+		user_id: userId
+	}, { onConflict: "factory_id,date,material_type" });
+	if (error) throw error;
+	return data;
+};
+const deleteForecast = async (id) => {
+	const { error } = await supabase.from("daily_production_forecasts").delete().eq("id", id);
+	if (error) throw error;
+};
 var DataContext = (0, import_react.createContext)(void 0);
 var DEFAULT_SETTINGS = {
 	productionGoal: 5e4,
@@ -36042,6 +36061,7 @@ const DataProvider = ({ children }) => {
 				factoryId: f.factory_id,
 				date: parseDateSafe(f.date),
 				mpForecast: f.mp_forecast,
+				materialType: f.material_type,
 				userId: f.user_id,
 				createdAt: f.created_at ? new Date(f.created_at) : void 0
 			})));
@@ -36393,19 +36413,24 @@ const DataProvider = ({ children }) => {
 		if (error) throw error;
 		await fetchOperationalData();
 	};
-	const saveDailyForecast = async (date$4, mpForecast) => {
+	const saveDailyForecast = async (date$4, mpForecast, materialType = "Geral") => {
 		if (!currentFactoryId || !user?.id) return;
-		const dateStr = format(date$4, "yyyy-MM-dd");
-		const { error } = await supabase.from("daily_production_forecasts").upsert({
-			date: dateStr,
-			mp_forecast: mpForecast,
-			factory_id: currentFactoryId,
-			user_id: user.id
-		}, { onConflict: "factory_id,date" });
-		if (error) {
+		try {
+			await saveForecast(date$4, mpForecast, materialType, currentFactoryId, user.id);
+			fetchOperationalData();
+		} catch (error) {
 			console.error("Error saving daily forecast:", error);
 			throw error;
-		} else fetchOperationalData();
+		}
+	};
+	const deleteDailyForecast = async (id) => {
+		try {
+			await deleteForecast(id);
+			fetchOperationalData();
+		} catch (error) {
+			console.error("Error deleting forecast:", error);
+			throw error;
+		}
 	};
 	const addFactory = async (entry) => {
 		const { error } = await supabase.from("factories").insert({
@@ -36471,7 +36496,7 @@ const DataProvider = ({ children }) => {
 			yield_threshold: settings.yieldThreshold,
 			sebo_threshold: settings.seboThreshold,
 			farinheta_threshold: settings.farinhetaThreshold,
-			farinha_threshold: settings.farinhaThreshold,
+			farinha_threshold: settings.farinha_threshold,
 			fco_threshold: settings.fcoThreshold,
 			notification_email: settings.notificationEmail,
 			notification_phone: settings.notificationPhone,
@@ -36583,6 +36608,7 @@ const DataProvider = ({ children }) => {
 			clearSteamRecords,
 			dailyForecasts,
 			saveDailyForecast,
+			deleteDailyForecast,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -66951,51 +66977,16 @@ var Separator = import_react.forwardRef(({ className, orientation = "horizontal"
 }));
 Separator.displayName = Root$3.displayName;
 function LoadForecast({ referenceDate, className }) {
-	const { rawMaterials, dailyForecasts, saveDailyForecast } = useData();
-	const { toast: toast$2 } = useToast();
+	const { rawMaterials, dailyForecasts } = useData();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
-	const [forecastInput, setForecastInput] = (0, import_react.useState)("");
-	const [isEditing, setIsEditing] = (0, import_react.useState)(false);
-	const [isLoading, setIsLoading] = (0, import_react.useState)(false);
-	const existingForecast = (0, import_react.useMemo)(() => {
-		return dailyForecasts.find((f) => isSameDay(f.date, targetDate));
+	const dailyForecastTotal = (0, import_react.useMemo)(() => {
+		return dailyForecasts.filter((f) => isSameDay(f.date, targetDate)).reduce((acc, curr) => acc + curr.mpForecast, 0);
 	}, [dailyForecasts, targetDate]);
-	(0, import_react.useEffect)(() => {
-		if (existingForecast) setForecastInput(String(existingForecast.mpForecast));
-		else setForecastInput("");
-	}, [existingForecast, targetDate]);
-	const handleSaveForecast = async () => {
-		setIsLoading(true);
-		const val = parseFloat(forecastInput);
-		if (isNaN(val) || val < 0) {
-			toast$2({
-				title: "Valor inválido",
-				description: "Por favor, insira um valor numérico válido para a previsão.",
-				variant: "destructive"
-			});
-			setIsLoading(false);
-			return;
-		}
-		try {
-			await saveDailyForecast(targetDate, val);
-			toast$2({
-				title: "Previsão atualizada",
-				description: "A previsão de entrada foi salva com sucesso."
-			});
-			setIsEditing(false);
-		} catch (error) {
-			toast$2({
-				title: "Erro ao salvar",
-				description: "Não foi possível salvar a previsão.",
-				variant: "destructive"
-			});
-		} finally {
-			setIsLoading(false);
-		}
-	};
-	const activeMpValue = existingForecast ? existingForecast.mpForecast : rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate)).reduce((acc, curr) => acc + curr.quantity, 0);
+	const activeMpValue = dailyForecastTotal > 0 ? dailyForecastTotal : rawMaterials.filter((r$2) => isSameDay(r$2.date, targetDate)).reduce((acc, curr) => acc + curr.quantity, 0);
 	const HOURS_IN_DAY = 24;
 	const MACHINE_CAPACITY_BAGS_DAY = 96;
+	const FIXED_FLOW_1450 = 5.8;
+	const FIXED_FLOW_1500 = 6;
 	const YIELD_FACTORS = {
 		sebo: .15,
 		fco: .2,
@@ -67003,10 +66994,8 @@ function LoadForecast({ referenceDate, className }) {
 	};
 	const calculateMetrics = (yieldFactor) => {
 		const estProdKg = activeMpValue * yieldFactor;
-		const estProdTons = estProdKg / 1e3;
 		return {
-			estProdTons,
-			flowTh: estProdTons / HOURS_IN_DAY,
+			estProdTons: estProdKg / 1e3,
 			bags1450: Math.floor(estProdKg / 1450),
 			bags1500: Math.floor(estProdKg / 1500)
 		};
@@ -67049,11 +67038,11 @@ function LoadForecast({ referenceDate, className }) {
 									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center",
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 										className: "text-[11px] text-muted-foreground font-medium mb-1",
-										children: "Flow 1450kg"
+										children: "Vazão 1450kg"
 									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "text-base font-bold text-foreground",
 										children: [
-											data.flowTh.toFixed(2),
+											FIXED_FLOW_1450.toFixed(2),
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs font-normal text-muted-foreground",
@@ -67065,11 +67054,11 @@ function LoadForecast({ referenceDate, className }) {
 									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center",
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 										className: "text-[11px] text-muted-foreground font-medium mb-1",
-										children: "Flow 1500kg"
+										children: "Vazão 1500kg"
 									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 										className: "text-base font-bold text-foreground",
 										children: [
-											data.flowTh.toFixed(2),
+											FIXED_FLOW_1500.toFixed(2),
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs font-normal text-muted-foreground",
@@ -67149,24 +67138,10 @@ function LoadForecast({ referenceDate, className }) {
 						className: "flex flex-col px-2",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "text-[10px] uppercase font-bold text-muted-foreground tracking-wider",
-							children: "Previsão de entrada de MP"
+							children: "Previsão Total MP"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "flex items-baseline gap-1",
-							children: [isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								value: forecastInput,
-								onChange: (e) => setForecastInput(e.target.value),
-								className: "h-7 w-32 text-sm px-2 py-1",
-								placeholder: "0",
-								autoFocus: true,
-								onKeyDown: (e) => {
-									if (e.key === "Enter") handleSaveForecast();
-									if (e.key === "Escape") {
-										setIsEditing(false);
-										setForecastInput(existingForecast ? String(existingForecast.mpForecast) : "");
-									}
-								}
-							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 								className: "text-lg font-bold font-mono",
 								children: activeMpValue.toLocaleString("pt-BR")
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
@@ -67174,18 +67149,15 @@ function LoadForecast({ referenceDate, className }) {
 								children: "kg"
 							})]
 						})]
-					}), isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						size: "sm",
-						className: "h-7 w-7",
-						onClick: handleSaveForecast,
-						disabled: isLoading,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "h-3.5 w-3.5" })
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						asChild: true,
 						variant: "ghost",
 						size: "sm",
-						className: "h-7 w-7 text-muted-foreground hover:text-primary",
-						onClick: () => setIsEditing(true),
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pen, { className: "h-3.5 w-3.5" })
+						className: "h-8 gap-1 text-xs text-muted-foreground hover:text-primary",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
+							to: "/gestao/previsao-mp",
+							children: ["Gerenciar", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-3 w-3" })]
+						})
 					})]
 				})]
 			})
@@ -86840,6 +86812,210 @@ function SteamControl() {
 		]
 	});
 }
+function ForecastManagement() {
+	const { dailyForecasts, saveDailyForecast, deleteDailyForecast } = useData();
+	const { toast: toast$2 } = useToast();
+	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [materialType, setMaterialType] = (0, import_react.useState)("");
+	const [quantity, setQuantity] = (0, import_react.useState)("");
+	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
+	const forecastsForDate = dailyForecasts.filter((f) => isSameDay(f.date, date$4));
+	const totalForecast = forecastsForDate.reduce((acc, curr) => acc + curr.mpForecast, 0);
+	const handleSave = async () => {
+		if (!materialType) {
+			toast$2({
+				title: "Campo obrigatório",
+				description: "Selecione o tipo de matéria-prima.",
+				variant: "destructive"
+			});
+			return;
+		}
+		const qty = parseFloat(quantity);
+		if (isNaN(qty) || qty <= 0) {
+			toast$2({
+				title: "Valor inválido",
+				description: "A quantidade deve ser um número positivo.",
+				variant: "destructive"
+			});
+			return;
+		}
+		setIsSubmitting(true);
+		try {
+			await saveDailyForecast(date$4, qty, materialType);
+			toast$2({
+				title: "Previsão Salva",
+				description: "A previsão foi registrada com sucesso."
+			});
+			setIsOpen(false);
+			setMaterialType("");
+			setQuantity("");
+		} catch (error) {
+			toast$2({
+				title: "Erro",
+				description: "Não foi possível salvar a previsão.",
+				variant: "destructive"
+			});
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+	const handleDelete = async (id) => {
+		try {
+			await deleteDailyForecast(id);
+			toast$2({
+				title: "Previsão Removida",
+				description: "O registro foi excluído com sucesso."
+			});
+		} catch (error) {
+			toast$2({
+				title: "Erro",
+				description: "Não foi possível excluir o registro.",
+				variant: "destructive"
+			});
+		}
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+				className: "text-2xl font-bold tracking-tight flex items-center gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-6 w-6 text-primary" }), "Previsão de Entrada de MP"]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-muted-foreground",
+				children: "Gerenciamento de previsões de recebimento para planejamento logístico."
+			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePicker, {
+					date: date$4,
+					setDate
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+					open: isOpen,
+					onOpenChange: setIsOpen,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+						asChild: true,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Previsão"]
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Previsão" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogDescription, { children: [
+						"Informe o tipo e a quantidade estimada para o dia",
+						" ",
+						format(date$4, "dd/MM/yyyy"),
+						"."
+					] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-4 py-4",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "space-y-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", {
+									className: "text-sm font-medium",
+									children: "Matéria-Prima"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+									value: materialType,
+									onValueChange: setMaterialType,
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione..." }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [RAW_MATERIAL_TYPES.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: type,
+										children: type
+									}, type)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Geral",
+										children: "Geral (Misto/Outros)"
+									})] })]
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "space-y-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", {
+									className: "text-sm font-medium",
+									children: "Quantidade (Toneladas)"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.1",
+									placeholder: "0.00",
+									value: quantity,
+									onChange: (e) => setQuantity(e.target.value)
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								className: "w-full",
+								onClick: handleSave,
+								disabled: isSubmitting,
+								children: isSubmitting ? "Salvando..." : "Salvar Previsão"
+							})
+						]
+					})] })]
+				})]
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "grid gap-4 md:grid-cols-3",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+				className: "md:col-span-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, { children: ["Previsões para ", format(date$4, "dd/MM/yyyy")] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Lista de materiais previstos para o ciclo de 24h." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Material" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Quantidade (t)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Quantidade (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
+				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: forecastsForDate.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 4,
+					className: "text-center text-muted-foreground h-24",
+					children: "Nenhuma previsão registrada para esta data."
+				}) }) : forecastsForDate.map((forecast) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "font-medium",
+						children: forecast.materialType || "Geral"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+						className: "text-right",
+						children: [(forecast.mpForecast / 1e3).toFixed(2), " t"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+						className: "text-right text-muted-foreground",
+						children: [forecast.mpForecast.toLocaleString("pt-BR"), " kg"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						size: "icon",
+						className: "h-8 w-8 text-destructive hover:text-destructive/90",
+						onClick: () => handleDelete(forecast.id),
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+					}) })
+				] }, forecast.id)) })] }) })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+				className: "bg-primary/5 border-primary/20",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+					className: "text-lg flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), "Total Previsto"]
+				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-col gap-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-3xl font-bold text-primary",
+						children: [
+							(totalForecast / 1e3).toLocaleString("pt-BR", {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2
+							}),
+							" ",
+							"t"
+						]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-sm text-muted-foreground",
+						children: [totalForecast.toLocaleString("pt-BR"), " kg"]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "mt-4 pt-4 border-t border-primary/10 text-xs text-muted-foreground",
+					children: "Esta previsão é utilizada para o cálculo de fluxo e capacidade no Dashboard Logístico."
+				})] })]
+			})]
+		})]
+	});
+}
 var NotFound = () => {
 	const location = useLocation();
 	(0, import_react.useEffect)(() => {
@@ -87900,6 +88076,11 @@ var operationalItems = [
 ];
 var managementItems = [
 	{
+		title: "Previsão Entrada MP",
+		url: "/gestao/previsao-mp",
+		icon: TrendingUp
+	},
+	{
 		title: "Estoque de Sebo",
 		url: "/gestao/estoque-sebo",
 		icon: Database
@@ -88301,6 +88482,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControl, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/gestao/previsao-mp",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastManagement, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/access-denied",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccessDenied, {})
 					})
@@ -88316,4 +88501,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-mM6JB9Ba.js.map
+//# sourceMappingURL=index-CoJ899l3.js.map

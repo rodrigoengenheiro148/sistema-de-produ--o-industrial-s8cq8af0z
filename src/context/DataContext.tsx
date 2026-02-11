@@ -26,11 +26,12 @@ import {
   SteamControlRecord,
   DailyProductionForecast,
 } from '@/lib/types'
-import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { startOfMonth, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { mapSteamRecord } from '@/services/steamControl'
+import { saveForecast, deleteForecast } from '@/services/forecast'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
@@ -343,6 +344,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
             factoryId: f.factory_id,
             date: parseDateSafe(f.date),
             mpForecast: f.mp_forecast,
+            materialType: f.material_type,
             userId: f.user_id,
             createdAt: f.created_at ? new Date(f.created_at) : undefined,
           })),
@@ -804,26 +806,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     await fetchOperationalData()
   }
 
-  const saveDailyForecast = async (date: Date, mpForecast: number) => {
+  const saveDailyForecast = async (
+    date: Date,
+    mpForecast: number,
+    materialType: string = 'Geral',
+  ) => {
     if (!currentFactoryId || !user?.id) return
 
-    const dateStr = format(date, 'yyyy-MM-dd')
-
-    const { error } = await supabase.from('daily_production_forecasts').upsert(
-      {
-        date: dateStr,
-        mp_forecast: mpForecast,
-        factory_id: currentFactoryId,
-        user_id: user.id,
-      },
-      { onConflict: 'factory_id,date' },
-    )
-
-    if (error) {
+    try {
+      await saveForecast(
+        date,
+        mpForecast,
+        materialType,
+        currentFactoryId,
+        user.id,
+      )
+      fetchOperationalData()
+    } catch (error) {
       console.error('Error saving daily forecast:', error)
       throw error
-    } else {
+    }
+  }
+
+  const deleteDailyForecast = async (id: string) => {
+    try {
+      await deleteForecast(id)
       fetchOperationalData()
+    } catch (error) {
+      console.error('Error deleting forecast:', error)
+      throw error
     }
   }
 
@@ -912,7 +923,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       yield_threshold: settings.yieldThreshold,
       sebo_threshold: settings.seboThreshold,
       farinheta_threshold: settings.farinhetaThreshold,
-      farinha_threshold: settings.farinhaThreshold,
+      farinha_threshold: settings.farinha_threshold,
       fco_threshold: settings.fcoThreshold,
       notification_email: settings.notificationEmail,
       notification_phone: settings.notificationPhone,
@@ -1043,6 +1054,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         clearSteamRecords,
         dailyForecasts,
         saveDailyForecast,
+        deleteDailyForecast,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},
