@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -31,7 +31,7 @@ import {
   Search,
   Trash2,
   Pencil,
-  CalendarIcon,
+  Calendar as CalendarIcon,
   Package,
   Lock,
   MoreVertical,
@@ -40,7 +40,16 @@ import {
   Percent,
   X,
 } from 'lucide-react'
-import { format, isSameDay } from 'date-fns'
+import {
+  format,
+  isSameDay,
+  parse,
+  isValid,
+  startOfDay,
+  endOfDay,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 import { RawMaterialForm } from '@/components/RawMaterialForm'
 import { RawMaterialEntry } from '@/lib/types'
@@ -65,10 +74,22 @@ import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
-import { DatePicker } from '@/components/ui/date-picker'
+import { cn } from '@/lib/utils'
+
+// Date parsing constants
+const DATE_FORMAT = 'dd/MM/yyyy'
+const SINGLE_DATE_REGEX = /^(\d{2})\/(\d{2})\/(\d{4})$/
+const RANGE_DATE_REGEX =
+  /^(\d{2})\/(\d{2})\/(\d{4})\s+até\s+(\d{2})\/(\d{2})\/(\d{4})$/i
 
 export default function RawMaterial() {
-  const { rawMaterials, deleteRawMaterial, dateRange, production } = useData()
+  const {
+    rawMaterials,
+    deleteRawMaterial,
+    dateRange,
+    setDateRange,
+    production,
+  } = useData()
   const { toast } = useToast()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
@@ -78,7 +99,10 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [historyDate, setHistoryDate] = useState<Date | undefined>(undefined)
+
+  // Filter Input State
+  const [dateInputValue, setDateInputValue] = useState('')
+  const [dateInputError, setDateInputError] = useState(false)
 
   // Security Gate State
   const [securityOpen, setSecurityOpen] = useState(false)
@@ -123,12 +147,65 @@ export default function RawMaterial() {
     if (!open) setEditingItem(undefined)
   }
 
+  // Date Filter Logic
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setDateInputValue(value)
+
+    if (!value) {
+      setDateInputError(false)
+      // We don't reset dateRange immediately on empty to allow typing,
+      // but user can click Clear button to reset.
+      return
+    }
+
+    // Try Parse Single Date
+    const singleMatch = value.match(SINGLE_DATE_REGEX)
+    if (singleMatch) {
+      const date = parse(value, DATE_FORMAT, new Date())
+      if (isValid(date)) {
+        setDateRange({ from: startOfDay(date), to: endOfDay(date) })
+        setDateInputError(false)
+        return
+      }
+    }
+
+    // Try Parse Range
+    const rangeMatch = value.match(RANGE_DATE_REGEX)
+    if (rangeMatch) {
+      const [_, d1, m1, y1, d2, m2, y2] = rangeMatch
+      const date1 = parse(`${d1}/${m1}/${y1}`, DATE_FORMAT, new Date())
+      const date2 = parse(`${d2}/${m2}/${y2}`, DATE_FORMAT, new Date())
+
+      if (isValid(date1) && isValid(date2)) {
+        if (date1 > date2) {
+          setDateRange({ from: startOfDay(date2), to: endOfDay(date1) })
+        } else {
+          setDateRange({ from: startOfDay(date1), to: endOfDay(date2) })
+        }
+        setDateInputError(false)
+        return
+      }
+    }
+
+    // If matches partial structure but invalid date (e.g. 31/02), or doesn't match
+    setDateInputError(true)
+  }
+
+  const handleClearDateFilter = () => {
+    setDateInputValue('')
+    setDateInputError(false)
+    setDateRange({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    })
+  }
+
+  // Filter Data
   const filteredMaterials = rawMaterials
     .filter((item) => {
-      // Date Filter: Specific Day (overrides range) OR Date Range
-      if (historyDate) {
-        if (!isSameDay(item.date, historyDate)) return false
-      } else if (dateRange.from && dateRange.to) {
+      // Date Filter: Strictly respect global dateRange (D-1 is handled by fetching, but we hide it here)
+      if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false
       }
 
@@ -145,7 +222,7 @@ export default function RawMaterial() {
 
   // --- Metrics Calculation ---
 
-  // 1. Total Input Mass (uses filteredMaterials to respect all filters)
+  // 1. Total Input Mass
   const totalInputKg = filteredMaterials.reduce((acc, item) => {
     const unit = item.unit?.toLowerCase() || ''
     if (unit === 'bag') return acc + item.quantity * 1400
@@ -153,8 +230,9 @@ export default function RawMaterial() {
     return acc + item.quantity
   }, 0)
 
-  // 2. Yield Percentage (uses production filtered only by Date Range)
+  // 2. Yield Percentage
   const filteredProduction = production.filter((item) => {
+    // Strictly filter production by date range to match materials
     if (dateRange.from && dateRange.to) {
       if (item.date < dateRange.from || item.date > dateRange.to) return false
     }
@@ -178,6 +256,14 @@ export default function RawMaterial() {
       return `${(val / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t`
     return `${val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`
   }
+
+  // Determine label for history list
+  const isSingleDay =
+    dateRange.from &&
+    dateRange.to &&
+    isSameDay(dateRange.from, dateRange.to) &&
+    !dateInputError &&
+    dateInputValue !== ''
 
   return (
     <div className="space-y-6">
@@ -268,7 +354,7 @@ export default function RawMaterial() {
               </CardTitle>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span className="font-medium">
-                  {historyDate ? 'Total do Dia:' : 'Total Listado:'}
+                  {isSingleDay ? 'Total do Dia:' : 'Total Listado:'}
                 </span>
                 <span className="font-bold text-foreground">
                   {formatMass(totalInputKg)}
@@ -277,19 +363,26 @@ export default function RawMaterial() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-              <div className="flex items-center gap-2">
-                <DatePicker
-                  date={historyDate}
-                  setDate={(date) => setHistoryDate(date)}
-                  className="w-full sm:w-[200px]"
+              {/* Custom Date Input Filter */}
+              <div className="relative w-full sm:w-[320px]">
+                <CalendarIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                <Input
+                  placeholder="DD/MM/AAAA ou ... até ..."
+                  value={dateInputValue}
+                  onChange={handleDateInputChange}
+                  className={cn(
+                    'pl-8 pr-8 w-full transition-colors',
+                    dateInputError &&
+                      'border-destructive focus-visible:ring-destructive',
+                  )}
                 />
-                {historyDate && (
+                {dateInputValue && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setHistoryDate(undefined)}
-                    title="Limpar data"
-                    className="shrink-0"
+                    className="absolute right-0 top-0 h-10 w-10 text-muted-foreground hover:text-foreground"
+                    onClick={handleClearDateFilter}
+                    title="Limpar filtro de data"
                   >
                     <X className="h-4 w-4" />
                   </Button>

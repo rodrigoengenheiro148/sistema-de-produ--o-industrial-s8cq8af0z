@@ -4172,6 +4172,9 @@ img[src*='skip.svg'] {
   .sm\:w-\[300px\]{
     width: 300px;
   }
+  .sm\:w-\[320px\]{
+    width: 320px;
+  }
   .sm\:w-\[80px\]{
     width: 80px;
   }
