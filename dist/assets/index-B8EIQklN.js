@@ -74296,7 +74296,7 @@ const PcpProvider = ({ children }) => {
 		children
 	});
 };
-function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP", description = "Esta ação requer autorização de Planejamento e Controle de Produção. Informe a senha PCP." }) {
+function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP", description = "Esta ação requer autorização de Planejamento e Controle de Produção. AUTORIZAÇÃO PCP." }) {
 	const { authorizePcp } = usePcp();
 	const [password, setPassword] = (0, import_react.useState)("");
 	const [error, setError] = (0, import_react.useState)(false);
@@ -74338,7 +74338,7 @@ function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP",
 					className: "space-y-2",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 						type: "password",
-						placeholder: "Senha PCP",
+						placeholder: "AUTORIZAÇÃO PCP",
 						value: password,
 						onChange: (e) => {
 							setPassword(e.target.value);
@@ -89273,4 +89273,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D4vhS_5b.js.map
+//# sourceMappingURL=index-B8EIQklN.js.map

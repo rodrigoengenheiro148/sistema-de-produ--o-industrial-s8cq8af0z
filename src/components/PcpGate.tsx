@@ -26,7 +26,7 @@ export function PcpGate({
   onOpenChange,
   onSuccess,
   title = 'Autorização PCP',
-  description = 'Esta ação requer autorização de Planejamento e Controle de Produção. Informe a senha PCP.',
+  description = 'Esta ação requer autorização de Planejamento e Controle de Produção. AUTORIZAÇÃO PCP.',
 }: PcpGateProps) {
   const { authorizePcp } = usePcp()
   const [password, setPassword] = useState('')
@@ -74,7 +74,7 @@ export function PcpGate({
           <div className="space-y-2">
             <Input
               type="password"
-              placeholder="Senha PCP"
+              placeholder="AUTORIZAÇÃO PCP"
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value)
