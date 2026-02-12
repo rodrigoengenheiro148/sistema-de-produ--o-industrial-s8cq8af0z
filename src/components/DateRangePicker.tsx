@@ -47,7 +47,7 @@ export function DatePickerWithRange({
                 format(date.from, 'dd/MM/yyyy')
               )
             ) : (
-              <span>Selecione um período</span>
+              <span>Selecionar data ou período</span>
             )}
           </Button>
         </PopoverTrigger>

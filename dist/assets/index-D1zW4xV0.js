@@ -74919,1001 +74919,6 @@ function RawMaterialImportDialog() {
 		})]
 	});
 }
-var DATE_FORMAT = "dd/MM/yyyy";
-var SINGLE_DATE_REGEX = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-var RANGE_DATE_REGEX = /^(\d{2})\/(\d{2})\/(\d{4})\s+até\s+(\d{2})\/(\d{2})\/(\d{4})$/i;
-function RawMaterial() {
-	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production } = useData();
-	const { toast: toast$2 } = useToast();
-	const isMobile = useIsMobile();
-	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
-	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
-	const [typeFilter, setTypeFilter] = (0, import_react.useState)("all");
-	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
-	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
-	const [dateInputValue, setDateInputValue] = (0, import_react.useState)("");
-	const [dateInputError, setDateInputError] = (0, import_react.useState)(false);
-	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
-	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
-	const handleProtectedAction = (createdAt, action) => {
-		if (shouldRequireAuth(createdAt)) {
-			setPendingAction(() => action);
-			setSecurityOpen(true);
-		} else action();
-	};
-	const handleSecuritySuccess = () => {
-		setSecurityOpen(false);
-		if (pendingAction) pendingAction();
-		setPendingAction(null);
-	};
-	const handleEdit = (item) => {
-		setEditingItem(item);
-		setIsOpen(true);
-	};
-	const handleDelete = () => {
-		if (deleteId) {
-			deleteRawMaterial(deleteId);
-			toast$2({
-				title: "Registro excluído",
-				description: "A entrada foi removida com sucesso."
-			});
-			setDeleteId(null);
-		}
-	};
-	const handleOpenChange = (open) => {
-		setIsOpen(open);
-		if (!open) setEditingItem(void 0);
-	};
-	const handleDateInputChange = (e) => {
-		const value = e.target.value;
-		setDateInputValue(value);
-		if (!value) {
-			setDateInputError(false);
-			return;
-		}
-		if (value.match(SINGLE_DATE_REGEX)) {
-			const date$4 = parse(value, DATE_FORMAT, /* @__PURE__ */ new Date());
-			if (isValid(date$4)) {
-				setDateRange({
-					from: startOfDay(date$4),
-					to: endOfDay(date$4)
-				});
-				setDateInputError(false);
-				return;
-			}
-		}
-		const rangeMatch = value.match(RANGE_DATE_REGEX);
-		if (rangeMatch) {
-			const [_$1, d1, m1, y1, d2, m2, y2] = rangeMatch;
-			const date1 = parse(`${d1}/${m1}/${y1}`, DATE_FORMAT, /* @__PURE__ */ new Date());
-			const date2 = parse(`${d2}/${m2}/${y2}`, DATE_FORMAT, /* @__PURE__ */ new Date());
-			if (isValid(date1) && isValid(date2)) {
-				if (date1 > date2) setDateRange({
-					from: startOfDay(date2),
-					to: endOfDay(date1)
-				});
-				else setDateRange({
-					from: startOfDay(date1),
-					to: endOfDay(date2)
-				});
-				setDateInputError(false);
-				return;
-			}
-		}
-		setDateInputError(true);
-	};
-	const handleClearDateFilter = () => {
-		setDateInputValue("");
-		setDateInputError(false);
-		setDateRange({
-			from: startOfMonth(/* @__PURE__ */ new Date()),
-			to: endOfMonth(/* @__PURE__ */ new Date())
-		});
-	};
-	const filteredMaterials = rawMaterials.filter((item) => {
-		if (dateRange.from && dateRange.to) {
-			if (item.date < dateRange.from || item.date > dateRange.to) return false;
-		}
-		if (typeFilter !== "all" && item.type !== typeFilter) return false;
-		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.type.toLowerCase().includes(searchTerm.toLowerCase());
-	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
-	const totalInputKg = filteredMaterials.reduce((acc, item) => {
-		const unit$1 = item.unit?.toLowerCase() || "";
-		if (unit$1 === "bag") return acc + item.quantity * 1400;
-		if (unit$1 === "ton") return acc + item.quantity * 1e3;
-		return acc + item.quantity;
-	}, 0);
-	const filteredProduction = production.filter((item) => {
-		if (dateRange.from && dateRange.to) {
-			if (item.date < dateRange.from || item.date > dateRange.to) return false;
-		}
-		return true;
-	});
-	const totalOutput = filteredProduction.reduce((acc, curr) => acc + (curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced), 0);
-	const totalMpUsed = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
-	const yieldPercentage = totalMpUsed > 0 ? totalOutput / totalMpUsed * 100 : 0;
-	const formatMass = (val) => {
-		if (val >= 1e3) return `${(val / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} t`;
-		return `${val.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kg`;
-	};
-	const isSingleDay = dateRange.from && dateRange.to && isSameDay(dateRange.from, dateRange.to) && !dateInputError && dateInputValue !== "";
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-6",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-					className: "text-2xl font-bold tracking-tight",
-					children: "Entrada de Matéria-Prima"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 w-full sm:w-auto",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-						open: isOpen,
-						onOpenChange: handleOpenChange,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								className: "gap-2 flex-1 sm:flex-none",
-								onClick: () => setEditingItem(void 0),
-								size: isMobile ? "default" : "default",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
-									" ",
-									isMobile ? "Nova" : "Nova Entrada"
-								]
-							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-							className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Entrada" : "Registrar Entrada" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os detalhes do registro selecionado." : "Insira os detalhes do recebimento de matéria-prima." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialForm, {
-								initialData: editingItem,
-								onSuccess: () => setIsOpen(false),
-								onCancel: () => setIsOpen(false)
-							})]
-						})]
-					})]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "space-y-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-					className: "text-lg font-semibold text-muted-foreground",
-					children: "Visão Geral"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "grid gap-4 md:grid-cols-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						className: "flex flex-row items-center justify-between space-y-0 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							className: "text-sm font-medium",
-							children: "Total de Entrada"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-4 w-4 text-muted-foreground" })]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "text-2xl font-bold",
-						children: formatMass(totalInputKg)
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "text-xs text-muted-foreground",
-						children: "Soma da quantidade baseada nos filtros aplicados."
-					})] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-						className: "flex flex-row items-center justify-between space-y-0 pb-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-							className: "text-sm font-medium",
-							children: "Rendimentos"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Percent, { className: "h-4 w-4 text-muted-foreground" })]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "text-2xl font-bold",
-						children: [yieldPercentage.toFixed(1), "%"]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "text-xs text-muted-foreground",
-						children: "Eficiência produtiva no período selecionado."
-					})] })] })]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "space-y-1",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-						className: "hidden sm:block",
-						children: "Histórico de Entradas"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex items-center gap-2 text-sm text-muted-foreground",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-medium",
-							children: isSingleDay ? "Total do Dia:" : "Total Listado:"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-bold text-foreground",
-							children: formatMass(totalInputKg)
-						})]
-					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex flex-col sm:flex-row gap-2 w-full lg:w-auto",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "relative w-full sm:w-[320px]",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground z-10" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									placeholder: "DD/MM/AAAA ou ... até ...",
-									value: dateInputValue,
-									onChange: handleDateInputChange,
-									className: cn("pl-8 pr-8 w-full transition-colors", dateInputError && "border-destructive focus-visible:ring-destructive")
-								}),
-								dateInputValue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: "absolute right-0 top-0 h-10 w-10 text-muted-foreground hover:text-foreground",
-									onClick: handleClearDateFilter,
-									title: "Limpar filtro de data",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-4 w-4" })
-								})
-							]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
-							value: typeFilter,
-							onValueChange: setTypeFilter,
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
-								className: "w-full sm:w-[180px]",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex items-center gap-2",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Funnel, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Todos os tipos" })]
-								})
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: "all",
-								children: "Todos os tipos"
-							}), RAW_MATERIAL_TYPES.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-								value: type,
-								children: type
-							}, type))] })]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "relative w-full sm:w-64",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, { className: "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								placeholder: "Buscar fornecedor...",
-								className: "pl-8",
-								value: searchTerm,
-								onChange: (e) => setSearchTerm(e.target.value)
-							})]
-						})
-					]
-				})]
-			}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
-				children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "space-y-4",
-					children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "text-center py-8 text-muted-foreground",
-						children: "Nenhum registro encontrado."
-					}) : filteredMaterials.map((entry) => {
-						const isLocked = shouldRequireAuth(entry.createdAt);
-						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
-							className: "shadow-sm border",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-								className: "p-4",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "flex justify-between items-start mb-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "space-y-1",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "font-semibold text-lg line-clamp-1",
-												children: entry.supplier
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex items-center gap-2 text-sm text-muted-foreground",
-												children: [
-													/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
-													format(entry.date, "dd/MM/yyyy"),
-													isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
-												]
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
-											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-												variant: "ghost",
-												size: "sm",
-												className: "h-8 w-8 p-0",
-												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
-											})
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
-											align: "end",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleProtectedAction(entry.createdAt, () => handleEdit(entry)),
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleProtectedAction(entry.createdAt, () => setDeleteId(entry.id)),
-												className: "text-red-600 focus:text-red-600",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
-											})]
-										})] })]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "flex items-center gap-2",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-4 w-4 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "font-medium",
-												children: entry.type
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-											className: "font-mono font-bold text-lg",
-											children: [
-												entry.quantity.toLocaleString("pt-BR"),
-												" ",
-												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-sm font-normal text-muted-foreground",
-													children: entry.unit
-												})
-											]
-										})]
-									}),
-									entry.notes && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-										className: "text-xs text-muted-foreground italic",
-										children: [
-											"\"",
-											entry.notes,
-											"\""
-										]
-									})
-								]
-							})
-						}, entry.id);
-					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Matéria-Prima" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Quantidade"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Observações" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "w-[80px]",
-						children: "Ações"
-					})
-				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 6,
-					className: "text-center h-24 text-muted-foreground",
-					children: "Nenhum registro encontrado no período."
-				}) }) : filteredMaterials.map((entry) => {
-					const isLocked = shouldRequireAuth(entry.createdAt);
-					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "font-medium",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex items-center gap-2",
-									children: [format(entry.date, "dd/MM/yyyy"), isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })]
-								})
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.supplier }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground",
-								children: entry.type
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "text-right font-mono",
-								children: [
-									entry.quantity.toLocaleString("pt-BR"),
-									" ",
-									entry.unit || "kg"
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "max-w-[200px] truncate text-muted-foreground",
-								children: entry.notes || "-"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
-									onClick: () => handleProtectedAction(entry.createdAt, () => handleEdit(entry)),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
-									onClick: () => handleProtectedAction(entry.createdAt, () => setDeleteId(entry.id)),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-								})]
-							})
-						]
-					}, entry.id);
-				}) })] })
-			})] }),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
-				open: !!deleteId,
-				onOpenChange: () => setDeleteId(null),
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover esta entrada? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
-					onClick: handleDelete,
-					className: "bg-destructive hover:bg-destructive/90",
-					children: "Excluir"
-				})] })] })
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
-				isOpen: securityOpen,
-				onOpenChange: setSecurityOpen,
-				onSuccess: handleSecuritySuccess
-			})
-		]
-	});
-}
-var Sheet = Root$6;
-var SheetTrigger = Trigger$3;
-var SheetPortal = Portal$4;
-var SheetOverlay = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Overlay, {
-	className: cn("fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", className),
-	...props,
-	ref
-}));
-SheetOverlay.displayName = Overlay.displayName;
-var sheetVariants = cva("fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500", {
-	variants: { side: {
-		top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-		bottom: "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-		left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-		right: "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm"
-	} },
-	defaultVariants: { side: "right" }
-});
-var SheetContent = import_react.forwardRef(({ side = "right", className, children, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetPortal, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetOverlay, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Content, {
-	ref,
-	className: cn(sheetVariants({ side }), className),
-	...props,
-	children: [children, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Close, {
-		className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-			className: "sr-only",
-			children: "Close"
-		})]
-	})]
-})] }));
-SheetContent.displayName = Content.displayName;
-var SheetHeader = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	className: cn("flex flex-col space-y-2 text-center sm:text-left", className),
-	...props
-});
-SheetHeader.displayName = "SheetHeader";
-var SheetFooter = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	className: cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className),
-	...props
-});
-SheetFooter.displayName = "SheetFooter";
-var SheetTitle = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Title, {
-	ref,
-	className: cn("text-lg font-semibold text-foreground", className),
-	...props
-}));
-SheetTitle.displayName = Title.displayName;
-var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Description, {
-	ref,
-	className: cn("text-sm text-muted-foreground", className),
-	...props
-}));
-SheetDescription.displayName = Description.displayName;
-var formSchema$8 = object({
-	date: string().min(1, "Data é obrigatória"),
-	shift: _enum([
-		"Manhã",
-		"Tarde",
-		"Noite"
-	]),
-	mpUsed: number().min(0, "Valor deve ser positivo"),
-	sebo: number().min(0, "Valor deve ser positivo"),
-	fco: number().min(0, "Valor deve ser positivo"),
-	farinheta: number().min(0, "Valor deve ser positivo"),
-	losses: number()
-});
-function ProductionForm({ initialData, onSuccess }) {
-	const { addProduction, updateProduction } = useData();
-	const { toast: toast$2 } = useToast();
-	const form = useForm({
-		resolver: a(formSchema$8),
-		defaultValues: {
-			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
-			shift: initialData?.shift || "Manhã",
-			mpUsed: initialData?.mpUsed || 0,
-			sebo: initialData?.seboProduced || 0,
-			fco: initialData?.fcoProduced || 0,
-			farinheta: initialData?.farinhetaProduced || 0,
-			losses: initialData?.losses || 0
-		}
-	});
-	const mpUsed = form.watch("mpUsed");
-	const sebo = form.watch("sebo");
-	const fco = form.watch("fco");
-	const farinheta = form.watch("farinheta");
-	(0, import_react.useEffect)(() => {
-		const calculatedLosses = (Number(mpUsed) || 0) - ((Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0));
-		form.setValue("losses", Math.max(0, calculatedLosses), {
-			shouldValidate: true,
-			shouldDirty: true,
-			shouldTouch: true
-		});
-	}, [
-		mpUsed,
-		sebo,
-		fco,
-		farinheta,
-		form
-	]);
-	function onSubmit(values) {
-		const entryData = {
-			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-			shift: values.shift,
-			mpUsed: values.mpUsed,
-			seboProduced: values.sebo,
-			fcoProduced: values.fco,
-			farinhetaProduced: values.farinheta,
-			losses: values.losses,
-			bloodMealProduced: 0,
-			bloodMealBags: 0
-		};
-		if (initialData) {
-			updateProduction({
-				...entryData,
-				bloodMealProduced: initialData.bloodMealProduced || 0,
-				bloodMealBags: initialData.bloodMealBags || 0,
-				id: initialData.id
-			});
-			toast$2({
-				title: "Sucesso",
-				description: "Produção atualizada com sucesso!"
-			});
-		} else {
-			addProduction(entryData);
-			toast$2({
-				title: "Sucesso",
-				description: "Produção registrada com sucesso!"
-			});
-		}
-		form.reset();
-		onSuccess();
-	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
-		...form,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-			onSubmit: form.handleSubmit(onSubmit),
-			className: "space-y-4 py-4",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "grid grid-cols-2 gap-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "date",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "date",
-								...field
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "shift",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Turno" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
-								onValueChange: field.onChange,
-								defaultValue: field.value,
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-										value: "Manhã",
-										children: "Manhã"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-										value: "Tarde",
-										children: "Tarde"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
-										value: "Noite",
-										children: "Noite"
-									})
-								] })]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-							className: "font-medium text-sm text-slate-500",
-							children: "Linha Principal"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-							control: form.control,
-							name: "mpUsed",
-							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "MP Processada (kg)" }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									type: "number",
-									...field
-								}) }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-							] })
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "grid grid-cols-2 gap-4",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "sebo",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Sebo (kg)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											...field
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									] })
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "fco",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha Carne/Osso (kg)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											...field
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									] })
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "farinheta",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinheta (kg)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											...field
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									] })
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "losses",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Perdas (kg)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											...field,
-											readOnly: true,
-											tabIndex: -1,
-											className: "bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									] })
-								})
-							]
-						})
-					]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					type: "submit",
-					className: "w-full",
-					children: initialData ? "Atualizar Produção" : "Salvar Produção"
-				}) })
-			]
-		})
-	});
-}
-function Production() {
-	const { production, deleteProduction, dateRange } = useData();
-	const { toast: toast$2 } = useToast();
-	const isMobile = useIsMobile();
-	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
-	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
-	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
-	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
-	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
-	const formatLosses = (value) => {
-		return formatNumber(value).replace(/\./g, ",");
-	};
-	const handleEditClick = (item) => {
-		if (canEditRecord(item.createdAt)) {
-			setEditingItem(item);
-			setIsOpen(true);
-		} else {
-			setSecurityAction({
-				type: "edit",
-				item
-			});
-			setIsSecurityOpen(true);
-		}
-	};
-	const handleDeleteClick = (item) => {
-		if (canEditRecord(item.createdAt)) setDeleteId(item.id);
-		else {
-			setSecurityAction({
-				type: "delete",
-				item
-			});
-			setIsSecurityOpen(true);
-		}
-	};
-	const handleSecuritySuccess = () => {
-		setIsSecurityOpen(false);
-		if (securityAction) {
-			if (securityAction.type === "edit") {
-				setEditingItem(securityAction.item);
-				setIsOpen(true);
-			} else if (securityAction.type === "delete") setDeleteId(securityAction.item.id);
-			setSecurityAction(null);
-		}
-	};
-	const handleDelete = () => {
-		if (deleteId) {
-			deleteProduction(deleteId);
-			toast$2({
-				title: "Registro excluído",
-				description: "A produção foi removida com sucesso."
-			});
-			setDeleteId(null);
-		}
-	};
-	const handleOpenChange = (open) => {
-		setIsOpen(open);
-		if (!open) setEditingItem(void 0);
-	};
-	const filteredProduction = production.filter((item) => {
-		if (dateRange.from && dateRange.to) {
-			if (item.date < dateRange.from || item.date > dateRange.to) return false;
-		}
-		return item.seboProduced > 0 || item.fcoProduced > 0 || item.farinhetaProduced > 0 || item.losses > 0 || item.mpUsed > 0 && item.bloodMealProduced === 0;
-	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-6",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex items-center justify-between",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-					className: "text-2xl font-bold tracking-tight",
-					children: "Produção Diária"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Sheet, {
-					open: isOpen,
-					onOpenChange: handleOpenChange,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTrigger, {
-						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-							className: "gap-2",
-							onClick: () => setEditingItem(void 0),
-							size: isMobile ? "sm" : "default",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
-								" ",
-								isMobile ? "Novo" : "Novo Registro"
-							]
-						})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetContent, {
-						className: "overflow-y-auto sm:max-w-md w-full",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetDescription, { children: editingItem ? "Atualize os dados de processamento." : "Informe os dados de processamento do turno. O cálculo de perdas será automático." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionForm, {
-							initialData: editingItem,
-							onSuccess: () => setIsOpen(false)
-						})]
-					})]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Diário de Produção" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
-				children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "space-y-4",
-					children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "text-center py-8 text-muted-foreground",
-						children: "Nenhum registro encontrado."
-					}) : filteredProduction.map((entry) => {
-						const isEditable = canEditRecord(entry.createdAt);
-						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
-							className: "shadow-sm border",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-								className: "p-4",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "flex justify-between items-start mb-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "space-y-1",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-semibold text-lg text-primary flex items-center gap-2",
-												children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
-													asChild: true,
-													children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-4 w-4 text-muted-foreground/50" })
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit",
-												children: ["Turno: ", entry.shift]
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
-											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-												variant: "ghost",
-												size: "sm",
-												className: "h-8 w-8 p-0",
-												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
-											})
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
-											align: "end",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleEditClick(entry),
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleDeleteClick(entry),
-												className: "text-red-600 focus:text-red-600",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
-											})]
-										})] })]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "grid grid-cols-2 gap-4 text-sm mb-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs text-muted-foreground block",
-												children: "MP Proc."
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-mono font-bold",
-												children: [formatNumber(entry.mpUsed), " kg"]
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs text-red-500 block",
-												children: "Perdas"
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-mono font-bold text-red-600",
-												children: [formatLosses(entry.losses), " kg"]
-											})]
-										})]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "space-y-1 text-sm border-t pt-2",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "Sebo:"
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.seboProduced), " kg"]
-												})]
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "FCO:"
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.fcoProduced), " kg"]
-												})]
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "Farinheta:"
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.farinhetaProduced), " kg"]
-												})]
-											})
-										]
-									})
-								]
-							})
-						}, entry.id);
-					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "MP Proc. (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Sebo (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "FCO (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Farinheta (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right text-red-500",
-						children: "Perdas (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "w-[80px]",
-						children: "Ações"
-					})
-				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 8,
-					className: "text-center h-24 text-muted-foreground",
-					children: "Nenhum registro encontrado no período."
-				}) }) : filteredProduction.map((entry) => {
-					const isEditable = canEditRecord(entry.createdAt);
-					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "font-medium",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex items-center gap-2",
-									children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
-										asChild: true,
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
-								})
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono",
-								children: formatNumber(entry.mpUsed)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.seboProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.fcoProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.farinhetaProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-red-500 font-medium",
-								children: formatLosses(entry.losses)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
-									onClick: () => handleEditClick(entry),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
-									onClick: () => handleDeleteClick(entry),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-								})]
-							})
-						]
-					}, entry.id);
-				}) })] })
-			})] }),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
-				open: !!deleteId,
-				onOpenChange: () => setDeleteId(null),
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover este registro de produção?" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
-					onClick: handleDelete,
-					className: "bg-destructive hover:bg-destructive/90",
-					children: "Excluir"
-				})] })] })
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
-				isOpen: isSecurityOpen,
-				onOpenChange: setIsSecurityOpen,
-				onSuccess: handleSecuritySuccess,
-				title: "Proteção de Registro",
-				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
-			})
-		]
-	});
-}
 function tzName(timeZone, date$4, format$2 = "long") {
 	return new Intl.DateTimeFormat("en-US", {
 		hour: "numeric",
@@ -78429,6 +77434,992 @@ var PopoverContent = import_react.forwardRef(({ className, align = "center", sid
 	...props
 }) }));
 PopoverContent.displayName = Content2.displayName;
+function DatePickerWithRange({ className, date: date$4, setDate }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: cn("grid gap-2", className),
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
+			asChild: true,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+				id: "date",
+				variant: "outline",
+				className: cn("w-full justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4?.from ? date$4.to ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+					format(date$4.from, "dd/MM/yyyy"),
+					" -",
+					" ",
+					format(date$4.to, "dd/MM/yyyy")
+				] }) : format(date$4.from, "dd/MM/yyyy") : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecionar data ou período" })]
+			})
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
+			className: "w-auto p-0",
+			align: "end",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, {
+				initialFocus: true,
+				mode: "range",
+				defaultMonth: date$4?.from,
+				selected: date$4,
+				onSelect: setDate,
+				numberOfMonths: 2,
+				locale: ptBR
+			})
+		})] })
+	});
+}
+function RawMaterial() {
+	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production } = useData();
+	const { toast: toast$2 } = useToast();
+	const isMobile = useIsMobile();
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
+	const [typeFilter, setTypeFilter] = (0, import_react.useState)("all");
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
+	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
+	const handleProtectedAction = (createdAt, action) => {
+		if (shouldRequireAuth(createdAt)) {
+			setPendingAction(() => action);
+			setSecurityOpen(true);
+		} else action();
+	};
+	const handleSecuritySuccess = () => {
+		setSecurityOpen(false);
+		if (pendingAction) pendingAction();
+		setPendingAction(null);
+	};
+	const handleEdit = (item) => {
+		setEditingItem(item);
+		setIsOpen(true);
+	};
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteRawMaterial(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "A entrada foi removida com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const handleOpenChange = (open) => {
+		setIsOpen(open);
+		if (!open) setEditingItem(void 0);
+	};
+	const handleResetDate = () => {
+		setDateRange({
+			from: startOfMonth(/* @__PURE__ */ new Date()),
+			to: endOfMonth(/* @__PURE__ */ new Date())
+		});
+	};
+	const isDefaultDate = dateRange.from && dateRange.to && isSameDay(dateRange.from, startOfMonth(/* @__PURE__ */ new Date())) && isSameDay(dateRange.to, endOfMonth(/* @__PURE__ */ new Date()));
+	const filteredMaterials = rawMaterials.filter((item) => {
+		if (dateRange.from) {
+			const start = startOfDay(dateRange.from);
+			const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+			if (item.date < start || item.date > end) return false;
+		}
+		if (typeFilter !== "all" && item.type !== typeFilter) return false;
+		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.type.toLowerCase().includes(searchTerm.toLowerCase());
+	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
+	const totalInputKg = filteredMaterials.reduce((acc, item) => {
+		const unit$1 = item.unit?.toLowerCase() || "";
+		if (unit$1 === "bag") return acc + item.quantity * 1400;
+		if (unit$1 === "ton") return acc + item.quantity * 1e3;
+		return acc + item.quantity;
+	}, 0);
+	const filteredProduction = production.filter((item) => {
+		if (dateRange.from) {
+			const start = startOfDay(dateRange.from);
+			const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+			if (item.date < start || item.date > end) return false;
+		}
+		return true;
+	});
+	const totalOutput = filteredProduction.reduce((acc, curr) => acc + (curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced), 0);
+	const totalMpUsed = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
+	const yieldPercentage = totalMpUsed > 0 ? totalOutput / totalMpUsed * 100 : 0;
+	const formatMass = (val) => {
+		if (val === 0) return "0,00 t";
+		if (val >= 1e3) return `${(val / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} t`;
+		return `${val.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kg`;
+	};
+	const isSingleDay = dateRange.from && (!dateRange.to || isSameDay(dateRange.from, dateRange.to));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+					className: "text-2xl font-bold tracking-tight",
+					children: "Entrada de Matéria-Prima"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 w-full sm:w-auto",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+						open: isOpen,
+						onOpenChange: handleOpenChange,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+							asChild: true,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+								className: "gap-2 flex-1 sm:flex-none",
+								onClick: () => setEditingItem(void 0),
+								size: isMobile ? "default" : "default",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
+									" ",
+									isMobile ? "Nova" : "Nova Entrada"
+								]
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Entrada" : "Registrar Entrada" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os detalhes do registro selecionado." : "Insira os detalhes do recebimento de matéria-prima." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialForm, {
+								initialData: editingItem,
+								onSuccess: () => setIsOpen(false),
+								onCancel: () => setIsOpen(false)
+							})]
+						})]
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+					className: "text-lg font-semibold text-muted-foreground",
+					children: "Visão Geral"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid gap-4 md:grid-cols-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+						className: "flex flex-row items-center justify-between space-y-0 pb-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+							className: "text-sm font-medium",
+							children: "Total de Entrada"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-4 w-4 text-muted-foreground" })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-2xl font-bold",
+						children: formatMass(totalInputKg)
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-xs text-muted-foreground",
+						children: "Soma da quantidade baseada nos filtros aplicados."
+					})] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+						className: "flex flex-row items-center justify-between space-y-0 pb-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+							className: "text-sm font-medium",
+							children: "Rendimentos"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Percent, { className: "h-4 w-4 text-muted-foreground" })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-2xl font-bold",
+						children: [yieldPercentage.toFixed(1), "%"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-xs text-muted-foreground",
+						children: "Eficiência produtiva no período selecionado."
+					})] })] })]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+						className: "hidden sm:block",
+						children: "Histórico de Entradas"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center gap-2 text-sm text-muted-foreground",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-medium",
+							children: isSingleDay ? "Total do Dia:" : "Total Listado:"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-bold text-foreground",
+							children: formatMass(totalInputKg)
+						})]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-col sm:flex-row gap-2 w-full lg:w-auto",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-1 w-full sm:w-auto",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+								date: dateRange,
+								setDate: (range$5) => {
+									if (range$5) setDateRange({
+										from: range$5.from ? startOfDay(range$5.from) : void 0,
+										to: range$5.to ? endOfDay(range$5.to) : void 0
+									});
+								},
+								className: "w-full sm:w-[260px]"
+							}), !isDefaultDate && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								size: "icon",
+								onClick: handleResetDate,
+								title: "Redefinir filtro de data",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-4 w-4" })
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+							value: typeFilter,
+							onValueChange: setTypeFilter,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+								className: "w-full sm:w-[180px]",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Funnel, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Todos os tipos" })]
+								})
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: "all",
+								children: "Todos os tipos"
+							}), RAW_MATERIAL_TYPES.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: type,
+								children: type
+							}, type))] })]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "relative w-full sm:w-64",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, { className: "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								placeholder: "Buscar fornecedor...",
+								className: "pl-8",
+								value: searchTerm,
+								onChange: (e) => setSearchTerm(e.target.value)
+							})]
+						})
+					]
+				})]
+			}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
+				children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "space-y-4",
+					children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-center py-8 text-muted-foreground",
+						children: "Nenhum registro encontrado."
+					}) : filteredMaterials.map((entry) => {
+						const isLocked = shouldRequireAuth(entry.createdAt);
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
+							className: "shadow-sm border",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+								className: "p-4",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex justify-between items-start mb-3",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-semibold text-lg line-clamp-1",
+												children: entry.supplier
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex items-center gap-2 text-sm text-muted-foreground",
+												children: [
+													/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
+													format(entry.date, "dd/MM/yyyy"),
+													isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+												]
+											})]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+											asChild: true,
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+												variant: "ghost",
+												size: "sm",
+												className: "h-8 w-8 p-0",
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
+											})
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+											align: "end",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+												onClick: () => handleProtectedAction(entry.createdAt, () => handleEdit(entry)),
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+												onClick: () => handleProtectedAction(entry.createdAt, () => setDeleteId(entry.id)),
+												className: "text-red-600 focus:text-red-600",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
+											})]
+										})] })]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between py-2 border-t border-b border-border/50 mb-3 bg-secondary/20 rounded px-2",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex items-center gap-2",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-4 w-4 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "font-medium",
+												children: entry.type
+											})]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "font-mono font-bold text-lg",
+											children: [
+												entry.quantity.toLocaleString("pt-BR"),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-sm font-normal text-muted-foreground",
+													children: entry.unit
+												})
+											]
+										})]
+									}),
+									entry.notes && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+										className: "text-xs text-muted-foreground italic",
+										children: [
+											"\"",
+											entry.notes,
+											"\""
+										]
+									})
+								]
+							})
+						}, entry.id);
+					})
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Matéria-Prima" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Quantidade"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Observações" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "w-[80px]",
+						children: "Ações"
+					})
+				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 6,
+					className: "text-center h-24 text-muted-foreground",
+					children: "Nenhum registro encontrado no período."
+				}) }) : filteredMaterials.map((entry) => {
+					const isLocked = shouldRequireAuth(entry.createdAt);
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "font-medium",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [format(entry.date, "dd/MM/yyyy"), isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })]
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.supplier }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground",
+								children: entry.type
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "text-right font-mono",
+								children: [
+									entry.quantity.toLocaleString("pt-BR"),
+									" ",
+									entry.unit || "kg"
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "max-w-[200px] truncate text-muted-foreground",
+								children: entry.notes || "-"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "flex items-center gap-1",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
+									onClick: () => handleProtectedAction(entry.createdAt, () => handleEdit(entry)),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
+									onClick: () => handleProtectedAction(entry.createdAt, () => setDeleteId(entry.id)),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+								})]
+							})
+						]
+					}, entry.id);
+				}) })] })
+			})] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover esta entrada? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+				isOpen: securityOpen,
+				onOpenChange: setSecurityOpen,
+				onSuccess: handleSecuritySuccess
+			})
+		]
+	});
+}
+var Sheet = Root$6;
+var SheetTrigger = Trigger$3;
+var SheetPortal = Portal$4;
+var SheetOverlay = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Overlay, {
+	className: cn("fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", className),
+	...props,
+	ref
+}));
+SheetOverlay.displayName = Overlay.displayName;
+var sheetVariants = cva("fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500", {
+	variants: { side: {
+		top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+		bottom: "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+		left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+		right: "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm"
+	} },
+	defaultVariants: { side: "right" }
+});
+var SheetContent = import_react.forwardRef(({ side = "right", className, children, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetPortal, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetOverlay, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Content, {
+	ref,
+	className: cn(sheetVariants({ side }), className),
+	...props,
+	children: [children, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Close, {
+		className: "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+			className: "sr-only",
+			children: "Close"
+		})]
+	})]
+})] }));
+SheetContent.displayName = Content.displayName;
+var SheetHeader = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	className: cn("flex flex-col space-y-2 text-center sm:text-left", className),
+	...props
+});
+SheetHeader.displayName = "SheetHeader";
+var SheetFooter = ({ className, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	className: cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className),
+	...props
+});
+SheetFooter.displayName = "SheetFooter";
+var SheetTitle = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Title, {
+	ref,
+	className: cn("text-lg font-semibold text-foreground", className),
+	...props
+}));
+SheetTitle.displayName = Title.displayName;
+var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Description, {
+	ref,
+	className: cn("text-sm text-muted-foreground", className),
+	...props
+}));
+SheetDescription.displayName = Description.displayName;
+var formSchema$8 = object({
+	date: string().min(1, "Data é obrigatória"),
+	shift: _enum([
+		"Manhã",
+		"Tarde",
+		"Noite"
+	]),
+	mpUsed: number().min(0, "Valor deve ser positivo"),
+	sebo: number().min(0, "Valor deve ser positivo"),
+	fco: number().min(0, "Valor deve ser positivo"),
+	farinheta: number().min(0, "Valor deve ser positivo"),
+	losses: number()
+});
+function ProductionForm({ initialData, onSuccess }) {
+	const { addProduction, updateProduction } = useData();
+	const { toast: toast$2 } = useToast();
+	const form = useForm({
+		resolver: a(formSchema$8),
+		defaultValues: {
+			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
+			shift: initialData?.shift || "Manhã",
+			mpUsed: initialData?.mpUsed || 0,
+			sebo: initialData?.seboProduced || 0,
+			fco: initialData?.fcoProduced || 0,
+			farinheta: initialData?.farinhetaProduced || 0,
+			losses: initialData?.losses || 0
+		}
+	});
+	const mpUsed = form.watch("mpUsed");
+	const sebo = form.watch("sebo");
+	const fco = form.watch("fco");
+	const farinheta = form.watch("farinheta");
+	(0, import_react.useEffect)(() => {
+		const calculatedLosses = (Number(mpUsed) || 0) - ((Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0));
+		form.setValue("losses", Math.max(0, calculatedLosses), {
+			shouldValidate: true,
+			shouldDirty: true,
+			shouldTouch: true
+		});
+	}, [
+		mpUsed,
+		sebo,
+		fco,
+		farinheta,
+		form
+	]);
+	function onSubmit(values) {
+		const entryData = {
+			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
+			shift: values.shift,
+			mpUsed: values.mpUsed,
+			seboProduced: values.sebo,
+			fcoProduced: values.fco,
+			farinhetaProduced: values.farinheta,
+			losses: values.losses,
+			bloodMealProduced: 0,
+			bloodMealBags: 0
+		};
+		if (initialData) {
+			updateProduction({
+				...entryData,
+				bloodMealProduced: initialData.bloodMealProduced || 0,
+				bloodMealBags: initialData.bloodMealBags || 0,
+				id: initialData.id
+			});
+			toast$2({
+				title: "Sucesso",
+				description: "Produção atualizada com sucesso!"
+			});
+		} else {
+			addProduction(entryData);
+			toast$2({
+				title: "Sucesso",
+				description: "Produção registrada com sucesso!"
+			});
+		}
+		form.reset();
+		onSuccess();
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+		...form,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: form.handleSubmit(onSubmit),
+			className: "space-y-4 py-4",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "date",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "date",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "shift",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Turno" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+								onValueChange: field.onChange,
+								defaultValue: field.value,
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Manhã",
+										children: "Manhã"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Tarde",
+										children: "Tarde"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+										value: "Noite",
+										children: "Noite"
+									})
+								] })]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+							className: "font-medium text-sm text-slate-500",
+							children: "Linha Principal"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "mpUsed",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "MP Processada (kg)" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-2 gap-4",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "sebo",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Sebo (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "fco",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha Carne/Osso (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "farinheta",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinheta (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "losses",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Perdas (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field,
+											readOnly: true,
+											tabIndex: -1,
+											className: "bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								})
+							]
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					className: "w-full",
+					children: initialData ? "Atualizar Produção" : "Salvar Produção"
+				}) })
+			]
+		})
+	});
+}
+function Production() {
+	const { production, deleteProduction, dateRange } = useData();
+	const { toast: toast$2 } = useToast();
+	const isMobile = useIsMobile();
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
+	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const formatLosses = (value) => {
+		return formatNumber(value).replace(/\./g, ",");
+	};
+	const handleEditClick = (item) => {
+		if (canEditRecord(item.createdAt)) {
+			setEditingItem(item);
+			setIsOpen(true);
+		} else {
+			setSecurityAction({
+				type: "edit",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleDeleteClick = (item) => {
+		if (canEditRecord(item.createdAt)) setDeleteId(item.id);
+		else {
+			setSecurityAction({
+				type: "delete",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleSecuritySuccess = () => {
+		setIsSecurityOpen(false);
+		if (securityAction) {
+			if (securityAction.type === "edit") {
+				setEditingItem(securityAction.item);
+				setIsOpen(true);
+			} else if (securityAction.type === "delete") setDeleteId(securityAction.item.id);
+			setSecurityAction(null);
+		}
+	};
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteProduction(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "A produção foi removida com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const handleOpenChange = (open) => {
+		setIsOpen(open);
+		if (!open) setEditingItem(void 0);
+	};
+	const filteredProduction = production.filter((item) => {
+		if (dateRange.from && dateRange.to) {
+			if (item.date < dateRange.from || item.date > dateRange.to) return false;
+		}
+		return item.seboProduced > 0 || item.fcoProduced > 0 || item.farinhetaProduced > 0 || item.losses > 0 || item.mpUsed > 0 && item.bloodMealProduced === 0;
+	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center justify-between",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+					className: "text-2xl font-bold tracking-tight",
+					children: "Produção Diária"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Sheet, {
+					open: isOpen,
+					onOpenChange: handleOpenChange,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTrigger, {
+						asChild: true,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2",
+							onClick: () => setEditingItem(void 0),
+							size: isMobile ? "sm" : "default",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
+								" ",
+								isMobile ? "Novo" : "Novo Registro"
+							]
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetContent, {
+						className: "overflow-y-auto sm:max-w-md w-full",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetDescription, { children: editingItem ? "Atualize os dados de processamento." : "Informe os dados de processamento do turno. O cálculo de perdas será automático." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionForm, {
+							initialData: editingItem,
+							onSuccess: () => setIsOpen(false)
+						})]
+					})]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Diário de Produção" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
+				children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "space-y-4",
+					children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-center py-8 text-muted-foreground",
+						children: "Nenhum registro encontrado."
+					}) : filteredProduction.map((entry) => {
+						const isEditable = canEditRecord(entry.createdAt);
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
+							className: "shadow-sm border",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+								className: "p-4",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex justify-between items-start mb-3",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "space-y-1",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+												className: "font-semibold text-lg text-primary flex items-center gap-2",
+												children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+													asChild: true,
+													children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-4 w-4 text-muted-foreground/50" })
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit",
+												children: ["Turno: ", entry.shift]
+											})]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+											asChild: true,
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+												variant: "ghost",
+												size: "sm",
+												className: "h-8 w-8 p-0",
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
+											})
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+											align: "end",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+												onClick: () => handleEditClick(entry),
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+												onClick: () => handleDeleteClick(entry),
+												className: "text-red-600 focus:text-red-600",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
+											})]
+										})] })]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "grid grid-cols-2 gap-4 text-sm mb-3",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-xs text-muted-foreground block",
+												children: "MP Proc."
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+												className: "font-mono font-bold",
+												children: [formatNumber(entry.mpUsed), " kg"]
+											})]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-xs text-red-500 block",
+												children: "Perdas"
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+												className: "font-mono font-bold text-red-600",
+												children: [formatLosses(entry.losses), " kg"]
+											})]
+										})]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "space-y-1 text-sm border-t pt-2",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex justify-between",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-muted-foreground",
+													children: "Sebo:"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-mono",
+													children: [formatNumber(entry.seboProduced), " kg"]
+												})]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex justify-between",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-muted-foreground",
+													children: "FCO:"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-mono",
+													children: [formatNumber(entry.fcoProduced), " kg"]
+												})]
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "flex justify-between",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-muted-foreground",
+													children: "Farinheta:"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-mono",
+													children: [formatNumber(entry.farinhetaProduced), " kg"]
+												})]
+											})
+										]
+									})
+								]
+							})
+						}, entry.id);
+					})
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "MP Proc. (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Sebo (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "FCO (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Farinheta (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right text-red-500",
+						children: "Perdas (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "w-[80px]",
+						children: "Ações"
+					})
+				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 8,
+					className: "text-center h-24 text-muted-foreground",
+					children: "Nenhum registro encontrado no período."
+				}) }) : filteredProduction.map((entry) => {
+					const isEditable = canEditRecord(entry.createdAt);
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "font-medium",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+										asChild: true,
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono",
+								children: formatNumber(entry.mpUsed)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-muted-foreground",
+								children: formatNumber(entry.seboProduced)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-muted-foreground",
+								children: formatNumber(entry.fcoProduced)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-muted-foreground",
+								children: formatNumber(entry.farinhetaProduced)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-red-500 font-medium",
+								children: formatLosses(entry.losses)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "flex items-center gap-1",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
+									onClick: () => handleEditClick(entry),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
+									onClick: () => handleDeleteClick(entry),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+								})]
+							})
+						]
+					}, entry.id);
+				}) })] })
+			})] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover este registro de produção?" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+				isOpen: isSecurityOpen,
+				onOpenChange: setIsSecurityOpen,
+				onSuccess: handleSecuritySuccess,
+				title: "Proteção de Registro",
+				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+			})
+		]
+	});
+}
 var formSchema$7 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
@@ -79628,37 +79619,6 @@ function AcidityForm({ initialData, onSubmit, onCancel }) {
 				})
 			]
 		})
-	});
-}
-function DatePickerWithRange({ className, date: date$4, setDate }) {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: cn("grid gap-2", className),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
-			asChild: true,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-				id: "date",
-				variant: "outline",
-				className: cn("w-full justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4?.from ? date$4.to ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-					format(date$4.from, "dd/MM/yyyy"),
-					" -",
-					" ",
-					format(date$4.to, "dd/MM/yyyy")
-				] }) : format(date$4.from, "dd/MM/yyyy") : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione um período" })]
-			})
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
-			className: "w-auto p-0",
-			align: "end",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, {
-				initialFocus: true,
-				mode: "range",
-				defaultMonth: date$4?.from,
-				selected: date$4,
-				onSelect: setDate,
-				numberOfMonths: 2,
-				locale: ptBR
-			})
-		})] })
 	});
 }
 function DailyAcidity() {
@@ -88912,4 +88872,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DHuYjis6.js.map
+//# sourceMappingURL=index-D1zW4xV0.js.map

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -43,12 +43,10 @@ import {
 import {
   format,
   isSameDay,
-  parse,
-  isValid,
-  startOfDay,
-  endOfDay,
   startOfMonth,
   endOfMonth,
+  startOfDay,
+  endOfDay,
 } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 import { RawMaterialForm } from '@/components/RawMaterialForm'
@@ -74,13 +72,8 @@ import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
+import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { cn } from '@/lib/utils'
-
-// Date parsing constants
-const DATE_FORMAT = 'dd/MM/yyyy'
-const SINGLE_DATE_REGEX = /^(\d{2})\/(\d{2})\/(\d{4})$/
-const RANGE_DATE_REGEX =
-  /^(\d{2})\/(\d{2})\/(\d{4})\s+até\s+(\d{2})\/(\d{2})\/(\d{4})$/i
 
 export default function RawMaterial() {
   const {
@@ -99,10 +92,6 @@ export default function RawMaterial() {
     undefined,
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
-
-  // Filter Input State
-  const [dateInputValue, setDateInputValue] = useState('')
-  const [dateInputError, setDateInputError] = useState(false)
 
   // Security Gate State
   const [securityOpen, setSecurityOpen] = useState(false)
@@ -147,66 +136,30 @@ export default function RawMaterial() {
     if (!open) setEditingItem(undefined)
   }
 
-  // Date Filter Logic
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setDateInputValue(value)
-
-    if (!value) {
-      setDateInputError(false)
-      // We don't reset dateRange immediately on empty to allow typing,
-      // but user can click Clear button to reset.
-      return
-    }
-
-    // Try Parse Single Date
-    const singleMatch = value.match(SINGLE_DATE_REGEX)
-    if (singleMatch) {
-      const date = parse(value, DATE_FORMAT, new Date())
-      if (isValid(date)) {
-        setDateRange({ from: startOfDay(date), to: endOfDay(date) })
-        setDateInputError(false)
-        return
-      }
-    }
-
-    // Try Parse Range
-    const rangeMatch = value.match(RANGE_DATE_REGEX)
-    if (rangeMatch) {
-      const [_, d1, m1, y1, d2, m2, y2] = rangeMatch
-      const date1 = parse(`${d1}/${m1}/${y1}`, DATE_FORMAT, new Date())
-      const date2 = parse(`${d2}/${m2}/${y2}`, DATE_FORMAT, new Date())
-
-      if (isValid(date1) && isValid(date2)) {
-        if (date1 > date2) {
-          setDateRange({ from: startOfDay(date2), to: endOfDay(date1) })
-        } else {
-          setDateRange({ from: startOfDay(date1), to: endOfDay(date2) })
-        }
-        setDateInputError(false)
-        return
-      }
-    }
-
-    // If matches partial structure but invalid date (e.g. 31/02), or doesn't match
-    setDateInputError(true)
-  }
-
-  const handleClearDateFilter = () => {
-    setDateInputValue('')
-    setDateInputError(false)
+  const handleResetDate = () => {
     setDateRange({
       from: startOfMonth(new Date()),
       to: endOfMonth(new Date()),
     })
   }
 
+  const isDefaultDate =
+    dateRange.from &&
+    dateRange.to &&
+    isSameDay(dateRange.from, startOfMonth(new Date())) &&
+    isSameDay(dateRange.to, endOfMonth(new Date()))
+
   // Filter Data
   const filteredMaterials = rawMaterials
     .filter((item) => {
-      // Date Filter: Strictly respect global dateRange (D-1 is handled by fetching, but we hide it here)
-      if (dateRange.from && dateRange.to) {
-        if (item.date < dateRange.from || item.date > dateRange.to) return false
+      // Date Filter
+      if (dateRange.from) {
+        const start = startOfDay(dateRange.from)
+        // If to is undefined, treat as single day (same as from) for display filtering
+        const end = dateRange.to
+          ? endOfDay(dateRange.to)
+          : endOfDay(dateRange.from)
+        if (item.date < start || item.date > end) return false
       }
 
       // Type Filter
@@ -233,8 +186,12 @@ export default function RawMaterial() {
   // 2. Yield Percentage
   const filteredProduction = production.filter((item) => {
     // Strictly filter production by date range to match materials
-    if (dateRange.from && dateRange.to) {
-      if (item.date < dateRange.from || item.date > dateRange.to) return false
+    if (dateRange.from) {
+      const start = startOfDay(dateRange.from)
+      const end = dateRange.to
+        ? endOfDay(dateRange.to)
+        : endOfDay(dateRange.from)
+      if (item.date < start || item.date > end) return false
     }
     return true
   })
@@ -252,6 +209,7 @@ export default function RawMaterial() {
     totalMpUsed > 0 ? (totalOutput / totalMpUsed) * 100 : 0
 
   const formatMass = (val: number) => {
+    if (val === 0) return '0,00 t'
     if (val >= 1000)
       return `${(val / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} t`
     return `${val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`
@@ -259,11 +217,7 @@ export default function RawMaterial() {
 
   // Determine label for history list
   const isSingleDay =
-    dateRange.from &&
-    dateRange.to &&
-    isSameDay(dateRange.from, dateRange.to) &&
-    !dateInputError &&
-    dateInputValue !== ''
+    dateRange.from && (!dateRange.to || isSameDay(dateRange.from, dateRange.to))
 
   return (
     <div className="space-y-6">
@@ -363,26 +317,25 @@ export default function RawMaterial() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-              {/* Custom Date Input Filter */}
-              <div className="relative w-full sm:w-[320px]">
-                <CalendarIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground z-10" />
-                <Input
-                  placeholder="DD/MM/AAAA ou ... até ..."
-                  value={dateInputValue}
-                  onChange={handleDateInputChange}
-                  className={cn(
-                    'pl-8 pr-8 w-full transition-colors',
-                    dateInputError &&
-                      'border-destructive focus-visible:ring-destructive',
-                  )}
+              <div className="flex items-center gap-1 w-full sm:w-auto">
+                <DatePickerWithRange
+                  date={dateRange}
+                  setDate={(range) => {
+                    if (range) {
+                      setDateRange({
+                        from: range.from ? startOfDay(range.from) : undefined,
+                        to: range.to ? endOfDay(range.to) : undefined,
+                      })
+                    }
+                  }}
+                  className="w-full sm:w-[260px]"
                 />
-                {dateInputValue && (
+                {!isDefaultDate && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-10 w-10 text-muted-foreground hover:text-foreground"
-                    onClick={handleClearDateFilter}
-                    title="Limpar filtro de data"
+                    onClick={handleResetDate}
+                    title="Redefinir filtro de data"
                   >
                     <X className="h-4 w-4" />
                   </Button>
