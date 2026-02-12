@@ -47,7 +47,7 @@ import {
   getDaysInMonth,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import {
   fetchSeboInventory,
@@ -821,10 +821,10 @@ export default function SeboInventory() {
                         TOTAL
                       </TableCell>
                       <TableCell className="text-right px-4 border-r">
-                        {totals.tankTotalLt.toLocaleString('pt-BR')}
+                        {formatNumber(totals.tankTotalLt)}
                       </TableCell>
                       <TableCell className="text-right px-4 border-r">
-                        {totals.tankTotalKg.toLocaleString('pt-BR')}
+                        {formatNumber(totals.tankTotalKg)}
                       </TableCell>
                       <TableCell
                         colSpan={7}
@@ -918,7 +918,7 @@ export default function SeboInventory() {
                         TOTAL EXTRA
                       </TableCell>
                       <TableCell className="text-right px-4 border-r">
-                        {totals.extraTotalKg.toLocaleString('pt-BR')}
+                        {formatNumber(totals.extraTotalKg)}
                       </TableCell>
                       <TableCell colSpan={7}></TableCell>
                     </TableRow>
@@ -932,7 +932,7 @@ export default function SeboInventory() {
                         TOTAL GERAL
                       </TableCell>
                       <TableCell className="text-right px-4 border-r text-primary">
-                        {totals.grandTotalKg.toLocaleString('pt-BR')}
+                        {formatNumber(totals.grandTotalKg)}
                       </TableCell>
                       <TableCell
                         colSpan={7}

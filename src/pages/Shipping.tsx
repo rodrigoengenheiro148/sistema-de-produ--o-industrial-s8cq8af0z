@@ -51,6 +51,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { isRecordLocked } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
+import { formatNumber, formatCurrency } from '@/lib/utils'
 
 export default function Shipping() {
   const { shipping, deleteShipping, dateRange } = useData()
@@ -117,12 +118,6 @@ export default function Shipping() {
       )
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(val)
 
   return (
     <div className="space-y-6">
@@ -249,7 +244,7 @@ export default function Shipping() {
                               Quantidade
                             </span>
                             <span className="font-mono font-bold">
-                              {entry.quantity.toLocaleString('pt-BR')} kg
+                              {formatNumber(entry.quantity)} kg
                             </span>
                           </div>
                         </div>
@@ -318,7 +313,7 @@ export default function Shipping() {
                           {entry.docRef}
                         </TableCell>
                         <TableCell className="text-right font-mono">
-                          {entry.quantity.toLocaleString('pt-BR')}
+                          {formatNumber(entry.quantity)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-muted-foreground">
                           {formatCurrency(entry.unitPrice)}

@@ -45,3 +45,41 @@ export function parseAsLocalNoon(
   // Fallback to standard parsing
   return new Date(dateStr)
 }
+
+/**
+ * Formats a number according to pt-BR locale (comma as decimal separator)
+ */
+export function formatNumber(
+  value: number,
+  options?: Intl.NumberFormatOptions,
+): string {
+  if (value === undefined || value === null || isNaN(value)) return '0'
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits: 3,
+    ...options,
+  }).format(value)
+}
+
+/**
+ * Formats a number as BRL currency
+ */
+export function formatCurrency(value: number): string {
+  if (value === undefined || value === null || isNaN(value)) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+/**
+ * Formats a number as a percentage
+ */
+export function formatPercent(value: number, decimals = 2): string {
+  if (value === undefined || value === null || isNaN(value)) return '0%'
+  return (
+    new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }).format(value) + '%'
+  )
+}

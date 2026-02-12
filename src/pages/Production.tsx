@@ -47,6 +47,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { SecurityGate } from '@/components/SecurityGate'
+import { formatNumber } from '@/lib/utils'
 
 export default function Production() {
   const { production, deleteProduction, dateRange } = useData()
@@ -233,7 +234,7 @@ export default function Production() {
                               MP Proc.
                             </span>
                             <span className="font-mono font-bold">
-                              {entry.mpUsed.toLocaleString('pt-BR')} kg
+                              {formatNumber(entry.mpUsed)} kg
                             </span>
                           </div>
                           <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
@@ -241,7 +242,7 @@ export default function Production() {
                               Perdas
                             </span>
                             <span className="font-mono font-bold text-red-600">
-                              {entry.losses.toLocaleString('pt-BR')} kg
+                              {formatNumber(entry.losses)} kg
                             </span>
                           </div>
                         </div>
@@ -250,13 +251,13 @@ export default function Production() {
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Sebo:</span>
                             <span className="font-mono">
-                              {entry.seboProduced.toLocaleString('pt-BR')} kg
+                              {formatNumber(entry.seboProduced)} kg
                             </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">FCO:</span>
                             <span className="font-mono">
-                              {entry.fcoProduced.toLocaleString('pt-BR')} kg
+                              {formatNumber(entry.fcoProduced)} kg
                             </span>
                           </div>
                           <div className="flex justify-between">
@@ -264,8 +265,7 @@ export default function Production() {
                               Farinheta:
                             </span>
                             <span className="font-mono">
-                              {entry.farinhetaProduced.toLocaleString('pt-BR')}{' '}
-                              kg
+                              {formatNumber(entry.farinhetaProduced)} kg
                             </span>
                           </div>
                         </div>
@@ -326,19 +326,19 @@ export default function Production() {
                         </TableCell>
                         <TableCell>{entry.shift}</TableCell>
                         <TableCell className="text-right font-mono">
-                          {entry.mpUsed.toLocaleString('pt-BR')}
+                          {formatNumber(entry.mpUsed)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-muted-foreground">
-                          {entry.seboProduced.toLocaleString('pt-BR')}
+                          {formatNumber(entry.seboProduced)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-muted-foreground">
-                          {entry.fcoProduced.toLocaleString('pt-BR')}
+                          {formatNumber(entry.fcoProduced)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-muted-foreground">
-                          {entry.farinhetaProduced.toLocaleString('pt-BR')}
+                          {formatNumber(entry.farinhetaProduced)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-red-500 font-medium">
-                          {entry.losses.toLocaleString('pt-BR')}
+                          {formatNumber(entry.losses)}
                         </TableCell>
                         <TableCell className="flex items-center gap-1">
                           <Button

@@ -21614,6 +21614,27 @@ function parseAsLocalNoon(dateStr) {
 	}
 	return new Date(dateStr);
 }
+function formatNumber(value, options$1) {
+	if (value === void 0 || value === null || isNaN(value)) return "0";
+	return new Intl.NumberFormat("pt-BR", {
+		maximumFractionDigits: 3,
+		...options$1
+	}).format(value);
+}
+function formatCurrency(value) {
+	if (value === void 0 || value === null || isNaN(value)) return "R$ 0,00";
+	return new Intl.NumberFormat("pt-BR", {
+		style: "currency",
+		currency: "BRL"
+	}).format(value);
+}
+function formatPercent(value, decimals = 2) {
+	if (value === void 0 || value === null || isNaN(value)) return "0%";
+	return new Intl.NumberFormat("pt-BR", {
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals
+	}).format(value) + "%";
+}
 var ToastProvider = Provider$1;
 var ToastViewport = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Viewport$2, {
 	ref,
@@ -66833,21 +66854,15 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 	const seboStyle = getYieldStyle(metrics.seboYield, notificationSettings.seboThreshold);
 	const fcoStyle = getYieldStyle(metrics.fcoYield, notificationSettings.fcoThreshold || notificationSettings.farinhaThreshold || 0);
 	const farinhetaStyle = getYieldStyle(metrics.farinhetaYield, notificationSettings.farinhetaThreshold);
-	const formatCurrency = (val) => {
+	const formatCurrencyDisplay = (val) => {
 		return new Intl.NumberFormat("pt-BR", {
 			style: "currency",
 			currency: "BRL",
 			maximumFractionDigits: 0
 		}).format(val);
 	};
-	const formatNumber = (val, suffix = "") => {
-		return val.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + (suffix ? ` ${suffix}` : "");
-	};
-	const formatPercentage = (val) => {
-		return val.toLocaleString("pt-BR", {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		}) + "%";
+	const formatNumberDisplay = (val, suffix = "") => {
+		return formatNumber(val, { maximumFractionDigits: 0 }) + (suffix ? ` ${suffix}` : "");
 	};
 	const TARGET_RATE = 14.125;
 	const MetricCard = ({ title, value, icon: Icon$2, iconColor = "text-muted-foreground", borderColor = "border-l-transparent", textColor = "text-foreground", className, children }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
@@ -66871,14 +66886,14 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Entrada MP",
-				value: formatNumber(metrics.rawMaterialInputKg, "kg"),
+				value: formatNumberDisplay(metrics.rawMaterialInputKg, "kg"),
 				icon: Package,
 				iconColor: "text-orange-500",
 				borderColor: "border-l-orange-500"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Produção",
-				value: formatNumber(metrics.totalProduction, "kg"),
+				value: formatNumberDisplay(metrics.totalProduction, "kg"),
 				icon: Factory,
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
@@ -66907,7 +66922,10 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-3.5 w-3.5 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 									className: "text-lg font-bold",
 									children: [
-										metrics.tonPerHourD1.toFixed(2),
+										formatNumber(metrics.tonPerHourD1, {
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 2
+										}),
 										" ",
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 											className: "text-xs font-normal text-muted-foreground",
@@ -66925,7 +66943,7 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 								className: "flex items-center gap-1",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: "text-xs text-muted-foreground",
-									children: TARGET_RATE
+									children: formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })
 								}), metrics.tonPerHourD1 >= TARGET_RATE ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, { className: "h-4 w-4 text-emerald-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, { className: "h-4 w-4 text-red-500" })]
 							})]
 						})]
@@ -66934,14 +66952,14 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Faturamento",
-				value: formatCurrency(metrics.totalRevenue),
+				value: formatCurrencyDisplay(metrics.totalRevenue),
 				icon: DollarSign,
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Sebo",
-				value: formatPercentage(metrics.seboYield),
+				value: formatPercent(metrics.seboYield),
 				icon: Droplets,
 				iconColor: seboStyle.iconColor,
 				borderColor: seboStyle.borderColor,
@@ -66950,7 +66968,7 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento FCO",
-				value: formatPercentage(metrics.fcoYield),
+				value: formatPercent(metrics.fcoYield),
 				icon: Bone,
 				iconColor: fcoStyle.iconColor,
 				borderColor: fcoStyle.borderColor,
@@ -66959,7 +66977,7 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Farinheta",
-				value: formatPercentage(metrics.farinhetaYield),
+				value: formatPercent(metrics.farinhetaYield),
 				icon: Wheat,
 				iconColor: farinhetaStyle.iconColor,
 				borderColor: farinhetaStyle.borderColor,
@@ -66968,21 +66986,21 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de entrada de sangue",
-				value: formatNumber(metrics.bloodInputKg, "kg"),
+				value: formatNumberDisplay(metrics.bloodInputKg, "kg"),
 				icon: Droplet,
 				iconColor: "text-red-600",
 				borderColor: "border-l-red-600"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total farinha de sangue",
-				value: formatNumber(metrics.bloodMealProduced, "kg"),
+				value: formatNumberDisplay(metrics.bloodMealProduced, "kg"),
 				icon: Database,
 				iconColor: "text-red-600",
 				borderColor: "border-l-red-600"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento sangue",
-				value: formatPercentage(metrics.bloodYield),
+				value: formatPercent(metrics.bloodYield),
 				icon: Activity,
 				iconColor: "text-red-600",
 				borderColor: "border-l-red-600"
@@ -67432,8 +67450,8 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 		};
 	}, [data, timeScale]);
 	const formatValue$2 = (value) => {
-		if (value >= 1e3) return (value / 1e3).toFixed(0) + "k";
-		return value.toString();
+		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 0 }) + "k";
+		return formatNumber(value);
 	};
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: `shadow-sm border-primary/10 ${className}`,
@@ -67470,13 +67488,30 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 					tickLine: false,
 					axisLine: false,
 					width: isMobile ? 35 : 50,
-					tickFormatter: (value) => `${(value / 1e3).toFixed(0)}k`,
+					tickFormatter: (value) => `${formatNumber(value / 1e3, { maximumFractionDigits: 0 })}k`,
 					fontSize: isMobile ? 10 : 12
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
 					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
 						indicator: "line",
-						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value
+						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value,
+						formatter: (value, name) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "h-2 w-2 rounded-full",
+									style: { backgroundColor: name === "producao" ? "var(--color-producao)" : "var(--color-mp)" }
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-muted-foreground text-xs",
+									children: name
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "font-mono font-bold",
+									children: formatNumber(Number(value))
+								})
+							]
+						})
 					}),
 					cursor: {
 						stroke: "var(--muted-foreground)",
@@ -68526,11 +68561,6 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		currentFilter,
 		currentClientFilter
 	]);
-	const formatCurrency = (value) => new Intl.NumberFormat("pt-BR", {
-		style: "currency",
-		currency: "BRL",
-		maximumFractionDigits: 0
-	}).format(value);
 	const formatCompact = (value) => new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
 		compactDisplay: "short",
@@ -68866,7 +68896,10 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 									className: cn("px-1.5 py-0.5 h-auto text-[10px] font-bold", forecastMetrics.percentage >= 0 ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"),
 									children: [
 										forecastMetrics.percentage >= 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, { className: "h-3 w-3 mr-1" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, { className: "h-3 w-3 mr-1" }),
-										Math.abs(forecastMetrics.percentage).toFixed(1),
+										formatNumber(Math.abs(forecastMetrics.percentage), {
+											minimumFractionDigits: 1,
+											maximumFractionDigits: 1
+										}),
 										"%"
 									]
 								})]
@@ -69001,9 +69034,12 @@ function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, classN
 					axisLine: false,
 					width: isMobile ? 30 : 50,
 					fontSize: isMobile ? 10 : 12,
-					tickFormatter: (value) => value >= 1e3 ? `${(value / 1e3).toFixed(1)}k` : value
+					tickFormatter: (value) => value >= 1e3 ? `${formatNumber(value / 1e3, { maximumFractionDigits: 1 })}k` : formatNumber(value, { maximumFractionDigits: 0 })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value) => formatNumber(Number(value), {
+					minimumFractionDigits: 0,
+					maximumFractionDigits: 2
+				}) }) }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: "perdas",
 					fill: "var(--color-perdas)",
@@ -69019,7 +69055,7 @@ function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, classN
 						offset: 8,
 						className: "fill-foreground font-bold",
 						fontSize: isMobile ? 9 : 11,
-						formatter: (value) => value > 0 ? `${value.toFixed(1)}%` : ""
+						formatter: (value) => value > 0 ? `${formatNumber(value, { maximumFractionDigits: 1 })}%` : ""
 					})
 				})
 			]
@@ -78156,7 +78192,7 @@ function Production() {
 												children: "MP Proc."
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold",
-												children: [entry.mpUsed.toLocaleString("pt-BR"), " kg"]
+												children: [formatNumber(entry.mpUsed), " kg"]
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
@@ -78165,7 +78201,7 @@ function Production() {
 												children: "Perdas"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold text-red-600",
-												children: [entry.losses.toLocaleString("pt-BR"), " kg"]
+												children: [formatNumber(entry.losses), " kg"]
 											})]
 										})]
 									}),
@@ -78179,7 +78215,7 @@ function Production() {
 													children: "Sebo:"
 												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 													className: "font-mono",
-													children: [entry.seboProduced.toLocaleString("pt-BR"), " kg"]
+													children: [formatNumber(entry.seboProduced), " kg"]
 												})]
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -78189,7 +78225,7 @@ function Production() {
 													children: "FCO:"
 												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 													className: "font-mono",
-													children: [entry.fcoProduced.toLocaleString("pt-BR"), " kg"]
+													children: [formatNumber(entry.fcoProduced), " kg"]
 												})]
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -78199,11 +78235,7 @@ function Production() {
 													children: "Farinheta:"
 												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 													className: "font-mono",
-													children: [
-														entry.farinhetaProduced.toLocaleString("pt-BR"),
-														" ",
-														"kg"
-													]
+													children: [formatNumber(entry.farinhetaProduced), " kg"]
 												})]
 											})
 										]
@@ -78261,23 +78293,23 @@ function Production() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono",
-								children: entry.mpUsed.toLocaleString("pt-BR")
+								children: formatNumber(entry.mpUsed)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-muted-foreground",
-								children: entry.seboProduced.toLocaleString("pt-BR")
+								children: formatNumber(entry.seboProduced)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-muted-foreground",
-								children: entry.fcoProduced.toLocaleString("pt-BR")
+								children: formatNumber(entry.fcoProduced)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-muted-foreground",
-								children: entry.farinhetaProduced.toLocaleString("pt-BR")
+								children: formatNumber(entry.farinhetaProduced)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-red-500 font-medium",
-								children: entry.losses.toLocaleString("pt-BR")
+								children: formatNumber(entry.losses)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
@@ -81079,10 +81111,6 @@ function Shipping() {
 		}
 		return item.client.toLowerCase().includes(searchTerm.toLowerCase()) || item.docRef.toLowerCase().includes(searchTerm.toLowerCase());
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
-	const formatCurrency = (val) => new Intl.NumberFormat("pt-BR", {
-		style: "currency",
-		currency: "BRL"
-	}).format(val);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [
@@ -81199,7 +81227,7 @@ function Shipping() {
 												children: "Quantidade"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold",
-												children: [entry.quantity.toLocaleString("pt-BR"), " kg"]
+												children: [formatNumber(entry.quantity), " kg"]
 											})]
 										})]
 									}),
@@ -81265,7 +81293,7 @@ function Shipping() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono",
-								children: entry.quantity.toLocaleString("pt-BR")
+								children: formatNumber(entry.quantity)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-muted-foreground",
@@ -83496,7 +83524,10 @@ function StatCard({ title, value, prevValue, unit: unit$1 = "", icon: Icon$2, de
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "text-2xl font-bold",
-					children: [value.toFixed(2), unit$1]
+					children: [formatNumber(value, {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2
+					}), unit$1]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center text-xs text-muted-foreground mt-1",
@@ -83504,7 +83535,10 @@ function StatCard({ title, value, prevValue, unit: unit$1 = "", icon: Icon$2, de
 						className: cn("flex items-center font-medium mr-2", isPositive ? "text-green-600" : "text-red-600"),
 						children: [
 							isPositive ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-3 w-3 mr-1" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingDown, { className: "h-3 w-3 mr-1" }),
-							Math.abs(percentDiff).toFixed(1),
+							formatNumber(Math.abs(percentDiff), {
+								minimumFractionDigits: 1,
+								maximumFractionDigits: 1
+							}),
 							"%"
 						]
 					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
@@ -83860,9 +83894,9 @@ function YieldsReport() {
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon$2, { className: cn("h-4 w-4", iconColorClass) })]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "p-6 pt-0",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: cn("text-3xl font-bold", colorClass),
-				children: [value.toFixed(2), "%"]
+				children: formatPercent(value)
 			})
 		})]
 	});
@@ -84282,7 +84316,10 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
 						cursor: { fill: "hsl(var(--muted)/0.4)" },
-						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { hideLabel: true })
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+							hideLabel: true,
+							formatter: (value) => formatNumber(Number(value))
+						})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Bar, {
 						dataKey: "value",
@@ -84299,7 +84336,7 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 							offset: 12,
 							className: "fill-foreground font-bold",
 							fontSize: 12,
-							formatter: (val) => val.toLocaleString("pt-BR", {
+							formatter: (val) => formatNumber(val, {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2
 							})
@@ -84338,7 +84375,10 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
 						cursor: { fill: "hsl(var(--muted)/0.4)" },
-						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { indicator: "dashed" })
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+							indicator: "dashed",
+							formatter: (value) => formatNumber(Number(value))
+						})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
 					uniqueTanks.map((tank) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
@@ -85016,11 +85056,11 @@ function SeboInventory() {
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												className: "text-right px-4 border-r",
-												children: totals.tankTotalLt.toLocaleString("pt-BR")
+												children: formatNumber(totals.tankTotalLt)
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												className: "text-right px-4 border-r",
-												children: totals.tankTotalKg.toLocaleString("pt-BR")
+												children: formatNumber(totals.tankTotalKg)
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												colSpan: 7,
@@ -85094,7 +85134,7 @@ function SeboInventory() {
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												className: "text-right px-4 border-r",
-												children: totals.extraTotalKg.toLocaleString("pt-BR")
+												children: formatNumber(totals.extraTotalKg)
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { colSpan: 7 })
 										]
@@ -85109,7 +85149,7 @@ function SeboInventory() {
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												className: "text-right px-4 border-r text-primary",
-												children: totals.grandTotalKg.toLocaleString("pt-BR")
+												children: formatNumber(totals.grandTotalKg)
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												colSpan: 7,
@@ -85781,7 +85821,14 @@ function ProcessMetricsCard({ date: date$4 }) {
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-4 w-4 text-muted-foreground" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "text-2xl font-bold",
-				children: [(metrics.totalConsumption / 1e3).toFixed(2), " t"]
+				children: [
+					formatNumber(metrics.totalConsumption / 1e3, {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2
+					}),
+					" ",
+					"t"
+				]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "text-xs text-muted-foreground",
 				children: "Matéria-prima processada"
@@ -85822,7 +85869,14 @@ function ProcessMetricsCard({ date: date$4 }) {
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: cn("h-4 w-4", isBelowTarget ? "text-destructive" : "text-green-500") })]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: metrics.netActiveHours > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "text-2xl font-bold",
-					children: [metrics.rateTon.toFixed(2), " t/h"]
+					children: [
+						formatNumber(metrics.rateTon, {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2
+						}),
+						" ",
+						"t/h"
+					]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 					className: "text-xs text-muted-foreground mt-1",
 					children: [
@@ -85830,14 +85884,21 @@ function ProcessMetricsCard({ date: date$4 }) {
 						" ",
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 							className: "font-medium",
-							children: [TARGET_FLOW_RATE, " t/h"]
+							children: [
+								formatNumber(TARGET_FLOW_RATE, { minimumFractionDigits: 3 }),
+								" ",
+								"t/h"
+							]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 							className: cn("ml-2", isBelowTarget ? "text-destructive" : "text-green-600"),
 							children: [
 								"(",
 								flowRateDiff > 0 ? "+" : "",
-								flowRateDiff.toFixed(2),
+								formatNumber(flowRateDiff, {
+									minimumFractionDigits: 2,
+									maximumFractionDigits: 2
+								}),
 								")"
 							]
 						})
@@ -86428,11 +86489,15 @@ function ForecastManagement() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 						className: "text-right",
-						children: [(forecast.mpForecast / 1e3).toFixed(2), " t"]
+						children: [
+							formatNumber(forecast.mpForecast / 1e3, { maximumFractionDigits: 2 }),
+							" ",
+							"t"
+						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 						className: "text-right text-muted-foreground",
-						children: [forecast.mpForecast.toLocaleString("pt-BR"), " kg"]
+						children: [formatNumber(forecast.mpForecast), " kg"]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
@@ -86452,7 +86517,7 @@ function ForecastManagement() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						className: "text-3xl font-bold text-primary",
 						children: [
-							(totalForecast / 1e3).toLocaleString("pt-BR", {
+							formatNumber(totalForecast / 1e3, {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2
 							}),
@@ -86461,7 +86526,7 @@ function ForecastManagement() {
 						]
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						className: "text-sm text-muted-foreground",
-						children: [totalForecast.toLocaleString("pt-BR"), " kg"]
+						children: [formatNumber(totalForecast), " kg"]
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "mt-4 pt-4 border-t border-primary/10 text-xs text-muted-foreground",
@@ -86690,7 +86755,7 @@ function SteamControlTable() {
 			};
 		});
 	}, [steamControlRecords, production]);
-	const formatNumber = (val) => val.toLocaleString("pt-BR", {
+	const formatNumber$1 = (val) => val.toLocaleString("pt-BR", {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2
 	});
@@ -86791,59 +86856,59 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber(row.entradaMp)
+							children: formatNumber$1(row.entradaMp)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber(row.soyWaste)
+							children: formatNumber$1(row.soyWaste)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber(row.firewood)
+							children: formatNumber$1(row.firewood)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber(row.riceHusk)
+							children: formatNumber$1(row.riceHusk)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber(row.woodChips)
+							children: formatNumber$1(row.woodChips)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold",
-							children: formatNumber(row.totalFuel)
+							children: formatNumber$1(row.totalFuel)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right text-muted-foreground",
-							children: formatNumber(row.meterStart)
+							children: formatNumber$1(row.meterStart)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right text-muted-foreground",
-							children: formatNumber(row.meterEnd)
+							children: formatNumber$1(row.meterEnd)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold",
-							children: formatNumber(row.consumoVap)
+							children: formatNumber$1(row.consumoVap)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
+							children: row.totalFuel > 0 ? formatNumber$1(row.cavacoVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : "-"
+							children: row.consumoVap > 0 ? formatNumber$1(row.mpVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : "-"
+							children: row.totalFuel > 0 ? formatNumber$1(row.mpVsCavaco) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-green-50/30 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber(row.m3VsMp) : "-"
+							children: row.entradaMp > 0 ? formatNumber$1(row.m3VsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-green-50/30 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : "-"
+							children: row.entradaMp > 0 ? formatNumber$1(row.vaporVsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 							asChild: true,
@@ -88749,4 +88814,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CBg6FVHp.js.map
+//# sourceMappingURL=index-BZuMBYk_.js.map

@@ -38,6 +38,7 @@ import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
 import { DatePicker } from '@/components/ui/date-picker'
+import { formatNumber } from '@/lib/utils'
 
 export default function ForecastManagement() {
   const { dailyForecasts, saveDailyForecast, deleteDailyForecast } = useData()
@@ -223,10 +224,13 @@ export default function ForecastManagement() {
                         {forecast.materialType || 'Geral'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {(forecast.mpForecast / 1000).toFixed(2)} t
+                        {formatNumber(forecast.mpForecast / 1000, {
+                          maximumFractionDigits: 2,
+                        })}{' '}
+                        t
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {forecast.mpForecast.toLocaleString('pt-BR')} kg
+                        {formatNumber(forecast.mpForecast)} kg
                       </TableCell>
                       <TableCell>
                         <Button
@@ -256,14 +260,14 @@ export default function ForecastManagement() {
           <CardContent>
             <div className="flex flex-col gap-1">
               <span className="text-3xl font-bold text-primary">
-                {(totalForecast / 1000).toLocaleString('pt-BR', {
+                {formatNumber(totalForecast / 1000, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{' '}
                 t
               </span>
               <span className="text-sm text-muted-foreground">
-                {totalForecast.toLocaleString('pt-BR')} kg
+                {formatNumber(totalForecast)} kg
               </span>
             </div>
             <div className="mt-4 pt-4 border-t border-primary/10 text-xs text-muted-foreground">

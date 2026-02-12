@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
-import { isBloodRecord } from '@/lib/utils'
+import { isBloodRecord, formatNumber } from '@/lib/utils'
 
 interface ProductionPerformanceChartProps {
   data: ProductionEntry[]
@@ -110,9 +110,9 @@ export function ProductionPerformanceChart({
 
   const formatValue = (value: number) => {
     if (value >= 1000) {
-      return (value / 1000).toFixed(0) + 'k'
+      return formatNumber(value / 1000, { maximumFractionDigits: 0 }) + 'k'
     }
-    return value.toString()
+    return formatNumber(value)
   }
 
   if (!data || data.length === 0) {
@@ -150,7 +150,9 @@ export function ProductionPerformanceChart({
           tickLine={false}
           axisLine={false}
           width={isMobile ? 35 : 50}
-          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+          tickFormatter={(value) =>
+            `${formatNumber(value / 1000, { maximumFractionDigits: 0 })}k`
+          }
           fontSize={isMobile ? 10 : 12}
         />
         <ChartTooltip
@@ -160,6 +162,23 @@ export function ProductionPerformanceChart({
               labelFormatter={(value, payload) =>
                 payload[0]?.payload?.fullDate || value
               }
+              formatter={(value, name) => (
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-2 w-2 rounded-full"
+                    style={{
+                      backgroundColor:
+                        name === 'producao'
+                          ? 'var(--color-producao)'
+                          : 'var(--color-mp)',
+                    }}
+                  />
+                  <span className="text-muted-foreground text-xs">{name}</span>
+                  <span className="font-mono font-bold">
+                    {formatNumber(Number(value))}
+                  </span>
+                </div>
+              )}
             />
           }
           cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}

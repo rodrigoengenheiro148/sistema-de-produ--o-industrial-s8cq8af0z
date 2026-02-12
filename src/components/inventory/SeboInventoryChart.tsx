@@ -36,7 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface SeboInventoryChartProps {
@@ -311,10 +311,13 @@ export function SeboInventoryChart({
             <YAxis hide domain={[0, 'auto']} />
             <ChartTooltip
               cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-              content={<ChartTooltipContent hideLabel />}
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  formatter={(value) => formatNumber(Number(value))}
+                />
+              }
             />
-            {/* Legend is optional here as bars are labeled, but we can keep it for extras vs tanks if needed, or remove it */}
-
             <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={80}>
               {chartData.map((entry: any, index: number) => (
                 <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -326,7 +329,7 @@ export function SeboInventoryChart({
                 className="fill-foreground font-bold"
                 fontSize={12}
                 formatter={(val: number) =>
-                  val.toLocaleString('pt-BR', {
+                  formatNumber(val, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })
@@ -357,7 +360,12 @@ export function SeboInventoryChart({
           <YAxis hide domain={[0, 'auto']} />
           <ChartTooltip
             cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
-            content={<ChartTooltipContent indicator="dashed" />}
+            content={
+              <ChartTooltipContent
+                indicator="dashed"
+                formatter={(value) => formatNumber(Number(value))}
+              />
+            }
           />
           <ChartLegend content={<ChartLegendContent />} />
 

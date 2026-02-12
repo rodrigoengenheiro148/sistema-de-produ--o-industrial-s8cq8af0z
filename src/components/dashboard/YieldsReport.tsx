@@ -20,7 +20,7 @@ import {
   ChevronRight,
   Database,
 } from 'lucide-react'
-import { cn, isBloodRecord } from '@/lib/utils'
+import { cn, isBloodRecord, formatPercent } from '@/lib/utils'
 
 export function YieldsReport() {
   const { production } = useData()
@@ -139,7 +139,7 @@ export function YieldsReport() {
       </CardHeader>
       <CardContent className="p-6 pt-0">
         <div className={cn('text-3xl font-bold', colorClass)}>
-          {value.toFixed(2)}%
+          {formatPercent(value)}
         </div>
       </CardContent>
     </Card>

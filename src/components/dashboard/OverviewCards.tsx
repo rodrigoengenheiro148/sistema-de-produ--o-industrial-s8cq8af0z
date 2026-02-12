@@ -24,7 +24,13 @@ import {
   NotificationSettings,
   AcidityEntry,
 } from '@/lib/types'
-import { cn, isBloodRecord } from '@/lib/utils'
+import {
+  cn,
+  isBloodRecord,
+  formatNumber,
+  formatCurrency,
+  formatPercent,
+} from '@/lib/utils'
 import { useMemo } from 'react'
 import { subDays, isSameDay, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -269,7 +275,7 @@ export function OverviewCards({
     notificationSettings.farinhetaThreshold,
   )
 
-  const formatCurrency = (val: number) => {
+  const formatCurrencyDisplay = (val: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -277,19 +283,10 @@ export function OverviewCards({
     }).format(val)
   }
 
-  const formatNumber = (val: number, suffix = '') => {
+  const formatNumberDisplay = (val: number, suffix = '') => {
     return (
-      val.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) +
+      formatNumber(val, { maximumFractionDigits: 0 }) +
       (suffix ? ` ${suffix}` : '')
-    )
-  }
-
-  const formatPercentage = (val: number) => {
-    return (
-      val.toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }) + '%'
     )
   }
 
@@ -334,7 +331,7 @@ export function OverviewCards({
       {/* 1. Entrada MP */}
       <MetricCard
         title="Entrada MP"
-        value={formatNumber(metrics.rawMaterialInputKg, 'kg')}
+        value={formatNumberDisplay(metrics.rawMaterialInputKg, 'kg')}
         icon={Package}
         iconColor="text-orange-500"
         borderColor="border-l-orange-500"
@@ -343,7 +340,7 @@ export function OverviewCards({
       {/* 2. Produção */}
       <MetricCard
         title="Produção"
-        value={formatNumber(metrics.totalProduction, 'kg')}
+        value={formatNumberDisplay(metrics.totalProduction, 'kg')}
         icon={Factory}
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
@@ -367,7 +364,10 @@ export function OverviewCards({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-lg font-bold">
-                  {metrics.tonPerHourD1.toFixed(2)}{' '}
+                  {formatNumber(metrics.tonPerHourD1, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
                   <span className="text-xs font-normal text-muted-foreground">
                     t/h
                   </span>
@@ -380,7 +380,7 @@ export function OverviewCards({
               </span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-muted-foreground">
-                  {TARGET_RATE}
+                  {formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })}
                 </span>
                 {metrics.tonPerHourD1 >= TARGET_RATE ? (
                   <ArrowUpRight className="h-4 w-4 text-emerald-500" />
@@ -396,7 +396,7 @@ export function OverviewCards({
       {/* 4. Faturamento */}
       <MetricCard
         title="Faturamento"
-        value={formatCurrency(metrics.totalRevenue)}
+        value={formatCurrencyDisplay(metrics.totalRevenue)}
         icon={DollarSign}
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
@@ -405,7 +405,7 @@ export function OverviewCards({
       {/* 6. Rendimento Sebo - Styled dynamically */}
       <MetricCard
         title="Rendimento Sebo"
-        value={formatPercentage(metrics.seboYield)}
+        value={formatPercent(metrics.seboYield)}
         icon={Droplets}
         iconColor={seboStyle.iconColor}
         borderColor={seboStyle.borderColor}
@@ -416,7 +416,7 @@ export function OverviewCards({
       {/* 7. Rendimento FCO - Styled dynamically */}
       <MetricCard
         title="Rendimento FCO"
-        value={formatPercentage(metrics.fcoYield)}
+        value={formatPercent(metrics.fcoYield)}
         icon={Bone}
         iconColor={fcoStyle.iconColor}
         borderColor={fcoStyle.borderColor}
@@ -427,7 +427,7 @@ export function OverviewCards({
       {/* 8. Rendimento Farinheta - Styled dynamically */}
       <MetricCard
         title="Rendimento Farinheta"
-        value={formatPercentage(metrics.farinhetaYield)}
+        value={formatPercent(metrics.farinhetaYield)}
         icon={Wheat}
         iconColor={farinhetaStyle.iconColor}
         borderColor={farinhetaStyle.borderColor}
@@ -438,7 +438,7 @@ export function OverviewCards({
       {/* 9. Total de entrada de sangue */}
       <MetricCard
         title="Total de entrada de sangue"
-        value={formatNumber(metrics.bloodInputKg, 'kg')}
+        value={formatNumberDisplay(metrics.bloodInputKg, 'kg')}
         icon={Droplet}
         iconColor="text-red-600"
         borderColor="border-l-red-600"
@@ -447,7 +447,7 @@ export function OverviewCards({
       {/* 10. Total farinha de sangue */}
       <MetricCard
         title="Total farinha de sangue"
-        value={formatNumber(metrics.bloodMealProduced, 'kg')}
+        value={formatNumberDisplay(metrics.bloodMealProduced, 'kg')}
         icon={Database}
         iconColor="text-red-600"
         borderColor="border-l-red-600"
@@ -456,7 +456,7 @@ export function OverviewCards({
       {/* 11. Rendimento sangue */}
       <MetricCard
         title="Rendimento sangue"
-        value={formatPercentage(metrics.bloodYield)}
+        value={formatPercent(metrics.bloodYield)}
         icon={Activity}
         iconColor="text-red-600"
         borderColor="border-l-red-600"

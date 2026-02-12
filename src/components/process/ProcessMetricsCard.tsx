@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { Activity, Clock, AlertCircle, Scale, Gauge } from 'lucide-react'
 
 interface ProcessMetricsCardProps {
@@ -44,7 +44,11 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {(metrics.totalConsumption / 1000).toFixed(2)} t
+            {formatNumber(metrics.totalConsumption / 1000, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{' '}
+            t
           </div>
           <p className="text-xs text-muted-foreground">
             Matéria-prima processada
@@ -99,11 +103,20 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
           {metrics.netActiveHours > 0 ? (
             <>
               <div className="text-2xl font-bold">
-                {metrics.rateTon.toFixed(2)} t/h
+                {formatNumber(metrics.rateTon, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                t/h
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Meta:{' '}
-                <span className="font-medium">{TARGET_FLOW_RATE} t/h</span>
+                <span className="font-medium">
+                  {formatNumber(TARGET_FLOW_RATE, {
+                    minimumFractionDigits: 3,
+                  })}{' '}
+                  t/h
+                </span>
                 <span
                   className={cn(
                     'ml-2',
@@ -111,7 +124,11 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
                   )}
                 >
                   ({flowRateDiff > 0 ? '+' : ''}
-                  {flowRateDiff.toFixed(2)})
+                  {formatNumber(flowRateDiff, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                  )
                 </span>
               </p>
             </>

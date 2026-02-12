@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 
 interface StatCardProps {
   title: string
@@ -34,7 +34,10 @@ export function StatCard({
       </CardHeader>
       <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         <div className="text-2xl font-bold">
-          {value.toFixed(2)}
+          {formatNumber(value, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
           {unit}
         </div>
         <div className="flex items-center text-xs text-muted-foreground mt-1">
@@ -50,7 +53,11 @@ export function StatCard({
               ) : (
                 <TrendingDown className="h-3 w-3 mr-1" />
               )}
-              {Math.abs(percentDiff).toFixed(1)}%
+              {formatNumber(Math.abs(percentDiff), {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+              })}
+              %
             </span>
           ) : (
             <span className="flex items-center font-medium mr-2 text-slate-500">

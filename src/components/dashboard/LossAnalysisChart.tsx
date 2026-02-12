@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2 } from 'lucide-react'
-import { cn, isBloodRecord } from '@/lib/utils'
+import { cn, isBloodRecord, formatNumber } from '@/lib/utils'
 
 interface LossAnalysisChartProps {
   data: ProductionEntry[]
@@ -132,10 +132,23 @@ export function LossAnalysisChart({
           width={isMobile ? 30 : 50}
           fontSize={isMobile ? 10 : 12}
           tickFormatter={(value) =>
-            value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value
+            value >= 1000
+              ? `${formatNumber(value / 1000, { maximumFractionDigits: 1 })}k`
+              : formatNumber(value, { maximumFractionDigits: 0 })
           }
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value) =>
+                formatNumber(Number(value), {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })
+              }
+            />
+          }
+        />
         <Bar dataKey="perdas" fill="var(--color-perdas)" radius={[4, 4, 0, 0]}>
           <LabelList
             dataKey="percentage"
@@ -144,7 +157,9 @@ export function LossAnalysisChart({
             className="fill-foreground font-bold"
             fontSize={isMobile ? 9 : 11}
             formatter={(value: number) =>
-              value > 0 ? `${value.toFixed(1)}%` : ''
+              value > 0
+                ? `${formatNumber(value, { maximumFractionDigits: 1 })}%`
+                : ''
             }
           />
         </Bar>

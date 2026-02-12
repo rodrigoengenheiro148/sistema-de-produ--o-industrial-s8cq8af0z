@@ -49,7 +49,13 @@ import {
   Search,
   X,
 } from 'lucide-react'
-import { cn, isBloodRecord } from '@/lib/utils'
+import {
+  cn,
+  isBloodRecord,
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+} from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -522,13 +528,6 @@ export function RevenueChart({
     currentClientFilter,
   ])
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      maximumFractionDigits: 0,
-    }).format(value)
-
   const formatCompact = (value: number) =>
     new Intl.NumberFormat('pt-BR', {
       notation: 'compact',
@@ -865,7 +864,11 @@ export function RevenueChart({
                     ) : (
                       <ArrowDownRight className="h-3 w-3 mr-1" />
                     )}
-                    {Math.abs(forecastMetrics.percentage).toFixed(1)}%
+                    {formatNumber(Math.abs(forecastMetrics.percentage), {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })}
+                    %
                   </Badge>
                 )}
               </div>
