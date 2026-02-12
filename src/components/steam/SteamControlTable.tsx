@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
-import { format, isSameDay } from 'date-fns'
+import { format } from 'date-fns'
 import { useData } from '@/context/DataContext'
 import { SteamControlEntry } from '@/lib/types'
 import {
@@ -50,6 +50,19 @@ export function SteamControlTable() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // Optimization: Pre-calculate production totals by date to ensure fast O(1) lookup
+  // and correct aggregation of all shifts for the day.
+  const productionByDate = useMemo(() => {
+    const map = new Map<string, number>()
+    production.forEach((p) => {
+      // Use yyyy-MM-dd for consistent daily grouping regardless of time
+      const dateKey = format(p.date, 'yyyy-MM-dd')
+      const current = map.get(dateKey) || 0
+      map.set(dateKey, current + p.mpUsed)
+    })
+    return map
+  }, [production])
+
   const tableData = useMemo(() => {
     // We want to display records sorted by date descending
     const sortedRecords = [...steamControlRecords].sort(
@@ -57,19 +70,13 @@ export function SteamControlTable() {
     )
 
     return sortedRecords.map((record) => {
-      // Find matching production for the day to get MP Used
-      // production entry might be multiple per day (shifts), so we sum them
-      const daysProduction = production.filter((p) =>
-        isSameDay(p.date, record.date),
-      )
-      const entradaMp = daysProduction.reduce(
-        (acc, curr) => acc + curr.mpUsed,
-        0,
-      )
+      // Find matching production for the day using the optimized map
+      const dateKey = format(record.date, 'yyyy-MM-dd')
+      const entradaMp = productionByDate.get(dateKey) || 0
 
       const totalFuel =
         record.soyWaste + record.firewood + record.riceHusk + record.woodChips
-      const consumoVap = record.meterEnd - record.meterStart // Should match record.steamConsumption but recalculated to be safe
+      const consumoVap = record.meterEnd - record.meterStart
 
       // Ratios
       // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL
@@ -99,7 +106,7 @@ export function SteamControlTable() {
         vaporVsMp,
       }
     })
-  }, [steamControlRecords, production])
+  }, [steamControlRecords, productionByDate])
 
   const handleDelete = () => {
     if (deleteId) {
@@ -125,7 +132,7 @@ export function SteamControlTable() {
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
               <TableHead className="text-right min-w-[100px]">
-                MP Proc. (kg)
+                MP Processada (kg)
               </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja

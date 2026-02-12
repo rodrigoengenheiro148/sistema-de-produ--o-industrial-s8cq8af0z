@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useData } from '@/context/DataContext'
-import { format, subDays, eachDayOfInterval, isSameDay } from 'date-fns'
+import { format, subDays, eachDayOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Card,
@@ -28,6 +28,7 @@ import {
 } from 'recharts'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
+import { SteamControlEntry } from '@/lib/types'
 
 export function SteamControlCharts() {
   const { steamControlRecords, production } = useData()
@@ -39,29 +40,48 @@ export function SteamControlCharts() {
   const filteredData = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return []
 
+    // Pre-calculate production totals
+    const prodMap = new Map<string, number>()
+    production.forEach((p) => {
+      const key = format(p.date, 'yyyy-MM-dd')
+      prodMap.set(key, (prodMap.get(key) || 0) + p.mpUsed)
+    })
+
+    // Pre-calculate steam records map (aggregating if multiple per day)
+    const steamMap = new Map<string, SteamControlEntry[]>()
+    steamControlRecords.forEach((r) => {
+      const key = format(r.date, 'yyyy-MM-dd')
+      const list = steamMap.get(key) || []
+      list.push(r)
+      steamMap.set(key, list)
+    })
+
     // Generate dates in range
     const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to })
 
     return days
       .map((day) => {
-        const record = steamControlRecords.find((r) => isSameDay(r.date, day))
-        const daysProduction = production.filter((p) => isSameDay(p.date, day))
-        const entradaMp = daysProduction.reduce(
-          (acc, curr) => acc + curr.mpUsed,
-          0,
-        )
+        const dateKey = format(day, 'yyyy-MM-dd')
+        const entradaMp = prodMap.get(dateKey) || 0
 
-        const steamConsumption = record
-          ? record.meterEnd - record.meterStart
-          : 0
-        const totalFuel = record
-          ? record.soyWaste +
-            record.firewood +
-            record.riceHusk +
-            record.woodChips
-          : 0
+        const daySteamRecords = steamMap.get(dateKey) || []
+
+        let steamConsumption = 0
+        let soyWaste = 0
+        let firewood = 0
+        let riceHusk = 0
+        let woodChips = 0
+
+        daySteamRecords.forEach((r) => {
+          steamConsumption += r.meterEnd - r.meterStart
+          soyWaste += r.soyWaste
+          firewood += r.firewood
+          riceHusk += r.riceHusk
+          woodChips += r.woodChips
+        })
 
         // Calculate ratios (avoid div by zero)
+        const totalFuel = soyWaste + firewood + riceHusk + woodChips
         const ratioMpVapor =
           steamConsumption > 0 ? entradaMp / steamConsumption : 0
         const ratioCavacoVapor =
@@ -74,10 +94,10 @@ export function SteamControlCharts() {
           entradaMp,
           ratioMpVapor: Number(ratioMpVapor.toFixed(2)),
           ratioCavacoVapor: Number(ratioCavacoVapor.toFixed(2)),
-          soyWaste: record?.soyWaste || 0,
-          firewood: record?.firewood || 0,
-          riceHusk: record?.riceHusk || 0,
-          woodChips: record?.woodChips || 0,
+          soyWaste,
+          firewood,
+          riceHusk,
+          woodChips,
         }
       })
       .filter((d) => d.steamConsumption > 0 || d.entradaMp > 0) // Hide empty days

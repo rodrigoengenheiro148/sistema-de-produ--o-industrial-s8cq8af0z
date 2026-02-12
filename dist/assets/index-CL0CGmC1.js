@@ -86790,9 +86790,19 @@ function SteamControlTable() {
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const productionByDate = (0, import_react.useMemo)(() => {
+		const map$4 = /* @__PURE__ */ new Map();
+		production.forEach((p) => {
+			const dateKey = format(p.date, "yyyy-MM-dd");
+			const current = map$4.get(dateKey) || 0;
+			map$4.set(dateKey, current + p.mpUsed);
+		});
+		return map$4;
+	}, [production]);
 	const tableData = (0, import_react.useMemo)(() => {
 		return [...steamControlRecords].sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
-			const entradaMp = production.filter((p) => isSameDay(p.date, record.date)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+			const dateKey = format(record.date, "yyyy-MM-dd");
+			const entradaMp = productionByDate.get(dateKey) || 0;
 			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
 			const consumoVap = record.meterEnd - record.meterStart;
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
@@ -86812,7 +86822,7 @@ function SteamControlTable() {
 				vaporVsMp
 			};
 		});
-	}, [steamControlRecords, production]);
+	}, [steamControlRecords, productionByDate]);
 	const handleDelete = () => {
 		if (deleteId) {
 			deleteSteamControlRecord(deleteId);
@@ -86841,7 +86851,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
-							children: "MP Proc. (kg)"
+							children: "MP Processada (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -87015,14 +87025,38 @@ function SteamControlCharts() {
 	});
 	const filteredData = (0, import_react.useMemo)(() => {
 		if (!dateRange?.from || !dateRange?.to) return [];
+		const prodMap = /* @__PURE__ */ new Map();
+		production.forEach((p) => {
+			const key = format(p.date, "yyyy-MM-dd");
+			prodMap.set(key, (prodMap.get(key) || 0) + p.mpUsed);
+		});
+		const steamMap = /* @__PURE__ */ new Map();
+		steamControlRecords.forEach((r$2) => {
+			const key = format(r$2.date, "yyyy-MM-dd");
+			const list = steamMap.get(key) || [];
+			list.push(r$2);
+			steamMap.set(key, list);
+		});
 		return eachDayOfInterval({
 			start: dateRange.from,
 			end: dateRange.to
 		}).map((day) => {
-			const record = steamControlRecords.find((r$2) => isSameDay(r$2.date, day));
-			const entradaMp = production.filter((p) => isSameDay(p.date, day)).reduce((acc, curr) => acc + curr.mpUsed, 0);
-			const steamConsumption = record ? record.meterEnd - record.meterStart : 0;
-			const totalFuel = record ? record.soyWaste + record.firewood + record.riceHusk + record.woodChips : 0;
+			const dateKey = format(day, "yyyy-MM-dd");
+			const entradaMp = prodMap.get(dateKey) || 0;
+			const daySteamRecords = steamMap.get(dateKey) || [];
+			let steamConsumption = 0;
+			let soyWaste = 0;
+			let firewood = 0;
+			let riceHusk = 0;
+			let woodChips = 0;
+			daySteamRecords.forEach((r$2) => {
+				steamConsumption += r$2.meterEnd - r$2.meterStart;
+				soyWaste += r$2.soyWaste;
+				firewood += r$2.firewood;
+				riceHusk += r$2.riceHusk;
+				woodChips += r$2.woodChips;
+			});
+			const totalFuel = soyWaste + firewood + riceHusk + woodChips;
 			const ratioMpVapor = steamConsumption > 0 ? entradaMp / steamConsumption : 0;
 			const ratioCavacoVapor = totalFuel > 0 ? steamConsumption / totalFuel : 0;
 			return {
@@ -87032,10 +87066,10 @@ function SteamControlCharts() {
 				entradaMp,
 				ratioMpVapor: Number(ratioMpVapor.toFixed(2)),
 				ratioCavacoVapor: Number(ratioCavacoVapor.toFixed(2)),
-				soyWaste: record?.soyWaste || 0,
-				firewood: record?.firewood || 0,
-				riceHusk: record?.riceHusk || 0,
-				woodChips: record?.woodChips || 0
+				soyWaste,
+				firewood,
+				riceHusk,
+				woodChips
 			};
 		}).filter((d) => d.steamConsumption > 0 || d.entradaMp > 0);
 	}, [
@@ -88868,4 +88902,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Vy5GX_a9.js.map
+//# sourceMappingURL=index-CL0CGmC1.js.map
