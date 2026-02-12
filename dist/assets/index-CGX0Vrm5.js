@@ -35828,12 +35828,42 @@ function shouldShowDeprecationWarning() {
 	return parseInt(versionMatch[1], 10) <= 18;
 }
 if (shouldShowDeprecationWarning()) console.warn("⚠️  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
-const supabase = createClient("https://cbmpujaahiqcehapnboj.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNibXB1amFhaGlxY2VoYXBuYm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwODM2NjAsImV4cCI6MjA4NDY1OTY2MH0.5xoUE_mUyXkunLk2GZAVdbRE350gNruNby6AljK5BU8", { auth: {
+var SUPABASE_URL = "https://cbmpujaahiqcehapnboj.supabase.co";
+var SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNibXB1amFhaGlxY2VoYXBuYm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwODM2NjAsImV4cCI6MjA4NDY1OTY2MH0.5xoUE_mUyXkunLk2GZAVdbRE350gNruNby6AljK5BU8";
+var isValidUrl = (url) => {
+	if (!url) return false;
+	try {
+		new URL(url);
+		return true;
+	} catch {
+		return false;
+	}
+};
+if (!isValidUrl(SUPABASE_URL) || false) console.error("Supabase URL or Key is missing or invalid. Please check your .env configuration.");
+const supabase = createClient(isValidUrl(SUPABASE_URL) ? SUPABASE_URL : "https://placeholder.supabase.co", SUPABASE_PUBLISHABLE_KEY, { auth: {
 	storage: localStorage,
 	persistSession: true,
 	autoRefreshToken: true,
 	detectSessionInUrl: true
 } });
+var authClient = supabase.auth;
+if (authClient && typeof authClient._refreshAccessToken === "function") {
+	const originalRefresh = authClient._refreshAccessToken.bind(authClient);
+	authClient._refreshAccessToken = async (...args) => {
+		try {
+			return await originalRefresh(...args);
+		} catch (error) {
+			console.warn("Supabase auth refresh failed (network issue suspected). Suppressing crash.", error);
+			return {
+				data: {
+					session: null,
+					user: null
+				},
+				error: error || /* @__PURE__ */ new Error("Failed to refresh access token")
+			};
+		}
+	};
+}
 var AuthContext = (0, import_react.createContext)(void 0);
 const useAuth = () => {
 	const context = (0, import_react.useContext)(AuthContext);
@@ -35861,6 +35891,8 @@ const AuthProvider = ({ children }) => {
 		}).catch((err) => {
 			if (!mounted) return;
 			console.error("Unexpected error during session check:", err);
+			setSession(null);
+			setUser(null);
 		}).finally(() => {
 			if (mounted) setLoading(false);
 		});
@@ -89312,4 +89344,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-APZDrxOv.js.map
+//# sourceMappingURL=index-CGX0Vrm5.js.map

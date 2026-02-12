@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true
 
     // Set up auth state listener FIRST
+    // This handles subsequent updates and refresh events
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -45,12 +46,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (mounted) {
         setSession(session)
         setUser(session?.user ?? null)
+        // If we get an event, we are done loading
         setLoading(false)
       }
     })
 
     // THEN check for existing session
     // We add robust error handling here to prevent white screens on network failure
+    // during the initial fetch.
     supabase.auth
       .getSession()
       .then(({ data, error }) => {
@@ -68,6 +71,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .catch((err) => {
         if (!mounted) return
         console.error('Unexpected error during session check:', err)
+        // In case of catastrophic failure (e.g. invalid URL), we ensure the app doesn't hang in loading
+        setSession(null)
+        setUser(null)
       })
       .finally(() => {
         if (mounted) {
