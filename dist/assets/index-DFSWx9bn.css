@@ -657,6 +657,9 @@ section[aria-label='Notifications alt+T'] {
 .left-2\.5{
   left: 0.625rem;
 }
+.left-3{
+  left: 0.75rem;
+}
 .left-\[50\%\]{
   left: 50%;
 }
@@ -1747,6 +1750,10 @@ section[aria-label='Notifications alt+T'] {
 .border-red-200{
   --tw-border-opacity: 1;
   border-color: rgb(254 202 202 / var(--tw-border-opacity, 1));
+}
+.border-red-500{
+  --tw-border-opacity: 1;
+  border-color: rgb(239 68 68 / var(--tw-border-opacity, 1));
 }
 .border-sidebar-border{
   border-color: hsl(var(--sidebar-border));
@@ -3265,6 +3272,13 @@ img[src*='skip.svg'] {
 }
 .focus-visible\:ring-destructive:focus-visible{
   --tw-ring-color: hsl(var(--destructive));
+}
+.focus-visible\:ring-primary:focus-visible{
+  --tw-ring-color: hsl(var(--primary));
+}
+.focus-visible\:ring-red-500:focus-visible{
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
 }
 .focus-visible\:ring-ring:focus-visible{
   --tw-ring-color: hsl(var(--ring));

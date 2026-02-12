@@ -1,13 +1,13 @@
 import { useData } from '@/context/DataContext'
-import { format, isWithinInterval } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Calendar } from '@/components/ui/calendar'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
+  format,
+  isWithinInterval,
+  parse,
+  isValid,
+  startOfDay,
+  endOfDay,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { CalendarIcon, ClipboardCheck } from 'lucide-react'
 import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -26,6 +26,7 @@ import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialC
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 export default function Dashboard() {
   const {
@@ -178,6 +179,45 @@ export default function Dashboard() {
     return { currentYield: yieldVal, yieldTarget: target }
   }, [filteredProduction, notificationSettings])
 
+  // Input state for manual date entry
+  const [dateInput, setDateInput] = useState('')
+  const [inputError, setInputError] = useState(false)
+
+  // Sync input with dateRange.from on mount or when context updates
+  useEffect(() => {
+    if (dateRange?.from) {
+      setDateInput(format(dateRange.from, 'dd/MM/yyyy'))
+    }
+  }, [dateRange.from])
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+
+    // Allow only numbers and slash
+    if (/[^0-9/]/.test(val)) return
+
+    setDateInput(val)
+
+    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    if (dateRegex.test(val)) {
+      const parsedDate = parse(val, 'dd/MM/yyyy', new Date())
+      // Check if valid date and also if it round-trips correctly (handles invalid days like 32/01)
+      if (isValid(parsedDate) && format(parsedDate, 'dd/MM/yyyy') === val) {
+        setInputError(false)
+        setDateRange({
+          from: startOfDay(parsedDate),
+          to: endOfDay(parsedDate),
+        })
+      } else {
+        setInputError(true)
+      }
+    } else {
+      // If full length but regex mismatch or incomplete
+      if (val.length === 10) setInputError(true)
+      else setInputError(false)
+    }
+  }
+
   return (
     <div id="dashboard-content" className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -189,43 +229,21 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="date"
-                variant={'outline'}
-                className={cn(
-                  'w-full sm:w-[240px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50',
-                  !dateRange && 'text-muted-foreground',
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })} -{' '}
-                      {format(dateRange.to, 'dd/MM/yyyy', { locale: ptBR })}
-                    </>
-                  ) : (
-                    format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })
-                  )
-                ) : (
-                  <span>Selecione um período</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={(range: any) => setDateRange(range)}
-                numberOfMonths={isMobile ? 1 : 2}
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <div className="relative w-full sm:w-[240px]">
+            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+            <Input
+              type="text"
+              placeholder="DD/MM/AAAA"
+              value={dateInput}
+              onChange={handleDateChange}
+              className={cn(
+                'pl-9 border-primary/20 focus-visible:ring-primary',
+                inputError && 'border-red-500 focus-visible:ring-red-500',
+              )}
+              maxLength={10}
+            />
+          </div>
+
           <div className="flex gap-2 w-full sm:w-auto">
             <SyncDeviceDialog />
             <ExportOptions className="flex-1 sm:flex-none" />
