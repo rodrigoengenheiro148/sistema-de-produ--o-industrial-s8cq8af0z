@@ -67045,6 +67045,7 @@ function LoadForecast({ referenceDate, className }) {
 	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const FIXED_FLOW_1450 = 5.8;
 	const FIXED_FLOW_1500 = 6;
+	const SEBO_DENSITY = .9;
 	const YIELD_FACTORS = {
 		sebo: .15,
 		fco: .2,
@@ -67065,7 +67066,12 @@ function LoadForecast({ referenceDate, className }) {
 		farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
 		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
 	};
-	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data }) => {
+	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data, isLiquid = false }) => {
+		const flow1450L = isLiquid ? FIXED_FLOW_1450 * 1e3 / SEBO_DENSITY : 0;
+		const flow1500L = isLiquid ? FIXED_FLOW_1500 * 1e3 / SEBO_DENSITY : 0;
+		const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY : 0;
+		const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY : 0;
+		const totalVolL = isLiquid ? data.estProdTons * 1e3 / SEBO_DENSITY : 0;
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -67095,37 +67101,59 @@ function LoadForecast({ referenceDate, className }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid grid-cols-2 gap-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "text-[11px] text-muted-foreground font-medium mb-1",
-										children: "Vazão 1450kg"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "text-base font-bold text-foreground",
-										children: [
-											FIXED_FLOW_1450.toFixed(2),
-											" ",
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs font-normal text-muted-foreground",
-												children: "t/h"
-											})
-										]
-									})]
+									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-[11px] text-muted-foreground font-medium mb-1",
+											children: "Vazão 1450kg"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-base font-bold text-foreground",
+											children: [
+												FIXED_FLOW_1450.toFixed(2),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-normal text-muted-foreground",
+													children: "t/h"
+												})
+											]
+										}),
+										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-xs font-semibold text-emerald-600 mt-1",
+											children: [
+												flow1450L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+												" ",
+												"L/h"
+											]
+										})
+									]
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-										className: "text-[11px] text-muted-foreground font-medium mb-1",
-										children: "Vazão 1500kg"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "text-base font-bold text-foreground",
-										children: [
-											FIXED_FLOW_1500.toFixed(2),
-											" ",
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs font-normal text-muted-foreground",
-												children: "t/h"
-											})
-										]
-									})]
+									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-[11px] text-muted-foreground font-medium mb-1",
+											children: "Vazão 1500kg"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-base font-bold text-foreground",
+											children: [
+												FIXED_FLOW_1500.toFixed(2),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs font-normal text-muted-foreground",
+													children: "t/h"
+												})
+											]
+										}),
+										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-xs font-semibold text-emerald-600 mt-1",
+											children: [
+												flow1500L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+												" ",
+												"L/h"
+											]
+										})
+									]
 								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -67151,22 +67179,44 @@ function LoadForecast({ referenceDate, className }) {
 								className: "grid grid-cols-2 gap-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-										children: data.bags1450
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
-										children: "1450KG"
-									})]
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
+											children: data.bags1450
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
+											children: "1450KG"
+										}),
+										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "text-[10px] text-emerald-600 font-bold mt-1",
+											children: [
+												unitVol1450.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+												" ",
+												"L"
+											]
+										})
+									]
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-										children: data.bags1500
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
-										children: "1500KG"
-									})]
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
+											children: data.bags1500
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
+											children: "1500KG"
+										}),
+										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+											className: "text-[10px] text-emerald-600 font-bold mt-1",
+											children: [
+												unitVol1500.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+												" ",
+												"L"
+											]
+										})
+									]
 								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -67174,7 +67224,16 @@ function LoadForecast({ referenceDate, className }) {
 								children: [
 									"Est. Prod: ",
 									data.estProdTons.toFixed(1),
-									"t"
+									"t",
+									isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+										className: "ml-1 text-emerald-600",
+										children: [
+											"(",
+											totalVolL.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+											" ",
+											"L)"
+										]
+									})
 								]
 							})
 						]
@@ -67301,7 +67360,8 @@ function LoadForecast({ referenceDate, className }) {
 					icon: Droplets,
 					colorClass: "text-emerald-600 dark:text-emerald-400",
 					bgClass: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30",
-					data: forecasts.sebo
+					data: forecasts.sebo,
+					isLiquid: true
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Farinha (FCO)",
@@ -88689,4 +88749,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BgcS-CWj.js.map
+//# sourceMappingURL=index-CBg6FVHp.js.map

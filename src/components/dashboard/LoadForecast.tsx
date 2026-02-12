@@ -77,6 +77,9 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
   const FIXED_FLOW_1450 = 5.8 // t/h
   const FIXED_FLOW_1500 = 6.0 // t/h
 
+  // Density for Sebo (kg/L)
+  const SEBO_DENSITY = 0.9
+
   // Yield Factors
   const YIELD_FACTORS = {
     sebo: 0.15, // 15%
@@ -114,6 +117,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     colorClass,
     bgClass,
     data,
+    isLiquid = false,
   }: {
     title: string
     icon: any
@@ -124,7 +128,17 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
       bags1450: number
       bags1500: number
     }
+    isLiquid?: boolean
   }) => {
+    // Calculate liquid metrics if applicable
+    const flow1450L = isLiquid ? (FIXED_FLOW_1450 * 1000) / SEBO_DENSITY : 0
+    const flow1500L = isLiquid ? (FIXED_FLOW_1500 * 1000) / SEBO_DENSITY : 0
+
+    const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY : 0
+    const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY : 0
+
+    const totalVolL = isLiquid ? (data.estProdTons * 1000) / SEBO_DENSITY : 0
+
     return (
       <div
         className={cn(
@@ -149,7 +163,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
               Cadência ({HOURS_IN_DAY}H)
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center">
+              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center">
                 <div className="text-[11px] text-muted-foreground font-medium mb-1">
                   Vazão 1450kg
                 </div>
@@ -159,8 +173,16 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                     t/h
                   </span>
                 </div>
+                {isLiquid && (
+                  <div className="text-xs font-semibold text-emerald-600 mt-1">
+                    {flow1450L.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    L/h
+                  </div>
+                )}
               </div>
-              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center">
+              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center">
                 <div className="text-[11px] text-muted-foreground font-medium mb-1">
                   Vazão 1500kg
                 </div>
@@ -170,6 +192,14 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                     t/h
                   </span>
                 </div>
+                {isLiquid && (
+                  <div className="text-xs font-semibold text-emerald-600 mt-1">
+                    {flow1500L.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    L/h
+                  </div>
+                )}
               </div>
             </div>
             <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 bg-muted/20 py-1.5 rounded-md">
@@ -204,6 +234,14 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
                   1450KG
                 </span>
+                {isLiquid && (
+                  <span className="text-[10px] text-emerald-600 font-bold mt-1">
+                    {unitVol1450.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    L
+                  </span>
+                )}
               </div>
               <div
                 className={cn(
@@ -222,10 +260,27 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
                   1500KG
                 </span>
+                {isLiquid && (
+                  <span className="text-[10px] text-emerald-600 font-bold mt-1">
+                    {unitVol1500.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    L
+                  </span>
+                )}
               </div>
             </div>
             <div className="text-xs text-right text-muted-foreground font-medium mt-1">
               Est. Prod: {data.estProdTons.toFixed(1)}t
+              {isLiquid && (
+                <span className="ml-1 text-emerald-600">
+                  (
+                  {totalVolL.toLocaleString('pt-BR', {
+                    maximumFractionDigits: 0,
+                  })}{' '}
+                  L)
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -368,6 +423,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             colorClass="text-emerald-600 dark:text-emerald-400"
             bgClass="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30"
             data={forecasts.sebo}
+            isLiquid={true}
           />
           <ForecastCard
             title="Farinha (FCO)"
