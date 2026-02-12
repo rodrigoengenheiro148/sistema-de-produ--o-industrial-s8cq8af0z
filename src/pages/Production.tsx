@@ -66,6 +66,12 @@ export default function Production() {
     item: ProductionEntry
   } | null>(null)
 
+  // Custom formatter for losses to replace periods with commas
+  // This satisfies the requirement to display values like "102.220" as "102,220"
+  const formatLosses = (value: number) => {
+    return formatNumber(value).replace(/\./g, ',')
+  }
+
   const handleEditClick = (item: ProductionEntry) => {
     if (canEditRecord(item.createdAt)) {
       setEditingItem(item)
@@ -242,7 +248,7 @@ export default function Production() {
                               Perdas
                             </span>
                             <span className="font-mono font-bold text-red-600">
-                              {formatNumber(entry.losses)} kg
+                              {formatLosses(entry.losses)} kg
                             </span>
                           </div>
                         </div>
@@ -338,7 +344,7 @@ export default function Production() {
                           {formatNumber(entry.farinhetaProduced)}
                         </TableCell>
                         <TableCell className="text-right font-mono text-red-500 font-medium">
-                          {formatNumber(entry.losses)}
+                          {formatLosses(entry.losses)}
                         </TableCell>
                         <TableCell className="flex items-center gap-1">
                           <Button

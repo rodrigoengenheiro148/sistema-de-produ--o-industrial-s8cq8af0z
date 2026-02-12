@@ -78051,6 +78051,9 @@ function Production() {
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
 	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const formatLosses = (value) => {
+		return formatNumber(value).replace(/\./g, ",");
+	};
 	const handleEditClick = (item) => {
 		if (canEditRecord(item.createdAt)) {
 			setEditingItem(item);
@@ -78201,7 +78204,7 @@ function Production() {
 												children: "Perdas"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold text-red-600",
-												children: [formatNumber(entry.losses), " kg"]
+												children: [formatLosses(entry.losses), " kg"]
 											})]
 										})]
 									}),
@@ -78309,7 +78312,7 @@ function Production() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-red-500 font-medium",
-								children: formatNumber(entry.losses)
+								children: formatLosses(entry.losses)
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
@@ -88814,4 +88817,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BZuMBYk_.js.map
+//# sourceMappingURL=index-6MCg4r7v.js.map
