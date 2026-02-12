@@ -86850,8 +86850,8 @@ function SteamControlTable() {
 							children: "Data"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px]",
-							children: "MP Processada (kg)"
+							className: "text-right min-w-[120px]",
+							children: "MP Proc. (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -86886,23 +86886,23 @@ function SteamControlTable() {
 							children: "Consumo Vap"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50",
+							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
 							children: "Cavaco vs Vapor"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50",
+							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
 							children: "MP vs Vapor"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50",
+							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
 							children: "MP vs Cavaco"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-green-50/50",
+							className: "text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20",
 							children: "M³ vs MP"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-green-50/50",
+							className: "text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20",
 							children: "Vapor vs MP"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
@@ -86920,7 +86920,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-mono font-medium text-blue-700 dark:text-blue-400",
-							children: formatNumber(row.entradaMp)
+							children: row.entradaMp > 0 ? formatNumber(row.entradaMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
@@ -86955,23 +86955,23 @@ function SteamControlTable() {
 							children: formatNumber(row.consumoVap)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 font-mono text-xs",
+							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
 							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 font-mono text-xs",
+							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
 							children: row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 font-mono text-xs",
+							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
 							children: row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-green-50/30 font-mono text-xs",
+							className: "text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs",
 							children: row.entradaMp > 0 ? formatNumber(row.m3VsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-green-50/30 font-mono text-xs",
+							className: "text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs",
 							children: row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
@@ -88902,4 +88902,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CL0CGmC1.js.map
+//# sourceMappingURL=index-BQTtyK12.js.map

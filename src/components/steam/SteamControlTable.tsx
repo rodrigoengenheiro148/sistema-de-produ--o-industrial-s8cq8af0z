@@ -131,8 +131,8 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
-              <TableHead className="text-right min-w-[100px]">
-                MP Processada (kg)
+              <TableHead className="text-right min-w-[120px]">
+                MP Proc. (kg)
               </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja
@@ -154,19 +154,19 @@ export function SteamControlTable() {
               <TableHead className="text-right min-w-[100px] font-bold">
                 Consumo Vap
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50">
+              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50">
+              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 MP vs Vapor
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50">
+              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 MP vs Cavaco
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-green-50/50">
+              <TableHead className="text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20">
                 M³ vs MP
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-green-50/50">
+              <TableHead className="text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20">
                 Vapor vs MP
               </TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -189,7 +189,7 @@ export function SteamControlTable() {
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
                   <TableCell className="text-right font-mono font-medium text-blue-700 dark:text-blue-400">
-                    {formatNumber(row.entradaMp)}
+                    {row.entradaMp > 0 ? formatNumber(row.entradaMp) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatNumber(row.soyWaste)}
@@ -217,19 +217,19 @@ export function SteamControlTable() {
                   </TableCell>
 
                   {/* Ratios */}
-                  <TableCell className="text-right bg-blue-50/30 font-mono text-xs">
+                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}
                   </TableCell>
-                  <TableCell className="text-right bg-blue-50/30 font-mono text-xs">
+                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : '-'}
                   </TableCell>
-                  <TableCell className="text-right bg-blue-50/30 font-mono text-xs">
+                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : '-'}
                   </TableCell>
-                  <TableCell className="text-right bg-green-50/30 font-mono text-xs">
+                  <TableCell className="text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs">
                     {row.entradaMp > 0 ? formatNumber(row.m3VsMp) : '-'}
                   </TableCell>
-                  <TableCell className="text-right bg-green-50/30 font-mono text-xs">
+                  <TableCell className="text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs">
                     {row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : '-'}
                   </TableCell>
 
