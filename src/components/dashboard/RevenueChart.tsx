@@ -46,6 +46,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Filter,
+  Search,
+  X,
 } from 'lucide-react'
 import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -59,6 +61,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Input } from '@/components/ui/input'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -106,15 +109,22 @@ export function RevenueChart({
   forecastMetrics,
   activeFilter = DEFAULT_FILTERS,
   onFilterChange,
-  clientFilter = [],
+  clientFilter,
   onClientFilterChange,
   allClients = [],
 }: RevenueChartProps) {
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
+  const [clientSearchTerm, setClientSearchTerm] = useState('')
 
-  // Local state for filter if not controlled
+  // Local state for material filter if not controlled
   const [localFilter, setLocalFilter] = useState<string[]>(DEFAULT_FILTERS)
   const currentFilter = onFilterChange ? activeFilter : localFilter
+
+  // Local state for client filter if not controlled
+  const [localClientFilter, setLocalClientFilter] = useState<string[]>([])
+  const currentClientFilter = onClientFilterChange
+    ? clientFilter || []
+    : localClientFilter
 
   const handleFilterChange = (val: string) => {
     const newFilter = currentFilter.includes(val)
@@ -129,11 +139,24 @@ export function RevenueChart({
   }
 
   const handleClientFilterChange = (val: string) => {
-    if (!onClientFilterChange) return
-    const newFilter = clientFilter.includes(val)
-      ? clientFilter.filter((f) => f !== val)
-      : [...clientFilter, val]
-    onClientFilterChange(newFilter)
+    const newFilter = currentClientFilter.includes(val)
+      ? currentClientFilter.filter((f) => f !== val)
+      : [...currentClientFilter, val]
+
+    if (onClientFilterChange) {
+      onClientFilterChange(newFilter)
+    } else {
+      setLocalClientFilter(newFilter)
+    }
+  }
+
+  const clearClientFilters = () => {
+    if (onClientFilterChange) {
+      onClientFilterChange([])
+    } else {
+      setLocalClientFilter([])
+    }
+    setClientSearchTerm('')
   }
 
   const normalizeToKg = (quantity: number, unit?: string) => {
@@ -142,6 +165,13 @@ export function RevenueChart({
     if (u.includes('ton')) return quantity * 1000
     return quantity
   }
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearchTerm) return allClients
+    return allClients.filter((c) =>
+      c.toLowerCase().includes(clientSearchTerm.toLowerCase()),
+    )
+  }, [allClients, clientSearchTerm])
 
   const {
     chartData,
@@ -261,6 +291,12 @@ export function RevenueChart({
     data.forEach((s) => {
       if (!s.date) return
       if (!currentFilter.includes(s.product)) return
+      // Apply Client Filter
+      if (
+        currentClientFilter.length > 0 &&
+        !currentClientFilter.includes(s.client)
+      )
+        return
 
       let dateKey: string
       let displayDate: string
@@ -300,6 +336,7 @@ export function RevenueChart({
     })
 
     // 4. Process Raw Materials for Forecast
+    // Forecast is generally NOT filtered by client because it represents production potential
     const rawMaterialDates = new Set<string>()
     rawMaterials.forEach((r) => {
       if (!r.date) return
@@ -421,8 +458,10 @@ export function RevenueChart({
       a.dateKey.localeCompare(b.dateKey),
     )
 
+    // Calculate Average on Realized Revenue Days (excluding projections if 0 revenue)
+    const revenueDays = processedData.filter((d) => d.totalRevenue > 0)
     const avg =
-      processedData.length > 0 ? globalTotal / processedData.length : 0
+      revenueDays.length > 0 ? globalTotal / revenueDays.length : globalTotal
 
     let max = 0
     let mDate = ''
@@ -480,6 +519,7 @@ export function RevenueChart({
     groupBy,
     timeScale,
     currentFilter,
+    currentClientFilter,
   ])
 
   const formatCurrency = (value: number) =>
@@ -635,43 +675,58 @@ export function RevenueChart({
                 <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
                   <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="hidden xs:inline text-xs">Clientes</span>
-                  {clientFilter.length > 0 && (
+                  {currentClientFilter.length > 0 && (
                     <Badge variant="secondary" className="h-5 px-1 text-[10px]">
-                      {clientFilter.length}
+                      {currentClientFilter.length}
                     </Badge>
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
+              <DropdownMenuContent align="end" className="w-[240px]">
                 <DropdownMenuLabel>Filtrar Clientes</DropdownMenuLabel>
+                <div className="px-2 py-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar cliente..."
+                      value={clientSearchTerm}
+                      onChange={(e) => setClientSearchTerm(e.target.value)}
+                      className="pl-8 h-9"
+                      onKeyDown={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
                 <DropdownMenuSeparator />
                 <ScrollArea className="h-[200px]">
-                  {allClients.length > 0 ? (
-                    allClients.map((client) => (
+                  {filteredClients.length > 0 ? (
+                    filteredClients.map((client) => (
                       <DropdownMenuCheckboxItem
                         key={client}
-                        checked={clientFilter.includes(client)}
+                        checked={currentClientFilter.includes(client)}
                         onCheckedChange={() => handleClientFilterChange(client)}
+                        onSelect={(e) => e.preventDefault()}
                       >
                         {client}
                       </DropdownMenuCheckboxItem>
                     ))
                   ) : (
                     <div className="p-2 text-xs text-muted-foreground text-center">
-                      Nenhum cliente disponível
+                      Nenhum cliente encontrado
                     </div>
                   )}
                 </ScrollArea>
-                {clientFilter.length > 0 && (
+                {(currentClientFilter.length > 0 || clientSearchTerm) && (
                   <>
                     <DropdownMenuSeparator />
                     <Button
                       variant="ghost"
                       size="sm"
                       className="w-full text-xs h-8"
-                      onClick={() => onClientFilterChange?.([])}
+                      onClick={clearClientFilters}
                     >
-                      Limpar Filtro
+                      {currentClientFilter.length > 0
+                        ? 'Limpar Filtros'
+                        : 'Limpar Busca'}
                     </Button>
                   </>
                 )}
@@ -817,8 +872,8 @@ export function RevenueChart({
               <span className="text-[10px] text-muted-foreground mt-1">
                 Baseado em MP + Rendimentos (Filtro:{' '}
                 {currentFilter.join(', ') || 'Nenhum'}
-                {clientFilter.length > 0
-                  ? ` | Clientes: ${clientFilter.length}`
+                {currentClientFilter.length > 0
+                  ? ` | Clientes: ${currentClientFilter.length}`
                   : ''}
                 )
               </span>
@@ -839,7 +894,9 @@ export function RevenueChart({
           <ChartContent />
         ) : (
           <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
-            Selecione ao menos um material para visualizar os dados.
+            {currentClientFilter.length > 0
+              ? 'Nenhum dado encontrado para os clientes selecionados neste período.'
+              : 'Selecione ao menos um material para visualizar os dados.'}
           </div>
         )}
       </CardContent>

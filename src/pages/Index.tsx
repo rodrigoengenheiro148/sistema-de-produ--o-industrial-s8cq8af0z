@@ -91,7 +91,15 @@ export default function Dashboard() {
     filteredDowntime,
     filteredQuality,
     filteredAcidity,
+    uniqueClients,
   } = useMemo(() => {
+    // Extract unique clients from ALL shipping data (not just filtered) to populate the filter list
+    const clients = new Set<string>()
+    shipping.forEach((s) => {
+      if (s.client) clients.add(s.client)
+    })
+    const uniqueClientsList = Array.from(clients).sort()
+
     return {
       filteredProduction: production
         .filter((p) => filterByDate(p.date))
@@ -108,6 +116,7 @@ export default function Dashboard() {
       filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
       filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
       filteredAcidity: acidityRecords.filter((a) => filterByDate(a.date)),
+      uniqueClients: uniqueClientsList,
     }
   }, [
     production,
@@ -295,6 +304,7 @@ export default function Dashboard() {
               allRawMaterials={rawMaterials}
               isMobile={isMobile}
               timeScale="daily"
+              allClients={uniqueClients}
             />
             <LossAnalysisChart
               data={filteredProduction}

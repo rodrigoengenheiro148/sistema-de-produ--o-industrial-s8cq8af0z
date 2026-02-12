@@ -68210,18 +68210,27 @@ var DEFAULT_FILTERS = [
 	"Farinheta",
 	"Farinha Especial"
 ];
-function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", isMobile = false, className, forecastMetrics, activeFilter = DEFAULT_FILTERS, onFilterChange, clientFilter = [], onClientFilterChange, allClients = [] }) {
+function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", isMobile = false, className, forecastMetrics, activeFilter = DEFAULT_FILTERS, onFilterChange, clientFilter, onClientFilterChange, allClients = [] }) {
 	const [groupBy, setGroupBy] = (0, import_react.useState)("product");
+	const [clientSearchTerm, setClientSearchTerm] = (0, import_react.useState)("");
 	const [localFilter, setLocalFilter] = (0, import_react.useState)(DEFAULT_FILTERS);
 	const currentFilter = onFilterChange ? activeFilter : localFilter;
+	const [localClientFilter, setLocalClientFilter] = (0, import_react.useState)([]);
+	const currentClientFilter = onClientFilterChange ? clientFilter || [] : localClientFilter;
 	const handleFilterChange = (val) => {
 		const newFilter = currentFilter.includes(val) ? currentFilter.filter((f) => f !== val) : [...currentFilter, val];
 		if (onFilterChange) onFilterChange(newFilter);
 		else setLocalFilter(newFilter);
 	};
 	const handleClientFilterChange = (val) => {
-		if (!onClientFilterChange) return;
-		onClientFilterChange(clientFilter.includes(val) ? clientFilter.filter((f) => f !== val) : [...clientFilter, val]);
+		const newFilter = currentClientFilter.includes(val) ? currentClientFilter.filter((f) => f !== val) : [...currentClientFilter, val];
+		if (onClientFilterChange) onClientFilterChange(newFilter);
+		else setLocalClientFilter(newFilter);
+	};
+	const clearClientFilters = () => {
+		if (onClientFilterChange) onClientFilterChange([]);
+		else setLocalClientFilter([]);
+		setClientSearchTerm("");
 	};
 	const normalizeToKg = (quantity, unit$1) => {
 		const u = unit$1?.toLowerCase() || "";
@@ -68229,6 +68238,10 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		if (u.includes("ton")) return quantity * 1e3;
 		return quantity;
 	};
+	const filteredClients = (0, import_react.useMemo)(() => {
+		if (!clientSearchTerm) return allClients;
+		return allClients.filter((c$1) => c$1.toLowerCase().includes(clientSearchTerm.toLowerCase()));
+	}, [allClients, clientSearchTerm]);
 	const { chartData, chartConfig: chartConfig$1, keys: keys$6, averageRevenue, maxRevenue, maxDate, totalForecast, calculatedForecastTotal } = (0, import_react.useMemo)(() => {
 		const thirtyDaysAgo = subDays(/* @__PURE__ */ new Date(), 30);
 		const recentRawMaterials = allRawMaterials.filter((r$2) => new Date(r$2.date) >= thirtyDaysAgo);
@@ -68304,6 +68317,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		data.forEach((s$3) => {
 			if (!s$3.date) return;
 			if (!currentFilter.includes(s$3.product)) return;
+			if (currentClientFilter.length > 0 && !currentClientFilter.includes(s$3.client)) return;
 			let dateKey;
 			let displayDate;
 			let fullDate;
@@ -68400,7 +68414,8 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 			}
 		}
 		const processedData = Array.from(dateMap.values()).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
-		const avg = processedData.length > 0 ? globalTotal / processedData.length : 0;
+		const revenueDays = processedData.filter((d) => d.totalRevenue > 0);
+		const avg = revenueDays.length > 0 ? globalTotal / revenueDays.length : globalTotal;
 		let max$6 = 0;
 		let mDate = "";
 		processedData.forEach((d) => {
@@ -68448,7 +68463,8 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		allRawMaterials,
 		groupBy,
 		timeScale,
-		currentFilter
+		currentFilter,
+		currentClientFilter
 	]);
 	const formatCurrency = (value) => new Intl.NumberFormat("pt-BR", {
 		style: "currency",
@@ -68616,36 +68632,50 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 											className: "hidden xs:inline text-xs",
 											children: "Clientes"
 										}),
-										clientFilter.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
+										currentClientFilter.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
 											variant: "secondary",
 											className: "h-5 px-1 text-[10px]",
-											children: clientFilter.length
+											children: currentClientFilter.length
 										})
 									]
 								})
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
 								align: "end",
-								className: "w-[200px]",
+								className: "w-[240px]",
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuLabel, { children: "Filtrar Clientes" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "px-2 py-2",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "relative",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, { className: "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+												placeholder: "Buscar cliente...",
+												value: clientSearchTerm,
+												onChange: (e) => setClientSearchTerm(e.target.value),
+												className: "pl-8 h-9",
+												onKeyDown: (e) => e.stopPropagation()
+											})]
+										})
+									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ScrollArea, {
 										className: "h-[200px]",
-										children: allClients.length > 0 ? allClients.map((client) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
-											checked: clientFilter.includes(client),
+										children: filteredClients.length > 0 ? filteredClients.map((client) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
+											checked: currentClientFilter.includes(client),
 											onCheckedChange: () => handleClientFilterChange(client),
+											onSelect: (e) => e.preventDefault(),
 											children: client
 										}, client)) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 											className: "p-2 text-xs text-muted-foreground text-center",
-											children: "Nenhum cliente disponível"
+											children: "Nenhum cliente encontrado"
 										})
 									}),
-									clientFilter.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									(currentClientFilter.length > 0 || clientSearchTerm) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 										variant: "ghost",
 										size: "sm",
 										className: "w-full text-xs h-8",
-										onClick: () => onClientFilterChange?.([]),
-										children: "Limpar Filtro"
+										onClick: clearClientFilters,
+										children: currentClientFilter.length > 0 ? "Limpar Filtros" : "Limpar Busca"
 									})] })
 								]
 							})] }),
@@ -68787,7 +68817,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 									"Baseado em MP + Rendimentos (Filtro:",
 									" ",
 									currentFilter.join(", ") || "Nenhum",
-									clientFilter.length > 0 ? ` | Clientes: ${clientFilter.length}` : "",
+									currentClientFilter.length > 0 ? ` | Clientes: ${currentClientFilter.length}` : "",
 									")"
 								]
 							})
@@ -68808,7 +68838,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 				className: "pt-2 flex-1 min-h-0",
 				children: chartData.length > 0 || totalForecast > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md",
-					children: "Selecione ao menos um material para visualizar os dados."
+					children: currentClientFilter.length > 0 ? "Nenhum dado encontrado para os clientes selecionados neste período." : "Selecione ao menos um material para visualizar os dados."
 				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
@@ -70736,7 +70766,12 @@ function Dashboard() {
 			end: dateRange.to
 		});
 	};
-	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity } = (0, import_react.useMemo)(() => {
+	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, uniqueClients } = (0, import_react.useMemo)(() => {
+		const clients = /* @__PURE__ */ new Set();
+		shipping.forEach((s$3) => {
+			if (s$3.client) clients.add(s$3.client);
+		});
+		const uniqueClientsList = Array.from(clients).sort();
 		return {
 			filteredProduction: production.filter((p) => filterByDate(p.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
 			filteredRawMaterials: rawMaterials.filter((r$2) => filterByDate(r$2.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
@@ -70744,7 +70779,8 @@ function Dashboard() {
 			filteredCookingTime: cookingTimeRecords.filter((c$1) => filterByDate(c$1.date)),
 			filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
 			filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
-			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date))
+			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date)),
+			uniqueClients: uniqueClientsList
 		};
 	}, [
 		production,
@@ -70888,7 +70924,8 @@ function Dashboard() {
 								allProductionData: production,
 								allRawMaterials: rawMaterials,
 								isMobile,
-								timeScale: "daily"
+								timeScale: "daily",
+								allClients: uniqueClients
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
 								data: filteredProduction,
 								isMobile,
@@ -88652,4 +88689,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DOIK7SX7.js.map
+//# sourceMappingURL=index-BgcS-CWj.js.map
