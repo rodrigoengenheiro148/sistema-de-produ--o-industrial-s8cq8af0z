@@ -36099,16 +36099,24 @@ const DataProvider = ({ children }) => {
 			return;
 		}
 		try {
+			const fromDateStr = dateRange.from ? format(startOfDay(subDays(dateRange.from, 1)), "yyyy-MM-dd") : void 0;
+			const toDateStr = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : void 0;
+			const applyFilters = (query) => {
+				let q = query.eq("factory_id", currentFactoryId);
+				if (fromDateStr) q = q.gte("date", fromDateStr);
+				if (toDateStr) q = q.lte("date", toDateStr);
+				return q.order("date", { ascending: false });
+			};
 			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
-				supabase.from("raw_materials").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("production").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("shipping").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("acidity_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("quality_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("cooking_time_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("downtime_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("steam_control_records").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false }),
-				supabase.from("daily_production_forecasts").select("*").eq("factory_id", currentFactoryId).order("date", { ascending: false })
+				applyFilters(supabase.from("raw_materials").select("*")),
+				applyFilters(supabase.from("production").select("*")),
+				applyFilters(supabase.from("shipping").select("*")),
+				applyFilters(supabase.from("acidity_records").select("*")),
+				applyFilters(supabase.from("quality_records").select("*")),
+				applyFilters(supabase.from("cooking_time_records").select("*")),
+				applyFilters(supabase.from("downtime_records").select("*")),
+				applyFilters(supabase.from("steam_control_records").select("*")),
+				applyFilters(supabase.from("daily_production_forecasts").select("*"))
 			]);
 			if (raw) setRawMaterials(mapData(raw));
 			if (prod) setProduction(mapData(prod));
@@ -36132,7 +36140,11 @@ const DataProvider = ({ children }) => {
 			console.error("Error fetching operational data:", error);
 			setConnectionStatus("error");
 		}
-	}, [user?.id, currentFactoryId]);
+	}, [
+		user?.id,
+		currentFactoryId,
+		dateRange
+	]);
 	(0, import_react.useEffect)(() => {
 		if (!user) {
 			setFactories([]);
@@ -68391,13 +68403,15 @@ function Dashboard() {
 	const [dateInput, setDateInput] = (0, import_react.useState)("");
 	const [inputError, setInputError] = (0, import_react.useState)(false);
 	(0, import_react.useEffect)(() => {
-		if (dateRange?.from) setDateInput(format(dateRange.from, "dd/MM/yyyy"));
-	}, [dateRange.from]);
+		if (dateRange?.from && dateRange?.to) if (isSameDay(dateRange.from, dateRange.to)) setDateInput(format(dateRange.from, "dd/MM/yyyy"));
+		else setDateInput(`${format(dateRange.from, "dd/MM/yyyy")} até ${format(dateRange.to, "dd/MM/yyyy")}`);
+	}, [dateRange]);
 	const handleDateChange = (e) => {
 		const val = e.target.value;
-		if (/[^0-9/]/.test(val)) return;
 		setDateInput(val);
-		if (/^(\d{2})\/(\d{2})\/(\d{4})$/.test(val)) {
+		const singleDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+		const rangeDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})\s+(até|ate|ATE|ATÉ)\s+(\d{2})\/(\d{2})\/(\d{4})$/i;
+		if (singleDateRegex.test(val)) {
 			const parsedDate = parse(val, "dd/MM/yyyy", /* @__PURE__ */ new Date());
 			if (isValid(parsedDate) && format(parsedDate, "dd/MM/yyyy") === val) {
 				setInputError(false);
@@ -68406,8 +68420,29 @@ function Dashboard() {
 					to: endOfDay(parsedDate)
 				});
 			} else setInputError(true);
-		} else if (val.length === 10) setInputError(true);
-		else setInputError(false);
+		} else if (rangeDateRegex.test(val)) {
+			const separatorMatch = val.match(/\s+(até|ate|ATE|ATÉ)\s+/i);
+			if (separatorMatch) {
+				const parts = val.split(separatorMatch[0]);
+				if (parts.length === 2) {
+					const startStr = parts[0].trim();
+					const endStr = parts[1].trim();
+					const startDate = parse(startStr, "dd/MM/yyyy", /* @__PURE__ */ new Date());
+					const endDate = parse(endStr, "dd/MM/yyyy", /* @__PURE__ */ new Date());
+					if (isValid(startDate) && isValid(endDate) && format(startDate, "dd/MM/yyyy") === startStr && format(endDate, "dd/MM/yyyy") === endStr && startDate <= endDate) {
+						setInputError(false);
+						setDateRange({
+							from: startOfDay(startDate),
+							to: endOfDay(endDate)
+						});
+					} else setInputError(true);
+				} else setInputError(true);
+			} else setInputError(true);
+		} else {
+			const isPotentiallyRange = val.length > 10;
+			if (val.length <= 10 && val.length === 10) setInputError(true);
+			if (isPotentiallyRange && val.length > 25) setInputError(true);
+		}
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		id: "dashboard-content",
@@ -68423,14 +68458,14 @@ function Dashboard() {
 			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "relative w-full sm:w-[240px]",
+					className: "relative w-full sm:w-[280px]",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, { className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 						type: "text",
-						placeholder: "DD/MM/AAAA",
+						placeholder: "DD/MM/AAAA até DD/MM/AAAA",
 						value: dateInput,
 						onChange: handleDateChange,
-						className: cn("pl-9 border-primary/20 focus-visible:ring-primary", inputError && "border-red-500 focus-visible:ring-red-500"),
-						maxLength: 10
+						className: cn("pl-9 border-primary/20 focus-visible:ring-primary font-mono text-sm", inputError && "border-red-500 focus-visible:ring-red-500"),
+						maxLength: 25
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex gap-2 w-full sm:w-auto",
@@ -88823,4 +88858,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BAJddch6.js.map
+//# sourceMappingURL=index-BEt46tUZ.js.map

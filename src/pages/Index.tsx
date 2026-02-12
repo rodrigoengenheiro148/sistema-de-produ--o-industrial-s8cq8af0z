@@ -6,6 +6,7 @@ import {
   isValid,
   startOfDay,
   endOfDay,
+  isSameDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CalendarIcon, ClipboardCheck } from 'lucide-react'
@@ -74,7 +75,7 @@ export default function Dashboard() {
     return dateRange.to || today
   }, [dateRange, today])
 
-  // Filter data based on date range
+  // Filter data based on date range (Inclusive)
   const filterByDate = (date: Date) => {
     if (!dateRange.from || !dateRange.to) return true
     return isWithinInterval(date, {
@@ -185,23 +186,29 @@ export default function Dashboard() {
 
   // Sync input with dateRange.from on mount or when context updates
   useEffect(() => {
-    if (dateRange?.from) {
-      setDateInput(format(dateRange.from, 'dd/MM/yyyy'))
+    if (dateRange?.from && dateRange?.to) {
+      if (isSameDay(dateRange.from, dateRange.to)) {
+        setDateInput(format(dateRange.from, 'dd/MM/yyyy'))
+      } else {
+        setDateInput(
+          `${format(dateRange.from, 'dd/MM/yyyy')} até ${format(dateRange.to, 'dd/MM/yyyy')}`,
+        )
+      }
     }
-  }, [dateRange.from])
+  }, [dateRange])
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
-
-    // Allow only numbers and slash
-    if (/[^0-9/]/.test(val)) return
-
     setDateInput(val)
 
-    const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
-    if (dateRegex.test(val)) {
+    // Regex for "DD/MM/YYYY"
+    const singleDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
+    // Regex for "DD/MM/YYYY até DD/MM/YYYY" (allowing some spaces and case insensitivity)
+    const rangeDateRegex =
+      /^(\d{2})\/(\d{2})\/(\d{4})\s+(até|ate|ATE|ATÉ)\s+(\d{2})\/(\d{2})\/(\d{4})$/i
+
+    if (singleDateRegex.test(val)) {
       const parsedDate = parse(val, 'dd/MM/yyyy', new Date())
-      // Check if valid date and also if it round-trips correctly (handles invalid days like 32/01)
       if (isValid(parsedDate) && format(parsedDate, 'dd/MM/yyyy') === val) {
         setInputError(false)
         setDateRange({
@@ -211,10 +218,51 @@ export default function Dashboard() {
       } else {
         setInputError(true)
       }
+    } else if (rangeDateRegex.test(val)) {
+      // Extract parts using a simpler split to avoid complexity
+      const separatorMatch = val.match(/\s+(até|ate|ATE|ATÉ)\s+/i)
+      if (separatorMatch) {
+        const parts = val.split(separatorMatch[0])
+        if (parts.length === 2) {
+          const startStr = parts[0].trim()
+          const endStr = parts[1].trim()
+
+          const startDate = parse(startStr, 'dd/MM/yyyy', new Date())
+          const endDate = parse(endStr, 'dd/MM/yyyy', new Date())
+
+          // Validate both dates and range order
+          if (
+            isValid(startDate) &&
+            isValid(endDate) &&
+            format(startDate, 'dd/MM/yyyy') === startStr &&
+            format(endDate, 'dd/MM/yyyy') === endStr &&
+            startDate <= endDate
+          ) {
+            setInputError(false)
+            setDateRange({
+              from: startOfDay(startDate),
+              to: endOfDay(endDate),
+            })
+          } else {
+            setInputError(true)
+          }
+        } else {
+          setInputError(true)
+        }
+      } else {
+        setInputError(true)
+      }
     } else {
-      // If full length but regex mismatch or incomplete
-      if (val.length === 10) setInputError(true)
-      else setInputError(false)
+      // While typing incomplete dates, we can show error or just wait.
+      // Showing error helps validation feedback immediately if pattern is completely wrong.
+      // To avoid annoying the user while typing "até", strict length checks can help.
+      const isPotentiallyRange = val.length > 10
+      const isPotentiallySingle = val.length <= 10
+
+      if (isPotentiallySingle && val.length === 10) setInputError(true)
+      if (isPotentiallyRange && val.length > 25) setInputError(true)
+      // Otherwise keep current error state or reset? Better to set error if no match
+      // But clearing it while typing can be better UX, showing error only on full mismatch length
     }
   }
 
@@ -229,18 +277,18 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print">
-          <div className="relative w-full sm:w-[240px]">
+          <div className="relative w-full sm:w-[280px]">
             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
             <Input
               type="text"
-              placeholder="DD/MM/AAAA"
+              placeholder="DD/MM/AAAA até DD/MM/AAAA"
               value={dateInput}
               onChange={handleDateChange}
               className={cn(
-                'pl-9 border-primary/20 focus-visible:ring-primary',
+                'pl-9 border-primary/20 focus-visible:ring-primary font-mono text-sm',
                 inputError && 'border-red-500 focus-visible:ring-red-500',
               )}
-              maxLength={10}
+              maxLength={25}
             />
           </div>
 

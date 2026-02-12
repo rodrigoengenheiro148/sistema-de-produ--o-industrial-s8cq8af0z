@@ -26,7 +26,7 @@ import {
   DailyProductionForecast,
   SteamControlEntry,
 } from '@/lib/types'
-import { startOfMonth, endOfMonth } from 'date-fns'
+import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -200,7 +200,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (integration) {
-        // Cast to any to access new columns if they are not yet in the types
         const configData = integration as any
         setProtheusConfig({
           id: configData.id,
@@ -277,6 +276,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
+      // Prepare date filters
+      // We buffer 'from' date by 1 day to ensure D-1 calculations (for trends/comparisons) have data
+      // We buffer 'from' date by 30 days to ensure moving averages (if any) have some data, but strict user story asks for filtering.
+      // Optimization: Fetch from subDays(from, 1) to to.
+      const fromDateStr = dateRange.from
+        ? format(startOfDay(subDays(dateRange.from, 1)), 'yyyy-MM-dd')
+        : undefined
+      const toDateStr = dateRange.to
+        ? format(dateRange.to, 'yyyy-MM-dd')
+        : undefined
+
+      const applyFilters = (query: any) => {
+        let q = query.eq('factory_id', currentFactoryId)
+        if (fromDateStr) q = q.gte('date', fromDateStr)
+        if (toDateStr) q = q.lte('date', toDateStr)
+        return q.order('date', { ascending: false })
+      }
+
       const [
         { data: raw },
         { data: prod },
@@ -288,51 +305,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         { data: steam },
         { data: forecasts },
       ] = await Promise.all([
-        supabase
-          .from('raw_materials')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('production')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('shipping')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('acidity_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('quality_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('cooking_time_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('downtime_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('steam_control_records')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
-        supabase
-          .from('daily_production_forecasts')
-          .select('*')
-          .eq('factory_id', currentFactoryId)
-          .order('date', { ascending: false }),
+        applyFilters(supabase.from('raw_materials').select('*')),
+        applyFilters(supabase.from('production').select('*')),
+        applyFilters(supabase.from('shipping').select('*')),
+        applyFilters(supabase.from('acidity_records').select('*')),
+        applyFilters(supabase.from('quality_records').select('*')),
+        applyFilters(supabase.from('cooking_time_records').select('*')),
+        applyFilters(supabase.from('downtime_records').select('*')),
+        applyFilters(supabase.from('steam_control_records').select('*')),
+        applyFilters(supabase.from('daily_production_forecasts').select('*')),
       ])
 
       if (raw) setRawMaterials(mapData(raw))
@@ -362,7 +343,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       console.error('Error fetching operational data:', error)
       setConnectionStatus('error')
     }
-  }, [user?.id, currentFactoryId])
+  }, [user?.id, currentFactoryId, dateRange])
 
   useEffect(() => {
     if (!user) {
