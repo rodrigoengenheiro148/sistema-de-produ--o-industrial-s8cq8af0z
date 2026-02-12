@@ -58,7 +58,8 @@ export function SteamControlTable() {
       // Use yyyy-MM-dd for consistent daily grouping regardless of time
       const dateKey = format(p.date, 'yyyy-MM-dd')
       const current = map.get(dateKey) || 0
-      map.set(dateKey, current + p.mpUsed)
+      // Ensure p.mpUsed is treated as a number
+      map.set(dateKey, current + Number(p.mpUsed || 0))
     })
     return map
   }, [production])

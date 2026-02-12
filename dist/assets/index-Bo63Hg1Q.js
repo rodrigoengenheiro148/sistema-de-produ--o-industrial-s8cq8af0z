@@ -35955,27 +35955,27 @@ var mapData = (data) => {
 		...item,
 		date: parseAsLocalNoon(item.date),
 		createdAt: item.created_at ? new Date(item.created_at) : void 0,
-		mpUsed: item.mp_used,
-		seboProduced: item.sebo_produced,
-		fcoProduced: item.fco_produced,
-		farinhetaProduced: item.farinheta_produced,
-		bloodMealProduced: item.blood_meal_produced || 0,
-		bloodMealBags: item.blood_meal_bags || 0,
-		unitPrice: item.unit_price,
+		mpUsed: Number(item.mp_used || 0),
+		seboProduced: Number(item.sebo_produced || 0),
+		fcoProduced: Number(item.fco_produced || 0),
+		farinhetaProduced: Number(item.farinheta_produced || 0),
+		bloodMealProduced: Number(item.blood_meal_produced || 0),
+		bloodMealBags: Number(item.blood_meal_bags || 0),
+		unitPrice: Number(item.unit_price || 0),
 		docRef: item.doc_ref,
 		performedTimes: item.performed_times,
 		factoryId: item.factory_id,
 		startTime: item.start_time ? typeof item.start_time === "string" && item.start_time.includes("T") ? new Date(item.start_time) : item.start_time : void 0,
 		endTime: item.end_time ? typeof item.end_time === "string" && item.end_time.includes("T") ? new Date(item.end_time) : item.end_time : void 0,
-		durationHours: item.duration_hours,
+		durationHours: Number(item.duration_hours || 0),
 		totalHours: item.total_hours ? Number(item.total_hours) : void 0,
-		soyWaste: item.soy_waste,
-		firewood: item.firewood,
-		riceHusk: item.rice_husk,
-		woodChips: item.wood_chips,
-		meterStart: item.meter_start,
-		meterEnd: item.meter_end,
-		steamConsumption: item.steam_consumption
+		soyWaste: Number(item.soy_waste || 0),
+		firewood: Number(item.firewood || 0),
+		riceHusk: Number(item.rice_husk || 0),
+		woodChips: Number(item.wood_chips || 0),
+		meterStart: Number(item.meter_start || 0),
+		meterEnd: Number(item.meter_end || 0),
+		steamConsumption: Number(item.steam_consumption || 0)
 	}));
 };
 const useData = () => {
@@ -36130,7 +36130,7 @@ const DataProvider = ({ children }) => {
 				id: f.id,
 				factoryId: f.factory_id,
 				date: parseAsLocalNoon(f.date),
-				mpForecast: f.mp_forecast,
+				mpForecast: Number(f.mp_forecast || 0),
 				materialType: f.material_type,
 				userId: f.user_id,
 				createdAt: f.created_at ? new Date(f.created_at) : void 0
@@ -86795,7 +86795,7 @@ function SteamControlTable() {
 		production.forEach((p) => {
 			const dateKey = format(p.date, "yyyy-MM-dd");
 			const current = map$4.get(dateKey) || 0;
-			map$4.set(dateKey, current + p.mpUsed);
+			map$4.set(dateKey, current + Number(p.mpUsed || 0));
 		});
 		return map$4;
 	}, [production]);
@@ -88902,4 +88902,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BQTtyK12.js.map
+//# sourceMappingURL=index-Bo63Hg1Q.js.map
