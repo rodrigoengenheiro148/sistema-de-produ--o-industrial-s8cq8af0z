@@ -125,7 +125,7 @@ export function SteamControlTable() {
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
               <TableHead className="text-right min-w-[100px]">
-                MP Processada
+                MP Proc. (kg)
               </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja
@@ -181,7 +181,7 @@ export function SteamControlTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
-                  <TableCell className="text-right font-medium text-blue-700 dark:text-blue-400">
+                  <TableCell className="text-right font-mono font-medium text-blue-700 dark:text-blue-400">
                     {formatNumber(row.entradaMp)}
                   </TableCell>
                   <TableCell className="text-right">

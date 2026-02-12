@@ -86841,7 +86841,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
-							children: "MP Processada"
+							children: "MP Proc. (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -86909,7 +86909,7 @@ function SteamControlTable() {
 							children: format(row.date, "dd/MM/yyyy")
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right font-medium text-blue-700 dark:text-blue-400",
+							className: "text-right font-mono font-medium text-blue-700 dark:text-blue-400",
 							children: formatNumber(row.entradaMp)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
@@ -88868,4 +88868,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CebUcPyN.js.map
+//# sourceMappingURL=index-Vy5GX_a9.js.map
