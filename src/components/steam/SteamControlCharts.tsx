@@ -109,7 +109,7 @@ export function SteamControlCharts() {
       color: 'hsl(var(--chart-1))',
     },
     entradaMp: {
-      label: 'Entrada MP (t)',
+      label: 'MP Processada (t)',
       color: 'hsl(var(--chart-2))',
     },
   } satisfies ChartConfig
@@ -195,7 +195,7 @@ export function SteamControlCharts() {
                   dataKey="entradaMp"
                   fill="var(--color-entradaMp)"
                   radius={[4, 4, 0, 0]}
-                  name="MP"
+                  name="MP Processada"
                 >
                   <LabelList
                     dataKey="entradaMp"

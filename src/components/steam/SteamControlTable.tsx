@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { MoreVertical, Pencil, Trash2, Plus } from 'lucide-react'
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
 import { useData } from '@/context/DataContext'
 import { SteamControlEntry } from '@/lib/types'
@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { formatNumber } from '@/lib/utils'
 
 export function SteamControlTable() {
   const { steamControlRecords, production, deleteSteamControlRecord } =
@@ -100,12 +101,6 @@ export function SteamControlTable() {
     })
   }, [steamControlRecords, production])
 
-  const formatNumber = (val: number) =>
-    val.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-
   const handleDelete = () => {
     if (deleteId) {
       deleteSteamControlRecord(deleteId)
@@ -130,7 +125,7 @@ export function SteamControlTable() {
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
               <TableHead className="text-right min-w-[100px]">
-                Entrada MP
+                MP Processada
               </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja
@@ -186,7 +181,7 @@ export function SteamControlTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right font-medium text-blue-700 dark:text-blue-400">
                     {formatNumber(row.entradaMp)}
                   </TableCell>
                   <TableCell className="text-right">

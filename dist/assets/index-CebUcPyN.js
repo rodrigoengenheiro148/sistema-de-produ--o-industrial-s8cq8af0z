@@ -86813,10 +86813,6 @@ function SteamControlTable() {
 			};
 		});
 	}, [steamControlRecords, production]);
-	const formatNumber$1 = (val) => val.toLocaleString("pt-BR", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	});
 	const handleDelete = () => {
 		if (deleteId) {
 			deleteSteamControlRecord(deleteId);
@@ -86845,7 +86841,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
-							children: "Entrada MP"
+							children: "MP Processada"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -86913,60 +86909,60 @@ function SteamControlTable() {
 							children: format(row.date, "dd/MM/yyyy")
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right",
-							children: formatNumber$1(row.entradaMp)
+							className: "text-right font-medium text-blue-700 dark:text-blue-400",
+							children: formatNumber(row.entradaMp)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber$1(row.soyWaste)
+							children: formatNumber(row.soyWaste)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber$1(row.firewood)
+							children: formatNumber(row.firewood)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber$1(row.riceHusk)
+							children: formatNumber(row.riceHusk)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: formatNumber$1(row.woodChips)
+							children: formatNumber(row.woodChips)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold",
-							children: formatNumber$1(row.totalFuel)
+							children: formatNumber(row.totalFuel)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right text-muted-foreground",
-							children: formatNumber$1(row.meterStart)
+							children: formatNumber(row.meterStart)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right text-muted-foreground",
-							children: formatNumber$1(row.meterEnd)
+							children: formatNumber(row.meterEnd)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold",
-							children: formatNumber$1(row.consumoVap)
+							children: formatNumber(row.consumoVap)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber$1(row.cavacoVsVapor) : "-"
+							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.consumoVap > 0 ? formatNumber$1(row.mpVsVapor) : "-"
+							children: row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber$1(row.mpVsCavaco) : "-"
+							children: row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-green-50/30 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber$1(row.m3VsMp) : "-"
+							children: row.entradaMp > 0 ? formatNumber(row.m3VsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-green-50/30 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber$1(row.vaporVsMp) : "-"
+							children: row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 							asChild: true,
@@ -87101,7 +87097,7 @@ function SteamControlCharts() {
 							color: "hsl(var(--chart-1))"
 						},
 						entradaMp: {
-							label: "Entrada MP (t)",
+							label: "MP Processada (t)",
 							color: "hsl(var(--chart-2))"
 						}
 					},
@@ -87162,7 +87158,7 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "MP",
+								name: "MP Processada",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 									dataKey: "entradaMp",
 									position: "top",
@@ -88872,4 +88868,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D1zW4xV0.js.map
+//# sourceMappingURL=index-CebUcPyN.js.map
