@@ -74242,6 +74242,130 @@ const MEASUREMENT_UNITS = [
 		label: "Bag (1400kg)"
 	}
 ];
+var PcpContext = (0, import_react.createContext)(void 0);
+const usePcp = () => {
+	const context = (0, import_react.useContext)(PcpContext);
+	if (context === void 0) throw new Error("usePcp must be used within a PcpProvider");
+	return context;
+};
+const PcpProvider = ({ children }) => {
+	const [isPcpAuthorized, setIsPcpAuthorized] = (0, import_react.useState)(false);
+	const authorizePcp = (password) => {
+		if (password === "PCP") {
+			setIsPcpAuthorized(true);
+			return true;
+		}
+		return false;
+	};
+	const checkPcpAuth = (onAuthorized, onUnauthorized) => {
+		if (isPcpAuthorized) onAuthorized();
+		else onUnauthorized();
+	};
+	(0, import_react.useEffect)(() => {
+		let timer;
+		const resetTimer = () => {
+			if (isPcpAuthorized) {
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					setIsPcpAuthorized(false);
+				}, 120 * 1e3);
+			}
+		};
+		if (isPcpAuthorized) {
+			resetTimer();
+			const events = [
+				"mousemove",
+				"mousedown",
+				"keydown",
+				"scroll",
+				"touchstart"
+			];
+			events.forEach((event) => window.addEventListener(event, resetTimer));
+			return () => {
+				clearTimeout(timer);
+				events.forEach((event) => window.removeEventListener(event, resetTimer));
+			};
+		}
+	}, [isPcpAuthorized]);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpContext.Provider, {
+		value: {
+			isPcpAuthorized,
+			authorizePcp,
+			checkPcpAuth
+		},
+		children
+	});
+};
+function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP", description = "Esta ação requer autorização de Planejamento e Controle de Produção. Informe a senha PCP." }) {
+	const { authorizePcp } = usePcp();
+	const [password, setPassword] = (0, import_react.useState)("");
+	const [error, setError] = (0, import_react.useState)(false);
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setError(false);
+		setLoading(true);
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		if (authorizePcp(password)) {
+			setPassword("");
+			setLoading(false);
+			onOpenChange(false);
+			onSuccess();
+		} else {
+			setError(true);
+			setLoading(false);
+		}
+	};
+	const handleOpenChange = (open) => {
+		if (!open) {
+			setPassword("");
+			setError(false);
+		}
+		onOpenChange(open);
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+		open: isOpen,
+		onOpenChange: handleOpenChange,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+			className: "sm:max-w-md",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogTitle, {
+				className: "flex items-center gap-2 text-primary",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, { className: "h-5 w-5" }), title]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: description })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: handleSubmit,
+				className: "space-y-4 py-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+						type: "password",
+						placeholder: "Senha PCP",
+						value: password,
+						onChange: (e) => {
+							setPassword(e.target.value);
+							if (error) setError(false);
+						},
+						className: cn(error && "border-destructive focus-visible:ring-destructive", "text-center tracking-widest font-bold"),
+						autoFocus: true,
+						disabled: loading
+					}), error && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm font-medium text-destructive text-center",
+						children: "Senha incorreta. Acesso negado."
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "button",
+					variant: "outline",
+					onClick: () => handleOpenChange(false),
+					disabled: loading,
+					children: "Cancelar"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					disabled: loading || !password,
+					children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }), " Verificando"] }) : "Confirmar"
+				})] })]
+			})]
+		})
+	});
+}
 var formSchema$9 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
@@ -74253,6 +74377,9 @@ var formSchema$9 = object({
 function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
 		resolver: a(formSchema$9),
 		defaultValues: {
@@ -74283,35 +74410,41 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 		});
 	}, [initialData, form]);
 	function onSubmit(values) {
-		const quantityValue = Number(values.quantity);
-		const entryData = {
-			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-			supplier: values.supplier,
-			type: values.type,
-			quantity: quantityValue,
-			unit: values.unit,
-			notes: values.notes
+		const submitAction = () => {
+			const quantityValue = Number(values.quantity);
+			const entryData = {
+				date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
+				supplier: values.supplier,
+				type: values.type,
+				quantity: quantityValue,
+				unit: values.unit,
+				notes: values.notes
+			};
+			if (initialData) {
+				updateRawMaterial({
+					...entryData,
+					id: initialData.id
+				});
+				toast$2({
+					title: "Sucesso",
+					description: "Entrada atualizada com sucesso!"
+				});
+			} else {
+				addRawMaterial(entryData);
+				toast$2({
+					title: "Sucesso",
+					description: "Entrada registrada com sucesso!"
+				});
+			}
+			form.reset();
+			onSuccess();
 		};
-		if (initialData) {
-			updateRawMaterial({
-				...entryData,
-				id: initialData.id
-			});
-			toast$2({
-				title: "Sucesso",
-				description: "Entrada atualizada com sucesso!"
-			});
-		} else {
-			addRawMaterial(entryData);
-			toast$2({
-				title: "Sucesso",
-				description: "Entrada registrada com sucesso!"
-			});
-		}
-		form.reset();
-		onSuccess();
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
 		...form,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			onSubmit: form.handleSubmit(onSubmit),
@@ -74414,7 +74547,14 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 				})] })
 			]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
 }
 var ROOT_NAME = "AlertDialog";
 var [createAlertDialogContext, createAlertDialogScope] = createContextScope(ROOT_NAME, [createDialogScope]);
@@ -77465,130 +77605,6 @@ function DatePickerWithRange({ className, date: date$4, setDate }) {
 		})] })
 	});
 }
-var PcpContext = (0, import_react.createContext)(void 0);
-const usePcp = () => {
-	const context = (0, import_react.useContext)(PcpContext);
-	if (context === void 0) throw new Error("usePcp must be used within a PcpProvider");
-	return context;
-};
-const PcpProvider = ({ children }) => {
-	const [isPcpAuthorized, setIsPcpAuthorized] = (0, import_react.useState)(false);
-	const authorizePcp = (password) => {
-		if (password === "PCP") {
-			setIsPcpAuthorized(true);
-			return true;
-		}
-		return false;
-	};
-	const checkPcpAuth = (onAuthorized, onUnauthorized) => {
-		if (isPcpAuthorized) onAuthorized();
-		else onUnauthorized();
-	};
-	(0, import_react.useEffect)(() => {
-		let timer;
-		const resetTimer = () => {
-			if (isPcpAuthorized) {
-				clearTimeout(timer);
-				timer = setTimeout(() => {
-					setIsPcpAuthorized(false);
-				}, 120 * 1e3);
-			}
-		};
-		if (isPcpAuthorized) {
-			resetTimer();
-			const events = [
-				"mousemove",
-				"mousedown",
-				"keydown",
-				"scroll",
-				"touchstart"
-			];
-			events.forEach((event) => window.addEventListener(event, resetTimer));
-			return () => {
-				clearTimeout(timer);
-				events.forEach((event) => window.removeEventListener(event, resetTimer));
-			};
-		}
-	}, [isPcpAuthorized]);
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpContext.Provider, {
-		value: {
-			isPcpAuthorized,
-			authorizePcp,
-			checkPcpAuth
-		},
-		children
-	});
-};
-function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP", description = "Esta ação requer autorização de Planejamento e Controle de Produção. Informe a senha PCP." }) {
-	const { authorizePcp } = usePcp();
-	const [password, setPassword] = (0, import_react.useState)("");
-	const [error, setError] = (0, import_react.useState)(false);
-	const [loading, setLoading] = (0, import_react.useState)(false);
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setError(false);
-		setLoading(true);
-		await new Promise((resolve) => setTimeout(resolve, 300));
-		if (authorizePcp(password)) {
-			setPassword("");
-			setLoading(false);
-			onOpenChange(false);
-			onSuccess();
-		} else {
-			setError(true);
-			setLoading(false);
-		}
-	};
-	const handleOpenChange = (open) => {
-		if (!open) {
-			setPassword("");
-			setError(false);
-		}
-		onOpenChange(open);
-	};
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
-		open: isOpen,
-		onOpenChange: handleOpenChange,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-			className: "sm:max-w-md",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogTitle, {
-				className: "flex items-center gap-2 text-primary",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, { className: "h-5 w-5" }), title]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: description })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-				onSubmit: handleSubmit,
-				className: "space-y-4 py-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "space-y-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-						type: "password",
-						placeholder: "Senha PCP",
-						value: password,
-						onChange: (e) => {
-							setPassword(e.target.value);
-							if (error) setError(false);
-						},
-						className: cn(error && "border-destructive focus-visible:ring-destructive", "text-center tracking-widest font-bold"),
-						autoFocus: true,
-						disabled: loading
-					}), error && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "text-sm font-medium text-destructive text-center",
-						children: "Senha incorreta. Acesso negado."
-					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					type: "button",
-					variant: "outline",
-					onClick: () => handleOpenChange(false),
-					disabled: loading,
-					children: "Cancelar"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					type: "submit",
-					disabled: loading || !password,
-					children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }), " Verificando"] }) : "Confirmar"
-				})] })]
-			})]
-		})
-	});
-}
 function RawMaterial() {
 	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production } = useData();
 	const { toast: toast$2 } = useToast();
@@ -78061,6 +78077,9 @@ var formSchema$8 = object({
 function ProductionForm({ initialData, onSuccess }) {
 	const { addProduction, updateProduction } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
 		resolver: a(formSchema$8),
 		defaultValues: {
@@ -78092,39 +78111,45 @@ function ProductionForm({ initialData, onSuccess }) {
 		form
 	]);
 	function onSubmit(values) {
-		const entryData = {
-			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-			shift: values.shift,
-			mpUsed: values.mpUsed,
-			seboProduced: values.sebo,
-			fcoProduced: values.fco,
-			farinhetaProduced: values.farinheta,
-			losses: values.losses,
-			bloodMealProduced: 0,
-			bloodMealBags: 0
+		const submitAction = () => {
+			const entryData = {
+				date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
+				shift: values.shift,
+				mpUsed: values.mpUsed,
+				seboProduced: values.sebo,
+				fcoProduced: values.fco,
+				farinhetaProduced: values.farinheta,
+				losses: values.losses,
+				bloodMealProduced: 0,
+				bloodMealBags: 0
+			};
+			if (initialData) {
+				updateProduction({
+					...entryData,
+					bloodMealProduced: initialData.bloodMealProduced || 0,
+					bloodMealBags: initialData.bloodMealBags || 0,
+					id: initialData.id
+				});
+				toast$2({
+					title: "Sucesso",
+					description: "Produção atualizada com sucesso!"
+				});
+			} else {
+				addProduction(entryData);
+				toast$2({
+					title: "Sucesso",
+					description: "Produção registrada com sucesso!"
+				});
+			}
+			form.reset();
+			onSuccess();
 		};
-		if (initialData) {
-			updateProduction({
-				...entryData,
-				bloodMealProduced: initialData.bloodMealProduced || 0,
-				bloodMealBags: initialData.bloodMealBags || 0,
-				id: initialData.id
-			});
-			toast$2({
-				title: "Sucesso",
-				description: "Produção atualizada com sucesso!"
-			});
-		} else {
-			addProduction(entryData);
-			toast$2({
-				title: "Sucesso",
-				description: "Produção registrada com sucesso!"
-			});
-		}
-		form.reset();
-		onSuccess();
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
 		...form,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			onSubmit: form.handleSubmit(onSubmit),
@@ -78254,7 +78279,14 @@ function ProductionForm({ initialData, onSuccess }) {
 				}) })
 			]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
 }
 function Production() {
 	const { production, deleteProduction, dateRange } = useData();
@@ -78606,6 +78638,9 @@ var formSchema$7 = object({
 function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const { addProduction, updateProduction, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
 		resolver: a(formSchema$7),
 		defaultValues: {
@@ -78625,47 +78660,53 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 		}
 	}, [bloodMealBags, form]);
 	async function onSubmit(values) {
-		const entryData = {
-			date: values.date,
-			shift: values.shift,
-			factoryId: values.factoryId,
-			bloodMealProduced: values.bloodMealProduced,
-			bloodMealBags: values.bloodMealBags,
-			mpUsed: values.mpUsed,
-			seboProduced: 0,
-			fcoProduced: 0,
-			farinhetaProduced: 0,
-			losses: 0
-		};
-		try {
-			if (initialData) {
-				updateProduction({
-					...initialData,
-					...entryData,
-					id: initialData.id
-				});
+		const submitAction = async () => {
+			const entryData = {
+				date: values.date,
+				shift: values.shift,
+				factoryId: values.factoryId,
+				bloodMealProduced: values.bloodMealProduced,
+				bloodMealBags: values.bloodMealBags,
+				mpUsed: values.mpUsed,
+				seboProduced: 0,
+				fcoProduced: 0,
+				farinhetaProduced: 0,
+				losses: 0
+			};
+			try {
+				if (initialData) {
+					updateProduction({
+						...initialData,
+						...entryData,
+						id: initialData.id
+					});
+					toast$2({
+						title: "Registro atualizado",
+						description: "A produção de sangue foi atualizada com sucesso."
+					});
+				} else {
+					addProduction(entryData);
+					toast$2({
+						title: "Registro criado",
+						description: "A produção de sangue foi registrada com sucesso."
+					});
+				}
+				form.reset();
+				onSuccess();
+			} catch (error) {
 				toast$2({
-					title: "Registro atualizado",
-					description: "A produção de sangue foi atualizada com sucesso."
-				});
-			} else {
-				addProduction(entryData);
-				toast$2({
-					title: "Registro criado",
-					description: "A produção de sangue foi registrada com sucesso."
+					title: "Erro",
+					description: "Não foi possível salvar o registro.",
+					variant: "destructive"
 				});
 			}
-			form.reset();
-			onSuccess();
-		} catch (error) {
-			toast$2({
-				title: "Erro",
-				description: "Não foi possível salvar o registro.",
-				variant: "destructive"
-			});
-		}
+		};
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
 		...form,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			onSubmit: form.handleSubmit(onSubmit),
@@ -78809,7 +78850,14 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 				})
 			]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
 }
 function BloodProduction() {
 	const { production, deleteProduction, factories } = useData();
@@ -79835,35 +79883,41 @@ function DailyAcidity() {
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const handleNewRecord = () => {
-		checkPcpAuth(() => {
-			setIsCreateOpen(true);
-		}, () => {
-			setPcpPendingAction(() => () => {
-				setIsCreateOpen(true);
-			});
-			setIsPcpGateOpen(true);
-		});
+		setIsCreateOpen(true);
 	};
 	function handleCreate(data) {
-		addAcidityRecord(data);
-		toast$2({
-			title: "Sucesso",
-			description: "Registro de acidez salvo com sucesso!"
+		const saveAction = () => {
+			addAcidityRecord(data);
+			toast$2({
+				title: "Sucesso",
+				description: "Registro de acidez salvo com sucesso!"
+			});
+			setIsCreateOpen(false);
+		};
+		checkPcpAuth(saveAction, () => {
+			setPcpPendingAction(() => saveAction);
+			setIsPcpGateOpen(true);
 		});
-		setIsCreateOpen(false);
 	}
 	function handleUpdate(data) {
 		if (editingRecord) {
-			updateAcidityRecord({
-				...data,
-				id: editingRecord.id
+			const saveAction = () => {
+				updateAcidityRecord({
+					...data,
+					id: editingRecord.id
+				});
+				toast$2({
+					title: "Sucesso",
+					description: "Registro atualizado com sucesso!"
+				});
+				setIsEditOpen(false);
+				setEditingRecord(void 0);
+			};
+			if (canEditRecord(editingRecord.createdAt)) checkPcpAuth(saveAction, () => {
+				setPcpPendingAction(() => saveAction);
+				setIsPcpGateOpen(true);
 			});
-			toast$2({
-				title: "Sucesso",
-				description: "Registro atualizado com sucesso!"
-			});
-			setIsEditOpen(false);
-			setEditingRecord(void 0);
+			else saveAction();
 		}
 	}
 	function handleEditClick(entry) {
@@ -81170,6 +81224,9 @@ var formSchema$4 = object({
 function ShippingForm({ initialData, onSuccess }) {
 	const { addShipping, updateShipping } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
 		resolver: a(formSchema$4),
 		defaultValues: {
@@ -81182,34 +81239,40 @@ function ShippingForm({ initialData, onSuccess }) {
 		}
 	});
 	function onSubmit(values) {
-		const entryData = {
-			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-			client: values.client,
-			product: values.product,
-			quantity: Number(values.quantity),
-			unitPrice: Number(values.unitPrice),
-			docRef: values.docRef
+		const submitAction = () => {
+			const entryData = {
+				date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
+				client: values.client,
+				product: values.product,
+				quantity: Number(values.quantity),
+				unitPrice: Number(values.unitPrice),
+				docRef: values.docRef
+			};
+			if (initialData) {
+				updateShipping({
+					...entryData,
+					id: initialData.id
+				});
+				toast$2({
+					title: "Expedição Atualizada",
+					description: "Dados de saída e faturamento atualizados."
+				});
+			} else {
+				addShipping(entryData);
+				toast$2({
+					title: "Expedição Realizada",
+					description: "Saída de estoque e faturamento confirmados."
+				});
+			}
+			form.reset();
+			onSuccess();
 		};
-		if (initialData) {
-			updateShipping({
-				...entryData,
-				id: initialData.id
-			});
-			toast$2({
-				title: "Expedição Atualizada",
-				description: "Dados de saída e faturamento atualizados."
-			});
-		} else {
-			addShipping(entryData);
-			toast$2({
-				title: "Expedição Realizada",
-				description: "Saída de estoque e faturamento confirmados."
-			});
-		}
-		form.reset();
-		onSuccess();
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
 		...form,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			onSubmit: form.handleSubmit(onSubmit),
@@ -81321,7 +81384,14 @@ function ShippingForm({ initialData, onSuccess }) {
 				}) })
 			]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
 }
 function Shipping() {
 	const { shipping, deleteShipping, dateRange } = useData();
@@ -86865,6 +86935,9 @@ var formSchema = object({
 function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	const { addSteamControlRecord, updateSteamControlRecord } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
 	const form = useForm({
 		resolver: a(formSchema),
@@ -86879,50 +86952,56 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 		}
 	});
 	function onSubmit(values) {
-		setIsSubmitting(true);
-		try {
-			const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
-			const steamConsumption = values.meterEnd - values.meterStart;
-			const entry = {
-				date: dateObj,
-				soyWaste: values.soyWaste,
-				firewood: values.firewood,
-				riceHusk: values.riceHusk,
-				woodChips: values.woodChips,
-				meterStart: values.meterStart,
-				meterEnd: values.meterEnd,
-				steamConsumption: steamConsumption < 0 ? 0 : steamConsumption,
-				userId: "",
-				factoryId: ""
-			};
-			if (initialData) {
-				updateSteamControlRecord({
-					...entry,
-					id: initialData.id
-				});
+		const submitAction = () => {
+			setIsSubmitting(true);
+			try {
+				const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
+				const steamConsumption = values.meterEnd - values.meterStart;
+				const entry = {
+					date: dateObj,
+					soyWaste: values.soyWaste,
+					firewood: values.firewood,
+					riceHusk: values.riceHusk,
+					woodChips: values.woodChips,
+					meterStart: values.meterStart,
+					meterEnd: values.meterEnd,
+					steamConsumption: steamConsumption < 0 ? 0 : steamConsumption,
+					userId: "",
+					factoryId: ""
+				};
+				if (initialData) {
+					updateSteamControlRecord({
+						...entry,
+						id: initialData.id
+					});
+					toast$2({
+						title: "Registro atualizado",
+						description: "Os dados de controle de vapor foram atualizados."
+					});
+				} else {
+					addSteamControlRecord(entry);
+					toast$2({
+						title: "Registro salvo",
+						description: "Os dados de controle de vapor foram registrados."
+					});
+				}
+				if (onSuccess) onSuccess();
+			} catch (error) {
 				toast$2({
-					title: "Registro atualizado",
-					description: "Os dados de controle de vapor foram atualizados."
+					variant: "destructive",
+					title: "Erro ao salvar",
+					description: "Verifique os dados e tente novamente."
 				});
-			} else {
-				addSteamControlRecord(entry);
-				toast$2({
-					title: "Registro salvo",
-					description: "Os dados de controle de vapor foram registrados."
-				});
+			} finally {
+				setIsSubmitting(false);
 			}
-			if (onSuccess) onSuccess();
-		} catch (error) {
-			toast$2({
-				variant: "destructive",
-				title: "Erro ao salvar",
-				description: "Verifique os dados e tente novamente."
-			});
-		} finally {
-			setIsSubmitting(false);
-		}
+		};
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
 		...form,
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			onSubmit: form.handleSubmit(onSubmit),
@@ -87041,7 +87120,14 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 				})
 			]
 		})
-	});
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
 }
 function SteamControlTable() {
 	const { steamControlRecords, production, deleteSteamControlRecord } = useData();
@@ -89187,4 +89273,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-pGplf9Uk.js.map
+//# sourceMappingURL=index-D4vhS_5b.js.map

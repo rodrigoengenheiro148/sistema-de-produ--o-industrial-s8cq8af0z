@@ -9,7 +9,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Plus,
@@ -110,37 +109,47 @@ export default function DailyAcidity() {
   )
 
   const handleNewRecord = () => {
-    checkPcpAuth(
-      () => {
-        setIsCreateOpen(true)
-      },
-      () => {
-        setPcpPendingAction(() => () => {
-          setIsCreateOpen(true)
-        })
-        setIsPcpGateOpen(true)
-      },
-    )
+    setIsCreateOpen(true)
   }
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
-    addAcidityRecord(data)
-    toast({
-      title: 'Sucesso',
-      description: 'Registro de acidez salvo com sucesso!',
+    const saveAction = () => {
+      addAcidityRecord(data)
+      toast({
+        title: 'Sucesso',
+        description: 'Registro de acidez salvo com sucesso!',
+      })
+      setIsCreateOpen(false)
+    }
+
+    checkPcpAuth(saveAction, () => {
+      setPcpPendingAction(() => saveAction)
+      setIsPcpGateOpen(true)
     })
-    setIsCreateOpen(false)
   }
 
   function handleUpdate(data: Omit<AcidityEntry, 'id'>) {
     if (editingRecord) {
-      updateAcidityRecord({ ...data, id: editingRecord.id })
-      toast({
-        title: 'Sucesso',
-        description: 'Registro atualizado com sucesso!',
-      })
-      setIsEditOpen(false)
-      setEditingRecord(undefined)
+      const saveAction = () => {
+        updateAcidityRecord({ ...data, id: editingRecord.id })
+        toast({
+          title: 'Sucesso',
+          description: 'Registro atualizado com sucesso!',
+        })
+        setIsEditOpen(false)
+        setEditingRecord(undefined)
+      }
+
+      // If record is fresh (editable without admin password), require PCP auth
+      if (canEditRecord(editingRecord.createdAt)) {
+        checkPcpAuth(saveAction, () => {
+          setPcpPendingAction(() => saveAction)
+          setIsPcpGateOpen(true)
+        })
+      } else {
+        // If it was already authorized via Admin SecurityGate, proceed directly
+        saveAction()
+      }
     }
   }
 

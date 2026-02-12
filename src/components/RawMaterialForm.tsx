@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,6 +26,8 @@ import { useData } from '@/context/DataContext'
 import { RawMaterialEntry } from '@/lib/types'
 import { DialogFooter } from '@/components/ui/dialog'
 import { RAW_MATERIAL_TYPES, MEASUREMENT_UNITS } from '@/lib/constants'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -51,6 +53,9 @@ export function RawMaterialForm({
 }: RawMaterialFormProps) {
   const { addRawMaterial, updateRawMaterial } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
+  const [showPcpGate, setShowPcpGate] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -89,99 +94,56 @@ export function RawMaterialForm({
   }, [initialData, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const quantityValue = Number(values.quantity)
-    // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
-    const dateValue = new Date(`${values.date}T12:00:00`)
+    const submitAction = () => {
+      const quantityValue = Number(values.quantity)
+      // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
+      const dateValue = new Date(`${values.date}T12:00:00`)
 
-    const entryData = {
-      date: dateValue,
-      supplier: values.supplier,
-      type: values.type,
-      quantity: quantityValue,
-      unit: values.unit,
-      notes: values.notes,
+      const entryData = {
+        date: dateValue,
+        supplier: values.supplier,
+        type: values.type,
+        quantity: quantityValue,
+        unit: values.unit,
+        notes: values.notes,
+      }
+
+      if (initialData) {
+        updateRawMaterial({ ...entryData, id: initialData.id })
+        toast({
+          title: 'Sucesso',
+          description: 'Entrada atualizada com sucesso!',
+        })
+      } else {
+        addRawMaterial(entryData)
+        toast({
+          title: 'Sucesso',
+          description: 'Entrada registrada com sucesso!',
+        })
+      }
+
+      form.reset()
+      onSuccess()
     }
 
-    if (initialData) {
-      updateRawMaterial({ ...entryData, id: initialData.id })
-      toast({
-        title: 'Sucesso',
-        description: 'Entrada atualizada com sucesso!',
-      })
-    } else {
-      addRawMaterial(entryData)
-      toast({
-        title: 'Sucesso',
-        description: 'Entrada registrada com sucesso!',
-      })
-    }
-
-    form.reset()
-    onSuccess()
+    checkPcpAuth(submitAction, () => {
+      setPendingSubmit(() => submitAction)
+      setShowPcpGate(true)
+    })
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data de Entrada</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="supplier"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fornecedor</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome do fornecedor" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome da Matéria-Prima</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {RAW_MATERIAL_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-3 gap-4">
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
-            name="quantity"
+            name="date"
             render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel>Quantidade</FormLabel>
+              <FormItem>
+                <FormLabel>Data de Entrada</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0.00" {...field} />
+                  <Input type="date" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -189,23 +151,36 @@ export function RawMaterialForm({
           />
           <FormField
             control={form.control}
-            name="unit"
+            name="supplier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unidade</FormLabel>
+                <FormLabel>Fornecedor</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nome do fornecedor" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome da Matéria-Prima</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Un." />
+                      <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {MEASUREMENT_UNITS.map((unit) => (
-                      <SelectItem key={unit.value} value={unit.value}>
-                        {unit.label}
+                    {RAW_MATERIAL_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -214,29 +189,79 @@ export function RawMaterialForm({
               </FormItem>
             )}
           />
-        </div>
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Detalhes adicionais..." {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit">
-            {initialData ? 'Salvar Alterações' : 'Salvar Registro'}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+          <div className="grid grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Quantidade</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0.00" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="unit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unidade</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Un." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {MEASUREMENT_UNITS.map((unit) => (
+                        <SelectItem key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Observações</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="Detalhes adicionais..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {initialData ? 'Salvar Alterações' : 'Salvar Registro'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+      <PcpGate
+        isOpen={showPcpGate}
+        onOpenChange={setShowPcpGate}
+        onSuccess={() => {
+          if (pendingSubmit) pendingSubmit()
+          setPendingSubmit(null)
+        }}
+      />
+    </>
   )
 }

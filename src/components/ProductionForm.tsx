@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -24,6 +24,8 @@ import { SheetFooter } from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
 import { ProductionEntry } from '@/lib/types'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 const formSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
@@ -46,6 +48,9 @@ export function ProductionForm({
 }: ProductionFormProps) {
   const { addProduction, updateProduction } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
+  const [showPcpGate, setShowPcpGate] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -83,120 +88,65 @@ export function ProductionForm({
   }, [mpUsed, sebo, fco, farinheta, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Append T12:00:00 to force local noon interpretation
-    const entryData = {
-      date: new Date(`${values.date}T12:00:00`),
-      shift: values.shift,
-      mpUsed: values.mpUsed,
-      seboProduced: values.sebo,
-      fcoProduced: values.fco,
-      farinhetaProduced: values.farinheta,
-      losses: values.losses,
-      // Zero out blood values for this main line form
-      bloodMealProduced: 0,
-      bloodMealBags: 0,
-    }
-
-    if (initialData) {
-      // Preserve existing blood values if we are editing a record that might have them (legacy mixed records)
-      // However, the new direction is separation.
-      // Ideally, if the user edits here, they are editing the MAIN production part.
-      // If we want to support mixed records, we should pass initialData.bloodMeal... etc.
-      // But given the separation requirement, enforcing 0 or keeping existing values is a choice.
-      // Let's keep existing values if they exist to avoid data loss on legacy records.
-      const updatedData = {
-        ...entryData,
-        bloodMealProduced: initialData.bloodMealProduced || 0,
-        bloodMealBags: initialData.bloodMealBags || 0,
+    const submitAction = () => {
+      // Append T12:00:00 to force local noon interpretation
+      const entryData = {
+        date: new Date(`${values.date}T12:00:00`),
+        shift: values.shift,
+        mpUsed: values.mpUsed,
+        seboProduced: values.sebo,
+        fcoProduced: values.fco,
+        farinhetaProduced: values.farinheta,
+        losses: values.losses,
+        // Zero out blood values for this main line form
+        bloodMealProduced: 0,
+        bloodMealBags: 0,
       }
 
-      updateProduction({ ...updatedData, id: initialData.id })
-      toast({
-        title: 'Sucesso',
-        description: 'Produção atualizada com sucesso!',
-      })
-    } else {
-      addProduction(entryData)
-      toast({
-        title: 'Sucesso',
-        description: 'Produção registrada com sucesso!',
-      })
+      if (initialData) {
+        // Preserve existing blood values if we are editing a record that might have them (legacy mixed records)
+        const updatedData = {
+          ...entryData,
+          bloodMealProduced: initialData.bloodMealProduced || 0,
+          bloodMealBags: initialData.bloodMealBags || 0,
+        }
+
+        updateProduction({ ...updatedData, id: initialData.id })
+        toast({
+          title: 'Sucesso',
+          description: 'Produção atualizada com sucesso!',
+        })
+      } else {
+        addProduction(entryData)
+        toast({
+          title: 'Sucesso',
+          description: 'Produção registrada com sucesso!',
+        })
+      }
+
+      form.reset()
+      onSuccess()
     }
 
-    form.reset()
-    onSuccess()
+    checkPcpAuth(submitAction, () => {
+      setPendingSubmit(() => submitAction)
+      setShowPcpGate(true)
+    })
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Data</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="shift"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Turno</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Manhã">Manhã</SelectItem>
-                    <SelectItem value="Tarde">Tarde</SelectItem>
-                    <SelectItem value="Noite">Noite</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800">
-          <h3 className="font-medium text-sm text-slate-500">
-            Linha Principal
-          </h3>
-          <FormField
-            control={form.control}
-            name="mpUsed"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>MP Processada (kg)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="sebo"
+              name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sebo (kg)</FormLabel>
+                  <FormLabel>Data</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -204,58 +154,125 @@ export function ProductionForm({
             />
             <FormField
               control={form.control}
-              name="fco"
+              name="shift"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Farinha Carne/Osso (kg)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="farinheta"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Farinheta (kg)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="losses"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Perdas (kg)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      readOnly
-                      tabIndex={-1}
-                      className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
-                    />
-                  </FormControl>
+                  <FormLabel>Turno</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Manhã">Manhã</SelectItem>
+                      <SelectItem value="Tarde">Tarde</SelectItem>
+                      <SelectItem value="Noite">Noite</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-        </div>
 
-        <SheetFooter>
-          <Button type="submit" className="w-full">
-            {initialData ? 'Atualizar Produção' : 'Salvar Produção'}
-          </Button>
-        </SheetFooter>
-      </form>
-    </Form>
+          <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg space-y-4 border border-slate-100 dark:border-slate-800">
+            <h3 className="font-medium text-sm text-slate-500">
+              Linha Principal
+            </h3>
+            <FormField
+              control={form.control}
+              name="mpUsed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>MP Processada (kg)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="sebo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sebo (kg)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fco"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Farinha Carne/Osso (kg)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="farinheta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Farinheta (kg)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="losses"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Perdas (kg)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        readOnly
+                        tabIndex={-1}
+                        className="bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <SheetFooter>
+            <Button type="submit" className="w-full">
+              {initialData ? 'Atualizar Produção' : 'Salvar Produção'}
+            </Button>
+          </SheetFooter>
+        </form>
+      </Form>
+      <PcpGate
+        isOpen={showPcpGate}
+        onOpenChange={setShowPcpGate}
+        onSuccess={() => {
+          if (pendingSubmit) pendingSubmit()
+          setPendingSubmit(null)
+        }}
+      />
+    </>
   )
 }
