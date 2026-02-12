@@ -13,9 +13,30 @@ import {
 import { SteamControlForm } from '@/components/steam/SteamControlForm'
 import { SteamControlTable } from '@/components/steam/SteamControlTable'
 import { SteamControlCharts } from '@/components/steam/SteamControlCharts'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function SteamControl() {
   const [isOpen, setIsOpen] = useState(false)
+  const { checkPcpAuth } = usePcp()
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
+
+  const handleNewRecord = () => {
+    checkPcpAuth(
+      () => {
+        setIsOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setIsOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -29,12 +50,12 @@ export default function SteamControl() {
             Monitoramento de consumo de combustível e geração de vapor.
           </p>
         </div>
+
+        <Button className="gap-2" onClick={handleNewRecord}>
+          <Plus className="h-4 w-4" /> Novo Registro
+        </Button>
+
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" /> Novo Registro
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
               <DialogTitle>Registrar Controle de Vapor</DialogTitle>
@@ -68,6 +89,15 @@ export default function SteamControl() {
           <SteamControlCharts />
         </TabsContent>
       </Tabs>
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
+      />
     </div>
   )
 }

@@ -52,10 +52,13 @@ import {
 import { isRecordLocked } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { formatNumber, formatCurrency } from '@/lib/utils'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function Shipping() {
   const { shipping, deleteShipping, dateRange } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -64,9 +67,15 @@ export default function Shipping() {
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Security Gate State
+  // Security Gate State (Legacy)
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  // PCP Gate State (New Records)
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
 
   const handleProtectedAction = (
     date: Date | undefined,
@@ -84,6 +93,22 @@ export default function Shipping() {
     setSecurityOpen(false)
     if (pendingAction) pendingAction()
     setPendingAction(null)
+  }
+
+  const handleNewRecord = () => {
+    checkPcpAuth(
+      () => {
+        setEditingItem(undefined)
+        setIsOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setEditingItem(undefined)
+          setIsOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
   }
 
   const handleEdit = (item: ShippingEntry) => {
@@ -123,17 +148,15 @@ export default function Shipping() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Expedição</h2>
+        <Button
+          className="gap-2"
+          onClick={handleNewRecord}
+          size={isMobile ? 'sm' : 'default'}
+        >
+          <Send className="h-4 w-4" /> {isMobile ? 'Nova' : 'Nova Expedição'}
+        </Button>
+
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              className="gap-2"
-              onClick={() => setEditingItem(undefined)}
-              size={isMobile ? 'sm' : 'default'}
-            >
-              <Send className="h-4 w-4" />{' '}
-              {isMobile ? 'Nova' : 'Nova Expedição'}
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>
@@ -381,6 +404,15 @@ export default function Shipping() {
         isOpen={securityOpen}
         onOpenChange={setSecurityOpen}
         onSuccess={handleSecuritySuccess}
+      />
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
       />
     </div>
   )

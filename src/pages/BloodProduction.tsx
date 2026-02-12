@@ -50,10 +50,13 @@ import { ProductionEntry } from '@/lib/types'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { SecurityGate } from '@/components/SecurityGate'
 import { canEditRecord } from '@/lib/security'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function BloodProduction() {
   const { production, deleteProduction, factories } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductionEntry | undefined>(
@@ -67,6 +70,28 @@ export default function BloodProduction() {
     type: 'edit' | 'delete'
     item: ProductionEntry
   } | null>(null)
+
+  // PCP Gate State
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
+
+  const handleNewRecord = () => {
+    checkPcpAuth(
+      () => {
+        setEditingItem(undefined)
+        setIsOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setEditingItem(undefined)
+          setIsOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
+  }
 
   const handleEditClick = (item: ProductionEntry) => {
     if (canEditRecord(item.createdAt)) {
@@ -143,15 +168,12 @@ export default function BloodProduction() {
             Gerenciamento de produção de farinha de sangue.
           </p>
         </div>
+
+        <Button className="gap-2 w-full sm:w-auto" onClick={handleNewRecord}>
+          <Plus className="h-4 w-4" /> Nova Produção
+        </Button>
+
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              className="gap-2 w-full sm:w-auto"
-              onClick={() => setEditingItem(undefined)}
-            >
-              <Plus className="h-4 w-4" /> Nova Produção
-            </Button>
-          </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>
@@ -276,6 +298,15 @@ export default function BloodProduction() {
         isOpen={isSecurityOpen}
         onOpenChange={setIsSecurityOpen}
         onSuccess={handleSecuritySuccess}
+      />
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
       />
     </div>
   )

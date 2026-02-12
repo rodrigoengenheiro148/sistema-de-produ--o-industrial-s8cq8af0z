@@ -68,6 +68,8 @@ import {
 import { SecurityGate } from '@/components/SecurityGate'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function DailyAcidity() {
   const {
@@ -77,6 +79,7 @@ export default function DailyAcidity() {
     deleteAcidityRecord,
   } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -99,6 +102,26 @@ export default function DailyAcidity() {
     type: 'edit' | 'delete'
     item: AcidityEntry
   } | null>(null)
+
+  // PCP Gate State
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
+
+  const handleNewRecord = () => {
+    checkPcpAuth(
+      () => {
+        setIsCreateOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setIsCreateOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
+  }
 
   function handleCreate(data: Omit<AcidityEntry, 'id'>) {
     addAcidityRecord(data)
@@ -200,14 +223,18 @@ export default function DailyAcidity() {
             setDate={setDateRange}
             className="w-full sm:w-[300px]"
           />
+
+          <Button
+            className="gap-2"
+            size={isMobile ? 'default' : 'default'}
+            onClick={handleNewRecord}
+          >
+            <Plus className="h-4 w-4" />{' '}
+            <span className="hidden sm:inline">Novo Registro</span>
+            <span className="sm:hidden">Novo</span>
+          </Button>
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2" size={isMobile ? 'default' : 'default'}>
-                <Plus className="h-4 w-4" />{' '}
-                <span className="hidden sm:inline">Novo Registro</span>
-                <span className="sm:hidden">Novo</span>
-              </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Registrar Medição de Acidez</DialogTitle>
@@ -505,6 +532,15 @@ export default function DailyAcidity() {
         onSuccess={handleSecuritySuccess}
         title="Proteção de Registro"
         description="Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+      />
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
       />
     </div>
   )

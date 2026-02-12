@@ -57,6 +57,8 @@ import {
 } from '@/services/seboInventory'
 import { SeboInventoryRecord } from '@/lib/types'
 import { SeboInventoryChart } from '@/components/inventory/SeboInventoryChart'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 const INITIAL_TANK_ROWS = 5
 const INITIAL_EXTRA_ROWS = 3
@@ -80,6 +82,7 @@ export default function SeboInventory() {
   const { currentFactoryId } = useData()
   const { user } = useAuth()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
 
   // Initialize table date to start of today
   const [date, setDate] = useState<Date>(startOfDay(new Date()))
@@ -101,6 +104,12 @@ export default function SeboInventory() {
   // History Records State for Chart
   const [historyRecords, setHistoryRecords] = useState<SeboInventoryRecord[]>(
     [],
+  )
+
+  // PCP Gate State
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
   )
 
   // Derived dates for the chart view based on selected month
@@ -348,8 +357,8 @@ export default function SeboInventory() {
     }
   }, [tankRows, extraRows])
 
-  // Save Function
-  const handleSave = async () => {
+  // Save Function Logic
+  const performSave = async () => {
     if (!user || !currentFactoryId) {
       toast({
         title: 'Erro de Autenticação',
@@ -410,6 +419,14 @@ export default function SeboInventory() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Handle Save with PCP Gate
+  const handleSave = () => {
+    checkPcpAuth(performSave, () => {
+      setPcpPendingAction(() => performSave)
+      setIsPcpGateOpen(true)
+    })
   }
 
   // Helper for conditional formatting
@@ -948,6 +965,15 @@ export default function SeboInventory() {
           </CardContent>
         </Card>
       </div>
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
+      />
 
       <datalist id="status-suggestions">
         <option value="PRODUÇÃO" />

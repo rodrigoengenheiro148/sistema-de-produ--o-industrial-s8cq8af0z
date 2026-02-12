@@ -16,7 +16,6 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet'
 import { Plus, Pencil, Trash2, MoreVertical, Lock } from 'lucide-react'
 import { format } from 'date-fns'
@@ -48,10 +47,13 @@ import {
 } from '@/components/ui/tooltip'
 import { SecurityGate } from '@/components/SecurityGate'
 import { formatNumber } from '@/lib/utils'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function Production() {
   const { production, deleteProduction, dateRange } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProductionEntry | undefined>(
@@ -59,17 +61,38 @@ export default function Production() {
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Security Gate State
+  // Security Gate State (Legacy / Admin)
   const [isSecurityOpen, setIsSecurityOpen] = useState(false)
   const [securityAction, setSecurityAction] = useState<{
     type: 'edit' | 'delete'
     item: ProductionEntry
   } | null>(null)
 
+  // PCP Gate State (New Records)
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
+
   // Custom formatter for losses to replace periods with commas
-  // This satisfies the requirement to display values like "102.220" as "102,220"
   const formatLosses = (value: number) => {
     return formatNumber(value).replace(/\./g, ',')
+  }
+
+  const handleNewRecord = () => {
+    checkPcpAuth(
+      () => {
+        setEditingItem(undefined)
+        setIsOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setEditingItem(undefined)
+          setIsOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
   }
 
   const handleEditClick = (item: ProductionEntry) => {
@@ -143,16 +166,15 @@ export default function Production() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Produção Diária</h2>
+        <Button
+          className="gap-2"
+          onClick={handleNewRecord}
+          size={isMobile ? 'sm' : 'default'}
+        >
+          <Plus className="h-4 w-4" /> {isMobile ? 'Novo' : 'Novo Registro'}
+        </Button>
+
         <Sheet open={isOpen} onOpenChange={handleOpenChange}>
-          <SheetTrigger asChild>
-            <Button
-              className="gap-2"
-              onClick={() => setEditingItem(undefined)}
-              size={isMobile ? 'sm' : 'default'}
-            >
-              <Plus className="h-4 w-4" /> {isMobile ? 'Novo' : 'Novo Registro'}
-            </Button>
-          </SheetTrigger>
           <SheetContent className="overflow-y-auto sm:max-w-md w-full">
             <SheetHeader>
               <SheetTitle>
@@ -408,6 +430,15 @@ export default function Production() {
         onSuccess={handleSecuritySuccess}
         title="Proteção de Registro"
         description="Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+      />
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
       />
     </div>
   )

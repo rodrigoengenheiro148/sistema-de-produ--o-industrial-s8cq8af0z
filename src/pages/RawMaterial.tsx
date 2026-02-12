@@ -17,7 +17,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -74,6 +73,8 @@ import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { cn } from '@/lib/utils'
+import { usePcp } from '@/context/PcpContext'
+import { PcpGate } from '@/components/PcpGate'
 
 export default function RawMaterial() {
   const {
@@ -84,6 +85,7 @@ export default function RawMaterial() {
     production,
   } = useData()
   const { toast } = useToast()
+  const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -93,9 +95,15 @@ export default function RawMaterial() {
   )
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Security Gate State
+  // Security Gate State (Legacy / Admin)
   const [securityOpen, setSecurityOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  // PCP Gate State (New Records)
+  const [isPcpGateOpen, setIsPcpGateOpen] = useState(false)
+  const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
+    null,
+  )
 
   const handleProtectedAction = (
     createdAt: Date | undefined,
@@ -113,6 +121,22 @@ export default function RawMaterial() {
     setSecurityOpen(false)
     if (pendingAction) pendingAction()
     setPendingAction(null)
+  }
+
+  const handleNewEntry = () => {
+    checkPcpAuth(
+      () => {
+        setEditingItem(undefined)
+        setIsOpen(true)
+      },
+      () => {
+        setPcpPendingAction(() => () => {
+          setEditingItem(undefined)
+          setIsOpen(true)
+        })
+        setIsPcpGateOpen(true)
+      },
+    )
   }
 
   const handleEdit = (item: RawMaterialEntry) => {
@@ -155,7 +179,6 @@ export default function RawMaterial() {
       // Date Filter
       if (dateRange.from) {
         const start = startOfDay(dateRange.from)
-        // If to is undefined, treat as single day (same as from) for display filtering
         const end = dateRange.to
           ? endOfDay(dateRange.to)
           : endOfDay(dateRange.from)
@@ -174,8 +197,6 @@ export default function RawMaterial() {
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   // --- Metrics Calculation ---
-
-  // 1. Total Input Mass
   const totalInputKg = filteredMaterials.reduce((acc, item) => {
     const unit = item.unit?.toLowerCase() || ''
     if (unit === 'bag') return acc + item.quantity * 1400
@@ -183,9 +204,8 @@ export default function RawMaterial() {
     return acc + item.quantity
   }, 0)
 
-  // 2. Yield Percentage
+  // Yield Percentage
   const filteredProduction = production.filter((item) => {
-    // Strictly filter production by date range to match materials
     if (dateRange.from) {
       const start = startOfDay(dateRange.from)
       const end = dateRange.to
@@ -215,7 +235,6 @@ export default function RawMaterial() {
     return `${val.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kg`
   }
 
-  // Determine label for history list
   const isSingleDay =
     dateRange.from && (!dateRange.to || isSameDay(dateRange.from, dateRange.to))
 
@@ -227,17 +246,15 @@ export default function RawMaterial() {
         </h2>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <RawMaterialImportDialog />
+          <Button
+            className="gap-2 flex-1 sm:flex-none"
+            onClick={handleNewEntry}
+            size={isMobile ? 'default' : 'default'}
+          >
+            <Plus className="h-4 w-4" /> {isMobile ? 'Nova' : 'Nova Entrada'}
+          </Button>
+
           <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button
-                className="gap-2 flex-1 sm:flex-none"
-                onClick={() => setEditingItem(undefined)}
-                size={isMobile ? 'default' : 'default'}
-              >
-                <Plus className="h-4 w-4" />{' '}
-                {isMobile ? 'Nova' : 'Nova Entrada'}
-              </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle>
@@ -567,6 +584,15 @@ export default function RawMaterial() {
         isOpen={securityOpen}
         onOpenChange={setSecurityOpen}
         onSuccess={handleSecuritySuccess}
+      />
+
+      <PcpGate
+        isOpen={isPcpGateOpen}
+        onOpenChange={setIsPcpGateOpen}
+        onSuccess={() => {
+          if (pcpPendingAction) pcpPendingAction()
+          setPcpPendingAction(null)
+        }}
       />
     </div>
   )

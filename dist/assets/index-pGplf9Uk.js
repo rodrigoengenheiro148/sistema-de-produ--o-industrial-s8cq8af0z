@@ -1109,7 +1109,7 @@ var require_react_dom_development = /* @__PURE__ */ __commonJSMin(((exports) => 
 			return dispatcher;
 		}
 		"undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-		var React$67 = require_react(), Internals = {
+		var React$68 = require_react(), Internals = {
 			d: {
 				f: noop$4,
 				r: function() {
@@ -1125,7 +1125,7 @@ var require_react_dom_development = /* @__PURE__ */ __commonJSMin(((exports) => 
 			},
 			p: 0,
 			findDOMNode: null
-		}, REACT_PORTAL_TYPE = Symbol.for("react.portal"), ReactSharedInternals = React$67.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+		}, REACT_PORTAL_TYPE = Symbol.for("react.portal"), ReactSharedInternals = React$68.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
 		"function" === typeof Map && null != Map.prototype && "function" === typeof Map.prototype.forEach && "function" === typeof Set && null != Set.prototype && "function" === typeof Set.prototype.clear && "function" === typeof Set.prototype.forEach || console.error("React depends on Map and Set built-in types. Make sure that you load a polyfill in older browsers. https://reactjs.org/link/react-polyfills");
 		exports.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = Internals;
 		exports.createPortal = function(children, container) {
@@ -2365,7 +2365,7 @@ var require_react_dom_client_development = /* @__PURE__ */ __commonJSMin(((expor
 			"number" === type && getActiveElement(node.ownerDocument) === node || node.defaultValue === "" + value || (node.defaultValue = "" + value);
 		}
 		function validateOptionProps(element, props) {
-			props.value ?? ("object" === typeof props.children && null !== props.children ? React$67.Children.forEach(props.children, function(child) {
+			props.value ?? ("object" === typeof props.children && null !== props.children ? React$68.Children.forEach(props.children, function(child) {
 				null == child || "string" === typeof child || "number" === typeof child || "bigint" === typeof child || didWarnInvalidChild || (didWarnInvalidChild = !0, console.error("Cannot infer the option value of complex children. Pass a `value` prop or use a plain string as children to <option>."));
 			}) : null == props.dangerouslySetInnerHTML || didWarnInvalidInnerHTML || (didWarnInvalidInnerHTML = !0, console.error("Pass a `value` prop if you set dangerouslyInnerHTML so React knows which value should be selected.")));
 			null == props.selected || didWarnSelectedSetOnOption || (console.error("Use the `defaultValue` or `value` props on <select> instead of setting `selected` on <option>."), didWarnSelectedSetOnOption = !0);
@@ -12656,10 +12656,10 @@ var require_react_dom_client_development = /* @__PURE__ */ __commonJSMin(((expor
 			container[internalContainerInstanceKey] && (container._reactRootContainer ? console.error("You are calling ReactDOMClient.createRoot() on a container that was previously passed to ReactDOM.render(). This is not supported.") : console.error("You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before. Instead, call root.render() on the existing root instead if you want to update it."));
 		}
 		"undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-		var Scheduler = require_scheduler(), React$67 = require_react(), ReactDOM$2 = require_react_dom(), assign$1 = Object.assign, REACT_LEGACY_ELEMENT_TYPE = Symbol.for("react.element"), REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE$1 = Symbol.for("react.lazy");
+		var Scheduler = require_scheduler(), React$68 = require_react(), ReactDOM$2 = require_react_dom(), assign$1 = Object.assign, REACT_LEGACY_ELEMENT_TYPE = Symbol.for("react.element"), REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE$1 = Symbol.for("react.lazy");
 		var REACT_ACTIVITY_TYPE = Symbol.for("react.activity");
 		var REACT_MEMO_CACHE_SENTINEL = Symbol.for("react.memo_cache_sentinel");
-		var MAYBE_ITERATOR_SYMBOL = Symbol.iterator, REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), isArrayImpl = Array.isArray, ReactSharedInternals = React$67.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, ReactDOMSharedInternals = ReactDOM$2.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, NotPending = Object.freeze({
+		var MAYBE_ITERATOR_SYMBOL = Symbol.iterator, REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), isArrayImpl = Array.isArray, ReactSharedInternals = React$68.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, ReactDOMSharedInternals = ReactDOM$2.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, NotPending = Object.freeze({
 			pending: !1,
 			data: null,
 			method: null,
@@ -15281,7 +15281,7 @@ var require_react_dom_client_development = /* @__PURE__ */ __commonJSMin(((expor
 			}
 		};
 		(function() {
-			var isomorphicReactPackageVersion = React$67.version;
+			var isomorphicReactPackageVersion = React$68.version;
 			if ("19.2.3" !== isomorphicReactPackageVersion) throw Error("Incompatible React versions: The \"react\" and \"react-dom\" packages must have the exact same version. Instead got:\n  - react:      " + (isomorphicReactPackageVersion + "\n  - react-dom:  19.2.3\nLearn more: https://react.dev/warnings/version-mismatch"));
 		})();
 		"function" === typeof Map && null != Map.prototype && "function" === typeof Map.prototype.forEach && "function" === typeof Set && null != Set.prototype && "function" === typeof Set.prototype.clear && "function" === typeof Set.prototype.forEach || console.error("React depends on Map and Set built-in types. Make sure that you load a polyfill in older browsers. https://react.dev/link/react-polyfills");
@@ -17567,15 +17567,15 @@ var require_react_jsx_runtime_development = /* @__PURE__ */ __commonJSMin(((expo
 		function isValidElement$7(object$1) {
 			return "object" === typeof object$1 && null !== object$1 && object$1.$$typeof === REACT_ELEMENT_TYPE;
 		}
-		var React$67 = require_react(), REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE$1 = Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = Symbol.for("react.activity"), REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), ReactSharedInternals = React$67.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, hasOwnProperty$12 = Object.prototype.hasOwnProperty, isArrayImpl = Array.isArray, createTask = console.createTask ? console.createTask : function() {
+		var React$68 = require_react(), REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE$1 = Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = Symbol.for("react.activity"), REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), ReactSharedInternals = React$68.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, hasOwnProperty$12 = Object.prototype.hasOwnProperty, isArrayImpl = Array.isArray, createTask = console.createTask ? console.createTask : function() {
 			return null;
 		};
-		React$67 = { react_stack_bottom_frame: function(callStackForError) {
+		React$68 = { react_stack_bottom_frame: function(callStackForError) {
 			return callStackForError();
 		} };
 		var specialPropKeyWarningShown;
 		var didWarnAboutElementRef = {};
-		var unknownOwnerDebugStack = React$67.react_stack_bottom_frame.bind(React$67, UnknownOwner)();
+		var unknownOwnerDebugStack = React$68.react_stack_bottom_frame.bind(React$68, UnknownOwner)();
 		var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
 		var didWarnAboutKeySpread = {};
 		exports.Fragment = REACT_FRAGMENT_TYPE;
@@ -77465,9 +77465,134 @@ function DatePickerWithRange({ className, date: date$4, setDate }) {
 		})] })
 	});
 }
+var PcpContext = (0, import_react.createContext)(void 0);
+const usePcp = () => {
+	const context = (0, import_react.useContext)(PcpContext);
+	if (context === void 0) throw new Error("usePcp must be used within a PcpProvider");
+	return context;
+};
+const PcpProvider = ({ children }) => {
+	const [isPcpAuthorized, setIsPcpAuthorized] = (0, import_react.useState)(false);
+	const authorizePcp = (password) => {
+		if (password === "PCP") {
+			setIsPcpAuthorized(true);
+			return true;
+		}
+		return false;
+	};
+	const checkPcpAuth = (onAuthorized, onUnauthorized) => {
+		if (isPcpAuthorized) onAuthorized();
+		else onUnauthorized();
+	};
+	(0, import_react.useEffect)(() => {
+		let timer;
+		const resetTimer = () => {
+			if (isPcpAuthorized) {
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					setIsPcpAuthorized(false);
+				}, 120 * 1e3);
+			}
+		};
+		if (isPcpAuthorized) {
+			resetTimer();
+			const events = [
+				"mousemove",
+				"mousedown",
+				"keydown",
+				"scroll",
+				"touchstart"
+			];
+			events.forEach((event) => window.addEventListener(event, resetTimer));
+			return () => {
+				clearTimeout(timer);
+				events.forEach((event) => window.removeEventListener(event, resetTimer));
+			};
+		}
+	}, [isPcpAuthorized]);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpContext.Provider, {
+		value: {
+			isPcpAuthorized,
+			authorizePcp,
+			checkPcpAuth
+		},
+		children
+	});
+};
+function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP", description = "Esta ação requer autorização de Planejamento e Controle de Produção. Informe a senha PCP." }) {
+	const { authorizePcp } = usePcp();
+	const [password, setPassword] = (0, import_react.useState)("");
+	const [error, setError] = (0, import_react.useState)(false);
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setError(false);
+		setLoading(true);
+		await new Promise((resolve) => setTimeout(resolve, 300));
+		if (authorizePcp(password)) {
+			setPassword("");
+			setLoading(false);
+			onOpenChange(false);
+			onSuccess();
+		} else {
+			setError(true);
+			setLoading(false);
+		}
+	};
+	const handleOpenChange = (open) => {
+		if (!open) {
+			setPassword("");
+			setError(false);
+		}
+		onOpenChange(open);
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+		open: isOpen,
+		onOpenChange: handleOpenChange,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+			className: "sm:max-w-md",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogTitle, {
+				className: "flex items-center gap-2 text-primary",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, { className: "h-5 w-5" }), title]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: description })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				onSubmit: handleSubmit,
+				className: "space-y-4 py-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+						type: "password",
+						placeholder: "Senha PCP",
+						value: password,
+						onChange: (e) => {
+							setPassword(e.target.value);
+							if (error) setError(false);
+						},
+						className: cn(error && "border-destructive focus-visible:ring-destructive", "text-center tracking-widest font-bold"),
+						autoFocus: true,
+						disabled: loading
+					}), error && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm font-medium text-destructive text-center",
+						children: "Senha incorreta. Acesso negado."
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "button",
+					variant: "outline",
+					onClick: () => handleOpenChange(false),
+					disabled: loading,
+					children: "Cancelar"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					disabled: loading || !password,
+					children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }), " Verificando"] }) : "Confirmar"
+				})] })]
+			})]
+		})
+	});
+}
 function RawMaterial() {
 	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
@@ -77476,6 +77601,8 @@ function RawMaterial() {
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const handleProtectedAction = (createdAt, action) => {
 		if (shouldRequireAuth(createdAt)) {
 			setPendingAction(() => action);
@@ -77486,6 +77613,18 @@ function RawMaterial() {
 		setSecurityOpen(false);
 		if (pendingAction) pendingAction();
 		setPendingAction(null);
+	};
+	const handleNewEntry = () => {
+		checkPcpAuth(() => {
+			setEditingItem(void 0);
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setEditingItem(void 0);
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
 	};
 	const handleEdit = (item) => {
 		setEditingItem(item);
@@ -77554,30 +77693,31 @@ function RawMaterial() {
 					children: "Entrada de Matéria-Prima"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2 w-full sm:w-auto",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-						open: isOpen,
-						onOpenChange: handleOpenChange,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								className: "gap-2 flex-1 sm:flex-none",
-								onClick: () => setEditingItem(void 0),
-								size: isMobile ? "default" : "default",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
-									" ",
-									isMobile ? "Nova" : "Nova Entrada"
-								]
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2 flex-1 sm:flex-none",
+							onClick: handleNewEntry,
+							size: isMobile ? "default" : "default",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
+								" ",
+								isMobile ? "Nova" : "Nova Entrada"
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+							open: isOpen,
+							onOpenChange: handleOpenChange,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+								className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Entrada" : "Registrar Entrada" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os detalhes do registro selecionado." : "Insira os detalhes do recebimento de matéria-prima." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialForm, {
+									initialData: editingItem,
+									onSuccess: () => setIsOpen(false),
+									onCancel: () => setIsOpen(false)
+								})]
 							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-							className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Entrada" : "Registrar Entrada" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os detalhes do registro selecionado." : "Insira os detalhes do recebimento de matéria-prima." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialForm, {
-								initialData: editingItem,
-								onSuccess: () => setIsOpen(false),
-								onCancel: () => setIsOpen(false)
-							})]
-						})]
-					})]
+						})
+					]
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -77841,12 +77981,19 @@ function RawMaterial() {
 				isOpen: securityOpen,
 				onOpenChange: setSecurityOpen,
 				onSuccess: handleSecuritySuccess
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			})
 		]
 	});
 }
 var Sheet = Root$6;
-var SheetTrigger = Trigger$3;
 var SheetPortal = Portal$4;
 var SheetOverlay = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Overlay, {
 	className: cn("fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0", className),
@@ -78112,14 +78259,29 @@ function ProductionForm({ initialData, onSuccess }) {
 function Production() {
 	const { production, deleteProduction, dateRange } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
 	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const formatLosses = (value) => {
 		return formatNumber(value).replace(/\./g, ",");
+	};
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setEditingItem(void 0);
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setEditingItem(void 0);
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
 	};
 	const handleEditClick = (item) => {
 		if (canEditRecord(item.createdAt)) {
@@ -78178,32 +78340,33 @@ function Production() {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center justify-between",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-					className: "text-2xl font-bold tracking-tight",
-					children: "Produção Diária"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Sheet, {
-					open: isOpen,
-					onOpenChange: handleOpenChange,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTrigger, {
-						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-							className: "gap-2",
-							onClick: () => setEditingItem(void 0),
-							size: isMobile ? "sm" : "default",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
-								" ",
-								isMobile ? "Novo" : "Novo Registro"
-							]
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "text-2xl font-bold tracking-tight",
+						children: "Produção Diária"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						className: "gap-2",
+						onClick: handleNewRecord,
+						size: isMobile ? "sm" : "default",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
+							" ",
+							isMobile ? "Novo" : "Novo Registro"
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Sheet, {
+						open: isOpen,
+						onOpenChange: handleOpenChange,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetContent, {
+							className: "overflow-y-auto sm:max-w-md w-full",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetDescription, { children: editingItem ? "Atualize os dados de processamento." : "Informe os dados de processamento do turno. O cálculo de perdas será automático." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionForm, {
+								initialData: editingItem,
+								onSuccess: () => setIsOpen(false)
+							})]
 						})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetContent, {
-						className: "overflow-y-auto sm:max-w-md w-full",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SheetHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetDescription, { children: editingItem ? "Atualize os dados de processamento." : "Informe os dados de processamento do turno. O cálculo de perdas será automático." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionForm, {
-							initialData: editingItem,
-							onSuccess: () => setIsOpen(false)
-						})]
-					})]
-				})]
+					})
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Diário de Produção" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
@@ -78416,6 +78579,14 @@ function Production() {
 				onSuccess: handleSecuritySuccess,
 				title: "Proteção de Registro",
 				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			})
 		]
 	});
@@ -78643,12 +78814,27 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 function BloodProduction() {
 	const { production, deleteProduction, factories } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	useIsMobile();
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
 	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setEditingItem(void 0);
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setEditingItem(void 0);
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
+	};
 	const handleEditClick = (item) => {
 		if (canEditRecord(item.createdAt)) {
 			setEditingItem(item);
@@ -78701,31 +78887,32 @@ function BloodProduction() {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
-					className: "text-2xl font-bold tracking-tight flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Droplet, { className: "h-6 w-6 text-red-600" }), "Produção de Sangue"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "text-muted-foreground",
-					children: "Gerenciamento de produção de farinha de sangue."
-				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-					open: isOpen,
-					onOpenChange: handleOpenChange,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-							className: "gap-2 w-full sm:w-auto",
-							onClick: () => setEditingItem(void 0),
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Produção"]
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+						className: "text-2xl font-bold tracking-tight flex items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Droplet, { className: "h-6 w-6 text-red-600" }), "Produção de Sangue"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-muted-foreground",
+						children: "Gerenciamento de produção de farinha de sangue."
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						className: "gap-2 w-full sm:w-auto",
+						onClick: handleNewRecord,
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Produção"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+						open: isOpen,
+						onOpenChange: handleOpenChange,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[500px]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Informe os dados de processamento de sangue." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodProductionForm, {
+								initialData: editingItem,
+								onSuccess: () => setIsOpen(false),
+								onCancel: () => setIsOpen(false)
+							})]
 						})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-						className: "sm:max-w-[500px]",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Produção" : "Registrar Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Informe os dados de processamento de sangue." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodProductionForm, {
-							initialData: editingItem,
-							onSuccess: () => setIsOpen(false),
-							onCancel: () => setIsOpen(false)
-						})]
-					})]
-				})]
+					})
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
 				className: "pb-3",
@@ -78813,6 +79000,14 @@ function BloodProduction() {
 				isOpen: isSecurityOpen,
 				onOpenChange: setIsSecurityOpen,
 				onSuccess: handleSecuritySuccess
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			})
 		]
 	});
@@ -79624,6 +79819,7 @@ function AcidityForm({ initialData, onSubmit, onCancel }) {
 function DailyAcidity() {
 	const { acidityRecords, addAcidityRecord, updateAcidityRecord, deleteAcidityRecord } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
 	const [isCreateOpen, setIsCreateOpen] = (0, import_react.useState)(false);
 	const [isEditOpen, setIsEditOpen] = (0, import_react.useState)(false);
@@ -79636,6 +79832,18 @@ function DailyAcidity() {
 	});
 	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
 	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setIsCreateOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setIsCreateOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
+	};
 	function handleCreate(data) {
 		addAcidityRecord(data);
 		toast$2({
@@ -79722,39 +79930,41 @@ function DailyAcidity() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FlaskConical, { className: "h-6 w-6 text-primary" }), "Acidez Diária"]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex flex-col sm:flex-row items-stretch sm:items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
-						date: dateRange,
-						setDate: setDateRange,
-						className: "w-full sm:w-[300px]"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-						open: isCreateOpen,
-						onOpenChange: setIsCreateOpen,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								className: "gap-2",
-								size: isMobile ? "default" : "default",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
-									" ",
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "hidden sm:inline",
-										children: "Novo Registro"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "sm:hidden",
-										children: "Novo"
-									})
-								]
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+							date: dateRange,
+							setDate: setDateRange,
+							className: "w-full sm:w-[300px]"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2",
+							size: isMobile ? "default" : "default",
+							onClick: handleNewRecord,
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }),
+								" ",
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "hidden sm:inline",
+									children: "Novo Registro"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "sm:hidden",
+									children: "Novo"
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+							open: isCreateOpen,
+							onOpenChange: setIsCreateOpen,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+								className: "sm:max-w-[550px] max-h-[90vh] overflow-y-auto",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Medição de Acidez" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Preencha os dados da análise de acidez do tanque." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AcidityForm, {
+									onSubmit: handleCreate,
+									onCancel: () => setIsCreateOpen(false)
+								})]
 							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-							className: "sm:max-w-[550px] max-h-[90vh] overflow-y-auto",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Medição de Acidez" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Preencha os dados da análise de acidez do tanque." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AcidityForm, {
-								onSubmit: handleCreate,
-								onCancel: () => setIsCreateOpen(false)
-							})]
-						})]
-					})]
+						})
+					]
 				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AcidityChart, { data: filteredRecords }),
@@ -79995,6 +80205,14 @@ function DailyAcidity() {
 				onSuccess: handleSecuritySuccess,
 				title: "Proteção de Registro",
 				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			})
 		]
 	});
@@ -81108,6 +81326,7 @@ function ShippingForm({ initialData, onSuccess }) {
 function Shipping() {
 	const { shipping, deleteShipping, dateRange } = useData();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
@@ -81115,6 +81334,8 @@ function Shipping() {
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const handleProtectedAction = (date$4, action) => {
 		if (isRecordLocked(date$4)) {
 			setPendingAction(() => action);
@@ -81125,6 +81346,18 @@ function Shipping() {
 		setSecurityOpen(false);
 		if (pendingAction) pendingAction();
 		setPendingAction(null);
+	};
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setEditingItem(void 0);
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setEditingItem(void 0);
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
 	};
 	const handleEdit = (item) => {
 		setEditingItem(item);
@@ -81155,32 +81388,33 @@ function Shipping() {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center justify-between",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-					className: "text-2xl font-bold tracking-tight",
-					children: "Expedição"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-					open: isOpen,
-					onOpenChange: handleOpenChange,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-							className: "gap-2",
-							onClick: () => setEditingItem(void 0),
-							size: isMobile ? "sm" : "default",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Send, { className: "h-4 w-4" }),
-								" ",
-								isMobile ? "Nova" : "Nova Expedição"
-							]
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "text-2xl font-bold tracking-tight",
+						children: "Expedição"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						className: "gap-2",
+						onClick: handleNewRecord,
+						size: isMobile ? "sm" : "default",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Send, { className: "h-4 w-4" }),
+							" ",
+							isMobile ? "Nova" : "Nova Expedição"
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+						open: isOpen,
+						onOpenChange: handleOpenChange,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Saída" : "Registrar Saída" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os dados da carga e valores." : "Informe os dados da carga e valores para faturamento." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShippingForm, {
+								initialData: editingItem,
+								onSuccess: () => setIsOpen(false)
+							})]
 						})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-						className: "sm:max-w-[425px] overflow-y-auto max-h-[90vh]",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Saída" : "Registrar Saída" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os dados da carga e valores." : "Informe os dados da carga e valores para faturamento." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShippingForm, {
-							initialData: editingItem,
-							onSuccess: () => setIsOpen(false)
-						})]
-					})]
-				})]
+					})
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center justify-between gap-4",
@@ -81375,6 +81609,14 @@ function Shipping() {
 				isOpen: securityOpen,
 				onOpenChange: setSecurityOpen,
 				onSuccess: handleSecuritySuccess
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			})
 		]
 	});
@@ -84527,6 +84769,7 @@ function SeboInventory() {
 	const { currentFactoryId } = useData();
 	const { user } = useAuth();
 	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
 	const [date$4, setDate] = (0, import_react.useState)(startOfDay(/* @__PURE__ */ new Date()));
 	const [chartMonth, setChartMonth] = (0, import_react.useState)(startOfMonth(/* @__PURE__ */ new Date()));
 	const [selectedDay, setSelectedDay] = (0, import_react.useState)("all");
@@ -84536,6 +84779,8 @@ function SeboInventory() {
 	const [tankRows, setTankRows] = (0, import_react.useState)([]);
 	const [extraRows, setExtraRows] = (0, import_react.useState)([]);
 	const [historyRecords, setHistoryRecords] = (0, import_react.useState)([]);
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const chartStartDate = (0, import_react.useMemo)(() => startOfMonth(chartMonth), [chartMonth]);
 	const chartEndDate = (0, import_react.useMemo)(() => endOfMonth(chartMonth), [chartMonth]);
 	const daysInMonth = (0, import_react.useMemo)(() => {
@@ -84738,7 +84983,7 @@ function SeboInventory() {
 			grandTotalKg: tankTotalKg + extraKg
 		};
 	}, [tankRows, extraRows]);
-	const handleSave = async () => {
+	const performSave = async () => {
 		if (!user || !currentFactoryId) {
 			toast$2({
 				title: "Erro de Autenticação",
@@ -84778,6 +85023,12 @@ function SeboInventory() {
 		} finally {
 			setSaving(false);
 		}
+	};
+	const handleSave = () => {
+		checkPcpAuth(performSave, () => {
+			setPcpPendingAction(() => performSave);
+			setIsPcpGateOpen(true);
+		});
 	};
 	const getCellClass = (type, val1, val2) => {
 		if (type === "moisture_impurity") {
@@ -85202,6 +85453,14 @@ function SeboInventory() {
 						})
 					})]
 				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("datalist", {
 				id: "status-suggestions",
@@ -87360,61 +87619,87 @@ function SteamControlCharts() {
 }
 function SteamControl() {
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const { checkPcpAuth } = usePcp();
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
+	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
-				className: "text-3xl font-bold tracking-tight flex items-center gap-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-8 w-8 text-primary" }), "Controle de Vapor"]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "text-muted-foreground",
-				children: "Monitoramento de consumo de combustível e geração de vapor."
-			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
-				open: isOpen,
-				onOpenChange: setIsOpen,
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+						className: "text-3xl font-bold tracking-tight flex items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-8 w-8 text-primary" }), "Controle de Vapor"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-muted-foreground",
+						children: "Monitoramento de consumo de combustível e geração de vapor."
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2",
+						onClick: handleNewRecord,
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+						open: isOpen,
+						onOpenChange: setIsOpen,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[550px]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Controle de Vapor" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Insira os dados de consumo de combustível e leituras do medidor." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
+								onSuccess: () => setIsOpen(false),
+								onCancel: () => setIsOpen(false)
+							})]
+						})
 					})
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-					className: "sm:max-w-[550px]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Controle de Vapor" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Insira os dados de consumo de combustível e leituras do medidor." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlForm, {
-						onSuccess: () => setIsOpen(false),
-						onCancel: () => setIsOpen(false)
-					})]
-				})]
-			})]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
-			defaultValue: "records",
-			className: "space-y-4",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
-					className: "grid w-full grid-cols-2 max-w-[400px]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "records",
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+						className: "grid w-full grid-cols-2 max-w-[400px]",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+							value: "records",
+							className: "gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { className: "h-4 w-4" }), " Registros"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+							value: "charts",
+							className: "gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartBar, { className: "h-4 w-4" }), " Gráficos"]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
 						value: "records",
-						className: "gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { className: "h-4 w-4" }), " Registros"]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
 						value: "charts",
-						className: "gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartBar, { className: "h-4 w-4" }), " Gráficos"]
-					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
-					value: "records",
-					className: "space-y-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlTable, {})
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
-					value: "charts",
-					className: "space-y-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlCharts, {})
-				})
-			]
-		})]
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlCharts, {})
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
+			})
+		]
 	});
 }
 var NotFound = () => {
@@ -88798,7 +89083,7 @@ const ProtectedRoute = ({ children }) => {
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children });
 };
-var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DataProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BrowserRouter, {
+var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DataProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BrowserRouter, {
 	future: {
 		v7_startTransition: false,
 		v7_relativeSplatPath: false
@@ -88898,8 +89183,8 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 			})
 		] })
 	] })
-}) }) });
+}) }) }) });
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Bo63Hg1Q.js.map
+//# sourceMappingURL=index-pGplf9Uk.js.map

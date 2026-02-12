@@ -26,62 +26,74 @@ import ResetPassword from './pages/ResetPassword'
 import DashboardLayout from './layouts/DashboardLayout'
 import { DataProvider } from '@/context/DataContext'
 import { AuthProvider } from '@/hooks/use-auth'
+import { PcpProvider } from '@/context/PcpContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 const App = () => (
   <AuthProvider>
-    <DataProvider>
-      <BrowserRouter
-        future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
+    <PcpProvider>
+      <DataProvider>
+        <BrowserRouter
+          future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
+        >
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
-            <Route
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/entrada-mp" element={<RawMaterial />} />
-              <Route path="/producao" element={<Production />} />
-              <Route path="/producao-sangue" element={<BloodProduction />} />
-              <Route path="/rendimentos" element={<Yields />} />
-              <Route path="/acidez-diaria" element={<DailyAcidity />} />
-              <Route path="/qualidade" element={<Quality />} />
               <Route
-                path="/relatorios-avancados"
-                element={<AdvancedReports />}
-              />
-              <Route path="/estoque" element={<Inventory />} />
-              <Route path="/expedicao" element={<Shipping />} />
-              <Route path="/fabricas" element={<Factories />} />
-              <Route path="/settings" element={<Settings />} />
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/entrada-mp" element={<RawMaterial />} />
+                <Route path="/producao" element={<Production />} />
+                <Route path="/producao-sangue" element={<BloodProduction />} />
+                <Route path="/rendimentos" element={<Yields />} />
+                <Route path="/acidez-diaria" element={<DailyAcidity />} />
+                <Route path="/qualidade" element={<Quality />} />
+                <Route
+                  path="/relatorios-avancados"
+                  element={<AdvancedReports />}
+                />
+                <Route path="/estoque" element={<Inventory />} />
+                <Route path="/expedicao" element={<Shipping />} />
+                <Route path="/fabricas" element={<Factories />} />
+                <Route path="/settings" element={<Settings />} />
 
-              {/* Gestão Routes */}
-              <Route path="/gestao/estoque-sebo" element={<SeboInventory />} />
-              <Route path="/gestao/processo" element={<ProcessManagement />} />
-              <Route
-                path="/gestao/previsao-mp"
-                element={<ForecastManagement />}
-              />
-              <Route path="/gestao/controle-vapor" element={<SteamControl />} />
+                {/* Gestão Routes */}
+                <Route
+                  path="/gestao/estoque-sebo"
+                  element={<SeboInventory />}
+                />
+                <Route
+                  path="/gestao/processo"
+                  element={<ProcessManagement />}
+                />
+                <Route
+                  path="/gestao/previsao-mp"
+                  element={<ForecastManagement />}
+                />
+                <Route
+                  path="/gestao/controle-vapor"
+                  element={<SteamControl />}
+                />
 
-              <Route path="/access-denied" element={<AccessDenied />} />
-            </Route>
+                <Route path="/access-denied" element={<AccessDenied />} />
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </BrowserRouter>
-    </DataProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </BrowserRouter>
+      </DataProvider>
+    </PcpProvider>
   </AuthProvider>
 )
 
