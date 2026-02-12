@@ -35831,7 +35831,8 @@ if (shouldShowDeprecationWarning()) console.warn("⚠️  Node.js 18 and below a
 const supabase = createClient("https://cbmpujaahiqcehapnboj.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNibXB1amFhaGlxY2VoYXBuYm9qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwODM2NjAsImV4cCI6MjA4NDY1OTY2MH0.5xoUE_mUyXkunLk2GZAVdbRE350gNruNby6AljK5BU8", { auth: {
 	storage: localStorage,
 	persistSession: true,
-	autoRefreshToken: true
+	autoRefreshToken: true,
+	detectSessionInUrl: true
 } });
 var AuthContext = (0, import_react.createContext)(void 0);
 const useAuth = () => {
@@ -35844,52 +35845,90 @@ const AuthProvider = ({ children }) => {
 	const [session, setSession] = (0, import_react.useState)(null);
 	const [loading, setLoading] = (0, import_react.useState)(true);
 	(0, import_react.useEffect)(() => {
+		let mounted = true;
 		const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session$1) => {
-			setSession(session$1);
-			setUser(session$1?.user ?? null);
-			setLoading(false);
+			if (mounted) {
+				setSession(session$1);
+				setUser(session$1?.user ?? null);
+				setLoading(false);
+			}
 		});
-		supabase.auth.getSession().then(({ data: { session: session$1 } }) => {
-			setSession(session$1);
-			setUser(session$1?.user ?? null);
-			setLoading(false);
+		supabase.auth.getSession().then(({ data, error }) => {
+			if (!mounted) return;
+			if (error) console.warn("Error checking initial session:", error.message);
+			setSession(data?.session ?? null);
+			setUser(data?.session?.user ?? null);
+		}).catch((err) => {
+			if (!mounted) return;
+			console.error("Unexpected error during session check:", err);
+		}).finally(() => {
+			if (mounted) setLoading(false);
 		});
-		return () => subscription.unsubscribe();
+		return () => {
+			mounted = false;
+			subscription.unsubscribe();
+		};
 	}, []);
 	const signUp = async (email$1, password) => {
-		const redirectUrl = `${window.location.origin}/`;
-		const { error } = await supabase.auth.signUp({
-			email: email$1,
-			password,
-			options: { emailRedirectTo: redirectUrl }
-		});
-		return { error };
+		try {
+			const redirectUrl = `${window.location.origin}/`;
+			const { error } = await supabase.auth.signUp({
+				email: email$1,
+				password,
+				options: { emailRedirectTo: redirectUrl }
+			});
+			return { error };
+		} catch (error) {
+			return { error };
+		}
 	};
 	const signIn = async (email$1, password) => {
-		const { error } = await supabase.auth.signInWithPassword({
-			email: email$1,
-			password
-		});
-		return { error };
+		try {
+			const { error } = await supabase.auth.signInWithPassword({
+				email: email$1,
+				password
+			});
+			return { error };
+		} catch (error) {
+			return { error };
+		}
 	};
 	const signOut = async () => {
-		const { error } = await supabase.auth.signOut();
-		return { error };
+		try {
+			const { error } = await supabase.auth.signOut();
+			return { error };
+		} catch (error) {
+			return { error };
+		}
 	};
 	const resetPassword = async (email$1) => {
-		const redirectUrl = `${window.location.origin}/reset-password`;
-		const { data, error } = await supabase.auth.resetPasswordForEmail(email$1, { redirectTo: redirectUrl });
-		return {
-			data,
-			error
-		};
+		try {
+			const redirectUrl = `${window.location.origin}/reset-password`;
+			const { data, error } = await supabase.auth.resetPasswordForEmail(email$1, { redirectTo: redirectUrl });
+			return {
+				data,
+				error
+			};
+		} catch (error) {
+			return {
+				data: null,
+				error
+			};
+		}
 	};
 	const updatePassword = async (password) => {
-		const { data, error } = await supabase.auth.updateUser({ password });
-		return {
-			data,
-			error
-		};
+		try {
+			const { data, error } = await supabase.auth.updateUser({ password });
+			return {
+				data,
+				error
+			};
+		} catch (error) {
+			return {
+				data: null,
+				error
+			};
+		}
 	};
 	const value = {
 		user,
@@ -89273,4 +89312,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-B8EIQklN.js.map
+//# sourceMappingURL=index-APZDrxOv.js.map

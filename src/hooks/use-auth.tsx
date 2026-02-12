@@ -35,65 +35,111 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+
     // Set up auth state listener FIRST
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       // It is FORBIDDEN to use async / await inside this callback
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      if (mounted) {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
     })
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    // We add robust error handling here to prevent white screens on network failure
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!mounted) return
 
-    return () => subscription.unsubscribe()
+        if (error) {
+          console.warn('Error checking initial session:', error.message)
+          // Even if there is an error (e.g. network), we must stop loading
+          // so the user sees the UI (e.g. login screen or public routes)
+        }
+
+        setSession(data?.session ?? null)
+        setUser(data?.session?.user ?? null)
+      })
+      .catch((err) => {
+        if (!mounted) return
+        console.error('Unexpected error during session check:', err)
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`
+    try {
+      const redirectUrl = `${window.location.origin}/`
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    })
-    return { error }
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
+      })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      return { error }
+    } catch (error) {
+      return { error }
+    }
   }
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    })
-    return { data, error }
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error }
+    }
   }
 
   const updatePassword = async (password: string) => {
-    const { data, error } = await supabase.auth.updateUser({
-      password: password,
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: password,
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error }
+    }
   }
 
   const value = {
