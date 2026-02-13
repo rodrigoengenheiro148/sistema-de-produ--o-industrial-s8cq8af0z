@@ -259,7 +259,7 @@ export default function Production() {
                         <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                           <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
                             <span className="text-xs text-muted-foreground block">
-                              MP Proc.
+                              Entrada de MP
                             </span>
                             <span className="font-mono font-bold">
                               {formatNumber(entry.mpUsed)} kg
@@ -309,7 +309,9 @@ export default function Production() {
                 <TableRow>
                   <TableHead>Data</TableHead>
                   <TableHead>Turno</TableHead>
-                  <TableHead className="text-right">MP Proc. (kg)</TableHead>
+                  <TableHead className="text-right">
+                    Entrada de MP (kg)
+                  </TableHead>
                   <TableHead className="text-right">Sebo (kg)</TableHead>
                   <TableHead className="text-right">FCO (kg)</TableHead>
                   <TableHead className="text-right">Farinheta (kg)</TableHead>

@@ -188,7 +188,7 @@ export function ProductionForm({
               name="mpUsed"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>MP Processada (kg)</FormLabel>
+                  <FormLabel>Entrada de MP (kg)</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>

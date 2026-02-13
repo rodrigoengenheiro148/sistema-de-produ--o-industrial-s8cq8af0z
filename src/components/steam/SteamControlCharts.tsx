@@ -41,6 +41,7 @@ export function SteamControlCharts() {
     if (!dateRange?.from || !dateRange?.to) return []
 
     // Pre-calculate production totals from PRODUCTION table
+    // Uses Entrada de MP (mpUsed) for Steam Control calculations
     const prodMap = new Map<string, number>()
     production.forEach((p) => {
       const key = format(p.date, 'yyyy-MM-dd')
@@ -129,14 +130,14 @@ export function SteamControlCharts() {
       color: 'hsl(var(--chart-1))',
     },
     entradaMp: {
-      label: 'MP Processada (t)',
+      label: 'Entrada de MP (t)',
       color: 'hsl(var(--chart-2))',
     },
   } satisfies ChartConfig
 
   const ratioConfig = {
     ratioMpVapor: {
-      label: 'MP vs Vapor',
+      label: 'Entrada MP vs Vapor',
       color: 'hsl(var(--chart-3))',
     },
     ratioCavacoVapor: {
@@ -215,7 +216,7 @@ export function SteamControlCharts() {
                   dataKey="entradaMp"
                   fill="var(--color-entradaMp)"
                   radius={[4, 4, 0, 0]}
-                  name="MP Processada"
+                  name="Entrada de MP"
                 >
                   <LabelList
                     dataKey="entradaMp"
@@ -269,7 +270,7 @@ export function SteamControlCharts() {
                   dataKey="ratioMpVapor"
                   fill="var(--color-ratioMpVapor)"
                   radius={[4, 4, 0, 0]}
-                  name="MP vs Vapor"
+                  name="Entrada MP vs Vapor"
                 >
                   <LabelList
                     dataKey="ratioMpVapor"

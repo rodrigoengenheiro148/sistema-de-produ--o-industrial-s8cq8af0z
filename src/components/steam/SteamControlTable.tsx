@@ -51,7 +51,8 @@ export function SteamControlTable() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const tableData = useMemo(() => {
-    // Optimization: Create a map of daily production totals
+    // Optimization: Create a map of daily production totals using the PRODUCTION table.
+    // This ensures we are using processed material (Entrada de MP) and not raw material intake.
     const productionMap = new Map<string, number>()
     production.forEach((p) => {
       const dateKey = format(p.date, 'yyyy-MM-dd')
@@ -110,7 +111,7 @@ export function SteamControlTable() {
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
               <TableHead className="text-right min-w-[120px] font-bold">
-                MP Proc. (kg)
+                Entrada de MP (kg)
               </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja

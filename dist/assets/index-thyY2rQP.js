@@ -78332,7 +78332,7 @@ function ProductionForm({ initialData, onSuccess }) {
 							control: form.control,
 							name: "mpUsed",
 							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "MP Processada (kg)" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada de MP (kg)" }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									type: "number",
 									...field
@@ -78580,7 +78580,7 @@ function Production() {
 											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
 											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs text-muted-foreground block",
-												children: "MP Proc."
+												children: "Entrada de MP"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold",
 												children: [formatNumber(entry.mpUsed), " kg"]
@@ -78640,7 +78640,7 @@ function Production() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
-						children: "MP Proc. (kg)"
+						children: "Entrada de MP (kg)"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
@@ -87323,7 +87323,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[120px] font-bold",
-							children: "MP Proc. (kg)"
+							children: "Entrada de MP (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -87571,7 +87571,7 @@ function SteamControlCharts() {
 							color: "hsl(var(--chart-1))"
 						},
 						entradaMp: {
-							label: "MP Processada (t)",
+							label: "Entrada de MP (t)",
 							color: "hsl(var(--chart-2))"
 						}
 					},
@@ -87632,7 +87632,7 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "MP Processada",
+								name: "Entrada de MP",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 									dataKey: "entradaMp",
 									position: "top",
@@ -87651,7 +87651,7 @@ function SteamControlCharts() {
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Indicadores de Eficiência" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução dos índices de produtividade térmica" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 					config: {
 						ratioMpVapor: {
-							label: "MP vs Vapor",
+							label: "Entrada MP vs Vapor",
 							color: "hsl(var(--chart-3))"
 						},
 						ratioCavacoVapor: {
@@ -87694,7 +87694,7 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "MP vs Vapor",
+								name: "Entrada MP vs Vapor",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 									dataKey: "ratioMpVapor",
 									position: "top",
@@ -89383,4 +89383,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-C_AbROZC.js.map
+//# sourceMappingURL=index-thyY2rQP.js.map
