@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { RawMaterialEntry } from '@/lib/types'
 import {
   Card,
@@ -25,7 +25,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Maximize2, BarChart3, Filter } from 'lucide-react'
+import {
+  Maximize2,
+  BarChart3,
+  Filter,
+  Check,
+  ChevronsUpDown,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Select,
@@ -34,6 +40,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -43,7 +65,7 @@ interface RawMaterialCompositionChartProps {
   className?: string
 }
 
-// Updated set of categories including 'Sangue'
+// Updated set of categories including 'Sangue' and 'Óleo Saturado'
 const CATEGORIES = [
   'Barrigada',
   'COURO BOVINO',
@@ -53,6 +75,7 @@ const CATEGORIES = [
   'Ossos',
   'VISCERAS DE PEIXE',
   'Sangue',
+  'Óleo Saturado',
 ]
 
 // Colors mapped to match the visual requirement
@@ -65,6 +88,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Ossos: '#0f172a', // slate-900 (Dark Grey)
   'VISCERAS DE PEIXE': '#3b82f6', // blue-500
   Sangue: '#dc2626', // red-600
+  'Óleo Saturado': '#8b5cf6', // violet-500
 }
 
 export function RawMaterialCompositionChart({
@@ -72,21 +96,23 @@ export function RawMaterialCompositionChart({
   isMobile = false,
   className,
 }: RawMaterialCompositionChartProps) {
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('all')
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
+  const [isFilterInitialized, setIsFilterInitialized] = useState(false)
+  const [openMaterialFilter, setOpenMaterialFilter] = useState(false)
 
-  // Extract unique options for filters from the provided data
+  // Extract unique options for filters from the provided data and fixed categories
   const { materialOptions, supplierOptions } = useMemo(() => {
-    if (!data || data.length === 0) {
-      return { materialOptions: [], supplierOptions: [] }
-    }
-    const materials = new Set<string>()
     const suppliers = new Set<string>()
+    // Start with predefined categories to ensure they appear in filter
+    const materials = new Set<string>(CATEGORIES)
 
-    data.forEach((item) => {
-      if (item.type) materials.add(item.type)
-      if (item.supplier) suppliers.add(item.supplier)
-    })
+    if (data) {
+      data.forEach((item) => {
+        if (item.type) materials.add(item.type)
+        if (item.supplier) suppliers.add(item.supplier)
+      })
+    }
 
     return {
       materialOptions: Array.from(materials).sort(),
@@ -94,17 +120,24 @@ export function RawMaterialCompositionChart({
     }
   }, [data])
 
+  // Initialize selectedMaterials with all options on first load
+  useEffect(() => {
+    if (!isFilterInitialized && materialOptions.length > 0) {
+      setSelectedMaterials(materialOptions)
+      setIsFilterInitialized(true)
+    }
+  }, [materialOptions, isFilterInitialized])
+
   // Filter the data based on selection
   const filteredData = useMemo(() => {
     if (!data) return []
     return data.filter((item) => {
-      const matchMaterial =
-        selectedMaterial === 'all' || item.type === selectedMaterial
+      const matchMaterial = selectedMaterials.includes(item.type)
       const matchSupplier =
         selectedSupplier === 'all' || item.supplier === selectedSupplier
       return matchMaterial && matchSupplier
     })
-  }, [data, selectedMaterial, selectedSupplier])
+  }, [data, selectedMaterials, selectedSupplier])
 
   // Process data for Stacked Bar Chart (Group by Date)
   const chartData = useMemo(() => {
@@ -186,6 +219,22 @@ export function RawMaterialCompositionChart({
       return (value / 1000).toFixed(0) + 'k'
     }
     return value.toString()
+  }
+
+  const toggleMaterial = (material: string) => {
+    setSelectedMaterials((current) =>
+      current.includes(material)
+        ? current.filter((item) => item !== material)
+        : [...current, material],
+    )
+  }
+
+  const toggleAllMaterials = () => {
+    if (selectedMaterials.length === materialOptions.length) {
+      setSelectedMaterials([])
+    } else {
+      setSelectedMaterials(materialOptions)
+    }
   }
 
   // If no data is passed at all (regardless of filters)
@@ -285,20 +334,84 @@ export function RawMaterialCompositionChart({
           <CardDescription>Volume diário por tipo (kg)</CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
-              <Filter className="h-3 w-3 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Material" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Materiais</SelectItem>
-              {materialOptions.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Multi-select Material Filter */}
+          <Popover
+            open={openMaterialFilter}
+            onOpenChange={setOpenMaterialFilter}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={openMaterialFilter}
+                className="w-full sm:w-[200px] h-8 text-xs justify-between"
+              >
+                <div className="flex items-center truncate">
+                  <Filter className="mr-2 h-3 w-3 text-muted-foreground" />
+                  {selectedMaterials.length === 0
+                    ? 'Selecione...'
+                    : selectedMaterials.length === materialOptions.length
+                      ? 'Todos os Materiais'
+                      : `${selectedMaterials.length} selecionados`}
+                </div>
+                <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Filtrar materiais..."
+                  className="h-8 text-xs"
+                />
+                <CommandList>
+                  <CommandEmpty>Nenhum material encontrado.</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem
+                      onSelect={toggleAllMaterials}
+                      className="text-xs cursor-pointer"
+                    >
+                      <div
+                        className={cn(
+                          'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                          selectedMaterials.length === materialOptions.length
+                            ? 'bg-primary text-primary-foreground'
+                            : 'opacity-50 [&_svg]:invisible',
+                        )}
+                      >
+                        <Check className={cn('h-4 w-4')} />
+                      </div>
+                      <span>Todos os Materiais</span>
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandSeparator />
+                  <CommandGroup className="max-h-[200px] overflow-auto">
+                    {materialOptions.map((material) => {
+                      const isSelected = selectedMaterials.includes(material)
+                      return (
+                        <CommandItem
+                          key={material}
+                          onSelect={() => toggleMaterial(material)}
+                          className="text-xs cursor-pointer"
+                        >
+                          <div
+                            className={cn(
+                              'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                              isSelected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'opacity-50 [&_svg]:invisible',
+                            )}
+                          >
+                            <Check className={cn('h-4 w-4')} />
+                          </div>
+                          <span>{material}</span>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
 
           <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
             <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
@@ -342,7 +455,11 @@ export function RawMaterialCompositionChart({
         </div>
       </CardHeader>
       <CardContent className="pt-4 pb-2">
-        {chartData.length > 0 ? (
+        {selectedMaterials.length === 0 ? (
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10">
+            Selecione pelo menos um tipo de material para visualizar.
+          </div>
+        ) : chartData.length > 0 ? (
           <ChartContent />
         ) : (
           <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10">
