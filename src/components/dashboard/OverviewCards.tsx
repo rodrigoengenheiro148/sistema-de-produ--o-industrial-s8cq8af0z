@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
+  Timer,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -32,7 +33,7 @@ import {
   formatPercent,
 } from '@/lib/utils'
 import { useMemo } from 'react'
-import { subDays, isSameDay, format } from 'date-fns'
+import { subDays, isSameDay, format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface OverviewCardsProps {
@@ -49,9 +50,10 @@ interface OverviewCardsProps {
 }
 
 export function OverviewCards({
-  rawMaterials,
-  production,
-  shipping,
+  rawMaterials = [],
+  production = [],
+  shipping = [],
+  cookingTimeRecords = [],
   notificationSettings,
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
@@ -149,10 +151,9 @@ export function OverviewCards({
     const previousDate = subDays(targetDate, 1)
 
     // Filter Production for D-1 (Only industrial output relevant for process time efficiency usually?)
-    // Actually, "Tons/Hour" usually refers to main line production.
     // Based on user story: (sebo + fco + farinheta) / total_hours
-    const prevDayProduction = fullProductionHistory.filter((p) =>
-      isSameDay(p.date, previousDate),
+    const prevDayProduction = fullProductionHistory.filter(
+      (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDate),
     )
     const totalProductionOutputD1 = prevDayProduction.reduce(
       (acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced,
@@ -160,8 +161,8 @@ export function OverviewCards({
     )
 
     // Filter Cooking Time for D-1
-    const prevDayCooking = fullCookingTimeRecords.filter((c) =>
-      isSameDay(c.date, previousDate),
+    const prevDayCooking = fullCookingTimeRecords.filter(
+      (c) => c.date && isValid(c.date) && isSameDay(c.date, previousDate),
     )
 
     // Calculate total hours using new field or fallback
@@ -179,7 +180,7 @@ export function OverviewCards({
       )
       totalMinutesD1 = totalHoursD1 * 60
     } else {
-      // Legacy Calculation
+      // Legacy Calculation (Fallback)
       totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
         if (!curr.startTime || !curr.endTime) return acc
         const toMinutes = (timeStr: string) => {
@@ -209,9 +210,21 @@ export function OverviewCards({
     const processTimeHours = Math.floor(totalMinutesD1 / 60)
     const processTimeMinutes = Math.round(totalMinutesD1 % 60)
     const processTimeD1Display = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
-    const previousDateFormatted = format(previousDate, 'dd/MM', {
-      locale: ptBR,
-    })
+    const previousDateFormatted = isValid(previousDate)
+      ? format(previousDate, 'dd/MM', { locale: ptBR })
+      : '--/--'
+
+    // 13. Estimated Weight based on Time (Requested Feature)
+    // Formula: (Total Hours * 60) * 0.55
+    // Use filtered cookingTimeRecords (cookingTimeRecords prop - active period)
+    const totalCookingHoursCurrent = cookingTimeRecords.reduce((acc, curr) => {
+      // Ensure totalHours is treated as number and handle undefined
+      const hours = typeof curr.totalHours === 'number' ? curr.totalHours : 0
+      return acc + hours
+    }, 0)
+
+    const totalCookingMinutesCurrent = totalCookingHoursCurrent * 60
+    const estimatedWeightByTime = totalCookingMinutesCurrent * 0.55
 
     return {
       rawMaterialInputKg,
@@ -226,11 +239,13 @@ export function OverviewCards({
       processTimeD1Display,
       tonPerHourD1,
       previousDateFormatted,
+      estimatedWeightByTime,
     }
   }, [
     rawMaterials,
     production,
     shipping,
+    cookingTimeRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
     referenceDate,
@@ -262,17 +277,17 @@ export function OverviewCards({
   // Calculate styles for each product
   const seboStyle = getYieldStyle(
     metrics.seboYield,
-    notificationSettings.seboThreshold,
+    notificationSettings?.seboThreshold || 0,
   )
   const fcoStyle = getYieldStyle(
     metrics.fcoYield,
-    notificationSettings.fcoThreshold ||
-      notificationSettings.farinhaThreshold ||
+    notificationSettings?.fcoThreshold ||
+      notificationSettings?.farinhaThreshold ||
       0,
   )
   const farinhetaStyle = getYieldStyle(
     metrics.farinhetaYield,
-    notificationSettings.farinhetaThreshold,
+    notificationSettings?.farinhetaThreshold || 0,
   )
 
   const formatCurrencyDisplay = (val: number) => {
@@ -345,6 +360,20 @@ export function OverviewCards({
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
       />
+
+      {/* 13. Estimativa (Tempo) */}
+      <MetricCard
+        title="Est. Peso (Tempo)"
+        value={`${formatNumber(metrics.estimatedWeightByTime, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })} kg`}
+        icon={Timer}
+        iconColor="text-blue-600"
+        borderColor="border-l-blue-600"
+      >
+        <div className="text-xs text-muted-foreground mt-1">0,55 kg/min</div>
+      </MetricCard>
 
       {/* 12. Tempo de Processos (D-1) */}
       <MetricCard

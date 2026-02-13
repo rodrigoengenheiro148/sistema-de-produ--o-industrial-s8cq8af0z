@@ -1794,6 +1794,10 @@ section[aria-label='Notifications alt+T'] {
   --tw-border-opacity: 1;
   border-left-color: rgb(59 130 246 / var(--tw-border-opacity, 1));
 }
+.border-l-blue-600{
+  --tw-border-opacity: 1;
+  border-left-color: rgb(37 99 235 / var(--tw-border-opacity, 1));
+}
 .border-l-destructive{
   border-left-color: hsl(var(--destructive));
 }

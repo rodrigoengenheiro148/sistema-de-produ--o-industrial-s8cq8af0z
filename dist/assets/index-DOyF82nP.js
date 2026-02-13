@@ -64340,7 +64340,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials, production, shipping, notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u$1 = unit$1?.toLowerCase() || "";
@@ -64366,8 +64366,8 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
 		const previousDate = subDays(referenceDate || /* @__PURE__ */ new Date(), 1);
-		const totalProductionOutputD1 = fullProductionHistory.filter((p$1) => isSameDay(p$1.date, previousDate)).reduce((acc, p$1) => acc + p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced, 0);
-		const prevDayCooking = fullCookingTimeRecords.filter((c$1) => isSameDay(c$1.date, previousDate));
+		const totalProductionOutputD1 = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, previousDate)).reduce((acc, p$1) => acc + p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced, 0);
+		const prevDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, previousDate));
 		let totalHoursD1 = 0;
 		let totalMinutesD1 = 0;
 		const recordsWithTotalHours = prevDayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
@@ -64405,12 +64405,16 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			bloodYield,
 			processTimeD1Display: `${Math.floor(totalMinutesD1 / 60)}h ${Math.round(totalMinutesD1 % 60).toString().padStart(2, "0")}m`,
 			tonPerHourD1,
-			previousDateFormatted: format(previousDate, "dd/MM", { locale: ptBR })
+			previousDateFormatted: isValid(previousDate) ? format(previousDate, "dd/MM", { locale: ptBR }) : "--/--",
+			estimatedWeightByTime: cookingTimeRecords.reduce((acc, curr) => {
+				return acc + (typeof curr.totalHours === "number" ? curr.totalHours : 0);
+			}, 0) * 60 * .55
 		};
 	}, [
 		rawMaterials,
 		production,
 		shipping,
+		cookingTimeRecords,
 		fullProductionHistory,
 		fullCookingTimeRecords,
 		referenceDate
@@ -64429,9 +64433,9 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 			bgClass: "bg-emerald-50/50 dark:bg-emerald-900/10"
 		};
 	};
-	const seboStyle = getYieldStyle(metrics.seboYield, notificationSettings.seboThreshold);
-	const fcoStyle = getYieldStyle(metrics.fcoYield, notificationSettings.fcoThreshold || notificationSettings.farinhaThreshold || 0);
-	const farinhetaStyle = getYieldStyle(metrics.farinhetaYield, notificationSettings.farinhetaThreshold);
+	const seboStyle = getYieldStyle(metrics.seboYield, notificationSettings?.seboThreshold || 0);
+	const fcoStyle = getYieldStyle(metrics.fcoYield, notificationSettings?.fcoThreshold || notificationSettings?.farinhaThreshold || 0);
+	const farinhetaStyle = getYieldStyle(metrics.farinhetaYield, notificationSettings?.farinhetaThreshold || 0);
 	const formatCurrencyDisplay = (val) => {
 		return new Intl.NumberFormat("pt-BR", {
 			style: "currency",
@@ -64475,6 +64479,20 @@ function OverviewCards({ rawMaterials, production, shipping, notificationSetting
 				icon: Factory,
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				title: "Est. Peso (Tempo)",
+				value: `${formatNumber(metrics.estimatedWeightByTime, {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2
+				})} kg`,
+				icon: Timer,
+				iconColor: "text-blue-600",
+				borderColor: "border-l-blue-600",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "text-xs text-muted-foreground mt-1",
+					children: "0,55 kg/min"
+				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: `Tempo de Processos`,
@@ -71682,6 +71700,7 @@ function Dashboard() {
 		return dateRange.to || today;
 	}, [dateRange, today]);
 	const filterByDate = (date$4) => {
+		if (!isValid(date$4)) return false;
 		if (!dateRange.from || !dateRange.to) return true;
 		return isWithinInterval(date$4, {
 			start: dateRange.from,
@@ -71726,7 +71745,7 @@ function Dashboard() {
 		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced, 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
-			yieldTarget: notificationSettings.yieldThreshold || 58
+			yieldTarget: notificationSettings?.yieldThreshold || 58
 		};
 	}, [filteredProduction, notificationSettings]);
 	const [dateInput, setDateInput] = (0, import_react.useState)("");
@@ -90234,4 +90253,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D05j6J40.js.map
+//# sourceMappingURL=index-DOyF82nP.js.map

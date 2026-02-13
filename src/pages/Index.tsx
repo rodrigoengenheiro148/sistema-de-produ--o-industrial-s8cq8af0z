@@ -83,6 +83,7 @@ export default function Dashboard() {
 
   // Filter data based on date range (Inclusive)
   const filterByDate = (date: Date) => {
+    if (!isValid(date)) return false
     if (!dateRange.from || !dateRange.to) return true
     return isWithinInterval(date, {
       start: dateRange.from,
@@ -181,7 +182,7 @@ export default function Dashboard() {
       0,
     )
     const yieldVal = totalMp > 0 ? (totalProduced / totalMp) * 100 : 0
-    const target = notificationSettings.yieldThreshold || 58.0
+    const target = notificationSettings?.yieldThreshold || 58.0
 
     return { currentYield: yieldVal, yieldTarget: target }
   }, [filteredProduction, notificationSettings])
