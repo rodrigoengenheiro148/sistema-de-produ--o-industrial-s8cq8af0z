@@ -12,6 +12,7 @@ import {
 import { SteamControlForm } from '@/components/steam/SteamControlForm'
 import { SteamControlTable } from '@/components/steam/SteamControlTable'
 import { SteamControlCharts } from '@/components/steam/SteamControlCharts'
+import { CookingMetricsCard } from '@/components/steam/CookingMetricsCard'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
 
@@ -71,6 +72,10 @@ export default function SteamControl() {
             />
           </DialogContent>
         </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <CookingMetricsCard />
       </div>
 
       <Tabs defaultValue="records" className="space-y-4">

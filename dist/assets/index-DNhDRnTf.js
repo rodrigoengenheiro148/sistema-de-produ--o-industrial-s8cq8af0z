@@ -86354,78 +86354,38 @@ function HourlyProductionEfficiencyChart({ date: date$4 }) {
 		}) })]
 	});
 }
-function calculateDailyMetrics(date$4, cookingRecords, downtimeRecords, productionRecords, now$2 = /* @__PURE__ */ new Date()) {
-	const activeMinutesArray = new Int8Array(1440).fill(0);
-	const dayCooking = cookingRecords.filter((r$2) => isSameDay(r$2.date, date$4));
-	const recordsWithTotalHours = dayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
-	const hasTotalHoursInput = recordsWithTotalHours.length > 0;
-	let totalManualHours = 0;
-	if (hasTotalHoursInput) totalManualHours = recordsWithTotalHours.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
-	dayCooking.forEach((record) => {
-		if (record.startTime) {
-			const [startH, startM] = record.startTime.split(":").map(Number);
-			let startMin = startH * 60 + startM;
-			let endMin = 1440;
-			if (record.endTime) {
-				const [endH, endM] = record.endTime.split(":").map(Number);
-				endMin = endH * 60 + endM;
-				if (endMin < startMin) endMin = 1440;
-			} else if (isSameDay(date$4, now$2)) endMin = now$2.getHours() * 60 + now$2.getMinutes();
-			startMin = Math.max(0, Math.min(1440, startMin));
-			endMin = Math.max(0, Math.min(1440, endMin));
-			for (let i$2 = startMin; i$2 < endMin; i$2++) activeMinutesArray[i$2] = 1;
+function calculateDailyMetrics(batches) {
+	let totalProcessed = 0;
+	let totalProduced = 0;
+	let cookingTimeMinutes = 0;
+	batches.forEach((batch) => {
+		const processed = batch.raw_material_weight || 0;
+		const produced = batch.product_weight || 0;
+		totalProcessed += processed;
+		totalProduced += produced;
+		if (batch.start_time && batch.end_time) {
+			const start = new Date(batch.start_time);
+			const end = new Date(batch.end_time);
+			if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+				const duration$2 = differenceInMinutes(end, start);
+				if (duration$2 > 0) cookingTimeMinutes += duration$2;
+			}
 		}
 	});
-	const rawActiveMinutesLegacy = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
-	const dayDowntime = downtimeRecords.filter((r$2) => {
-		if (r$2.startTime) return isSameDay(new Date(r$2.startTime), date$4);
-		return isSameDay(r$2.date, date$4);
-	});
-	let manualDowntimeMinutes = 0;
-	let timestampedDowntimeMinutes = 0;
-	dayDowntime.forEach((record) => {
-		if (record.startTime) {
-			const start = new Date(record.startTime);
-			const end = record.endTime ? new Date(record.endTime) : isSameDay(date$4, now$2) ? now$2 : endOfDay(date$4);
-			const startMin = start.getHours() * 60 + start.getMinutes();
-			let endMin = end.getHours() * 60 + end.getMinutes();
-			if (endMin < startMin) endMin = 1440;
-			for (let i$2 = startMin; i$2 < endMin; i$2++) if (i$2 >= 0 && i$2 < 1440) {
-				if (activeMinutesArray[i$2] === 1) {
-					activeMinutesArray[i$2] = 0;
-					timestampedDowntimeMinutes++;
-				}
-			}
-		} else manualDowntimeMinutes += record.durationHours * 60;
-	});
-	const grossActiveMinutes = activeMinutesArray.reduce((a$2, b$1) => a$2 + b$1, 0);
-	let netActiveMinutes = 0;
-	let netActiveHours = 0;
-	if (hasTotalHoursInput) {
-		netActiveHours = totalManualHours;
-		netActiveMinutes = totalManualHours * 60;
-	} else {
-		netActiveMinutes = Math.max(0, grossActiveMinutes - manualDowntimeMinutes);
-		netActiveHours = netActiveMinutes / 60;
-	}
-	const totalDowntimeMinutes = hasTotalHoursInput ? manualDowntimeMinutes + timestampedDowntimeMinutes * 0 : rawActiveMinutesLegacy - grossActiveMinutes + manualDowntimeMinutes;
-	const totalProduction = productionRecords.filter((p) => isSameDay(p.date, date$4)).reduce((acc, curr) => {
-		return acc + (curr.seboProduced || 0) + (curr.fcoProduced || 0) + (curr.farinhetaProduced || 0);
-	}, 0);
-	const rateKg = netActiveHours > 0 ? totalProduction / netActiveHours : 0;
-	const rateTon = rateKg / 1e3;
-	const totalConsumption = productionRecords.filter((p) => isSameDay(p.date, date$4)).reduce((acc, curr) => acc + (curr.mpUsed || 0), 0);
+	const yieldPercentage = totalProcessed > 0 ? totalProduced / totalProcessed * 100 : 0;
+	const totalProcessedTons = totalProcessed / 1e3;
+	const cookingHours = cookingTimeMinutes / 60;
+	const throughput = cookingHours > 0 ? totalProcessedTons / cookingHours : 0;
 	return {
-		activeMinutesArray,
-		rawActiveMinutes: hasTotalHoursInput ? netActiveMinutes : rawActiveMinutesLegacy,
-		grossActiveMinutes,
-		netActiveMinutes,
-		netActiveHours,
-		totalConsumption,
-		totalDowntimeMinutes,
-		rateKg,
-		rateTon
+		totalProcessed,
+		totalProduced,
+		cookingTimeMinutes,
+		yieldPercentage,
+		throughput
 	};
+}
+function formatDuration(minutes) {
+	return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60).toString().padStart(2, "0")}m`;
 }
 function ProcessMetricsCard({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
@@ -87949,61 +87909,57 @@ function SteamControlCharts() {
 		})]
 	});
 }
-function CookingMetricsCard({ date: date$4 }) {
-	const { cookingTimeRecords, downtimeRecords, production } = useData();
-	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords, downtimeRecords, production);
-	const throughput = metrics.netActiveHours > 0 ? 792 / metrics.netActiveHours : 0;
-	const META = 14.125;
-	const isBelowMeta = throughput < META;
-	const hours = Math.floor(metrics.netActiveMinutes / 60);
-	const minutes = Math.floor(metrics.netActiveMinutes % 60);
-	const timeStr = `${hours}h ${String(minutes).padStart(2, "0")}m`;
+function CookingMetricsCard({ cookingTimeMinutes = 0, throughput = 0, targetThroughput = 14.125, referenceDate = /* @__PURE__ */ new Date(), className }) {
+	const isBelowTarget = throughput < targetThroughput;
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: "w-full max-w-sm",
+		className: cn("bg-white", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
 			className: "flex flex-row items-center justify-between space-y-0 pb-2",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-				className: "text-sm font-bold uppercase text-muted-foreground/80 tracking-wider",
-				children: "TEMPO DE COZIMENTO"
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-5 w-5 text-blue-500" })]
+				className: "text-xs font-bold text-muted-foreground uppercase tracking-widest",
+				children: "Tempo de Cozimento"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-4 w-4 text-blue-600" })]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-			className: "text-4xl font-bold tracking-tight mt-2 mb-6",
-			children: timeStr
+			className: "text-3xl font-bold text-slate-900",
+			children: formatDuration(cookingTimeMinutes)
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "flex items-end justify-between pt-2 border-t",
+			className: "mt-4 flex items-end justify-between border-t pt-4",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col gap-1",
+				className: "space-y-1",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 text-xs font-medium text-muted-foreground",
+					className: "flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider",
 					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3.5 w-3.5" }),
-						"REF: ",
-						format(date$4, "dd/MM")
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
+						"REF:",
+						" ",
+						referenceDate.toLocaleDateString("pt-BR", {
+							day: "2-digit",
+							month: "2-digit"
+						})
 					]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 mt-1",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-						className: "text-2xl font-bold",
-						children: [formatNumber(throughput, {
+					className: "flex items-center gap-1.5 font-bold text-lg text-slate-700",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4" }),
+						throughput.toLocaleString("pt-BR", {
 							minimumFractionDigits: 2,
 							maximumFractionDigits: 2
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "text-sm font-normal text-muted-foreground ml-1",
+						}),
+						" ",
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-xs text-muted-foreground font-medium self-end mb-1",
 							children: "t/h"
-						})]
-					})]
+						})
+					]
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col items-end gap-1",
+				className: "flex flex-col items-end gap-0.5",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide",
-					children: "META"
+					className: "text-[10px] font-bold text-muted-foreground uppercase tracking-wider",
+					children: "Meta"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-1.5",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "text-lg font-bold text-muted-foreground/80",
-						children: formatNumber(META, { minimumFractionDigits: 3 })
-					}), isBelowMeta ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingDown, { className: "h-5 w-5 text-red-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-green-500" })]
+					className: "flex items-center gap-1 text-sm font-bold text-slate-600",
+					children: [targetThroughput.toLocaleString("pt-BR", { minimumFractionDigits: 3 }), isBelowTarget ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingDown, { className: "h-4 w-4 text-red-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-4 w-4 text-emerald-500" })]
 				})]
 			})]
 		})] })]
@@ -88014,7 +87970,6 @@ function SteamControl() {
 	const { checkPcpAuth } = usePcp();
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
-	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	const handleNewRecord = () => {
 		checkPcpAuth(() => {
 			setIsOpen(true);
@@ -88038,29 +87993,13 @@ function SteamControl() {
 						className: "text-muted-foreground",
 						children: "Monitoramento de consumo de combustível, geração de vapor e relação com MP processada."
 					})] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "flex items-center gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
-							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								variant: "outline",
-								className: cn("justify-start text-left font-normal w-[240px]", !date$4 && "text-muted-foreground"),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
-							})
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
-							className: "w-auto p-0",
-							align: "end",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, {
-								mode: "single",
-								selected: date$4,
-								onSelect: (d) => d && setDate(d),
-								initialFocus: true
-							})
-						})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2",
 							onClick: handleNewRecord,
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
-						})]
+						})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
 						open: isOpen,
@@ -88077,7 +88016,7 @@ function SteamControl() {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CookingMetricsCard, { date: date$4 })
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CookingMetricsCard, {})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
 				defaultValue: "records",
@@ -89618,4 +89557,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-B9O3dk1X.js.map
+//# sourceMappingURL=index-DNhDRnTf.js.map
