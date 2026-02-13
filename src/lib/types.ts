@@ -36,6 +36,7 @@ export interface ShippingEntry {
     | 'Matéria-Prima'
     | 'Farinha Especial'
     | 'Farinha de Peixe'
+    | 'Farinha de Sangue'
   quantity: number
   unitPrice: number
   docRef: string

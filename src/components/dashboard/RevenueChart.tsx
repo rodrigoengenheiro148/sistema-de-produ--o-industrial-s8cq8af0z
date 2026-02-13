@@ -47,15 +47,8 @@ import {
   ArrowDownRight,
   Filter,
   Search,
-  X,
 } from 'lucide-react'
-import {
-  cn,
-  isBloodRecord,
-  formatCurrency,
-  formatNumber,
-  formatPercent,
-} from '@/lib/utils'
+import { cn, isBloodRecord, formatCurrency, formatNumber } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -98,6 +91,7 @@ const PRODUCT_COLORS: Record<string, string> = {
   Farinha: 'hsl(var(--chart-2))',
   Farinheta: 'hsl(var(--chart-3))',
   'Matéria-Prima': 'hsl(var(--chart-4))',
+  'Farinha de Sangue': '#b91c1c', // red-700
 }
 
 const DEFAULT_FILTERS = ['Sebo', 'FCO', 'Farinheta', 'Farinha Especial']
@@ -770,6 +764,14 @@ export function RevenueChart({
                   onCheckedChange={() => handleFilterChange('Farinha Especial')}
                 >
                   Farinha Especial
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={currentFilter.includes('Farinha de Sangue')}
+                  onCheckedChange={() =>
+                    handleFilterChange('Farinha de Sangue')
+                  }
+                >
+                  Farinha de Sangue
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>

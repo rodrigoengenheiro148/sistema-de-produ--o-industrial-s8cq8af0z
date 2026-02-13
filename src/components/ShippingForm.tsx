@@ -37,6 +37,7 @@ const formSchema = z.object({
     'Farinha Especial',
     'Matéria-Prima',
     'Farinha de Peixe',
+    'Farinha de Sangue',
   ]),
   quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: 'Quantidade inválida',
@@ -180,6 +181,9 @@ export function ShippingForm({ initialData, onSuccess }: ShippingFormProps) {
                     </SelectItem>
                     <SelectItem value="Farinha de Peixe">
                       Farinha de Peixe
+                    </SelectItem>
+                    <SelectItem value="Farinha de Sangue">
+                      Farinha de Sangue
                     </SelectItem>
                     <SelectItem value="Matéria-Prima">
                       Matéria-Prima (Devolução)
