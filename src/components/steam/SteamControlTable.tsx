@@ -40,8 +40,7 @@ import { useToast } from '@/hooks/use-toast'
 import { formatNumber } from '@/lib/utils'
 
 export function SteamControlTable() {
-  const { steamControlRecords, production, deleteSteamControlRecord } =
-    useData()
+  const { steamControlRecords, deleteSteamControlRecord } = useData()
   const { toast } = useToast()
 
   const [editingItem, setEditingItem] = useState<SteamControlEntry | undefined>(
@@ -50,20 +49,6 @@ export function SteamControlTable() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Optimization: Pre-calculate production totals by date to ensure fast O(1) lookup
-  // and correct aggregation of all shifts for the day using production data.
-  const productionByDate = useMemo(() => {
-    const map = new Map<string, number>()
-    production.forEach((p) => {
-      // Use yyyy-MM-dd for consistent daily grouping regardless of time
-      const dateKey = format(p.date, 'yyyy-MM-dd')
-      const current = map.get(dateKey) || 0
-      // Sum mpUsed from production table entries
-      map.set(dateKey, current + Number(p.mpUsed || 0))
-    })
-    return map
-  }, [production])
-
   const tableData = useMemo(() => {
     // We want to display records sorted by date descending
     const sortedRecords = [...steamControlRecords].sort(
@@ -71,11 +56,6 @@ export function SteamControlTable() {
     )
 
     return sortedRecords.map((record) => {
-      // Find matching production for the day using the optimized map
-      const dateKey = format(record.date, 'yyyy-MM-dd')
-      // Retrieve the aggregated MP processed for this date from PRODUCTION table
-      const entradaMp = productionByDate.get(dateKey) || 0
-
       const totalFuel =
         record.soyWaste + record.firewood + record.riceHusk + record.woodChips
       const consumoVap = record.meterEnd - record.meterStart
@@ -84,31 +64,14 @@ export function SteamControlTable() {
       // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL
       const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0
 
-      // MP'S VS TONS VAPOR: ENTRADA MP / CONSUMO VAP
-      const mpVsVapor = consumoVap > 0 ? entradaMp / consumoVap : 0
-
-      // MP'S VS M3 CAVACO: ENTRADA MP / TOTAL
-      const mpVsCavaco = totalFuel > 0 ? entradaMp / totalFuel : 0
-
-      // M3 VS MP'S: (TOTAL / ENTRADA MP) * 1000
-      const m3VsMp = entradaMp > 0 ? (totalFuel / entradaMp) * 1000 : 0
-
-      // TONS VAPOR VS MP'S: (CONSUMO VAP / ENTRADA MP) * 1000
-      const vaporVsMp = entradaMp > 0 ? (consumoVap / entradaMp) * 1000 : 0
-
       return {
         ...record,
-        entradaMp,
         totalFuel,
         consumoVap,
         cavacoVsVapor,
-        mpVsVapor,
-        mpVsCavaco,
-        m3VsMp,
-        vaporVsMp,
       }
     })
-  }, [steamControlRecords, productionByDate])
+  }, [steamControlRecords])
 
   const handleDelete = () => {
     if (deleteId) {
@@ -133,10 +96,6 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
-              {/* MP Processada column sourcing data from Production table */}
-              <TableHead className="text-right min-w-[120px]">
-                MP Proc. (kg)
-              </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja
               </TableHead>
@@ -161,18 +120,6 @@ export function SteamControlTable() {
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
               </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
-                MP vs Vapor
-              </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
-                MP vs Cavaco
-              </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20">
-                M³ vs MP
-              </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20">
-                Vapor vs MP
-              </TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -180,7 +127,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={16}
+                  colSpan={11}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -191,10 +138,6 @@ export function SteamControlTable() {
                 <TableRow key={row.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
-                  </TableCell>
-                  {/* Display aggregated MP Processed from Production */}
-                  <TableCell className="text-right font-mono font-medium text-blue-700 dark:text-blue-400">
-                    {row.entradaMp > 0 ? formatNumber(row.entradaMp) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatNumber(row.soyWaste)}
@@ -224,18 +167,6 @@ export function SteamControlTable() {
                   {/* Ratios Display */}
                   <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
-                    {row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
-                    {row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs">
-                    {row.entradaMp > 0 ? formatNumber(row.m3VsMp) : '-'}
-                  </TableCell>
-                  <TableCell className="text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs">
-                    {row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : '-'}
                   </TableCell>
 
                   <TableCell>

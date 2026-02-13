@@ -1169,9 +1169,6 @@ section[aria-label='Notifications alt+T'] {
 .min-w-\[100px\]{
   min-width: 100px;
 }
-.min-w-\[120px\]{
-  min-width: 120px;
-}
 .min-w-\[12rem\]{
   min-width: 12rem;
 }
@@ -1935,9 +1932,6 @@ section[aria-label='Notifications alt+T'] {
 .bg-green-50{
   --tw-bg-opacity: 1;
   background-color: rgb(240 253 244 / var(--tw-bg-opacity, 1));
-}
-.bg-green-50\/30{
-  background-color: rgb(240 253 244 / 0.3);
 }
 .bg-green-50\/50{
   background-color: rgb(240 253 244 / 0.5);
@@ -3998,9 +3992,6 @@ img[src*='skip.svg'] {
 }
 .dark\:bg-green-950\/10:is(.dark *){
   background-color: rgb(5 46 22 / 0.1);
-}
-.dark\:bg-green-950\/20:is(.dark *){
-  background-color: rgb(5 46 22 / 0.2);
 }
 .dark\:bg-orange-900\/20:is(.dark *){
   background-color: rgb(124 45 18 / 0.2);

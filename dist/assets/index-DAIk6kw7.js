@@ -87268,44 +87268,24 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	})] });
 }
 function SteamControlTable() {
-	const { steamControlRecords, production, deleteSteamControlRecord } = useData();
+	const { steamControlRecords, deleteSteamControlRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
-	const productionByDate = (0, import_react.useMemo)(() => {
-		const map$4 = /* @__PURE__ */ new Map();
-		production.forEach((p) => {
-			const dateKey = format(p.date, "yyyy-MM-dd");
-			const current = map$4.get(dateKey) || 0;
-			map$4.set(dateKey, current + Number(p.mpUsed || 0));
-		});
-		return map$4;
-	}, [production]);
 	const tableData = (0, import_react.useMemo)(() => {
 		return [...steamControlRecords].sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
-			const dateKey = format(record.date, "yyyy-MM-dd");
-			const entradaMp = productionByDate.get(dateKey) || 0;
 			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
 			const consumoVap = record.meterEnd - record.meterStart;
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
-			const mpVsVapor = consumoVap > 0 ? entradaMp / consumoVap : 0;
-			const mpVsCavaco = totalFuel > 0 ? entradaMp / totalFuel : 0;
-			const m3VsMp = entradaMp > 0 ? totalFuel / entradaMp * 1e3 : 0;
-			const vaporVsMp = entradaMp > 0 ? consumoVap / entradaMp * 1e3 : 0;
 			return {
 				...record,
-				entradaMp,
 				totalFuel,
 				consumoVap,
-				cavacoVsVapor,
-				mpVsVapor,
-				mpVsCavaco,
-				m3VsMp,
-				vaporVsMp
+				cavacoVsVapor
 			};
 		});
-	}, [steamControlRecords, productionByDate]);
+	}, [steamControlRecords]);
 	const handleDelete = () => {
 		if (deleteId) {
 			deleteSteamControlRecord(deleteId);
@@ -87331,10 +87311,6 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "min-w-[100px]",
 							children: "Data"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[120px]",
-							children: "MP Proc. (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -87372,26 +87348,10 @@ function SteamControlTable() {
 							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
 							children: "Cavaco vs Vapor"
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
-							children: "MP vs Vapor"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
-							children: "MP vs Cavaco"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20",
-							children: "M³ vs MP"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-green-50/50 dark:bg-green-950/20",
-							children: "Vapor vs MP"
-						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 16,
+					colSpan: 11,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -87400,10 +87360,6 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "font-medium whitespace-nowrap",
 							children: format(row.date, "dd/MM/yyyy")
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right font-mono font-medium text-blue-700 dark:text-blue-400",
-							children: row.entradaMp > 0 ? formatNumber(row.entradaMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
@@ -87440,22 +87396,6 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
 							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
-							children: row.consumoVap > 0 ? formatNumber(row.mpVsVapor) : "-"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber(row.mpVsCavaco) : "-"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber(row.m3VsMp) : "-"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-green-50/30 dark:bg-green-950/10 font-mono text-xs",
-							children: row.entradaMp > 0 ? formatNumber(row.vaporVsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 							asChild: true,
@@ -89426,4 +89366,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-OfvlDdEU.js.map
+//# sourceMappingURL=index-DAIk6kw7.js.map
