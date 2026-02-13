@@ -8,6 +8,7 @@ export const RAW_MATERIAL_TYPES = [
   'Despojo',
   'Barrigada',
   'COURO BOVINO',
+  'Óleo Saturado',
 ] as const
 
 export const MEASUREMENT_UNITS = [

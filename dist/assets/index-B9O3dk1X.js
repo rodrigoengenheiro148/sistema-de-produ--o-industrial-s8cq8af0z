@@ -74344,7 +74344,8 @@ const RAW_MATERIAL_TYPES = [
 	"Misto",
 	"Despojo",
 	"Barrigada",
-	"COURO BOVINO"
+	"COURO BOVINO",
+	"Óleo Saturado"
 ];
 const MEASUREMENT_UNITS = [
 	{
@@ -87948,11 +87949,72 @@ function SteamControlCharts() {
 		})]
 	});
 }
+function CookingMetricsCard({ date: date$4 }) {
+	const { cookingTimeRecords, downtimeRecords, production } = useData();
+	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords, downtimeRecords, production);
+	const throughput = metrics.netActiveHours > 0 ? 792 / metrics.netActiveHours : 0;
+	const META = 14.125;
+	const isBelowMeta = throughput < META;
+	const hours = Math.floor(metrics.netActiveMinutes / 60);
+	const minutes = Math.floor(metrics.netActiveMinutes % 60);
+	const timeStr = `${hours}h ${String(minutes).padStart(2, "0")}m`;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "w-full max-w-sm",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-row items-center justify-between space-y-0 pb-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+				className: "text-sm font-bold uppercase text-muted-foreground/80 tracking-wider",
+				children: "TEMPO DE COZIMENTO"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-5 w-5 text-blue-500" })]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "text-4xl font-bold tracking-tight mt-2 mb-6",
+			children: timeStr
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex items-end justify-between pt-2 border-t",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col gap-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 text-xs font-medium text-muted-foreground",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3.5 w-3.5" }),
+						"REF: ",
+						format(date$4, "dd/MM")
+					]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 mt-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-2xl font-bold",
+						children: [formatNumber(throughput, {
+							minimumFractionDigits: 2,
+							maximumFractionDigits: 2
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-sm font-normal text-muted-foreground ml-1",
+							children: "t/h"
+						})]
+					})]
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col items-end gap-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "text-xs font-semibold text-muted-foreground/70 uppercase tracking-wide",
+					children: "META"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-1.5",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-lg font-bold text-muted-foreground/80",
+						children: formatNumber(META, { minimumFractionDigits: 3 })
+					}), isBelowMeta ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingDown, { className: "h-5 w-5 text-red-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-green-500" })]
+				})]
+			})]
+		})] })]
+	});
+}
 function SteamControl() {
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const { checkPcpAuth } = usePcp();
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	const handleNewRecord = () => {
 		checkPcpAuth(() => {
 			setIsOpen(true);
@@ -87976,10 +88038,29 @@ function SteamControl() {
 						className: "text-muted-foreground",
 						children: "Monitoramento de consumo de combustível, geração de vapor e relação com MP processada."
 					})] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-						className: "gap-2",
-						onClick: handleNewRecord,
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
+							asChild: true,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+								variant: "outline",
+								className: cn("justify-start text-left font-normal w-[240px]", !date$4 && "text-muted-foreground"),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
+							className: "w-auto p-0",
+							align: "end",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, {
+								mode: "single",
+								selected: date$4,
+								onSelect: (d) => d && setDate(d),
+								initialFocus: true
+							})
+						})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2",
+							onClick: handleNewRecord,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
 						open: isOpen,
@@ -87993,6 +88074,10 @@ function SteamControl() {
 						})
 					})
 				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CookingMetricsCard, { date: date$4 })
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
 				defaultValue: "records",
@@ -89533,4 +89618,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-mlIcDhnY.js.map
+//# sourceMappingURL=index-B9O3dk1X.js.map

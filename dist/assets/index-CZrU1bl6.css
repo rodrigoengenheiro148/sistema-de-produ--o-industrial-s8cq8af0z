@@ -784,6 +784,9 @@ section[aria-label='Notifications alt+T'] {
 .mb-4{
   margin-bottom: 1rem;
 }
+.mb-6{
+  margin-bottom: 1.5rem;
+}
 .ml-1{
   margin-left: 0.25rem;
 }
@@ -1232,6 +1235,9 @@ section[aria-label='Notifications alt+T'] {
 }
 .max-w-md{
   max-width: 28rem;
+}
+.max-w-sm{
+  max-width: 24rem;
 }
 .max-w-xs{
   max-width: 20rem;
@@ -2486,6 +2492,12 @@ section[aria-label='Notifications alt+T'] {
 }
 .text-muted-foreground\/60{
   color: hsl(var(--muted-foreground) / 0.6);
+}
+.text-muted-foreground\/70{
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+.text-muted-foreground\/80{
+  color: hsl(var(--muted-foreground) / 0.8);
 }
 .text-orange-500{
   --tw-text-opacity: 1;
