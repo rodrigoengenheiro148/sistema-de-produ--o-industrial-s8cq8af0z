@@ -29,7 +29,13 @@ export interface ShippingEntry {
   id: string
   date: Date
   client: string
-  product: 'Sebo' | 'FCO' | 'Farinheta' | 'Matéria-Prima' | 'Farinha Especial'
+  product:
+    | 'Sebo'
+    | 'FCO'
+    | 'Farinheta'
+    | 'Matéria-Prima'
+    | 'Farinha Especial'
+    | 'Farinha de Peixe'
   quantity: number
   unitPrice: number
   docRef: string
