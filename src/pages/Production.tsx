@@ -49,6 +49,7 @@ import { SecurityGate } from '@/components/SecurityGate'
 import { formatNumber } from '@/lib/utils'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
+import { SteamLossCorrelationChart } from '@/components/production/SteamLossCorrelationChart'
 
 export default function Production() {
   const { production, deleteProduction, dateRange } = useData()
@@ -194,217 +195,228 @@ export default function Production() {
         </Sheet>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Diário de Produção</CardTitle>
-        </CardHeader>
-        <CardContent className={isMobile ? 'p-4 pt-0' : 'p-6 pt-0'}>
-          {isMobile ? (
-            <div className="space-y-4">
-              {filteredProduction.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum registro encontrado.
-                </div>
-              ) : (
-                filteredProduction.map((entry) => {
-                  const isEditable = canEditRecord(entry.createdAt)
-                  return (
-                    <Card key={entry.id} className="shadow-sm border">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="space-y-1">
-                            <span className="font-semibold text-lg text-primary flex items-center gap-2">
+      <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Diário de Produção</CardTitle>
+          </CardHeader>
+          <CardContent className={isMobile ? 'p-4 pt-0' : 'p-6 pt-0'}>
+            {isMobile ? (
+              <div className="space-y-4">
+                {filteredProduction.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Nenhum registro encontrado.
+                  </div>
+                ) : (
+                  filteredProduction.map((entry) => {
+                    const isEditable = canEditRecord(entry.createdAt)
+                    return (
+                      <Card key={entry.id} className="shadow-sm border">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="space-y-1">
+                              <span className="font-semibold text-lg text-primary flex items-center gap-2">
+                                {format(entry.date, 'dd/MM/yyyy')}
+                                {!isEditable && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Lock className="h-4 w-4 text-muted-foreground/50" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Edição requer senha</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </span>
+                              <div className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit">
+                                Turno: {entry.shift}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleEditClick(entry)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(entry)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                            <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
+                              <span className="text-xs text-muted-foreground block">
+                                Entrada de MP (kg)
+                              </span>
+                              <span className="font-mono font-bold">
+                                {formatNumber(entry.mpUsed)} kg
+                              </span>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
+                              <span className="text-xs text-red-500 block">
+                                Perdas
+                              </span>
+                              <span className="font-mono font-bold text-red-600">
+                                {formatLosses(entry.losses)} kg
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 text-sm border-t pt-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Sebo:
+                              </span>
+                              <span className="font-mono">
+                                {formatNumber(entry.seboProduced)} kg
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                FCO:
+                              </span>
+                              <span className="font-mono">
+                                {formatNumber(entry.fcoProduced)} kg
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Farinheta:
+                              </span>
+                              <span className="font-mono">
+                                {formatNumber(entry.farinhetaProduced)} kg
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Turno</TableHead>
+                    <TableHead className="text-right">
+                      Entrada de MP (kg)
+                    </TableHead>
+                    <TableHead className="text-right">Sebo (kg)</TableHead>
+                    <TableHead className="text-right">FCO (kg)</TableHead>
+                    <TableHead className="text-right">Farinheta (kg)</TableHead>
+                    <TableHead className="text-right text-red-500">
+                      Perdas (kg)
+                    </TableHead>
+                    <TableHead className="w-[80px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProduction.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={8}
+                        className="text-center h-24 text-muted-foreground"
+                      >
+                        Nenhum registro encontrado no período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProduction.map((entry) => {
+                      const isEditable = canEditRecord(entry.createdAt)
+                      return (
+                        <TableRow
+                          key={entry.id}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
                               {format(entry.date, 'dd/MM/yyyy')}
                               {!isEditable && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Lock className="h-4 w-4 text-muted-foreground/50" />
+                                    <Lock className="h-3 w-3 text-muted-foreground/50" />
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>Edição requer senha</p>
                                   </TooltipContent>
                                 </Tooltip>
                               )}
-                            </span>
-                            <div className="text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit">
-                              Turno: {entry.shift}
                             </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleEditClick(entry)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(entry)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                          </TableCell>
+                          <TableCell>{entry.shift}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatNumber(entry.mpUsed)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground">
+                            {formatNumber(entry.seboProduced)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground">
+                            {formatNumber(entry.fcoProduced)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-muted-foreground">
+                            {formatNumber(entry.farinhetaProduced)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-red-500 font-medium">
+                            {formatLosses(entry.losses)}
+                          </TableCell>
+                          <TableCell className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={
+                                isEditable
+                                  ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
+                                  : 'h-8 w-8 text-muted-foreground'
+                              }
+                              onClick={() => handleEditClick(entry)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={
+                                isEditable
+                                  ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
+                                  : 'h-8 w-8 text-muted-foreground'
+                              }
+                              onClick={() => handleDeleteClick(entry)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
 
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                          <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
-                            <span className="text-xs text-muted-foreground block">
-                              Entrada de MP (kg)
-                            </span>
-                            <span className="font-mono font-bold">
-                              {formatNumber(entry.mpUsed)} kg
-                            </span>
-                          </div>
-                          <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
-                            <span className="text-xs text-red-500 block">
-                              Perdas
-                            </span>
-                            <span className="font-mono font-bold text-red-600">
-                              {formatLosses(entry.losses)} kg
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1 text-sm border-t pt-2">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Sebo:</span>
-                            <span className="font-mono">
-                              {formatNumber(entry.seboProduced)} kg
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">FCO:</span>
-                            <span className="font-mono">
-                              {formatNumber(entry.fcoProduced)} kg
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              Farinheta:
-                            </span>
-                            <span className="font-mono">
-                              {formatNumber(entry.farinhetaProduced)} kg
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })
-              )}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Turno</TableHead>
-                  <TableHead className="text-right">
-                    Entrada de MP (kg)
-                  </TableHead>
-                  <TableHead className="text-right">Sebo (kg)</TableHead>
-                  <TableHead className="text-right">FCO (kg)</TableHead>
-                  <TableHead className="text-right">Farinheta (kg)</TableHead>
-                  <TableHead className="text-right text-red-500">
-                    Perdas (kg)
-                  </TableHead>
-                  <TableHead className="w-[80px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProduction.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center h-24 text-muted-foreground"
-                    >
-                      Nenhum registro encontrado no período.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredProduction.map((entry) => {
-                    const isEditable = canEditRecord(entry.createdAt)
-                    return (
-                      <TableRow
-                        key={entry.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {format(entry.date, 'dd/MM/yyyy')}
-                            {!isEditable && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Lock className="h-3 w-3 text-muted-foreground/50" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Edição requer senha</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{entry.shift}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatNumber(entry.mpUsed)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          {formatNumber(entry.seboProduced)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          {formatNumber(entry.fcoProduced)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-muted-foreground">
-                          {formatNumber(entry.farinhetaProduced)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-red-500 font-medium">
-                          {formatLosses(entry.losses)}
-                        </TableCell>
-                        <TableCell className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={
-                              isEditable
-                                ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
-                                : 'h-8 w-8 text-muted-foreground'
-                            }
-                            onClick={() => handleEditClick(entry)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={
-                              isEditable
-                                ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
-                                : 'h-8 w-8 text-muted-foreground'
-                            }
-                            onClick={() => handleDeleteClick(entry)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+        {/* Steam vs Losses Correlation Chart */}
+        <div className="mt-2">
+          <SteamLossCorrelationChart />
+        </div>
+      </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>

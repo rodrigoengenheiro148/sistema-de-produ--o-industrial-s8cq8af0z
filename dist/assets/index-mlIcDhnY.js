@@ -78414,6 +78414,119 @@ function ProductionForm({ initialData, onSuccess }) {
 		}
 	})] });
 }
+function SteamLossCorrelationChart() {
+	const { production, steamControlRecords, dateRange } = useData();
+	const data = (0, import_react.useMemo)(() => {
+		const endDate = dateRange?.to || /* @__PURE__ */ new Date();
+		return eachDayOfInterval({
+			start: dateRange?.from || subDays(endDate, 15),
+			end: endDate
+		}).map((day) => {
+			const dayLosses = production.filter((p) => isSameDay(p.date, day) && !isBloodRecord(p)).reduce((acc, curr) => acc + curr.losses, 0);
+			const daySteam = steamControlRecords.filter((r$2) => isSameDay(r$2.date, day)).reduce((acc, curr) => acc + (curr.meterEnd - curr.meterStart), 0);
+			return {
+				date: format(day, "dd/MM"),
+				fullDate: format(day, "d 'de' MMMM", { locale: ptBR }),
+				losses: dayLosses,
+				steam: daySteam
+			};
+		}).filter((d) => d.losses > 0 || d.steam > 0);
+	}, [
+		production,
+		steamControlRecords,
+		dateRange
+	]);
+	const chartConfig$1 = {
+		losses: {
+			label: "Perdas (kg)",
+			color: "hsl(var(--destructive))"
+		},
+		steam: {
+			label: "Consumo Vapor (t)",
+			color: "hsl(var(--primary))"
+		}
+	};
+	if (data.length === 0) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Correlação: Vapor x Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Análise comparativa entre o consumo de vapor e as perdas de processo" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		config: chartConfig$1,
+		className: "aspect-auto h-[300px] w-full",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
+			data,
+			margin: {
+				top: 20,
+				right: 20,
+				left: 20,
+				bottom: 0
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+					vertical: false,
+					strokeDasharray: "3 3"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+					dataKey: "date",
+					tickLine: false,
+					axisLine: false,
+					tickMargin: 8
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+					yAxisId: "left",
+					orientation: "left",
+					tickLine: false,
+					axisLine: false,
+					label: {
+						value: "Vapor (t)",
+						angle: -90,
+						position: "insideLeft",
+						style: {
+							fill: "hsl(var(--primary))",
+							fontSize: 12
+						}
+					}
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+					yAxisId: "right",
+					orientation: "right",
+					tickLine: false,
+					axisLine: false,
+					label: {
+						value: "Perdas (kg)",
+						angle: 90,
+						position: "insideRight",
+						style: {
+							fill: "hsl(var(--destructive))",
+							fontSize: 12
+						}
+					}
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+					yAxisId: "right",
+					dataKey: "losses",
+					fill: "var(--color-losses)",
+					name: "Perdas",
+					radius: [
+						4,
+						4,
+						0,
+						0
+					],
+					barSize: 20
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					yAxisId: "left",
+					type: "monotone",
+					dataKey: "steam",
+					stroke: "var(--color-steam)",
+					strokeWidth: 3,
+					name: "Vapor",
+					dot: { r: 4 }
+				})
+			]
+		})
+	}) })] });
+}
 function Production() {
 	const { production, deleteProduction, dateRange } = useData();
 	const { toast: toast$2 } = useToast();
@@ -78526,202 +78639,208 @@ function Production() {
 					})
 				]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Diário de Produção" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
-				children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "space-y-4",
-					children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "text-center py-8 text-muted-foreground",
-						children: "Nenhum registro encontrado."
-					}) : filteredProduction.map((entry) => {
-						const isEditable = canEditRecord(entry.createdAt);
-						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
-							className: "shadow-sm border",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-								className: "p-4",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "flex justify-between items-start mb-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "space-y-1",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-semibold text-lg text-primary flex items-center gap-2",
-												children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
-													asChild: true,
-													children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-4 w-4 text-muted-foreground/50" })
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "grid gap-6",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Diário de Produção" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+					className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
+					children: isMobile ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "space-y-4",
+						children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "text-center py-8 text-muted-foreground",
+							children: "Nenhum registro encontrado."
+						}) : filteredProduction.map((entry) => {
+							const isEditable = canEditRecord(entry.createdAt);
+							return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
+								className: "shadow-sm border",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+									className: "p-4",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between items-start mb-3",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "space-y-1",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-semibold text-lg text-primary flex items-center gap-2",
+													children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+														asChild: true,
+														children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-4 w-4 text-muted-foreground/50" })
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit",
+													children: ["Turno: ", entry.shift]
+												})]
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+												asChild: true,
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+													variant: "ghost",
+													size: "sm",
+													className: "h-8 w-8 p-0",
+													children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
+												})
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+												align: "end",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+													onClick: () => handleEditClick(entry),
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+													onClick: () => handleDeleteClick(entry),
+													className: "text-red-600 focus:text-red-600",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
+												})]
+											})] })]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "grid grid-cols-2 gap-4 text-sm mb-3",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "text-xs text-muted-foreground block",
+													children: "Entrada de MP (kg)"
+												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+													className: "font-mono font-bold",
+													children: [formatNumber(entry.mpUsed), " kg"]
+												})]
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "text-sm text-muted-foreground bg-secondary px-2 py-0.5 rounded w-fit",
-												children: ["Turno: ", entry.shift]
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
-											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-												variant: "ghost",
-												size: "sm",
-												className: "h-8 w-8 p-0",
-												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
-											})
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
-											align: "end",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleEditClick(entry),
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
-												onClick: () => handleDeleteClick(entry),
-												className: "text-red-600 focus:text-red-600",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
-											})]
-										})] })]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "grid grid-cols-2 gap-4 text-sm mb-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs text-muted-foreground block",
-												children: "Entrada de MP (kg)"
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-mono font-bold",
-												children: [formatNumber(entry.mpUsed), " kg"]
-											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "text-xs text-red-500 block",
-												children: "Perdas"
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-												className: "font-mono font-bold text-red-600",
-												children: [formatLosses(entry.losses), " kg"]
-											})]
-										})]
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "space-y-1 text-sm border-t pt-2",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
+												className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
 												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "Sebo:"
+													className: "text-xs text-red-500 block",
+													children: "Perdas"
 												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.seboProduced), " kg"]
+													className: "font-mono font-bold text-red-600",
+													children: [formatLosses(entry.losses), " kg"]
 												})]
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "FCO:"
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.fcoProduced), " kg"]
-												})]
-											}),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex justify-between",
-												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-muted-foreground",
-													children: "Farinheta:"
-												}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-													className: "font-mono",
-													children: [formatNumber(entry.farinhetaProduced), " kg"]
-												})]
-											})
-										]
-									})
-								]
-							})
-						}, entry.id);
-					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Entrada de MP (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Sebo (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "FCO (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right",
-						children: "Farinheta (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "text-right text-red-500",
-						children: "Perdas (kg)"
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-						className: "w-[80px]",
-						children: "Ações"
-					})
-				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 8,
-					className: "text-center h-24 text-muted-foreground",
-					children: "Nenhum registro encontrado no período."
-				}) }) : filteredProduction.map((entry) => {
-					const isEditable = canEditRecord(entry.createdAt);
-					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "font-medium",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "flex items-center gap-2",
-									children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
-										asChild: true,
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+											})]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "space-y-1 text-sm border-t pt-2",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "Sebo:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.seboProduced), " kg"]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "FCO:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.fcoProduced), " kg"]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "Farinheta:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.farinhetaProduced), " kg"]
+													})]
+												})
+											]
+										})
+									]
 								})
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono",
-								children: formatNumber(entry.mpUsed)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.seboProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.fcoProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-muted-foreground",
-								children: formatNumber(entry.farinhetaProduced)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-								className: "text-right font-mono text-red-500 font-medium",
-								children: formatLosses(entry.losses)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
-									onClick: () => handleEditClick(entry),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									size: "icon",
-									className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
-									onClick: () => handleDeleteClick(entry),
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-								})]
-							})
-						]
-					}, entry.id);
-				}) })] })
-			})] }),
+							}, entry.id);
+						})
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right",
+							children: "Entrada de MP (kg)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right",
+							children: "Sebo (kg)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right",
+							children: "FCO (kg)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right",
+							children: "Farinheta (kg)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right text-red-500",
+							children: "Perdas (kg)"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "w-[80px]",
+							children: "Ações"
+						})
+					] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						colSpan: 8,
+						className: "text-center h-24 text-muted-foreground",
+						children: "Nenhum registro encontrado no período."
+					}) }) : filteredProduction.map((entry) => {
+						const isEditable = canEditRecord(entry.createdAt);
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+							className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "font-medium",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center gap-2",
+										children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+											asChild: true,
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+									})
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "text-right font-mono",
+									children: formatNumber(entry.mpUsed)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "text-right font-mono text-muted-foreground",
+									children: formatNumber(entry.seboProduced)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "text-right font-mono text-muted-foreground",
+									children: formatNumber(entry.fcoProduced)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "text-right font-mono text-muted-foreground",
+									children: formatNumber(entry.farinhetaProduced)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+									className: "text-right font-mono text-red-500 font-medium",
+									children: formatLosses(entry.losses)
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+									className: "flex items-center gap-1",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										variant: "ghost",
+										size: "icon",
+										className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
+										onClick: () => handleEditClick(entry),
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										variant: "ghost",
+										size: "icon",
+										className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
+										onClick: () => handleDeleteClick(entry),
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+									})]
+								})
+							]
+						}, entry.id);
+					}) })] })
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "mt-2",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamLossCorrelationChart, {})
+				})]
+			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
 				open: !!deleteId,
 				onOpenChange: () => setDeleteId(null),
@@ -87268,17 +87387,20 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	})] });
 }
 function SteamControlTable() {
-	const { steamControlRecords, deleteSteamControlRecord, production } = useData();
+	const { steamControlRecords, deleteSteamControlRecord, production, notificationSettings } = useData();
 	const { toast: toast$2 } = useToast();
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const efficiencyThreshold = notificationSettings.yieldThreshold > 0 && notificationSettings.yieldThreshold < 10 ? notificationSettings.yieldThreshold : .24;
 	const tableData = (0, import_react.useMemo)(() => {
 		const productionMap = /* @__PURE__ */ new Map();
 		production.forEach((p) => {
-			const dateKey = format(p.date, "yyyy-MM-dd");
-			const current = productionMap.get(dateKey) || 0;
-			productionMap.set(dateKey, current + (p.mpUsed || 0));
+			if (!isBloodRecord(p)) {
+				const dateKey = format(p.date, "yyyy-MM-dd");
+				const current = productionMap.get(dateKey) || 0;
+				productionMap.set(dateKey, current + (p.mpUsed || 0));
+			}
 		});
 		return [...steamControlRecords].sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
 			const dateKey = format(record.date, "yyyy-MM-dd");
@@ -87286,17 +87408,23 @@ function SteamControlTable() {
 			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
 			const consumoVap = record.meterEnd - record.meterStart;
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
-			const vaporVsMp = mpProcessed > 0 ? consumoVap / mpProcessed : 0;
+			const mpProcessedTons = mpProcessed / 1e3;
+			const vaporVsMp = mpProcessedTons > 0 ? consumoVap / mpProcessedTons : 0;
 			return {
 				...record,
 				mpProcessed,
 				totalFuel,
 				consumoVap,
 				cavacoVsVapor,
-				vaporVsMp
+				vaporVsMp,
+				isInefficient: vaporVsMp > efficiencyThreshold
 			};
 		});
-	}, [steamControlRecords, production]);
+	}, [
+		steamControlRecords,
+		production,
+		efficiencyThreshold
+	]);
 	const handleDelete = () => {
 		if (deleteId) {
 			deleteSteamControlRecord(deleteId);
@@ -87361,7 +87489,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
-							children: "Vapor / MP"
+							children: "Vapor / MP (t/t)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
@@ -87418,7 +87546,17 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
-							children: row.mpProcessed > 0 ? formatNumber(row.vaporVsMp) : "-"
+							children: row.mpProcessed > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center justify-end gap-1",
+								children: [row.isInefficient && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-3 w-3 text-red-500" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+									"Eficiência abaixo do esperado (>",
+									efficiencyThreshold,
+									")"
+								] }) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: cn(row.isInefficient && "text-red-600 font-bold"),
+									children: formatNumber(row.vaporVsMp)
+								})]
+							}) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
@@ -87477,8 +87615,10 @@ function SteamControlCharts() {
 		if (!dateRange?.from || !dateRange?.to) return [];
 		const prodMap = /* @__PURE__ */ new Map();
 		production.forEach((p) => {
-			const key = format(p.date, "yyyy-MM-dd");
-			prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0));
+			if (!isBloodRecord(p)) {
+				const key = format(p.date, "yyyy-MM-dd");
+				prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0));
+			}
 		});
 		const steamMap = /* @__PURE__ */ new Map();
 		steamControlRecords.forEach((r$2) => {
@@ -89393,4 +89533,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D4TXlga9.js.map
+//# sourceMappingURL=index-mlIcDhnY.js.map

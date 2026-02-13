@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { MoreVertical, Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { useData } from '@/context/DataContext'
 import { SteamControlEntry } from '@/lib/types'
@@ -37,11 +37,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
-import { formatNumber } from '@/lib/utils'
+import { formatNumber, isBloodRecord, cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function SteamControlTable() {
-  const { steamControlRecords, deleteSteamControlRecord, production } =
-    useData()
+  const {
+    steamControlRecords,
+    deleteSteamControlRecord,
+    production,
+    notificationSettings,
+  } = useData()
   const { toast } = useToast()
 
   const [editingItem, setEditingItem] = useState<SteamControlEntry | undefined>(
@@ -50,14 +60,26 @@ export function SteamControlTable() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // Determine efficiency threshold (Ton Steam / Ton MP)
+  // If settings provide a plausible ratio (e.g. < 10), use it. Otherwise default to 0.24
+  const efficiencyThreshold =
+    notificationSettings.yieldThreshold > 0 &&
+    notificationSettings.yieldThreshold < 10
+      ? notificationSettings.yieldThreshold
+      : 0.24
+
   const tableData = useMemo(() => {
     // Optimization: Create a map of daily production totals using the PRODUCTION table.
-    // This ensures we are using processed material (Entrada de MP) and not raw material intake.
+    // Filter out blood records (secondary processing) to match main line logic.
     const productionMap = new Map<string, number>()
+
     production.forEach((p) => {
-      const dateKey = format(p.date, 'yyyy-MM-dd')
-      const current = productionMap.get(dateKey) || 0
-      productionMap.set(dateKey, current + (p.mpUsed || 0))
+      // Exclude blood records to focus on Main Plant processing
+      if (!isBloodRecord(p)) {
+        const dateKey = format(p.date, 'yyyy-MM-dd')
+        const current = productionMap.get(dateKey) || 0
+        productionMap.set(dateKey, current + (p.mpUsed || 0))
+      }
     })
 
     // We want to display records sorted by date descending
@@ -76,8 +98,11 @@ export function SteamControlTable() {
       // Ratios Calculation
       // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL FUEL
       const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0
-      // VAPOR / MP: CONSUMO VAP / MP PROCESSED
-      const vaporVsMp = mpProcessed > 0 ? consumoVap / mpProcessed : 0
+
+      // VAPOR / MP: CONSUMO VAP (Tons) / MP PROCESSED (Tons)
+      // mpProcessed is in kg, convert to tons for the ratio calculation to get Ton/Ton
+      const mpProcessedTons = mpProcessed / 1000
+      const vaporVsMp = mpProcessedTons > 0 ? consumoVap / mpProcessedTons : 0
 
       return {
         ...record,
@@ -86,9 +111,10 @@ export function SteamControlTable() {
         consumoVap,
         cavacoVsVapor,
         vaporVsMp,
+        isInefficient: vaporVsMp > efficiencyThreshold,
       }
     })
-  }, [steamControlRecords, production])
+  }, [steamControlRecords, production, efficiencyThreshold])
 
   const handleDelete = () => {
     if (deleteId) {
@@ -138,7 +164,7 @@ export function SteamControlTable() {
               </TableHead>
               {/* Efficiency Ratios columns */}
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
-                Vapor / MP
+                Vapor / MP (t/t)
               </TableHead>
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
@@ -192,7 +218,32 @@ export function SteamControlTable() {
 
                   {/* Ratios Display */}
                   <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
-                    {row.mpProcessed > 0 ? formatNumber(row.vaporVsMp) : '-'}
+                    {row.mpProcessed > 0 ? (
+                      <div className="flex items-center justify-end gap-1">
+                        {row.isInefficient && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertTriangle className="h-3 w-3 text-red-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Eficiência abaixo do esperado (&gt;
+                                {efficiencyThreshold})
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        <span
+                          className={cn(
+                            row.isInefficient && 'text-red-600 font-bold',
+                          )}
+                        >
+                          {formatNumber(row.vaporVsMp)}
+                        </span>
+                      </div>
+                    ) : (
+                      '-'
+                    )}
                   </TableCell>
                   <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}

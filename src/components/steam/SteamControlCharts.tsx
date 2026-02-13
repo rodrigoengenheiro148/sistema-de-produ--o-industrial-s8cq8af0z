@@ -29,6 +29,7 @@ import {
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
 import { SteamControlEntry } from '@/lib/types'
+import { isBloodRecord } from '@/lib/utils'
 
 export function SteamControlCharts() {
   const { steamControlRecords, production } = useData()
@@ -42,10 +43,13 @@ export function SteamControlCharts() {
 
     // Pre-calculate production totals from PRODUCTION table
     // Uses Entrada de MP (mpUsed) for Steam Control calculations
+    // Filter out blood records (secondary processing)
     const prodMap = new Map<string, number>()
     production.forEach((p) => {
-      const key = format(p.date, 'yyyy-MM-dd')
-      prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0))
+      if (!isBloodRecord(p)) {
+        const key = format(p.date, 'yyyy-MM-dd')
+        prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0))
+      }
     })
 
     // Pre-calculate steam records map (aggregating if multiple per day)
