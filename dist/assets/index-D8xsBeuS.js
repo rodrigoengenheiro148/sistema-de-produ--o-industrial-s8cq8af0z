@@ -71038,6 +71038,7 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 	const [selectedSupplier, setSelectedSupplier] = (0, import_react.useState)("all");
 	const [isFilterInitialized, setIsFilterInitialized] = (0, import_react.useState)(false);
 	const [openMaterialFilter, setOpenMaterialFilter] = (0, import_react.useState)(false);
+	const [chartType, setChartType] = (0, import_react.useState)("stacked");
 	const [dateRange, setDateRange] = (0, import_react.useState)(void 0);
 	const [fetchedData, setFetchedData] = (0, import_react.useState)(null);
 	const [isLoading, setIsLoading] = (0, import_react.useState)(false);
@@ -71176,10 +71177,13 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 		if (selectedMaterials.length === materialOptions.length) setSelectedMaterials([]);
 		else setSelectedMaterials(materialOptions);
 	};
+	const toggleChartType = () => {
+		setChartType((current) => current === "stacked" ? "grouped" : "stacked");
+	};
 	const ChartContent = ({ height = "h-[350px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: cn("w-full", height),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
 			data: chartData,
 			margin: {
 				top: 20,
@@ -71237,14 +71241,39 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 				activeCategories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: category,
 					fill: `var(--color-${category})`,
-					radius: [
+					radius: chartType === "stacked" ? [
+						0,
+						0,
+						0,
+						0
+					] : [
 						4,
 						4,
 						0,
 						0
 					],
-					maxBarSize: 50
-				}, category))
+					maxBarSize: 50,
+					stackId: chartType === "stacked" ? "a" : void 0
+				}, category)),
+				chartType === "stacked" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
+					dataKey: "total",
+					stroke: "none",
+					dot: false,
+					activeDot: false,
+					isAnimationActive: false,
+					legendType: "none",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						position: "top",
+						offset: 10,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 8 : 10,
+						formatter: (value) => {
+							if (value >= 1e3) return (value / 1e3).toFixed(0) + "k";
+							return value;
+						}
+					})
+				})
 			]
 		})
 	});
@@ -71330,6 +71359,17 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 							value: supplier,
 							children: supplier
 						}, supplier))] })]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						variant: "ghost",
+						size: "icon",
+						className: "h-8 w-8",
+						onClick: toggleChartType,
+						title: chartType === "stacked" ? "Mudar para Agrupado" : "Mudar para Empilhado",
+						children: [chartType === "stacked" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartColumn, { className: "h-4 w-4 text-muted-foreground" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "sr-only",
+							children: chartType === "stacked" ? "Mudar para Agrupado" : "Mudar para Empilhado"
+						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
@@ -90177,4 +90217,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-e3R3omoh.js.map
+//# sourceMappingURL=index-D8xsBeuS.js.map

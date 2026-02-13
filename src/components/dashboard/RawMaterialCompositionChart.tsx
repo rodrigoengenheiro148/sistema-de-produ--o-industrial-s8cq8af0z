@@ -15,7 +15,15 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  LabelList,
+} from 'recharts'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +40,7 @@ import {
   Check,
   ChevronsUpDown,
   Loader2,
+  Layers,
 } from 'lucide-react'
 import { cn, parseAsLocalNoon } from '@/lib/utils'
 import {
@@ -104,6 +113,7 @@ export function RawMaterialCompositionChart({
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
   const [isFilterInitialized, setIsFilterInitialized] = useState(false)
   const [openMaterialFilter, setOpenMaterialFilter] = useState(false)
+  const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked')
 
   // State for date range filtering
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
@@ -315,9 +325,13 @@ export function RawMaterialCompositionChart({
     }
   }
 
+  const toggleChartType = () => {
+    setChartType((current) => (current === 'stacked' ? 'grouped' : 'stacked'))
+  }
+
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
-      <BarChart
+      <ComposedChart
         data={chartData}
         margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
       >
@@ -367,11 +381,36 @@ export function RawMaterialCompositionChart({
             key={category}
             dataKey={category}
             fill={`var(--color-${category})`}
-            radius={[4, 4, 0, 0]}
+            radius={chartType === 'stacked' ? [0, 0, 0, 0] : [4, 4, 0, 0]}
             maxBarSize={50}
+            stackId={chartType === 'stacked' ? 'a' : undefined}
           />
         ))}
-      </BarChart>
+
+        {/* Total Label Line (Visible only in Stacked mode) */}
+        {chartType === 'stacked' && (
+          <Line
+            type="monotone"
+            dataKey="total"
+            stroke="none"
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            legendType="none"
+          >
+            <LabelList
+              position="top"
+              offset={10}
+              className="fill-foreground font-bold"
+              fontSize={isMobile ? 8 : 10}
+              formatter={(value: number) => {
+                if (value >= 1000) return (value / 1000).toFixed(0) + 'k'
+                return value
+              }}
+            />
+          </Line>
+        )}
+      </ComposedChart>
     </ChartContainer>
   )
 
@@ -488,6 +527,30 @@ export function RawMaterialCompositionChart({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Toggle Stacked/Grouped View */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={toggleChartType}
+            title={
+              chartType === 'stacked'
+                ? 'Mudar para Agrupado'
+                : 'Mudar para Empilhado'
+            }
+          >
+            {chartType === 'stacked' ? (
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Layers className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="sr-only">
+              {chartType === 'stacked'
+                ? 'Mudar para Agrupado'
+                : 'Mudar para Empilhado'}
+            </span>
+          </Button>
 
           <Dialog>
             <DialogTrigger asChild>
