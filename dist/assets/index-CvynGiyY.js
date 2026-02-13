@@ -64393,6 +64393,10 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			totalHoursD1 = totalMinutesD1 / 60;
 		}
 		const tonPerHourD1 = totalHoursD1 > 0 ? totalProductionOutputD1 / 1e3 / totalHoursD1 : 0;
+		const previousDateFormatted = isValid(previousDate) ? format(previousDate, "dd/MM", { locale: ptBR }) : "--/--";
+		const totalCookingMinutesCurrent = cookingTimeRecords.reduce((acc, curr) => {
+			return acc + (typeof curr.totalHours === "number" ? curr.totalHours : 0);
+		}, 0) * 60;
 		return {
 			rawMaterialInputKg,
 			totalProduction,
@@ -64403,12 +64407,10 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			bloodInputKg,
 			bloodMealProduced,
 			bloodYield,
-			processTimeD1Display: `${Math.floor(totalMinutesD1 / 60)}h ${Math.round(totalMinutesD1 % 60).toString().padStart(2, "0")}m`,
 			tonPerHourD1,
-			previousDateFormatted: isValid(previousDate) ? format(previousDate, "dd/MM", { locale: ptBR }) : "--/--",
-			estimatedWeightByTime: cookingTimeRecords.reduce((acc, curr) => {
-				return acc + (typeof curr.totalHours === "number" ? curr.totalHours : 0);
-			}, 0) * 60 * .55
+			previousDateFormatted,
+			estimatedWeightByTime: totalCookingMinutesCurrent * .55,
+			processTimeCurrentDisplay: `${Math.floor(totalCookingMinutesCurrent / 60)}h ${Math.round(totalCookingMinutesCurrent % 60).toString().padStart(2, "0")}m`
 		};
 	}, [
 		rawMaterials,
@@ -64480,28 +64482,36 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Est. Peso (Tempo)",
-				value: `${formatNumber(metrics.estimatedWeightByTime, {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2
-				})} kg`,
-				icon: Timer,
-				iconColor: "text-blue-600",
-				borderColor: "border-l-blue-600",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "text-xs text-muted-foreground mt-1",
-					children: "0,55 kg/min"
-				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(MetricCard, {
 				title: `Tempo de Processos`,
-				value: metrics.processTimeD1Display,
+				value: metrics.processTimeCurrentDisplay,
 				icon: Clock,
 				iconColor: "text-blue-500",
 				borderColor: "border-l-blue-500",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "mt-3 pt-3 border-t border-border/50",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-col gap-1 mt-2 mb-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center gap-1.5 text-muted-foreground",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-3.5 w-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-xs font-medium uppercase tracking-wide",
+							children: "Quantidade Estimada"
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-lg font-bold text-foreground",
+						children: [
+							formatNumber(metrics.estimatedWeightByTime, {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2
+							}),
+							" ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-sm font-normal text-muted-foreground",
+								children: "kg"
+							})
+						]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "pt-3 border-t border-border/50",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "flex items-center justify-between",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -64544,7 +64554,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 							})]
 						})]
 					})
-				})
+				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Faturamento",
@@ -90253,4 +90263,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DOyF82nP.js.map
+//# sourceMappingURL=index-CvynGiyY.js.map

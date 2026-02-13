@@ -14,7 +14,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   CalendarDays,
-  Timer,
+  Scale,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -113,7 +113,7 @@ export function OverviewCards({
       0,
     )
 
-    // Numerators must come from industrial records (though blood records shouldn't have these > 0, we use filtered set for consistency)
+    // Numerators must come from industrial records
     const seboProducedIndustrial = industrialRecords.reduce(
       (acc, curr) => acc + curr.seboProduced,
       0,
@@ -150,8 +150,7 @@ export function OverviewCards({
     // Previous Date (D-1)
     const previousDate = subDays(targetDate, 1)
 
-    // Filter Production for D-1 (Only industrial output relevant for process time efficiency usually?)
-    // Based on user story: (sebo + fco + farinheta) / total_hours
+    // Filter Production for D-1
     const prevDayProduction = fullProductionHistory.filter(
       (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDate),
     )
@@ -165,7 +164,7 @@ export function OverviewCards({
       (c) => c.date && isValid(c.date) && isSameDay(c.date, previousDate),
     )
 
-    // Calculate total hours using new field or fallback
+    // Calculate total hours for D-1
     let totalHoursD1 = 0
     let totalMinutesD1 = 0
 
@@ -207,16 +206,12 @@ export function OverviewCards({
     const tonPerHourD1 =
       totalHoursD1 > 0 ? totalProductionOutputD1 / 1000 / totalHoursD1 : 0
 
-    const processTimeHours = Math.floor(totalMinutesD1 / 60)
-    const processTimeMinutes = Math.round(totalMinutesD1 % 60)
-    const processTimeD1Display = `${processTimeHours}h ${processTimeMinutes.toString().padStart(2, '0')}m`
     const previousDateFormatted = isValid(previousDate)
       ? format(previousDate, 'dd/MM', { locale: ptBR })
       : '--/--'
 
-    // 13. Estimated Weight based on Time (Requested Feature)
+    // 13. Estimated Weight based on Time (Current Filtered Data)
     // Formula: (Total Hours * 60) * 0.55
-    // Use filtered cookingTimeRecords (cookingTimeRecords prop - active period)
     const totalCookingHoursCurrent = cookingTimeRecords.reduce((acc, curr) => {
       // Ensure totalHours is treated as number and handle undefined
       const hours = typeof curr.totalHours === 'number' ? curr.totalHours : 0
@@ -225,6 +220,11 @@ export function OverviewCards({
 
     const totalCookingMinutesCurrent = totalCookingHoursCurrent * 60
     const estimatedWeightByTime = totalCookingMinutesCurrent * 0.55
+
+    // Format current process time for display
+    const currentHours = Math.floor(totalCookingMinutesCurrent / 60)
+    const currentMinutes = Math.round(totalCookingMinutesCurrent % 60)
+    const processTimeCurrentDisplay = `${currentHours}h ${currentMinutes.toString().padStart(2, '0')}m`
 
     return {
       rawMaterialInputKg,
@@ -236,10 +236,10 @@ export function OverviewCards({
       bloodInputKg,
       bloodMealProduced,
       bloodYield,
-      processTimeD1Display,
       tonPerHourD1,
       previousDateFormatted,
       estimatedWeightByTime,
+      processTimeCurrentDisplay,
     }
   }, [
     rawMaterials,
@@ -361,29 +361,33 @@ export function OverviewCards({
         borderColor="border-l-emerald-600"
       />
 
-      {/* 13. Estimativa (Tempo) */}
-      <MetricCard
-        title="Est. Peso (Tempo)"
-        value={`${formatNumber(metrics.estimatedWeightByTime, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })} kg`}
-        icon={Timer}
-        iconColor="text-blue-600"
-        borderColor="border-l-blue-600"
-      >
-        <div className="text-xs text-muted-foreground mt-1">0,55 kg/min</div>
-      </MetricCard>
-
-      {/* 12. Tempo de Processos (D-1) */}
+      {/* 12. Tempo de Processos & Estimativa */}
       <MetricCard
         title={`Tempo de Processos`}
-        value={metrics.processTimeD1Display}
+        value={metrics.processTimeCurrentDisplay}
         icon={Clock}
         iconColor="text-blue-500"
         borderColor="border-l-blue-500"
       >
-        <div className="mt-3 pt-3 border-t border-border/50">
+        <div className="flex flex-col gap-1 mt-2 mb-3">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Scale className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium uppercase tracking-wide">
+              Quantidade Estimada
+            </span>
+          </div>
+          <span className="text-lg font-bold text-foreground">
+            {formatNumber(metrics.estimatedWeightByTime, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{' '}
+            <span className="text-sm font-normal text-muted-foreground">
+              kg
+            </span>
+          </span>
+        </div>
+
+        <div className="pt-3 border-t border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
