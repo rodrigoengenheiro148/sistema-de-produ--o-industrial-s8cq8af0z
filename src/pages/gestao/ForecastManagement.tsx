@@ -32,9 +32,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { CalendarIcon, Plus, Trash2, TrendingUp, Package } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, Package } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { RAW_MATERIAL_TYPES } from '@/lib/constants'
 import { DatePicker } from '@/components/ui/date-picker'

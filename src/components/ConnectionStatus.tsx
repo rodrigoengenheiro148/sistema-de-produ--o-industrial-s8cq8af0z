@@ -37,7 +37,7 @@ export function ConnectionStatus({
       case 'online':
         return {
           icon: CheckCircle2,
-          label: 'Sincronizado',
+          label: 'Online',
           color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
           desc: 'Conexão estável com o servidor.',
         }

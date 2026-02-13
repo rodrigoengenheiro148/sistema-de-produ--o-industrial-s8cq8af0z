@@ -9,7 +9,12 @@ import {
   isSameDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarIcon, ClipboardCheck } from 'lucide-react'
+import {
+  CalendarIcon,
+  ClipboardCheck,
+  AlertCircle,
+  WifiOff,
+} from 'lucide-react'
 import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
@@ -28,6 +33,7 @@ import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function Dashboard() {
   const {
@@ -43,6 +49,7 @@ export default function Dashboard() {
     factories,
     currentFactoryId,
     notificationSettings,
+    connectionStatus,
   } = useData()
   const isMobile = useIsMobile()
 
@@ -255,19 +262,42 @@ export default function Dashboard() {
     } else {
       // While typing incomplete dates, we can show error or just wait.
       // Showing error helps validation feedback immediately if pattern is completely wrong.
-      // To avoid annoying the user while typing "até", strict length checks can help.
       const isPotentiallyRange = val.length > 10
       const isPotentiallySingle = val.length <= 10
 
       if (isPotentiallySingle && val.length === 10) setInputError(true)
       if (isPotentiallyRange && val.length > 25) setInputError(true)
-      // Otherwise keep current error state or reset? Better to set error if no match
-      // But clearing it while typing can be better UX, showing error only on full mismatch length
     }
   }
 
   return (
     <div id="dashboard-content" className="space-y-6">
+      {/* Network Error Banner */}
+      {connectionStatus === 'error' && (
+        <Alert
+          variant="destructive"
+          className="animate-in fade-in slide-in-from-top-2"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Problema de Conexão</AlertTitle>
+          <AlertDescription>
+            Não foi possível atualizar os dados. Verifique sua conexão com a
+            internet. Os dados exibidos podem estar desatualizados.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {connectionStatus === 'offline' && (
+        <Alert className="animate-in fade-in slide-in-from-top-2 border-amber-200 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200">
+          <WifiOff className="h-4 w-4" />
+          <AlertTitle>Modo Offline</AlertTitle>
+          <AlertDescription>
+            Você está desconectado. As alterações serão salvas localmente e
+            sincronizadas quando a conexão for restabelecida.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>

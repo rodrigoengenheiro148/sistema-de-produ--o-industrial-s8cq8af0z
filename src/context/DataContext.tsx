@@ -102,6 +102,21 @@ const mapData = (data: any[]) => {
   }))
 }
 
+// Robust retry utility for data fetching
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1000,
+): Promise<T> {
+  try {
+    return await fn()
+  } catch (error) {
+    if (retries <= 0) throw error
+    await new Promise((resolve) => setTimeout(resolve, delay))
+    return withRetry(fn, retries - 1, delay * 1.5)
+  }
+}
+
 export const useData = () => {
   const context = useContext(DataContext)
   if (context === undefined) {
@@ -180,75 +195,82 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user?.id) return
 
     try {
-      const [{ data: fact }, { data: integration }, { data: notifications }] =
-        await Promise.all([
-          supabase.from('factories').select('*').order('name'),
-          supabase
-            .from('integration_configs')
-            .select('*')
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from('notification_settings')
-            .select('*')
-            .limit(1)
-            .maybeSingle(),
-        ])
+      // Use retry mechanism for improved reliability
+      await withRetry(async () => {
+        const [{ data: fact }, { data: integration }, { data: notifications }] =
+          await Promise.all([
+            supabase.from('factories').select('*').order('name'),
+            supabase
+              .from('integration_configs')
+              .select('*')
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from('notification_settings')
+              .select('*')
+              .limit(1)
+              .maybeSingle(),
+          ])
 
-      if (fact) {
-        setFactories(mapData(fact))
-      }
-
-      if (integration) {
-        const configData = integration as any
-        setProtheusConfig({
-          id: configData.id,
-          baseUrl: configData.base_url || '',
-          clientId: configData.client_id || '',
-          clientSecret: configData.client_secret || '',
-          username: configData.username || '',
-          password: configData.password || '',
-          syncInventory: configData.sync_inventory || false,
-          syncProduction: configData.sync_production || false,
-          isActive: configData.is_active || false,
-          apiToken: configData.api_token || '',
-          apiDocumentationUrl: configData.api_documentation_url || '',
-        })
-      }
-
-      if (notifications) {
-        const settings: NotificationSettings = {
-          id: notifications.id,
-          emailEnabled: notifications.email_enabled || false,
-          smsEnabled: notifications.sms_enabled || false,
-          yieldThreshold: notifications.yield_threshold || 0,
-          seboThreshold: notifications.sebo_threshold || 0,
-          farinhetaThreshold: notifications.farinheta_threshold || 0,
-          farinhaThreshold: notifications.farinha_threshold || 0,
-          fcoThreshold:
-            notifications.fco_threshold || notifications.farinha_threshold || 0,
-          notificationEmail: notifications.notification_email || '',
-          notificationPhone: notifications.notification_phone || '',
-          brevoApiKey: notifications.brevo_api_key || '',
-          smtpHost: notifications.smtp_host || '',
-          smtpPort: notifications.smtp_port || 587,
-          smtpUser: notifications.smtp_user || '',
-          smtpPassword: notifications.smtp_password || '',
+        if (fact) {
+          setFactories(mapData(fact))
         }
-        setNotificationSettings(settings)
-        setYieldTargets({
-          sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
-          fco:
-            settings.fcoThreshold ||
-            settings.farinhaThreshold ||
-            DEFAULT_YIELD_TARGETS.fco,
-          farinheta:
-            settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
-          total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total,
-        })
-      }
+
+        if (integration) {
+          const configData = integration as any
+          setProtheusConfig({
+            id: configData.id,
+            baseUrl: configData.base_url || '',
+            clientId: configData.client_id || '',
+            clientSecret: configData.client_secret || '',
+            username: configData.username || '',
+            password: configData.password || '',
+            syncInventory: configData.sync_inventory || false,
+            syncProduction: configData.sync_production || false,
+            isActive: configData.is_active || false,
+            apiToken: configData.api_token || '',
+            apiDocumentationUrl: configData.api_documentation_url || '',
+          })
+        }
+
+        if (notifications) {
+          const settings: NotificationSettings = {
+            id: notifications.id,
+            emailEnabled: notifications.email_enabled || false,
+            smsEnabled: notifications.sms_enabled || false,
+            yieldThreshold: notifications.yield_threshold || 0,
+            seboThreshold: notifications.sebo_threshold || 0,
+            farinhetaThreshold: notifications.farinheta_threshold || 0,
+            farinhaThreshold: notifications.farinha_threshold || 0,
+            fcoThreshold:
+              notifications.fco_threshold ||
+              notifications.farinha_threshold ||
+              0,
+            notificationEmail: notifications.notification_email || '',
+            notificationPhone: notifications.notification_phone || '',
+            brevoApiKey: notifications.brevo_api_key || '',
+            smtpHost: notifications.smtp_host || '',
+            smtpPort: notifications.smtp_port || 587,
+            smtpUser: notifications.smtp_user || '',
+            smtpPassword: notifications.smtp_password || '',
+          }
+          setNotificationSettings(settings)
+          setYieldTargets({
+            sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
+            fco:
+              settings.fcoThreshold ||
+              settings.farinhaThreshold ||
+              DEFAULT_YIELD_TARGETS.fco,
+            farinheta:
+              settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
+            total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total,
+          })
+        }
+      })
     } catch (error) {
       console.error('Error fetching global data:', error)
+      // We don't block the UI here, just log error.
+      // Connection status will handle UI feedback.
     }
   }, [user?.id])
 
@@ -276,69 +298,75 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Prepare date filters
-      const fromDateStr = dateRange.from
-        ? format(startOfDay(subDays(dateRange.from, 1)), 'yyyy-MM-dd')
-        : undefined
-      const toDateStr = dateRange.to
-        ? format(dateRange.to, 'yyyy-MM-dd')
-        : undefined
+      // Use retry mechanism for operational data
+      await withRetry(async () => {
+        // Prepare date filters
+        const fromDateStr = dateRange.from
+          ? format(startOfDay(subDays(dateRange.from, 1)), 'yyyy-MM-dd')
+          : undefined
+        const toDateStr = dateRange.to
+          ? format(dateRange.to, 'yyyy-MM-dd')
+          : undefined
 
-      const applyFilters = (query: any) => {
-        let q = query.eq('factory_id', currentFactoryId)
-        if (fromDateStr) q = q.gte('date', fromDateStr)
-        if (toDateStr) q = q.lte('date', toDateStr)
-        return q.order('date', { ascending: false })
-      }
+        const applyFilters = (query: any) => {
+          let q = query.eq('factory_id', currentFactoryId)
+          if (fromDateStr) q = q.gte('date', fromDateStr)
+          if (toDateStr) q = q.lte('date', toDateStr)
+          return q.order('date', { ascending: false })
+        }
 
-      const [
-        { data: raw },
-        { data: prod },
-        { data: ship },
-        { data: acid },
-        { data: qual },
-        { data: cooking },
-        { data: downtime },
-        { data: steam },
-        { data: forecasts },
-      ] = await Promise.all([
-        applyFilters(supabase.from('raw_materials').select('*')),
-        applyFilters(supabase.from('production').select('*')),
-        applyFilters(supabase.from('shipping').select('*')),
-        applyFilters(supabase.from('acidity_records').select('*')),
-        applyFilters(supabase.from('quality_records').select('*')),
-        applyFilters(supabase.from('cooking_time_records').select('*')),
-        applyFilters(supabase.from('downtime_records').select('*')),
-        applyFilters(supabase.from('steam_control_records').select('*')),
-        applyFilters(supabase.from('daily_production_forecasts').select('*')),
-      ])
+        const [
+          { data: raw },
+          { data: prod },
+          { data: ship },
+          { data: acid },
+          { data: qual },
+          { data: cooking },
+          { data: downtime },
+          { data: steam },
+          { data: forecasts },
+        ] = await Promise.all([
+          applyFilters(supabase.from('raw_materials').select('*')),
+          applyFilters(supabase.from('production').select('*')),
+          applyFilters(supabase.from('shipping').select('*')),
+          applyFilters(supabase.from('acidity_records').select('*')),
+          applyFilters(supabase.from('quality_records').select('*')),
+          applyFilters(supabase.from('cooking_time_records').select('*')),
+          applyFilters(supabase.from('downtime_records').select('*')),
+          applyFilters(supabase.from('steam_control_records').select('*')),
+          applyFilters(supabase.from('daily_production_forecasts').select('*')),
+        ])
 
-      if (raw) setRawMaterials(mapData(raw))
-      if (prod) setProduction(mapData(prod))
-      if (ship) setShipping(mapData(ship))
-      if (acid) setAcidityRecords(mapData(acid))
-      if (qual) setQualityRecords(mapData(qual))
-      if (cooking) setCookingTimeRecords(mapData(cooking))
-      if (downtime) setDowntimeRecords(mapData(downtime))
-      if (steam) setSteamControlRecords(mapData(steam))
-      if (forecasts) {
-        setDailyForecasts(
-          forecasts.map((f: any) => ({
-            id: f.id,
-            factoryId: f.factory_id,
-            date: parseAsLocalNoon(f.date),
-            mpForecast: Number(f.mp_forecast || 0),
-            materialType: f.material_type,
-            userId: f.user_id,
-            createdAt: f.created_at ? new Date(f.created_at) : undefined,
-          })),
-        )
-      }
+        if (raw) setRawMaterials(mapData(raw))
+        if (prod) setProduction(mapData(prod))
+        if (ship) setShipping(mapData(ship))
+        if (acid) setAcidityRecords(mapData(acid))
+        if (qual) setQualityRecords(mapData(qual))
+        if (cooking) setCookingTimeRecords(mapData(cooking))
+        if (downtime) setDowntimeRecords(mapData(downtime))
+        if (steam) setSteamControlRecords(mapData(steam))
+        if (forecasts) {
+          setDailyForecasts(
+            forecasts.map((f: any) => ({
+              id: f.id,
+              factoryId: f.factory_id,
+              date: parseAsLocalNoon(f.date),
+              mpForecast: Number(f.mp_forecast || 0),
+              materialType: f.material_type,
+              userId: f.user_id,
+              createdAt: f.created_at ? new Date(f.created_at) : undefined,
+            })),
+          )
+        }
 
-      setLastProtheusSync(new Date())
+        setLastProtheusSync(new Date())
+        setConnectionStatus('online')
+      })
     } catch (error) {
-      console.error('Error fetching operational data:', error)
+      console.error('Error fetching operational data after retries:', error)
       setConnectionStatus('error')
+      // Important: Don't clear data on temporary fetch failure to avoid flickering
+      // Keep displaying old data if available (React state is persistent)
     }
   }, [user?.id, currentFactoryId, dateRange])
 
@@ -349,7 +377,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       return
     }
     setConnectionStatus('syncing')
-    fetchGlobalData().then(() => setConnectionStatus('online'))
+    fetchGlobalData()
+      .then(() => setConnectionStatus('online'))
+      .catch(() => setConnectionStatus('error'))
   }, [user, fetchGlobalData])
 
   useEffect(() => {
@@ -419,10 +449,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setConnectionStatus('online')
       } else if (status === 'CHANNEL_ERROR') {
         console.warn(`Realtime subscription issue on ${channelName}`)
-        setConnectionStatus('error')
+        // Don't set error status just for realtime failure, as long as fetch works
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
-        setConnectionStatus('error')
       }
     })
 
@@ -440,6 +469,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, handleRealtimeUpdate])
 
+  // CRUD Operations... (unchanged, reusing existing supabase client with retry)
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({

@@ -28,7 +28,7 @@ export default function DashboardLayout() {
         return 'Entrada de Matéria-Prima'
       case '/producao':
         return 'Produção Diária'
-      case '/operacional/producao-sangue':
+      case '/producao-sangue':
         return 'Produção de Sangue'
       case '/rendimentos':
         return 'Análise de Rendimentos'
@@ -48,6 +48,8 @@ export default function DashboardLayout() {
         return 'Estoque de Sebo Bovino'
       case '/gestao/processo':
         return 'Gestão de Processos'
+      case '/gestao/previsao-mp':
+        return 'Previsão de Matéria-Prima'
       case '/gestao/controle-vapor':
         return 'Controle de Vapor'
       default:

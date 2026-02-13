@@ -30,10 +30,43 @@ const validUrl = isValidUrl(SUPABASE_URL)
   : 'https://placeholder.supabase.co'
 const validKey = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key'
 
-// Concurrent Session Support:
+// Custom fetch with retry logic for network resilience
+const fetchWithRetry = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> => {
+  const MAX_RETRIES = 3
+  const BASE_DELAY = 500 // Start with 500ms
+
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    try {
+      return await fetch(input, init)
+    } catch (error: any) {
+      const isNetworkError =
+        error.message === 'Failed to fetch' ||
+        error.name === 'TypeError' || // Common for network errors in fetch
+        error.name === 'AbortError' // Timeouts
+
+      // If it's not a network error or it's the last try, throw it
+      if (!isNetworkError || i === MAX_RETRIES - 1) {
+        throw error
+      }
+
+      // Exponential backoff + jitter
+      const delay = BASE_DELAY * Math.pow(2, i) + Math.random() * 100
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+  }
+
+  // Fallback (unreachable)
+  return fetch(input, init)
+}
+
+// Concurrent Session Support & Network Resilience:
 // - persistSession: true ensure token is saved in localStorage
 // - autoRefreshToken: true ensures token rotation per device
 // - flowType: 'pkce' provides better security for mobile/web scenarios
+// - global.fetch: uses our retry logic for all Supabase requests
 export const supabase = createClient<Database>(validUrl, validKey, {
   auth: {
     storage: localStorage,
@@ -41,6 +74,9 @@ export const supabase = createClient<Database>(validUrl, validKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true, // Enhances reliability of auth redirects
     flowType: 'pkce',
+  },
+  global: {
+    fetch: fetchWithRetry,
   },
 })
 
@@ -54,13 +90,18 @@ if (authClient && typeof authClient._refreshAccessToken === 'function') {
   authClient._refreshAccessToken = async (...args: any[]) => {
     try {
       return await originalRefresh(...args)
-    } catch (error) {
+    } catch (error: any) {
       console.warn(
         'Supabase auth refresh failed (network issue suspected). Suppressing crash.',
         error,
       )
-      // Return an error structure that Supabase expects to prevent upstream crashes
-      // We explicitly avoid throwing here to keep the app running on the client
+
+      // Check if it's a network error (Failed to fetch)
+      // If so, we might want to suppress the error but NOT sign the user out immediately if possible,
+      // though Supabase internals might need a return format.
+      // Returning an error here usually prompts the client to try again later or sign out.
+      // We return a structure that mimics a failed refresh but handled.
+
       return {
         data: { session: null, user: null },
         error: error || new Error('Failed to refresh access token'),

@@ -19388,6 +19388,20 @@ var FileDown = createLucideIcon("file-down", [
 		key: "1npd3o"
 	}]
 ]);
+var FileQuestionMark = createLucideIcon("file-question-mark", [
+	["path", {
+		d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
+		key: "1oefj6"
+	}],
+	["path", {
+		d: "M12 17h.01",
+		key: "p32p05"
+	}],
+	["path", {
+		d: "M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3",
+		key: "mhlwft"
+	}]
+]);
 var FileSpreadsheet = createLucideIcon("file-spreadsheet", [
 	["path", {
 		d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
@@ -35840,13 +35854,30 @@ var isValidUrl = (url) => {
 	}
 };
 if (!isValidUrl(SUPABASE_URL) || false) console.error("Supabase URL or Key is missing or invalid. Please check your .env configuration.");
-const supabase = createClient(isValidUrl(SUPABASE_URL) ? SUPABASE_URL : "https://placeholder.supabase.co", SUPABASE_PUBLISHABLE_KEY, { auth: {
-	storage: localStorage,
-	persistSession: true,
-	autoRefreshToken: true,
-	detectSessionInUrl: true,
-	flowType: "pkce"
-} });
+var validUrl = isValidUrl(SUPABASE_URL) ? SUPABASE_URL : "https://placeholder.supabase.co";
+var validKey = SUPABASE_PUBLISHABLE_KEY;
+var fetchWithRetry = async (input, init) => {
+	const MAX_RETRIES = 3;
+	const BASE_DELAY = 500;
+	for (let i$2 = 0; i$2 < MAX_RETRIES; i$2++) try {
+		return await fetch(input, init);
+	} catch (error) {
+		if (!(error.message === "Failed to fetch" || error.name === "TypeError" || error.name === "AbortError") || i$2 === MAX_RETRIES - 1) throw error;
+		const delay = BASE_DELAY * Math.pow(2, i$2) + Math.random() * 100;
+		await new Promise((resolve) => setTimeout(resolve, delay));
+	}
+	return fetch(input, init);
+};
+const supabase = createClient(validUrl, validKey, {
+	auth: {
+		storage: localStorage,
+		persistSession: true,
+		autoRefreshToken: true,
+		detectSessionInUrl: true,
+		flowType: "pkce"
+	},
+	global: { fetch: fetchWithRetry }
+});
 var authClient = supabase.auth;
 if (authClient && typeof authClient._refreshAccessToken === "function") {
 	const originalRefresh = authClient._refreshAccessToken.bind(authClient);
@@ -35885,19 +35916,28 @@ const AuthProvider = ({ children }) => {
 				setLoading(false);
 			}
 		});
-		supabase.auth.getSession().then(({ data, error }) => {
-			if (!mounted) return;
-			if (error) console.warn("Error checking initial session:", error.message);
-			setSession(data?.session ?? null);
-			setUser(data?.session?.user ?? null);
-		}).catch((err) => {
-			if (!mounted) return;
-			console.error("Unexpected error during session check:", err);
-			setSession(null);
-			setUser(null);
-		}).finally(() => {
-			if (mounted) setLoading(false);
-		});
+		const checkSession = async () => {
+			try {
+				const { data, error } = await supabase.auth.getSession();
+				if (!mounted) return;
+				if (error) {
+					console.warn("Error checking initial session:", error.message);
+					setSession(null);
+					setUser(null);
+				} else {
+					setSession(data.session);
+					setUser(data.session?.user ?? null);
+				}
+			} catch (err) {
+				if (!mounted) return;
+				console.error("Unexpected exception during session check:", err);
+				setSession(null);
+				setUser(null);
+			} finally {
+				if (mounted) setLoading(false);
+			}
+		};
+		checkSession();
 		return () => {
 			mounted = false;
 			subscription.unsubscribe();
@@ -36051,6 +36091,15 @@ var mapData = (data) => {
 		steamConsumption: Number(item.steam_consumption || 0)
 	}));
 };
+async function withRetry(fn, retries = 3, delay = 1e3) {
+	try {
+		return await fn();
+	} catch (error) {
+		if (retries <= 0) throw error;
+		await new Promise((resolve) => setTimeout(resolve, delay));
+		return withRetry(fn, retries - 1, delay * 1.5);
+	}
+}
 const useData = () => {
 	const context = (0, import_react.useContext)(DataContext);
 	if (context === void 0) throw new Error("useData must be used within a DataProvider");
@@ -36101,54 +36150,56 @@ const DataProvider = ({ children }) => {
 	const fetchGlobalData = (0, import_react.useCallback)(async () => {
 		if (!user?.id) return;
 		try {
-			const [{ data: fact }, { data: integration }, { data: notifications }] = await Promise.all([
-				supabase.from("factories").select("*").order("name"),
-				supabase.from("integration_configs").select("*").limit(1).maybeSingle(),
-				supabase.from("notification_settings").select("*").limit(1).maybeSingle()
-			]);
-			if (fact) setFactories(mapData(fact));
-			if (integration) {
-				const configData = integration;
-				setProtheusConfig({
-					id: configData.id,
-					baseUrl: configData.base_url || "",
-					clientId: configData.client_id || "",
-					clientSecret: configData.client_secret || "",
-					username: configData.username || "",
-					password: configData.password || "",
-					syncInventory: configData.sync_inventory || false,
-					syncProduction: configData.sync_production || false,
-					isActive: configData.is_active || false,
-					apiToken: configData.api_token || "",
-					apiDocumentationUrl: configData.api_documentation_url || ""
-				});
-			}
-			if (notifications) {
-				const settings = {
-					id: notifications.id,
-					emailEnabled: notifications.email_enabled || false,
-					smsEnabled: notifications.sms_enabled || false,
-					yieldThreshold: notifications.yield_threshold || 0,
-					seboThreshold: notifications.sebo_threshold || 0,
-					farinhetaThreshold: notifications.farinheta_threshold || 0,
-					farinhaThreshold: notifications.farinha_threshold || 0,
-					fcoThreshold: notifications.fco_threshold || notifications.farinha_threshold || 0,
-					notificationEmail: notifications.notification_email || "",
-					notificationPhone: notifications.notification_phone || "",
-					brevoApiKey: notifications.brevo_api_key || "",
-					smtpHost: notifications.smtp_host || "",
-					smtpPort: notifications.smtp_port || 587,
-					smtpUser: notifications.smtp_user || "",
-					smtpPassword: notifications.smtp_password || ""
-				};
-				setNotificationSettings(settings);
-				setYieldTargets({
-					sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
-					fco: settings.fcoThreshold || settings.farinhaThreshold || DEFAULT_YIELD_TARGETS.fco,
-					farinheta: settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
-					total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total
-				});
-			}
+			await withRetry(async () => {
+				const [{ data: fact }, { data: integration }, { data: notifications }] = await Promise.all([
+					supabase.from("factories").select("*").order("name"),
+					supabase.from("integration_configs").select("*").limit(1).maybeSingle(),
+					supabase.from("notification_settings").select("*").limit(1).maybeSingle()
+				]);
+				if (fact) setFactories(mapData(fact));
+				if (integration) {
+					const configData = integration;
+					setProtheusConfig({
+						id: configData.id,
+						baseUrl: configData.base_url || "",
+						clientId: configData.client_id || "",
+						clientSecret: configData.client_secret || "",
+						username: configData.username || "",
+						password: configData.password || "",
+						syncInventory: configData.sync_inventory || false,
+						syncProduction: configData.sync_production || false,
+						isActive: configData.is_active || false,
+						apiToken: configData.api_token || "",
+						apiDocumentationUrl: configData.api_documentation_url || ""
+					});
+				}
+				if (notifications) {
+					const settings = {
+						id: notifications.id,
+						emailEnabled: notifications.email_enabled || false,
+						smsEnabled: notifications.sms_enabled || false,
+						yieldThreshold: notifications.yield_threshold || 0,
+						seboThreshold: notifications.sebo_threshold || 0,
+						farinhetaThreshold: notifications.farinheta_threshold || 0,
+						farinhaThreshold: notifications.farinha_threshold || 0,
+						fcoThreshold: notifications.fco_threshold || notifications.farinha_threshold || 0,
+						notificationEmail: notifications.notification_email || "",
+						notificationPhone: notifications.notification_phone || "",
+						brevoApiKey: notifications.brevo_api_key || "",
+						smtpHost: notifications.smtp_host || "",
+						smtpPort: notifications.smtp_port || 587,
+						smtpUser: notifications.smtp_user || "",
+						smtpPassword: notifications.smtp_password || ""
+					};
+					setNotificationSettings(settings);
+					setYieldTargets({
+						sebo: settings.seboThreshold || DEFAULT_YIELD_TARGETS.sebo,
+						fco: settings.fcoThreshold || settings.farinhaThreshold || DEFAULT_YIELD_TARGETS.fco,
+						farinheta: settings.farinhetaThreshold || DEFAULT_YIELD_TARGETS.farinheta,
+						total: settings.yieldThreshold || DEFAULT_YIELD_TARGETS.total
+					});
+				}
+			});
 		} catch (error) {
 			console.error("Error fetching global data:", error);
 		}
@@ -36172,45 +36223,48 @@ const DataProvider = ({ children }) => {
 			return;
 		}
 		try {
-			const fromDateStr = dateRange.from ? format(startOfDay(subDays(dateRange.from, 1)), "yyyy-MM-dd") : void 0;
-			const toDateStr = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : void 0;
-			const applyFilters = (query) => {
-				let q = query.eq("factory_id", currentFactoryId);
-				if (fromDateStr) q = q.gte("date", fromDateStr);
-				if (toDateStr) q = q.lte("date", toDateStr);
-				return q.order("date", { ascending: false });
-			};
-			const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
-				applyFilters(supabase.from("raw_materials").select("*")),
-				applyFilters(supabase.from("production").select("*")),
-				applyFilters(supabase.from("shipping").select("*")),
-				applyFilters(supabase.from("acidity_records").select("*")),
-				applyFilters(supabase.from("quality_records").select("*")),
-				applyFilters(supabase.from("cooking_time_records").select("*")),
-				applyFilters(supabase.from("downtime_records").select("*")),
-				applyFilters(supabase.from("steam_control_records").select("*")),
-				applyFilters(supabase.from("daily_production_forecasts").select("*"))
-			]);
-			if (raw) setRawMaterials(mapData(raw));
-			if (prod) setProduction(mapData(prod));
-			if (ship) setShipping(mapData(ship));
-			if (acid) setAcidityRecords(mapData(acid));
-			if (qual) setQualityRecords(mapData(qual));
-			if (cooking) setCookingTimeRecords(mapData(cooking));
-			if (downtime) setDowntimeRecords(mapData(downtime));
-			if (steam) setSteamControlRecords(mapData(steam));
-			if (forecasts) setDailyForecasts(forecasts.map((f) => ({
-				id: f.id,
-				factoryId: f.factory_id,
-				date: parseAsLocalNoon(f.date),
-				mpForecast: Number(f.mp_forecast || 0),
-				materialType: f.material_type,
-				userId: f.user_id,
-				createdAt: f.created_at ? new Date(f.created_at) : void 0
-			})));
-			setLastProtheusSync(/* @__PURE__ */ new Date());
+			await withRetry(async () => {
+				const fromDateStr = dateRange.from ? format(startOfDay(subDays(dateRange.from, 1)), "yyyy-MM-dd") : void 0;
+				const toDateStr = dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : void 0;
+				const applyFilters = (query) => {
+					let q = query.eq("factory_id", currentFactoryId);
+					if (fromDateStr) q = q.gte("date", fromDateStr);
+					if (toDateStr) q = q.lte("date", toDateStr);
+					return q.order("date", { ascending: false });
+				};
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
+					applyFilters(supabase.from("raw_materials").select("*")),
+					applyFilters(supabase.from("production").select("*")),
+					applyFilters(supabase.from("shipping").select("*")),
+					applyFilters(supabase.from("acidity_records").select("*")),
+					applyFilters(supabase.from("quality_records").select("*")),
+					applyFilters(supabase.from("cooking_time_records").select("*")),
+					applyFilters(supabase.from("downtime_records").select("*")),
+					applyFilters(supabase.from("steam_control_records").select("*")),
+					applyFilters(supabase.from("daily_production_forecasts").select("*"))
+				]);
+				if (raw) setRawMaterials(mapData(raw));
+				if (prod) setProduction(mapData(prod));
+				if (ship) setShipping(mapData(ship));
+				if (acid) setAcidityRecords(mapData(acid));
+				if (qual) setQualityRecords(mapData(qual));
+				if (cooking) setCookingTimeRecords(mapData(cooking));
+				if (downtime) setDowntimeRecords(mapData(downtime));
+				if (steam) setSteamControlRecords(mapData(steam));
+				if (forecasts) setDailyForecasts(forecasts.map((f) => ({
+					id: f.id,
+					factoryId: f.factory_id,
+					date: parseAsLocalNoon(f.date),
+					mpForecast: Number(f.mp_forecast || 0),
+					materialType: f.material_type,
+					userId: f.user_id,
+					createdAt: f.created_at ? new Date(f.created_at) : void 0
+				})));
+				setLastProtheusSync(/* @__PURE__ */ new Date());
+				setConnectionStatus("online");
+			});
 		} catch (error) {
-			console.error("Error fetching operational data:", error);
+			console.error("Error fetching operational data after retries:", error);
 			setConnectionStatus("error");
 		}
 	}, [
@@ -36225,7 +36279,7 @@ const DataProvider = ({ children }) => {
 			return;
 		}
 		setConnectionStatus("syncing");
-		fetchGlobalData().then(() => setConnectionStatus("online"));
+		fetchGlobalData().then(() => setConnectionStatus("online")).catch(() => setConnectionStatus("error"));
 	}, [user, fetchGlobalData]);
 	(0, import_react.useEffect)(() => {
 		if (currentFactoryId) fetchOperationalData();
@@ -36269,13 +36323,8 @@ const DataProvider = ({ children }) => {
 			if (status === "SUBSCRIBED") {
 				console.log(`Subscribed to realtime channel: ${channelName}`);
 				setConnectionStatus("online");
-			} else if (status === "CHANNEL_ERROR") {
-				console.warn(`Realtime subscription issue on ${channelName}`);
-				setConnectionStatus("error");
-			} else if (status === "TIMED_OUT") {
-				console.warn(`Realtime subscription timed out on ${channelName}`);
-				setConnectionStatus("error");
-			}
+			} else if (status === "CHANNEL_ERROR") console.warn(`Realtime subscription issue on ${channelName}`);
+			else if (status === "TIMED_OUT") console.warn(`Realtime subscription timed out on ${channelName}`);
 		});
 		operationalChannelRef.current = channel;
 		return () => {
@@ -68404,8 +68453,34 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 		})]
 	});
 }
+var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
+	variants: { variant: {
+		default: "bg-background text-foreground",
+		destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive"
+	} },
+	defaultVariants: { variant: "default" }
+});
+var Alert = import_react.forwardRef(({ className, variant, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	ref,
+	role: "alert",
+	className: cn(alertVariants({ variant }), className),
+	...props
+}));
+Alert.displayName = "Alert";
+var AlertTitle = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h5", {
+	ref,
+	className: cn("mb-1 font-medium leading-none tracking-tight", className),
+	...props
+}));
+AlertTitle.displayName = "AlertTitle";
+var AlertDescription = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	ref,
+	className: cn("text-sm [&_p]:leading-relaxed", className),
+	...props
+}));
+AlertDescription.displayName = "AlertDescription";
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
@@ -68521,192 +68596,212 @@ function Dashboard() {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		id: "dashboard-content",
 		className: "space-y-6",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-				className: "text-3xl font-bold tracking-tight",
-				children: "Dashboard"
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "text-muted-foreground",
-				children: currentFactory?.name || "Visão Geral da Produção"
-			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "relative w-full sm:w-[280px]",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-						type: "text",
-						placeholder: "DD/MM/AAAA até DD/MM/AAAA",
-						value: dateInput,
-						onChange: handleDateChange,
-						className: cn("pl-9 border-primary/20 focus-visible:ring-primary font-mono text-sm", inputError && "border-red-500 focus-visible:ring-red-500"),
-						maxLength: 25
+		children: [
+			connectionStatus === "error" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Alert, {
+				variant: "destructive",
+				className: "animate-in fade-in slide-in-from-top-2",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleAlert, { className: "h-4 w-4" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertTitle, { children: "Problema de Conexão" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDescription, { children: "Não foi possível atualizar os dados. Verifique sua conexão com a internet. Os dados exibidos podem estar desatualizados." })
+				]
+			}),
+			connectionStatus === "offline" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Alert, {
+				className: "animate-in fade-in slide-in-from-top-2 border-amber-200 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(WifiOff, { className: "h-4 w-4" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertTitle, { children: "Modo Offline" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDescription, { children: "Você está desconectado. As alterações serão salvas localmente e sincronizadas quando a conexão for restabelecida." })
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+					className: "text-3xl font-bold tracking-tight",
+					children: "Dashboard"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-muted-foreground",
+					children: currentFactory?.name || "Visão Geral da Produção"
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-col sm:flex-row items-start sm:items-center gap-2 no-print",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "relative w-full sm:w-[280px]",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "text",
+							placeholder: "DD/MM/AAAA até DD/MM/AAAA",
+							value: dateInput,
+							onChange: handleDateChange,
+							className: cn("pl-9 border-primary/20 focus-visible:ring-primary font-mono text-sm", inputError && "border-red-500 focus-visible:ring-red-500"),
+							maxLength: 25
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex gap-2 w-full sm:w-auto",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SyncDeviceDialog, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExportOptions, { className: "flex-1 sm:flex-none" })]
 					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex gap-2 w-full sm:w-auto",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SyncDeviceDialog, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExportOptions, { className: "flex-1 sm:flex-none" })]
 				})]
-			})]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
-			defaultValue: "overview",
-			className: "space-y-4",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "no-print overflow-x-auto pb-2 scrollbar-hide",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
-						className: "bg-muted/50 w-full sm:w-auto flex",
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "overview",
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "no-print overflow-x-auto pb-2 scrollbar-hide",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+							className: "bg-muted/50 w-full sm:w-auto flex",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+									value: "overview",
+									className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
+									children: "Visão Geral"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+									value: "yields",
+									className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
+									children: "Rendimentos Detalhados"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+									value: "quality",
+									className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
+									children: "Qualidade"
+								})
+							]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
+						value: "overview",
+						className: "space-y-6",
 						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-								value: "overview",
-								className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
-								children: "Visão Geral"
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(OverviewCards, {
+								rawMaterials: filteredRawMaterials,
+								production: filteredProduction,
+								shipping: filteredShipping,
+								cookingTimeRecords: filteredCookingTime,
+								downtimeRecords: filteredDowntime,
+								acidityRecords: filteredAcidity,
+								notificationSettings,
+								fullProductionHistory: production,
+								fullCookingTimeRecords: cookingTimeRecords,
+								referenceDate: effectiveForecastDate
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-								value: "yields",
-								className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
-								children: "Rendimentos Detalhados"
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 md:grid-cols-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
+									value: currentYield,
+									target: yieldTarget,
+									className: "h-full"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "md:col-span-2",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
+										data: filteredProduction,
+										isMobile,
+										timeScale: "daily",
+										className: "h-full"
+									})
+								})]
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
-								value: "quality",
-								className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
-								children: "Qualidade"
-							})
-						]
-					})
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
-					value: "overview",
-					className: "space-y-6",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(OverviewCards, {
-							rawMaterials: filteredRawMaterials,
-							production: filteredProduction,
-							shipping: filteredShipping,
-							cookingTimeRecords: filteredCookingTime,
-							downtimeRecords: filteredDowntime,
-							acidityRecords: filteredAcidity,
-							notificationSettings,
-							fullProductionHistory: production,
-							fullCookingTimeRecords: cookingTimeRecords,
-							referenceDate: effectiveForecastDate
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "grid gap-4 md:grid-cols-3",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
-								value: currentYield,
-								target: yieldTarget,
-								className: "h-full"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "md:col-span-2",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
-									data: filteredProduction,
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialCompositionChart, {
+								data: filteredRawMaterials,
+								isMobile
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 md:grid-cols-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
+									data: filteredShipping,
+									productionData: filteredProduction,
+									rawMaterials: filteredRawMaterials,
+									allData: shipping,
+									allProductionData: production,
+									allRawMaterials: rawMaterials,
 									isMobile,
 									timeScale: "daily",
-									className: "h-full"
-								})
-							})]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialCompositionChart, {
-							data: filteredRawMaterials,
-							isMobile
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "grid gap-4 md:grid-cols-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
-								data: filteredShipping,
-								productionData: filteredProduction,
-								rawMaterials: filteredRawMaterials,
-								allData: shipping,
-								allProductionData: production,
-								allRawMaterials: rawMaterials,
-								isMobile,
-								timeScale: "daily",
-								allClients: uniqueClients
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
+									allClients: uniqueClients
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
+									data: filteredProduction,
+									isMobile,
+									timeScale: "daily"
+								})]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
+						value: "yields",
+						className: "space-y-4",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldBarChart, {
 								data: filteredProduction,
-								isMobile,
-								timeScale: "daily"
+								isMobile
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldHistoryChart, {
+								data: filteredProduction,
+								isMobile
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
+								productionData: filteredProduction,
+								rawMaterialData: filteredRawMaterials,
+								isMobile
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "quality",
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid gap-4 md:grid-cols-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+								className: "border-t-4 border-t-blue-500 shadow-sm",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
+									className: "pb-2",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+										className: "text-base text-blue-700 flex items-center gap-2",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClipboardCheck, { className: "h-4 w-4" }), " Qualidade Farinha"]
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+									className: "grid grid-cols-2 gap-4",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm text-muted-foreground",
+										children: "Acidez Média"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-2xl font-bold",
+										children: [avgFarinhaAcidity.toFixed(2), "%"]
+									})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm text-muted-foreground",
+										children: "Proteína Média"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-2xl font-bold",
+										children: [avgFarinhaProtein.toFixed(2), "%"]
+									})] })]
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+								className: "border-t-4 border-t-amber-500 shadow-sm",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
+									className: "pb-2",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+										className: "text-base text-amber-700 flex items-center gap-2",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClipboardCheck, { className: "h-4 w-4" }), " Qualidade Farinheta"]
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+									className: "grid grid-cols-2 gap-4",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm text-muted-foreground",
+										children: "Acidez Média"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-2xl font-bold",
+										children: [avgFarinhetaAcidity.toFixed(2), "%"]
+									})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+										className: "text-sm text-muted-foreground",
+										children: "Proteína Média"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-2xl font-bold",
+										children: [avgFarinhetaProtein.toFixed(2), "%"]
+									})] })]
+								})]
 							})]
 						})
-					]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsContent, {
-					value: "yields",
-					className: "space-y-4",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldBarChart, {
-							data: filteredProduction,
-							isMobile
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldHistoryChart, {
-							data: filteredProduction,
-							isMobile
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
-							productionData: filteredProduction,
-							rawMaterialData: filteredRawMaterials,
-							isMobile
-						})
-					]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
-					value: "quality",
-					className: "space-y-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "grid gap-4 md:grid-cols-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-							className: "border-t-4 border-t-blue-500 shadow-sm",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
-								className: "pb-2",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-									className: "text-base text-blue-700 flex items-center gap-2",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClipboardCheck, { className: "h-4 w-4" }), " Qualidade Farinha"]
-								})
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-								className: "grid grid-cols-2 gap-4",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-sm text-muted-foreground",
-									children: "Acidez Média"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "text-2xl font-bold",
-									children: [avgFarinhaAcidity.toFixed(2), "%"]
-								})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-sm text-muted-foreground",
-									children: "Proteína Média"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "text-2xl font-bold",
-									children: [avgFarinhaProtein.toFixed(2), "%"]
-								})] })]
-							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-							className: "border-t-4 border-t-amber-500 shadow-sm",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
-								className: "pb-2",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-									className: "text-base text-amber-700 flex items-center gap-2",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClipboardCheck, { className: "h-4 w-4" }), " Qualidade Farinheta"]
-								})
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
-								className: "grid grid-cols-2 gap-4",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-sm text-muted-foreground",
-									children: "Acidez Média"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "text-2xl font-bold",
-									children: [avgFarinhetaAcidity.toFixed(2), "%"]
-								})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "text-sm text-muted-foreground",
-									children: "Proteína Média"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "text-2xl font-bold",
-									children: [avgFarinhetaProtein.toFixed(2), "%"]
-								})] })]
-							})]
-						})]
 					})
-				})
-			]
-		})]
+				]
+			})
+		]
 	});
 }
 var Table$1 = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -87868,22 +87963,36 @@ var NotFound = () => {
 		console.error("404 Error: User attempted to access non-existent route:", location.pathname);
 	}, [location.pathname]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: "min-h-screen flex items-center justify-center bg-gray-100",
+		className: "min-h-screen flex flex-col items-center justify-center bg-background p-4",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "text-center",
+			className: "text-center space-y-4",
 			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "flex justify-center",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "bg-muted p-4 rounded-full",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FileQuestionMark, { className: "h-12 w-12 text-muted-foreground" })
+					})
+				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
-					className: "text-4xl font-bold mb-4",
+					className: "text-4xl font-bold tracking-tight",
 					children: "404"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "text-xl text-gray-600 mb-4",
-					children: "Oops! Page not found"
+					className: "text-xl text-muted-foreground",
+					children: "Página não encontrada"
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
-					href: "/",
-					className: "text-blue-500 hover:text-blue-700 underline",
-					children: "Return to Home"
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm text-muted-foreground max-w-md mx-auto",
+					children: "A página que você está procurando não existe ou foi movida."
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					asChild: true,
+					className: "mt-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
+						href: "/",
+						children: "Voltar ao Início"
+					})
 				})
 			]
 		})
@@ -89075,7 +89184,7 @@ function ConnectionStatus({ status, className, lastSync }) {
 		switch (status$1) {
 			case "online": return {
 				icon: CircleCheck,
-				label: "Sincronizado",
+				label: "Online",
 				color: "bg-emerald-100 text-emerald-700 border-emerald-200",
 				desc: "Conexão estável com o servidor."
 			};
@@ -89151,7 +89260,7 @@ function DashboardLayout() {
 			case "/": return "Dashboard Operacional";
 			case "/entrada-mp": return "Entrada de Matéria-Prima";
 			case "/producao": return "Produção Diária";
-			case "/operacional/producao-sangue": return "Produção de Sangue";
+			case "/producao-sangue": return "Produção de Sangue";
 			case "/rendimentos": return "Análise de Rendimentos";
 			case "/acidez-diaria": return "Controle de Acidez";
 			case "/qualidade": return "Gestão de Qualidade";
@@ -89161,6 +89270,7 @@ function DashboardLayout() {
 			case "/settings": return "Configurações do Sistema";
 			case "/gestao/estoque-sebo": return "Estoque de Sebo Bovino";
 			case "/gestao/processo": return "Gestão de Processos";
+			case "/gestao/previsao-mp": return "Previsão de Matéria-Prima";
 			case "/gestao/controle-vapor": return "Controle de Vapor";
 			default: return "Grupo BR Render";
 		}
@@ -89347,4 +89457,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-wBHn2Omt.js.map
+//# sourceMappingURL=index-CckiSO6L.js.map

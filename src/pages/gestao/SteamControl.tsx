@@ -8,7 +8,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import { SteamControlForm } from '@/components/steam/SteamControlForm'
 import { SteamControlTable } from '@/components/steam/SteamControlTable'

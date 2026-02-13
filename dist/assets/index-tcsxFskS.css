@@ -1035,6 +1035,9 @@ section[aria-label='Notifications alt+T'] {
 .w-11{
   width: 2.75rem;
 }
+.w-12{
+  width: 3rem;
+}
 .w-2{
   width: 0.5rem;
 }
@@ -2446,10 +2449,6 @@ section[aria-label='Notifications alt+T'] {
   --tw-text-opacity: 1;
   color: rgb(107 114 128 / var(--tw-text-opacity, 1));
 }
-.text-gray-600{
-  --tw-text-opacity: 1;
-  color: rgb(75 85 99 / var(--tw-text-opacity, 1));
-}
 .text-gray-700{
   --tw-text-opacity: 1;
   color: rgb(55 65 81 / var(--tw-text-opacity, 1));
@@ -2555,9 +2554,6 @@ section[aria-label='Notifications alt+T'] {
 .text-yellow-700{
   --tw-text-opacity: 1;
   color: rgb(161 98 7 / var(--tw-text-opacity, 1));
-}
-.underline{
-  text-decoration-line: underline;
 }
 .underline-offset-4{
   text-underline-offset: 4px;
@@ -3169,10 +3165,6 @@ img[src*='skip.svg'] {
 .hover\:text-blue-600:hover{
   --tw-text-opacity: 1;
   color: rgb(37 99 235 / var(--tw-text-opacity, 1));
-}
-.hover\:text-blue-700:hover{
-  --tw-text-opacity: 1;
-  color: rgb(29 78 216 / var(--tw-text-opacity, 1));
 }
 .hover\:text-destructive:hover{
   color: hsl(var(--destructive));

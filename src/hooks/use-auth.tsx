@@ -44,6 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       // It is FORBIDDEN to use async / await inside this callback
       if (mounted) {
+        // Handle token refresh failure or network issues gracefully
+        // If we get a SIGNED_OUT event but it was triggered by an error we might want to be careful,
+        // but typically standard events are safe.
+        // We focus on updating state.
         setSession(session)
         setUser(session?.user ?? null)
 
@@ -60,32 +64,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // THEN check for existing session
     // We add robust error handling here to prevent white screens on network failure
     // during the initial fetch.
-    supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
+    const checkSession = async () => {
+      try {
+        // Using getSession instead of getUser because getSession reads from local storage first (fast)
+        // and verifies if valid. The supabase client custom fetch will retry if network fails.
+        const { data, error } = await supabase.auth.getSession()
+
         if (!mounted) return
 
         if (error) {
           console.warn('Error checking initial session:', error.message)
           // Even if there is an error (e.g. network), we must stop loading
-          // so the user sees the UI (e.g. login screen or public routes)
+          // so the user sees the UI (e.g. login screen or public routes).
+          // We set session to null to force re-login or public view.
+          setSession(null)
+          setUser(null)
+        } else {
+          setSession(data.session)
+          setUser(data.session?.user ?? null)
         }
-
-        setSession(data?.session ?? null)
-        setUser(data?.session?.user ?? null)
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!mounted) return
-        console.error('Unexpected error during session check:', err)
-        // In case of catastrophic failure (e.g. invalid URL), we ensure the app doesn't hang in loading
+        console.error('Unexpected exception during session check:', err)
+        // In case of catastrophic failure (e.g. invalid URL or unhandled fetch error),
+        // we ensure the app doesn't hang in loading
         setSession(null)
         setUser(null)
-      })
-      .finally(() => {
+      } finally {
         if (mounted) {
           setLoading(false)
         }
-      })
+      }
+    }
+
+    checkSession()
 
     return () => {
       mounted = false
