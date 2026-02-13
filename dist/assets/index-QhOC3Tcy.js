@@ -87060,46 +87060,55 @@ function HourlyProductionEfficiencyChart({ date: date$4 }) {
 		}) })]
 	});
 }
-function calculateDailyMetrics(batches) {
-	let totalProcessed = 0;
-	let totalProduced = 0;
-	let cookingTimeMinutes = 0;
-	batches.forEach((batch) => {
-		const processed = batch.raw_material_weight || 0;
-		const produced = batch.product_weight || 0;
-		totalProcessed += processed;
-		totalProduced += produced;
-		if (batch.start_time && batch.end_time) {
-			const start = new Date(batch.start_time);
-			const end = new Date(batch.end_time);
-			if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-				const duration$2 = differenceInMinutes(end, start);
-				if (duration$2 > 0) cookingTimeMinutes += duration$2;
-			}
+function calculateDailyMetrics(date$4, cookingTimeRecords = [], downtimeRecords = [], productionRecords = []) {
+	const safeCooking = Array.isArray(cookingTimeRecords) ? cookingTimeRecords : [];
+	const safeDowntime = Array.isArray(downtimeRecords) ? downtimeRecords : [];
+	const safeProduction = Array.isArray(productionRecords) ? productionRecords : [];
+	const targetDateStr = format(date$4 instanceof Date ? date$4 : /* @__PURE__ */ new Date(), "yyyy-MM-dd");
+	const isSameDay$1 = (d) => {
+		try {
+			if (!d) return false;
+			const dateObj = d instanceof Date ? d : new Date(d);
+			if (isNaN(dateObj.getTime())) return false;
+			return format(dateObj, "yyyy-MM-dd") === targetDateStr;
+		} catch {
+			return false;
 		}
-	});
-	const yieldPercentage = totalProcessed > 0 ? totalProduced / totalProcessed * 100 : 0;
-	const totalProcessedTons = totalProcessed / 1e3;
-	const cookingHours = cookingTimeMinutes / 60;
-	const throughput = cookingHours > 0 ? totalProcessedTons / cookingHours : 0;
+	};
+	const dailyCooking = safeCooking.filter((r$2) => isSameDay$1(r$2.date));
+	const dailyDowntime = safeDowntime.filter((r$2) => isSameDay$1(r$2.date));
+	const dailyProduction = safeProduction.filter((r$2) => isSameDay$1(r$2.date));
+	const totalConsumption = dailyProduction.reduce((sum, p$1) => sum + (Number(p$1.mpUsed) || 0), 0);
+	const totalProduced = dailyProduction.reduce((sum, p$1) => sum + (Number(p$1.seboProduced) || 0) + (Number(p$1.fcoProduced) || 0) + (Number(p$1.farinhetaProduced) || 0), 0);
+	const netActiveHours = dailyCooking.reduce((sum, c$1) => sum + (Number(c$1.totalHours) || 0), 0);
+	const netActiveMinutes = netActiveHours * 60;
+	const totalDowntimeMinutes = dailyDowntime.reduce((sum, d) => sum + (Number(d.durationHours) || 0), 0) * 60;
+	const rateTon = netActiveHours > 0 ? totalConsumption / 1e3 / netActiveHours : 0;
 	return {
-		totalProcessed,
+		totalConsumption,
 		totalProduced,
-		cookingTimeMinutes,
-		yieldPercentage,
-		throughput
+		netActiveMinutes,
+		netActiveHours,
+		totalDowntimeMinutes,
+		rateTon,
+		yieldPercentage: totalConsumption > 0 ? totalProduced / totalConsumption * 100 : 0,
+		totalProcessed: totalConsumption,
+		cookingTimeMinutes: netActiveMinutes,
+		throughput: rateTon
 	};
 }
 function formatDuration(minutes) {
+	if (!minutes && minutes !== 0) return "0h 00m";
 	return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60).toString().padStart(2, "0")}m`;
 }
 function ProcessMetricsCard({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
-	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords, downtimeRecords, production);
+	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords || [], downtimeRecords || [], production || []);
 	const TARGET_FLOW_RATE = 7.125;
 	const flowRateDiff = metrics.rateTon - TARGET_FLOW_RATE;
 	const isBelowTarget = flowRateDiff < 0;
 	const formatTime = (minutes) => {
+		if (!minutes && minutes !== 0) return "0h 00m";
 		return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60)}m`;
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -90263,4 +90272,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CvynGiyY.js.map
+//# sourceMappingURL=index-QhOC3Tcy.js.map

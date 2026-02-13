@@ -17,11 +17,12 @@ interface ProcessMetricsCardProps {
 export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
   const { production, cookingTimeRecords, downtimeRecords } = useData()
 
+  // Calculate metrics with defensive fallbacks for arrays
   const metrics = calculateDailyMetrics(
     date,
-    cookingTimeRecords,
-    downtimeRecords,
-    production,
+    cookingTimeRecords || [],
+    downtimeRecords || [],
+    production || [],
   )
 
   const TARGET_FLOW_RATE = 7.125
@@ -30,6 +31,7 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
 
   // Formatters
   const formatTime = (minutes: number) => {
+    if (!minutes && minutes !== 0) return '0h 00m'
     const h = Math.floor(minutes / 60)
     const m = Math.floor(minutes % 60)
     return `${h}h ${m}m`
