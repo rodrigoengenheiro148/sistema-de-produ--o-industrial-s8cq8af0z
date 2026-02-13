@@ -64,7 +64,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { format } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
@@ -121,6 +121,16 @@ export function RawMaterialCompositionChart({
     null,
   )
   const [isLoading, setIsLoading] = useState(false)
+
+  // Determine if a single day is selected to toggle chart layout
+  useEffect(() => {
+    if (dateRange?.from) {
+      const toDate = dateRange.to || dateRange.from
+      const isSingleDay = isSameDay(dateRange.from, toDate)
+      // Automatically toggle to grouped if single day, otherwise stacked
+      setChartType(isSingleDay ? 'grouped' : 'stacked')
+    }
+  }, [dateRange])
 
   // Determine active dataset (props or fetched)
   const data = useMemo(() => {
@@ -260,7 +270,6 @@ export function RawMaterialCompositionChart({
         const unit = item.unit?.toLowerCase() || ''
 
         // Conversion logic (Bag -> kg)
-        // Applies to all types as per AC, if unit is bag
         if (unit.includes('bag')) {
           quantity = quantity * 1400
         } else if (unit.includes('ton')) {
@@ -302,7 +311,7 @@ export function RawMaterialCompositionChart({
     return config
   }, [])
 
-  const formatYAxis = (value: number) => {
+  const formatValue = (value: number) => {
     if (value >= 1000) {
       return (value / 1000).toFixed(0) + 'k'
     }
@@ -333,7 +342,7 @@ export function RawMaterialCompositionChart({
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
       <ComposedChart
         data={chartData}
-        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+        margin={{ top: 30, right: 10, left: 0, bottom: 0 }}
       >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
@@ -348,7 +357,7 @@ export function RawMaterialCompositionChart({
           tickLine={false}
           axisLine={false}
           width={isMobile ? 35 : 45}
-          tickFormatter={formatYAxis}
+          tickFormatter={formatValue}
           fontSize={isMobile ? 10 : 12}
         />
         <ChartTooltip
@@ -384,7 +393,21 @@ export function RawMaterialCompositionChart({
             radius={chartType === 'stacked' ? [0, 0, 0, 0] : [4, 4, 0, 0]}
             maxBarSize={50}
             stackId={chartType === 'stacked' ? 'a' : undefined}
-          />
+          >
+            {chartType === 'grouped' && (
+              <LabelList
+                dataKey={category}
+                position="top"
+                offset={10}
+                className="fill-foreground font-bold"
+                fontSize={isMobile ? 8 : 10}
+                formatter={(value: number) => {
+                  if (value === 0) return ''
+                  return formatValue(value)
+                }}
+              />
+            )}
+          </Bar>
         ))}
 
         {/* Total Label Line (Visible only in Stacked mode) */}

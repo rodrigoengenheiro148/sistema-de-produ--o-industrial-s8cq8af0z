@@ -71042,6 +71042,12 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 	const [dateRange, setDateRange] = (0, import_react.useState)(void 0);
 	const [fetchedData, setFetchedData] = (0, import_react.useState)(null);
 	const [isLoading, setIsLoading] = (0, import_react.useState)(false);
+	(0, import_react.useEffect)(() => {
+		if (dateRange?.from) {
+			const toDate$1 = dateRange.to || dateRange.from;
+			setChartType(isSameDay(dateRange.from, toDate$1) ? "grouped" : "stacked");
+		}
+	}, [dateRange]);
 	const data = (0, import_react.useMemo)(() => {
 		if (dateRange?.from && fetchedData) return fetchedData;
 		return initialData;
@@ -71166,7 +71172,7 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 		});
 		return config$1;
 	}, []);
-	const formatYAxis = (value) => {
+	const formatValue$2 = (value) => {
 		if (value >= 1e3) return (value / 1e3).toFixed(0) + "k";
 		return value.toString();
 	};
@@ -71186,7 +71192,7 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
 			data: chartData,
 			margin: {
-				top: 20,
+				top: 30,
 				right: 10,
 				left: 0,
 				bottom: 0
@@ -71208,7 +71214,7 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 					tickLine: false,
 					axisLine: false,
 					width: isMobile ? 35 : 45,
-					tickFormatter: formatYAxis,
+					tickFormatter: formatValue$2,
 					fontSize: isMobile ? 10 : 12
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
@@ -71253,7 +71259,18 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 						0
 					],
 					maxBarSize: 50,
-					stackId: chartType === "stacked" ? "a" : void 0
+					stackId: chartType === "stacked" ? "a" : void 0,
+					children: chartType === "grouped" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: category,
+						position: "top",
+						offset: 10,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 8 : 10,
+						formatter: (value) => {
+							if (value === 0) return "";
+							return formatValue$2(value);
+						}
+					})
 				}, category)),
 				chartType === "stacked" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 					type: "monotone",
@@ -90217,4 +90234,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-D8xsBeuS.js.map
+//# sourceMappingURL=index-D05j6J40.js.map
