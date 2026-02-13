@@ -2507,6 +2507,9 @@ section[aria-label='Notifications alt+T'] {
 .text-primary-foreground{
   color: hsl(var(--primary-foreground));
 }
+.text-primary\/50{
+  color: hsl(var(--primary) / 0.5);
+}
 .text-red-500{
   --tw-text-opacity: 1;
   color: rgb(239 68 68 / var(--tw-text-opacity, 1));

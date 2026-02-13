@@ -31,8 +31,9 @@ import {
   Filter,
   Check,
   ChevronsUpDown,
+  Loader2,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, parseAsLocalNoon } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -54,10 +55,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { DatePickerWithRange } from '@/components/DateRangePicker'
+import { DateRange } from 'react-day-picker'
+import { useData } from '@/context/DataContext'
+import { supabase } from '@/lib/supabase/client'
 
 interface RawMaterialCompositionChartProps {
   data: RawMaterialEntry[]
@@ -92,14 +95,89 @@ const CATEGORY_COLORS: Record<string, string> = {
 }
 
 export function RawMaterialCompositionChart({
-  data,
+  data: initialData,
   isMobile = false,
   className,
 }: RawMaterialCompositionChartProps) {
+  const { currentFactoryId } = useData()
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
   const [isFilterInitialized, setIsFilterInitialized] = useState(false)
   const [openMaterialFilter, setOpenMaterialFilter] = useState(false)
+
+  // State for date range filtering
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [fetchedData, setFetchedData] = useState<RawMaterialEntry[] | null>(
+    null,
+  )
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Determine active dataset (props or fetched)
+  const data = useMemo(() => {
+    if (dateRange?.from && fetchedData) {
+      return fetchedData
+    }
+    return initialData
+  }, [dateRange, fetchedData, initialData])
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    async function fetchData() {
+      if (!dateRange?.from || !currentFactoryId) {
+        setFetchedData(null)
+        return
+      }
+
+      // If "to" is missing, we might typically wait, but DatePicker often sets "from" first.
+      // We'll require both for a valid range fetch, or single day if "to" is undefined (treated as single day filter)
+      const fromDate = dateRange.from
+      const toDate = dateRange.to || dateRange.from
+
+      setIsLoading(true)
+      try {
+        const fromStr = format(fromDate, 'yyyy-MM-dd')
+        const toStr = format(toDate, 'yyyy-MM-dd')
+
+        const { data: result, error } = await supabase
+          .from('raw_materials')
+          .select('*')
+          .eq('factory_id', currentFactoryId)
+          .gte('date', fromStr)
+          .lte('date', toStr)
+          .order('date', { ascending: true })
+
+        if (error) {
+          console.error('Error fetching raw materials:', error)
+          return
+        }
+
+        if (result) {
+          const mappedData: RawMaterialEntry[] = result.map((item) => ({
+            id: item.id,
+            date: parseAsLocalNoon(item.date),
+            supplier: item.supplier,
+            type: item.type,
+            quantity: Number(item.quantity),
+            unit: item.unit,
+            notes: item.notes,
+            factoryId: item.factory_id || undefined,
+            createdAt: item.created_at ? new Date(item.created_at) : undefined,
+          }))
+          setFetchedData(mappedData)
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching data:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (dateRange?.from) {
+      fetchData()
+    } else {
+      setFetchedData(null)
+    }
+  }, [dateRange, currentFactoryId])
 
   // Extract unique options for filters from the provided data and fixed categories
   const { materialOptions, supplierOptions } = useMemo(() => {
@@ -237,21 +315,6 @@ export function RawMaterialCompositionChart({
     }
   }
 
-  // If no data is passed at all (regardless of filters)
-  if (!data || data.length === 0) {
-    return (
-      <Card className={cn('shadow-sm border-primary/10', className)}>
-        <CardHeader>
-          <CardTitle>Composição de Matéria-Prima</CardTitle>
-          <CardDescription>Volume diário por tipo (kg)</CardDescription>
-        </CardHeader>
-        <CardContent className="h-[350px] flex items-center justify-center text-muted-foreground">
-          Nenhum dado disponível.
-        </CardContent>
-      </Card>
-    )
-  }
-
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
       <BarChart
@@ -333,7 +396,16 @@ export function RawMaterialCompositionChart({
           </CardTitle>
           <CardDescription>Volume diário por tipo (kg)</CardDescription>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto items-center">
+          {/* New Date Range Picker Filter */}
+          <div className="w-full sm:w-auto">
+            <DatePickerWithRange
+              date={dateRange}
+              setDate={setDateRange}
+              className="w-full sm:w-[240px]"
+            />
+          </div>
+
           {/* Multi-select Material Filter */}
           <Popover
             open={openMaterialFilter}
@@ -344,7 +416,7 @@ export function RawMaterialCompositionChart({
                 variant="outline"
                 role="combobox"
                 aria-expanded={openMaterialFilter}
-                className="w-full sm:w-[200px] h-8 text-xs justify-between"
+                className="w-full sm:w-[200px] h-10 sm:h-8 text-xs justify-between"
               >
                 <div className="flex items-center truncate">
                   <Filter className="mr-2 h-3 w-3 text-muted-foreground" />
@@ -414,7 +486,7 @@ export function RawMaterialCompositionChart({
           </Popover>
 
           <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
-            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs">
+            <SelectTrigger className="w-full sm:w-[160px] h-10 sm:h-8 text-xs">
               <Filter className="h-3 w-3 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Fornecedor" />
             </SelectTrigger>
@@ -455,7 +527,12 @@ export function RawMaterialCompositionChart({
         </div>
       </CardHeader>
       <CardContent className="pt-4 pb-2">
-        {selectedMaterials.length === 0 ? (
+        {isLoading ? (
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
+            <span className="ml-2">Carregando dados...</span>
+          </div>
+        ) : selectedMaterials.length === 0 ? (
           <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10">
             Selecione pelo menos um tipo de material para visualizar.
           </div>
