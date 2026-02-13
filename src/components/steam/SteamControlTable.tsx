@@ -51,14 +51,14 @@ export function SteamControlTable() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   // Optimization: Pre-calculate production totals by date to ensure fast O(1) lookup
-  // and correct aggregation of all shifts for the day.
+  // and correct aggregation of all shifts for the day using production data.
   const productionByDate = useMemo(() => {
     const map = new Map<string, number>()
     production.forEach((p) => {
       // Use yyyy-MM-dd for consistent daily grouping regardless of time
       const dateKey = format(p.date, 'yyyy-MM-dd')
       const current = map.get(dateKey) || 0
-      // Ensure p.mpUsed is treated as a number
+      // Sum mpUsed from production table entries
       map.set(dateKey, current + Number(p.mpUsed || 0))
     })
     return map
@@ -73,14 +73,14 @@ export function SteamControlTable() {
     return sortedRecords.map((record) => {
       // Find matching production for the day using the optimized map
       const dateKey = format(record.date, 'yyyy-MM-dd')
-      // Retrieve the aggregated MP processed for this date
+      // Retrieve the aggregated MP processed for this date from PRODUCTION table
       const entradaMp = productionByDate.get(dateKey) || 0
 
       const totalFuel =
         record.soyWaste + record.firewood + record.riceHusk + record.woodChips
       const consumoVap = record.meterEnd - record.meterStart
 
-      // Ratios
+      // Ratios Calculation
       // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL
       const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0
 
@@ -133,7 +133,7 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
-              {/* Added MP Processada column as requested */}
+              {/* MP Processada column sourcing data from Production table */}
               <TableHead className="text-right min-w-[120px]">
                 MP Proc. (kg)
               </TableHead>
@@ -157,7 +157,7 @@ export function SteamControlTable() {
               <TableHead className="text-right min-w-[100px] font-bold">
                 Consumo Vap
               </TableHead>
-              {/* Ratios columns */}
+              {/* Efficiency Ratios columns */}
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
               </TableHead>
@@ -192,7 +192,7 @@ export function SteamControlTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
-                  {/* Display aggregated MP Processed */}
+                  {/* Display aggregated MP Processed from Production */}
                   <TableCell className="text-right font-mono font-medium text-blue-700 dark:text-blue-400">
                     {row.entradaMp > 0 ? formatNumber(row.entradaMp) : '-'}
                   </TableCell>

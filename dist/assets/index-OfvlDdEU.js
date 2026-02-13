@@ -87511,7 +87511,7 @@ function SteamControlCharts() {
 		const prodMap = /* @__PURE__ */ new Map();
 		production.forEach((p) => {
 			const key = format(p.date, "yyyy-MM-dd");
-			prodMap.set(key, (prodMap.get(key) || 0) + p.mpUsed);
+			prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0));
 		});
 		const steamMap = /* @__PURE__ */ new Map();
 		steamControlRecords.forEach((r$2) => {
@@ -89426,4 +89426,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BKdEJUF7.js.map
+//# sourceMappingURL=index-OfvlDdEU.js.map

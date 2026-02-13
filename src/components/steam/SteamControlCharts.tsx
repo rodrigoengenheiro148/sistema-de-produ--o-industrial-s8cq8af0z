@@ -40,11 +40,11 @@ export function SteamControlCharts() {
   const filteredData = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return []
 
-    // Pre-calculate production totals
+    // Pre-calculate production totals from PRODUCTION table
     const prodMap = new Map<string, number>()
     production.forEach((p) => {
       const key = format(p.date, 'yyyy-MM-dd')
-      prodMap.set(key, (prodMap.get(key) || 0) + p.mpUsed)
+      prodMap.set(key, (prodMap.get(key) || 0) + Number(p.mpUsed || 0))
     })
 
     // Pre-calculate steam records map (aggregating if multiple per day)
