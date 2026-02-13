@@ -46,7 +46,8 @@ export default function SteamControl() {
             Controle de Vapor
           </h2>
           <p className="text-muted-foreground">
-            Monitoramento de consumo de combustível e geração de vapor.
+            Monitoramento de consumo de combustível, geração de vapor e relação
+            com MP processada.
           </p>
         </div>
 

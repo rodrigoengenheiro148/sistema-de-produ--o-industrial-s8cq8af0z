@@ -73,6 +73,7 @@ export function SteamControlTable() {
     return sortedRecords.map((record) => {
       // Find matching production for the day using the optimized map
       const dateKey = format(record.date, 'yyyy-MM-dd')
+      // Retrieve the aggregated MP processed for this date
       const entradaMp = productionByDate.get(dateKey) || 0
 
       const totalFuel =
@@ -132,6 +133,7 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
+              {/* Added MP Processada column as requested */}
               <TableHead className="text-right min-w-[120px]">
                 MP Proc. (kg)
               </TableHead>
@@ -155,6 +157,7 @@ export function SteamControlTable() {
               <TableHead className="text-right min-w-[100px] font-bold">
                 Consumo Vap
               </TableHead>
+              {/* Ratios columns */}
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
               </TableHead>
@@ -189,6 +192,7 @@ export function SteamControlTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
+                  {/* Display aggregated MP Processed */}
                   <TableCell className="text-right font-mono font-medium text-blue-700 dark:text-blue-400">
                     {row.entradaMp > 0 ? formatNumber(row.entradaMp) : '-'}
                   </TableCell>
@@ -217,7 +221,7 @@ export function SteamControlTable() {
                     {formatNumber(row.consumoVap)}
                   </TableCell>
 
-                  {/* Ratios */}
+                  {/* Ratios Display */}
                   <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}
                   </TableCell>

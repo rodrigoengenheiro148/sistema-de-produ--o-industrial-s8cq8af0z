@@ -87867,7 +87867,7 @@ function SteamControl() {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-8 w-8 text-primary" }), "Controle de Vapor"]
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "text-muted-foreground",
-						children: "Monitoramento de consumo de combustível e geração de vapor."
+						children: "Monitoramento de consumo de combustível, geração de vapor e relação com MP processada."
 					})] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2",
@@ -89426,4 +89426,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DF-nvfe-.js.map
+//# sourceMappingURL=index-BKdEJUF7.js.map
