@@ -78580,7 +78580,7 @@ function Production() {
 											className: "bg-slate-50 dark:bg-slate-900 p-2 rounded",
 											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 												className: "text-xs text-muted-foreground block",
-												children: "Entrada de MP"
+												children: "Entrada de MP (kg)"
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 												className: "font-mono font-bold",
 												children: [formatNumber(entry.mpUsed), " kg"]
@@ -87286,12 +87286,14 @@ function SteamControlTable() {
 			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
 			const consumoVap = record.meterEnd - record.meterStart;
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
+			const vaporVsMp = mpProcessed > 0 ? consumoVap / mpProcessed : 0;
 			return {
 				...record,
 				mpProcessed,
 				totalFuel,
 				consumoVap,
-				cavacoVsVapor
+				cavacoVsVapor,
+				vaporVsMp
 			};
 		});
 	}, [steamControlRecords, production]);
@@ -87359,12 +87361,16 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
+							children: "Vapor / MP"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
 							children: "Cavaco vs Vapor"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 12,
+					colSpan: 13,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -87409,6 +87415,10 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold",
 							children: formatNumber(row.consumoVap)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
+							children: row.mpProcessed > 0 ? formatNumber(row.vaporVsMp) : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
@@ -89383,4 +89393,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-thyY2rQP.js.map
+//# sourceMappingURL=index-D4TXlga9.js.map

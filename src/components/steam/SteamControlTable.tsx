@@ -74,8 +74,10 @@ export function SteamControlTable() {
       const consumoVap = record.meterEnd - record.meterStart
 
       // Ratios Calculation
-      // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL
+      // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL FUEL
       const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0
+      // VAPOR / MP: CONSUMO VAP / MP PROCESSED
+      const vaporVsMp = mpProcessed > 0 ? consumoVap / mpProcessed : 0
 
       return {
         ...record,
@@ -83,6 +85,7 @@ export function SteamControlTable() {
         totalFuel,
         consumoVap,
         cavacoVsVapor,
+        vaporVsMp,
       }
     })
   }, [steamControlRecords, production])
@@ -135,6 +138,9 @@ export function SteamControlTable() {
               </TableHead>
               {/* Efficiency Ratios columns */}
               <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
+                Vapor / MP
+              </TableHead>
+              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
                 Cavaco vs Vapor
               </TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -144,7 +150,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={12}
+                  colSpan={13}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -185,6 +191,9 @@ export function SteamControlTable() {
                   </TableCell>
 
                   {/* Ratios Display */}
+                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
+                    {row.mpProcessed > 0 ? formatNumber(row.vaporVsMp) : '-'}
+                  </TableCell>
                   <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
                     {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}
                   </TableCell>

@@ -259,7 +259,7 @@ export default function Production() {
                         <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                           <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded">
                             <span className="text-xs text-muted-foreground block">
-                              Entrada de MP
+                              Entrada de MP (kg)
                             </span>
                             <span className="font-mono font-bold">
                               {formatNumber(entry.mpUsed)} kg
