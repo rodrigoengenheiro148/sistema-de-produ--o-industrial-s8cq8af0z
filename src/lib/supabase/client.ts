@@ -30,12 +30,17 @@ const validUrl = isValidUrl(SUPABASE_URL)
   : 'https://placeholder.supabase.co'
 const validKey = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key'
 
+// Concurrent Session Support:
+// - persistSession: true ensure token is saved in localStorage
+// - autoRefreshToken: true ensures token rotation per device
+// - flowType: 'pkce' provides better security for mobile/web scenarios
 export const supabase = createClient<Database>(validUrl, validKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true, // Enhances reliability of auth redirects
+    flowType: 'pkce',
   },
 })
 
@@ -55,6 +60,7 @@ if (authClient && typeof authClient._refreshAccessToken === 'function') {
         error,
       )
       // Return an error structure that Supabase expects to prevent upstream crashes
+      // We explicitly avoid throwing here to keep the app running on the client
       return {
         data: { session: null, user: null },
         error: error || new Error('Failed to refresh access token'),

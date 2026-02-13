@@ -46,6 +46,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (mounted) {
         setSession(session)
         setUser(session?.user ?? null)
+
+        // Log refresh events for debugging concurrent session issues
+        if (event === 'TOKEN_REFRESHED') {
+          console.debug('Session token refreshed successfully.')
+        }
+
         // If we get an event, we are done loading
         setLoading(false)
       }

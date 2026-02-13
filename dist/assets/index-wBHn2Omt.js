@@ -35844,7 +35844,8 @@ const supabase = createClient(isValidUrl(SUPABASE_URL) ? SUPABASE_URL : "https:/
 	storage: localStorage,
 	persistSession: true,
 	autoRefreshToken: true,
-	detectSessionInUrl: true
+	detectSessionInUrl: true,
+	flowType: "pkce"
 } });
 var authClient = supabase.auth;
 if (authClient && typeof authClient._refreshAccessToken === "function") {
@@ -35880,6 +35881,7 @@ const AuthProvider = ({ children }) => {
 			if (mounted) {
 				setSession(session$1);
 				setUser(session$1?.user ?? null);
+				if (event === "TOKEN_REFRESHED") console.debug("Session token refreshed successfully.");
 				setLoading(false);
 			}
 		});
@@ -36230,10 +36232,11 @@ const DataProvider = ({ children }) => {
 	}, [currentFactoryId, fetchOperationalData]);
 	const handleRealtimeUpdate = (0, import_react.useCallback)(() => {
 		if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+		const delay = 1e3 + Math.floor(Math.random() * 2e3);
 		refreshTimeoutRef.current = setTimeout(() => {
-			console.log("Refreshing operational data from realtime update...");
+			console.log(`Refreshing operational data (jitter delay: ${delay}ms)...`);
 			fetchOperationalData();
-		}, 1500);
+		}, delay);
 	}, [fetchOperationalData]);
 	(0, import_react.useEffect)(() => {
 		if (!user?.id || !currentFactoryId) return;
@@ -89344,4 +89347,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CGX0Vrm5.js.map
+//# sourceMappingURL=index-wBHn2Omt.js.map

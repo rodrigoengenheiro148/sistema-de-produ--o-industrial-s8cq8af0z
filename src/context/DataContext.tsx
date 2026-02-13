@@ -277,9 +277,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       // Prepare date filters
-      // We buffer 'from' date by 1 day to ensure D-1 calculations (for trends/comparisons) have data
-      // We buffer 'from' date by 30 days to ensure moving averages (if any) have some data, but strict user story asks for filtering.
-      // Optimization: Fetch from subDays(from, 1) to to.
       const fromDateStr = dateRange.from
         ? format(startOfDay(subDays(dateRange.from, 1)), 'yyyy-MM-dd')
         : undefined
@@ -365,10 +362,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current)
     }
+
+    // Add jitter (0-2000ms) to base delay (1000ms) to prevent thundering herd
+    // from 50+ concurrent clients hitting the DB simultaneously
+    const jitter = Math.floor(Math.random() * 2000)
+    const delay = 1000 + jitter
+
     refreshTimeoutRef.current = setTimeout(() => {
-      console.log('Refreshing operational data from realtime update...')
+      console.log(`Refreshing operational data (jitter delay: ${delay}ms)...`)
       fetchOperationalData()
-    }, 1500)
+    }, delay)
   }, [fetchOperationalData])
 
   useEffect(() => {
@@ -436,8 +439,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [user?.id, currentFactoryId, handleRealtimeUpdate])
-
-  // ... (previous add/update/delete functions)
 
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
