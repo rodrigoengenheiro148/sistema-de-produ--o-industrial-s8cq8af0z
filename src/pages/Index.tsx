@@ -13,7 +13,6 @@ import {
   ClipboardCheck,
   AlertCircle,
   WifiOff,
-  Send,
 } from 'lucide-react'
 import { cn, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -33,17 +32,7 @@ import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { ShippingForm } from '@/components/ShippingForm'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 
 export default function Dashboard() {
   const {
@@ -62,7 +51,6 @@ export default function Dashboard() {
     connectionStatus,
   } = useData()
   const isMobile = useIsMobile()
-  const [isShippingModalOpen, setIsShippingModalOpen] = useState(false)
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
 
@@ -334,27 +322,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex gap-2 w-full sm:w-auto">
-            <Dialog
-              open={isShippingModalOpen}
-              onOpenChange={setIsShippingModalOpen}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2" size={isMobile ? 'sm' : 'default'}>
-                  <Send className="h-4 w-4" />{' '}
-                  {isMobile ? 'Saída' : 'Registrar Saída'}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Registrar Saída</DialogTitle>
-                  <DialogDescription>
-                    Informe os dados da carga e valores para faturamento.
-                  </DialogDescription>
-                </DialogHeader>
-                <ShippingForm onSuccess={() => setIsShippingModalOpen(false)} />
-              </DialogContent>
-            </Dialog>
-
             <SyncDeviceDialog />
             <ExportOptions className="flex-1 sm:flex-none" />
           </div>
