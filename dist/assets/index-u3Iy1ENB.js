@@ -62421,7 +62421,7 @@ var buttonVariants = cva("inline-flex items-center justify-center gap-2 whitespa
 		size: "default"
 	}
 });
-var Button$1 = import_react.forwardRef(({ className, variant, size: size$3, asChild = false, ...props }, ref) => {
+var Button = import_react.forwardRef(({ className, variant, size: size$3, asChild = false, ...props }, ref) => {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(asChild ? Slot : "button", {
 		className: cn(buttonVariants({
 			variant,
@@ -62432,7 +62432,7 @@ var Button$1 = import_react.forwardRef(({ className, variant, size: size$3, asCh
 		...props
 	});
 });
-Button$1.displayName = "Button";
+Button.displayName = "Button";
 var SELECTION_KEYS$1 = ["Enter", " "];
 var FIRST_KEYS = [
 	"ArrowDown",
@@ -63803,13 +63803,13 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "bg-muted/50 p-1 rounded-md flex items-center",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							variant: timeScale === "daily" ? "default" : "ghost",
 							size: "sm",
 							className: "h-7 px-3 text-xs",
 							onClick: () => setTimeScale("daily"),
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CalendarDays, { className: "h-3.5 w-3.5 mr-1" }), "Dia"]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							variant: timeScale === "monthly" ? "default" : "ghost",
 							size: "sm",
 							className: "h-7 px-3 text-xs",
@@ -63819,7 +63819,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							variant: "outline",
 							size: "sm",
 							className: "h-9 w-9 p-0",
@@ -63852,7 +63852,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 					})] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							variant: "ghost",
 							size: "icon",
 							className: "h-9 w-9",
@@ -64007,13 +64007,13 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "bg-muted/50 p-1 rounded-md flex items-center",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: timeScale === "daily" ? "default" : "ghost",
 						size: "sm",
 						className: "h-7 px-3 text-xs",
 						onClick: () => setTimeScale("daily"),
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CalendarDays, { className: "h-3.5 w-3.5 mr-1" }), "Dia"]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: timeScale === "monthly" ? "default" : "ghost",
 						size: "sm",
 						className: "h-7 px-3 text-xs",
@@ -64022,7 +64022,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
 						size: "icon",
 						className: "h-8 w-8",
@@ -64136,7 +64136,7 @@ function ExportOptions({ className }) {
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 		asChild: true,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
 			className: `gap-2 border-primary/20 text-primary hover:bg-primary/5 ${className}`,
 			disabled: isExporting,
@@ -64262,7 +64262,7 @@ function SyncDeviceDialog({ className }) {
 		onOpenChange: setIsOpen,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 			asChild: true,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 				variant: "outline",
 				className: cn("gap-2", className),
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Wifi, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
@@ -64302,7 +64302,7 @@ function SyncDeviceDialog({ className }) {
 								value: shareUrl,
 								readOnly: true,
 								className: "font-mono text-xs"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								type: "submit",
 								size: "sm",
 								className: "px-3",
@@ -64929,7 +64929,7 @@ function LoadForecast({ referenceDate, className }) {
 								children: "kg"
 							})]
 						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						asChild: true,
 						variant: "ghost",
 						size: "sm",
@@ -65145,7 +65145,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
 					className: "h-8 w-8",
@@ -66284,7 +66284,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 						children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 								asChild: true,
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "outline",
 									size: "sm",
 									className: "h-8 px-2 gap-2",
@@ -66332,7 +66332,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 											children: "Nenhum cliente encontrado"
 										})
 									}),
-									(currentClientFilter.length > 0 || clientSearchTerm) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+									(currentClientFilter.length > 0 || clientSearchTerm) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 										variant: "ghost",
 										size: "sm",
 										className: "w-full text-xs h-8",
@@ -66343,7 +66343,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 							})] }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 								asChild: true,
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "outline",
 									size: "sm",
 									className: "h-8 px-2 gap-2",
@@ -66411,7 +66411,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 								asChild: true,
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-8 w-8 hover:bg-muted",
@@ -66649,7 +66649,7 @@ function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, classN
 				" ( > 0kg )"
 			] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
 					className: "h-8 w-8",
@@ -66877,7 +66877,7 @@ function YieldGaugeChart({ value, target, className }) {
 				children: "Performance em tempo real (Máx 100%)"
 			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
 					className: "h-8 w-8 text-muted-foreground hover:text-foreground",
@@ -68176,7 +68176,7 @@ function RawMaterialCompositionChart({ data, isMobile = false, className }) {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							variant: "ghost",
 							size: "icon",
 							className: "h-8 w-8 hidden sm:flex",
@@ -68390,7 +68390,7 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
 						size: "icon",
 						className: "h-8 w-8",
@@ -74060,13 +74060,13 @@ function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP",
 						className: "text-sm font-medium text-destructive text-center",
 						children: "Senha incorreta. Acesso negado."
 					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "button",
 					variant: "outline",
 					onClick: () => handleOpenChange(false),
 					disabled: loading,
 					children: "Cancelar"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					disabled: loading || !password,
 					children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }), " Verificando"] }) : "Confirmar"
@@ -74258,7 +74258,7 @@ function ShippingForm({ initialData, onSuccess }) {
 						] })
 					})]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					children: initialData ? "Salvar Alterações" : "Confirmar Saída"
 				}) })
@@ -74883,12 +74883,12 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 					] })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "button",
 					variant: "outline",
 					onClick: onCancel,
 					children: "Cancelar"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					children: initialData ? "Salvar Alterações" : "Salvar Registro"
 				})] })
@@ -75168,13 +75168,13 @@ function SecurityGate({ isOpen, onOpenChange, onSuccess, title = "Proteção de 
 						className: "text-sm font-medium text-destructive",
 						children: "Senha incorreta. Acesso negado."
 					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "button",
 					variant: "outline",
 					onClick: () => handleOpenChange(false),
 					disabled: loading,
 					children: "Cancelar"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					disabled: loading || !password,
 					children: loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }), " Verificando"] }) : "Confirmar"
@@ -75327,7 +75327,7 @@ function RawMaterialImportDialog() {
 		onOpenChange: setIsOpen,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 			asChild: true,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 				variant: "outline",
 				className: "gap-2",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Upload, { className: "h-4 w-4" }), "Importar em Massa"]
@@ -75353,7 +75353,7 @@ function RawMaterialImportDialog() {
 										children: "Baixe o modelo para garantir que seus dados estejam no formato correto."
 									})]
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "outline",
 									size: "sm",
 									className: "gap-2",
@@ -75392,12 +75392,12 @@ function RawMaterialImportDialog() {
 						})
 					]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					variant: "ghost",
 					onClick: () => setIsOpen(false),
 					disabled: isLoading,
 					children: "Cancelar"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					onClick: handleUpload,
 					disabled: !file || isLoading,
 					children: isLoading ? "Processando..." : "Confirmar Importação"
@@ -75874,7 +75874,7 @@ var CalendarWeek = class {
 		this.weekNumber = weekNumber;
 	}
 };
-function Button$2(props) {
+function Button$1(props) {
 	return import_react.createElement("button", { ...props });
 }
 function CaptionLabel(props) {
@@ -76089,7 +76089,7 @@ function YearsDropdown(props) {
 	return import_react.createElement(components.Dropdown, { ...props });
 }
 var custom_components_exports = /* @__PURE__ */ __export({
-	Button: () => Button$2,
+	Button: () => Button$1,
 	CaptionLabel: () => CaptionLabel,
 	Chevron: () => Chevron,
 	Day: () => Day,
@@ -77660,7 +77660,7 @@ function CalendarDayButton({ className, day, modifiers, ...props }) {
 	import_react.useEffect(() => {
 		if (modifiers.focused) ref.current?.focus();
 	}, [modifiers.focused]);
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 		ref,
 		variant: "ghost",
 		size: "icon",
@@ -77926,7 +77926,7 @@ function DatePickerWithRange({ className, date: date$4, setDate }) {
 		className: cn("grid gap-2", className),
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 			asChild: true,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 				id: "date",
 				variant: "outline",
 				className: cn("w-full justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
@@ -78058,7 +78058,7 @@ function RawMaterial() {
 					className: "flex items-center gap-2 w-full sm:w-auto",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2 flex-1 sm:flex-none",
 							onClick: handleNewEntry,
 							size: isMobile ? "default" : "default",
@@ -78148,7 +78148,7 @@ function RawMaterial() {
 									});
 								},
 								className: "w-full sm:w-[260px]"
-							}), !isDefaultDate && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							}), !isDefaultDate && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								onClick: handleResetDate,
@@ -78215,7 +78215,7 @@ function RawMaterial() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "sm",
 												className: "h-8 w-8 p-0",
@@ -78313,13 +78313,13 @@ function RawMaterial() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
 									onClick: () => handleProtectedAction(entry.createdAt, () => handleEdit(entry)),
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
@@ -78619,7 +78619,7 @@ function ProductionForm({ initialData, onSuccess }) {
 						})
 					]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SheetFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					className: "w-full",
 					children: initialData ? "Atualizar Produção" : "Salvar Produção"
@@ -78724,7 +78724,7 @@ function Production() {
 						className: "text-2xl font-bold tracking-tight",
 						children: "Produção Diária"
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2",
 						onClick: handleNewRecord,
 						size: isMobile ? "sm" : "default",
@@ -78777,7 +78777,7 @@ function Production() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "sm",
 												className: "h-8 w-8 p-0",
@@ -78925,13 +78925,13 @@ function Production() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
 									onClick: () => handleEditClick(entry),
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
@@ -79070,7 +79070,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data de Produção" }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 									asChild: true,
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 										variant: "outline",
 										className: cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground"),
 										children: [field.value ? format(field.value, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "ml-auto h-4 w-4 opacity-50" })]
@@ -79185,12 +79185,12 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex justify-end gap-2 pt-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "button",
 						variant: "outline",
 						onClick: onCancel,
 						children: "Cancelar"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						children: "Salvar Registro"
 					})]
@@ -79290,7 +79290,7 @@ function BloodProduction() {
 						className: "text-muted-foreground",
 						children: "Gerenciamento de produção de farinha de sangue."
 					})] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2 w-full sm:w-auto",
 						onClick: handleNewRecord,
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Produção"]
@@ -79365,13 +79365,13 @@ function BloodProduction() {
 						className: "text-right",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "flex justify-end gap-1",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								className: "h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50",
 								onClick: () => handleEditClick(entry),
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								className: "h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50",
@@ -79511,7 +79511,7 @@ function Yields() {
 							children: "Monitoramento de eficiência e cumprimento de metas operacionais."
 						})]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "outline",
 						size: "sm",
 						className: "gap-2 w-full sm:w-auto",
@@ -79584,11 +79584,11 @@ function Yields() {
 											})]
 										})
 									]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "outline",
 									onClick: () => setIsDialogOpen(false),
 									children: "Cancelar"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									onClick: handleSaveTargets,
 									children: "Salvar Alterações"
 								})] })]
@@ -80005,7 +80005,7 @@ function AcidityChart({ data }) {
 			className: "flex flex-row items-center justify-between space-y-0 pb-2",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Evolução das Medições" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Tendência dos valores de Peso e Acidez ao longo do tempo" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
 					className: "h-8 w-8",
@@ -80197,12 +80197,12 @@ function AcidityForm({ initialData, onSubmit, onCancel }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex justify-end gap-2 pt-2",
-					children: [onCancel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: [onCancel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "button",
 						variant: "outline",
 						onClick: onCancel,
 						children: "Cancelar"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						children: initialData ? "Salvar Alterações" : "Salvar Registro"
 					})]
@@ -80337,7 +80337,7 @@ function DailyAcidity() {
 							setDate: setDateRange,
 							className: "w-full sm:w-[300px]"
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2",
 							size: isMobile ? "default" : "default",
 							onClick: handleNewRecord,
@@ -80422,7 +80422,7 @@ function DailyAcidity() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "sm",
 												className: "h-8 w-8 p-0",
@@ -80561,13 +80561,13 @@ function DailyAcidity() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									onClick: () => handleEditClick(entry),
 									title: isEditable ? "Editar" : "Edição requer senha",
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: isEditable ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "text-muted-foreground",
@@ -80759,7 +80759,7 @@ function QualityForm({ initialData, onSuccess }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 					] })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogFooter, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
 					children: initialData ? "Atualizar Dados" : "Salvar Análise"
 				}) })
@@ -80888,7 +80888,7 @@ function QualityChart({ title = "Controle de Qualidade", data = [], mean = 0, st
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
 					className: "h-8 w-8",
@@ -81006,7 +81006,7 @@ function Quality() {
 					onOpenChange: handleOpenChange,
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2",
 							onClick: () => setEditingItem(void 0),
 							size: isMobile ? "sm" : "default",
@@ -81077,7 +81077,7 @@ function Quality() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "sm",
 												className: "h-8 w-8 p-0",
@@ -81188,13 +81188,13 @@ function Quality() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
 									onClick: () => handleEditClick(entry),
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
@@ -81478,7 +81478,7 @@ function Inventory() {
 							" ",
 							format(lastProtheusSync, "dd/MM 'às' HH:mm", { locale: ptBR })
 						]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "outline",
 						size: "sm",
 						onClick: handleSync,
@@ -81624,7 +81624,7 @@ function Shipping() {
 						className: "text-2xl font-bold tracking-tight",
 						children: "Expedição"
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2",
 						onClick: handleNewRecord,
 						size: isMobile ? "sm" : "default",
@@ -81695,7 +81695,7 @@ function Shipping() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "sm",
 												className: "h-8 w-8 p-0",
@@ -81809,13 +81809,13 @@ function Shipping() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
 								className: "flex items-center gap-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50",
 									onClick: () => handleProtectedAction(entry.date, () => handleEdit(entry)),
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50",
@@ -82201,7 +82201,7 @@ function DataExport() {
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 			className: "border-t p-6",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				onClick: handleExport,
 				disabled: loading,
 				className: "w-full sm:w-auto",
@@ -82334,7 +82334,7 @@ function PowerBIExport() {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 				className: "border-t border-yellow-100 dark:border-yellow-900/30 p-6",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					onClick: handleExport,
 					disabled: loading,
 					variant: "outline",
@@ -82479,7 +82479,7 @@ function ExcelExport() {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 				className: "border-t border-green-100 dark:border-green-900/30 p-6",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					onClick: handleExport,
 					disabled: loading,
 					variant: "outline",
@@ -82769,7 +82769,7 @@ function CsvExport() {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 				className: "border-t border-blue-100 dark:border-blue-900/30 p-6",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					onClick: handleExport,
 					disabled: loading,
 					variant: "outline",
@@ -82872,7 +82872,7 @@ function SkipAiConfig() {
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									placeholder: "https://docs.api.com",
 									...field
-								}), field.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), field.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									type: "button",
 									variant: "outline",
 									size: "icon",
@@ -82885,7 +82885,7 @@ function SkipAiConfig() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						type: "submit",
 						className: "w-full sm:w-auto gap-2 bg-indigo-600 hover:bg-indigo-700",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "h-4 w-4" }), " Salvar Credenciais"]
@@ -82965,7 +82965,7 @@ function Settings() {
 							className: "text-center text-lg tracking-widest",
 							autoFocus: true
 						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						className: "w-full",
 						size: "lg",
@@ -82974,7 +82974,7 @@ function Settings() {
 				}) }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 					className: "justify-center border-t pt-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "link",
 						onClick: () => navigate("/"),
 						children: "Voltar ao Dashboard"
@@ -83328,7 +83328,7 @@ function Settings() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 							className: "border-t p-6",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								onClick: handleSaveNotifications,
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "mr-2 h-4 w-4" }), " Salvar Configurações"]
 							})
@@ -83448,7 +83448,7 @@ function Settings() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 							className: "border-t p-6",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								onClick: handleSaveNotifications,
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "mr-2 h-4 w-4" }), " Salvar Integração"]
 							})
@@ -83577,12 +83577,12 @@ function Settings() {
 								]
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex gap-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "outline",
 									onClick: handleSaveConnection,
 									disabled: testing,
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "mr-2 h-4 w-4" }), " Salvar"]
-								}), config$1.isActive && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								}), config$1.isActive && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									onClick: () => handleSaveConnection(),
 									disabled: testing,
 									children: [testing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: "mr-2 h-4 w-4 animate-spin" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldCheck, { className: "mr-2 h-4 w-4" }), "Testar Conexão"]
@@ -83641,7 +83641,7 @@ function Settings() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 							className: "border-t p-6",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								onClick: handleSaveSystem,
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "mr-2 h-4 w-4" }), " Salvar Preferências"]
 							})
@@ -83672,7 +83672,7 @@ function Settings() {
 							children: protheusConfig.isActive ? "ATENÇÃO: Como a sincronização está ativa, essa ação apagará TODOS os dados no servidor e propagará a exclusão para todos os dispositivos conectados. Esta ação é irreversível." : "Limpar os dados removerá todas as informações armazenadas localmente neste dispositivo. Seus dados no servidor não serão afetados se estiverem desconectados."
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTrigger, {
 							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								variant: "destructive",
 								disabled: isClearing,
 								children: [isClearing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: "mr-2 h-4 w-4 animate-spin" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), protheusConfig.isActive ? "Limpar Dados Globais (Servidor + Local)" : "Resetar Aplicação Local"]
@@ -83803,7 +83803,7 @@ function FactoryForm({ initialData, onSuccess }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogFooter, {
 					className: "mt-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						children: initialData ? "Salvar Alterações" : "Adicionar Fábrica"
 					})
@@ -83912,7 +83912,7 @@ function Factories() {
 						className: "text-muted-foreground",
 						children: "Gerencie as unidades fabris integradas ao sistema."
 					})] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						onClick: handleCreate,
 						className: "gap-2",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Fábrica"]
@@ -83981,13 +83981,13 @@ function Factories() {
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex gap-1 items-center",
 								onClick: (e) => e.stopPropagation(),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-7 w-7",
 									onClick: () => handleSecureAction(() => handleEditClick(factory)),
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-3.5 w-3.5" })
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "h-7 w-7 text-destructive hover:text-destructive",
@@ -84165,7 +84165,7 @@ function QualityReport() {
 				className: "flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "outline",
 						className: cn("w-full sm:w-[240px] justify-start text-left font-normal border-primary/20 hover:bg-secondary/50", !dateRange && "text-muted-foreground"),
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4 text-primary" }), dateRange?.from ? dateRange.to ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
@@ -84364,7 +84364,7 @@ function YieldsReport() {
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex items-center justify-between mb-2",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
 						size: "icon",
 						onClick: () => setYear$1(year - 1),
@@ -84375,7 +84375,7 @@ function YieldsReport() {
 						className: "text-sm font-semibold",
 						children: year
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
 						size: "icon",
 						onClick: () => setYear$1(year + 1),
@@ -84385,7 +84385,7 @@ function YieldsReport() {
 				]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "grid grid-cols-3 gap-2",
-				children: months.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				children: months.map((m) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					variant: m === date$4.getMonth() && year === date$4.getFullYear() ? "default" : "outline",
 					className: "h-8 text-xs",
 					onClick: () => {
@@ -84434,7 +84434,7 @@ function YieldsReport() {
 				className: "w-full sm:w-auto",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "outline",
 						className: cn("w-full sm:w-[240px] justify-start text-left font-normal border-primary/20", !date$4 && "text-muted-foreground"),
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4 text-primary" }), viewMode === "daily" ? format(date$4, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : format(date$4, "MMMM 'de' yyyy", { locale: ptBR })]
@@ -84957,7 +84957,7 @@ function SeboInventoryChart({ data, startDate, endDate, className, isLoading = f
 				className: "flex items-center gap-2 self-end sm:self-auto",
 				children: [headerControls, /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 					asChild: true,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						variant: "ghost",
 						size: "icon",
 						className: "h-8 w-8 text-muted-foreground hover:text-foreground",
@@ -85347,7 +85347,7 @@ function SeboInventory() {
 							children: "Data de Referência (Tabela)"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 								id: "date-picker",
 								variant: "outline",
 								className: cn("w-[240px] justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
@@ -85369,7 +85369,7 @@ function SeboInventory() {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
 							className: "text-xs font-semibold opacity-0",
 							children: "Ação"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							onClick: handleSave,
 							disabled: saving || loading,
 							className: "gap-2",
@@ -85393,7 +85393,7 @@ function SeboInventory() {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 							className: "text-sm font-medium uppercase tracking-wider text-muted-foreground",
 							children: ["Estoque de Sebo - ", format(date$4, "dd/MMM", { locale: ptBR })]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "ghost",
 							size: "icon",
 							className: "h-6 w-6",
@@ -85546,7 +85546,7 @@ function SeboInventory() {
 											}),
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 												className: "p-1 text-center",
-												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 													variant: "ghost",
 													size: "icon",
 													onClick: () => removeTankRow(idx),
@@ -85560,7 +85560,7 @@ function SeboInventory() {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 										colSpan: 10,
 										className: "p-2 text-center",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 											variant: "ghost",
 											size: "sm",
 											onClick: addTankRow,
@@ -85624,7 +85624,7 @@ function SeboInventory() {
 										}),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 											className: "p-1 text-center",
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 												variant: "ghost",
 												size: "icon",
 												onClick: () => removeExtraRow(idx),
@@ -85637,7 +85637,7 @@ function SeboInventory() {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 										colSpan: 10,
 										className: "p-2 text-center",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 											variant: "ghost",
 											size: "sm",
 											onClick: addExtraRow,
@@ -85804,7 +85804,7 @@ function CookingTimeForm() {
 									]
 								})
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								type: "submit",
 								children: "Salvar"
 							})
@@ -85835,7 +85835,7 @@ function CookingTimeForm() {
 							]
 						}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								onClick: () => handleProtectedAction(record.createdAt, () => deleteCookingTimeRecord(record.id)),
@@ -85975,7 +85975,7 @@ function DowntimeManager() {
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleAlert, { className: "h-5 w-5 text-destructive" }), "Horas de Parada"]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Histórico de interrupções na produção." })] }), !activeDowntime && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex gap-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "destructive",
 					size: "sm",
 					className: "gap-2",
@@ -85986,7 +85986,7 @@ function DowntimeManager() {
 					onOpenChange: setIsOpen,
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							size: "sm",
 							variant: "outline",
 							className: "gap-2",
@@ -86036,7 +86036,7 @@ function DowntimeManager() {
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 									] })
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									type: "submit",
 									className: "w-full",
 									children: "Salvar"
@@ -86072,14 +86072,14 @@ function DowntimeManager() {
 								value: stopReason,
 								onChange: (e) => setStopReason(e.target.value),
 								className: "bg-background"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								onClick: handleUpdateReason,
 								title: "Salvar Motivo",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" })
 							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							onClick: handleFinishStop,
 							className: "w-full sm:w-auto gap-2 bg-destructive hover:bg-destructive/90 text-white",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CirclePlay, { className: "h-4 w-4" }), " Finalizar Parada"]
@@ -86106,7 +86106,7 @@ function DowntimeManager() {
 							}) }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, { children: [record.durationHours.toFixed(2), " h"] }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.reason }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								onClick: () => handleProtectedAction(record.createdAt, () => deleteDowntimeRecord(record.id)),
@@ -86446,7 +86446,7 @@ function ProcessMetricsCard({ date: date$4 }) {
 function DatePicker({ date: date$4, setDate, className }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
 		asChild: true,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
 			className: cn("w-[240px] justify-start text-left font-normal", !date$4 && "text-muted-foreground", className),
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
@@ -86781,7 +86781,7 @@ function ProcessExportMenu() {
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 		asChild: true,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
 			className: "gap-2",
 			disabled: loading,
@@ -86959,7 +86959,7 @@ function ForecastManagement() {
 					onOpenChange: setIsOpen,
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 						asChild: true,
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Previsão"]
 						})
@@ -87001,7 +87001,7 @@ function ForecastManagement() {
 									onChange: (e) => setQuantity(e.target.value)
 								})]
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								className: "w-full",
 								onClick: handleSave,
 								disabled: isSubmitting,
@@ -87047,7 +87047,7 @@ function ForecastManagement() {
 						className: "text-right text-muted-foreground",
 						children: [formatNumber(forecast.mpForecast), " kg"]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						variant: "ghost",
 						size: "icon",
 						className: "h-8 w-8 text-destructive hover:text-destructive/90",
@@ -87267,13 +87267,13 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex justify-end gap-2 pt-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "button",
 						variant: "outline",
 						onClick: onCancel,
 						disabled: isSubmitting,
 						children: "Cancelar"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						disabled: isSubmitting,
 						children: isSubmitting ? "Salvando..." : "Salvar"
@@ -87482,7 +87482,7 @@ function SteamControlTable() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 							asChild: true,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 								variant: "ghost",
 								size: "icon",
 								className: "h-8 w-8",
@@ -87892,7 +87892,7 @@ function SteamControl() {
 						className: "text-muted-foreground",
 						children: "Monitoramento de consumo de combustível e geração de vapor."
 					})] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 						className: "gap-2",
 						onClick: handleNewRecord,
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
@@ -87978,7 +87978,7 @@ var NotFound = () => {
 					className: "text-sm text-muted-foreground max-w-md mx-auto",
 					children: "A página que você está procurando não existe ou foi movida."
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					asChild: true,
 					className: "mt-4",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("a", {
@@ -88013,7 +88013,7 @@ function AccessDenied() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 					className: "justify-center",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						asChild: true,
 						variant: "default",
 						className: "gap-2",
@@ -88154,7 +88154,7 @@ function AuthPage() {
 											onChange: (e) => setPassword(e.target.value)
 										})]
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 										type: "submit",
 										className: "w-full",
 										disabled: isLoading,
@@ -88196,7 +88196,7 @@ function AuthPage() {
 											onChange: (e) => setPassword(e.target.value)
 										})]
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 										type: "submit",
 										className: "w-full",
 										disabled: isLoading,
@@ -88291,7 +88291,7 @@ function ForgotPassword() {
 							className: "text-xs text-muted-foreground",
 							children: "Não recebeu? Verifique sua pasta de spam ou tente novamente."
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "outline",
 							className: "w-full mt-4",
 							onClick: () => setIsSubmitted(false),
@@ -88315,7 +88315,7 @@ function ForgotPassword() {
 							onChange: (e) => setEmail(e.target.value),
 							disabled: isLoading
 						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						className: "w-full",
 						disabled: isLoading,
@@ -88362,7 +88362,7 @@ function ResetPassword() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "text-sm text-muted-foreground",
 						children: "O link que você usou pode ter expirado ou já ter sido utilizado. Por favor, solicite uma nova redefinição de senha."
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						asChild: true,
 						className: "w-full",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
@@ -88474,7 +88474,7 @@ function ResetPassword() {
 							minLength: 6
 						})]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						className: "w-full",
 						disabled: isLoading,
@@ -88610,7 +88610,7 @@ var Sidebar = import_react.forwardRef(({ side = "left", variant = "sidebar", col
 Sidebar.displayName = "Sidebar";
 var SidebarTrigger = import_react.forwardRef(({ className, onClick, ...props }, ref) => {
 	const { toggleSidebar } = useSidebar();
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 		ref,
 		"data-sidebar": "trigger",
 		variant: "ghost",
@@ -88852,7 +88852,7 @@ function UserSwitcher() {
 	const { signOut } = useAuth();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 		asChild: true,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
 			className: "w-full justify-between px-2 bg-sidebar-accent/50 border-sidebar-border",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -88912,7 +88912,7 @@ function FactorySwitcher() {
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 		asChild: true,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 			variant: "outline",
 			role: "combobox",
 			className: "w-full justify-between gap-2 border-dashed border-sidebar-border bg-sidebar-accent/50 hover:bg-sidebar-accent/80",
@@ -89157,7 +89157,7 @@ function MobileNav() {
 						children: item.title
 					})]
 				}, item.url);
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 				variant: "ghost",
 				size: "icon",
 				className: "flex flex-col items-center justify-center min-w-[50px] h-full gap-1 text-muted-foreground hover:text-primary hover:bg-transparent rounded-none",
@@ -89300,13 +89300,13 @@ function DashboardLayout() {
 									className: "text-sm text-muted-foreground hidden lg:inline-block font-medium border-l pl-4 ml-2",
 									children: format(/* @__PURE__ */ new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button$1, {
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "relative hover:bg-secondary text-muted-foreground hover:text-primary hidden md:inline-flex",
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bell, { className: "h-5 w-5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" })]
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button$1, {
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "ghost",
 									size: "icon",
 									className: "hover:bg-secondary text-muted-foreground hover:text-primary hidden md:inline-flex",
@@ -89449,4 +89449,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-9nclAgh3.js.map
+//# sourceMappingURL=index-u3Iy1ENB.js.map
