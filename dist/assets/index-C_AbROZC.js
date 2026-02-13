@@ -87268,24 +87268,33 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	})] });
 }
 function SteamControlTable() {
-	const { steamControlRecords, deleteSteamControlRecord } = useData();
+	const { steamControlRecords, deleteSteamControlRecord, production } = useData();
 	const { toast: toast$2 } = useToast();
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
 	const tableData = (0, import_react.useMemo)(() => {
+		const productionMap = /* @__PURE__ */ new Map();
+		production.forEach((p) => {
+			const dateKey = format(p.date, "yyyy-MM-dd");
+			const current = productionMap.get(dateKey) || 0;
+			productionMap.set(dateKey, current + (p.mpUsed || 0));
+		});
 		return [...steamControlRecords].sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime()).map((record) => {
+			const dateKey = format(record.date, "yyyy-MM-dd");
+			const mpProcessed = productionMap.get(dateKey) || 0;
 			const totalFuel = record.soyWaste + record.firewood + record.riceHusk + record.woodChips;
 			const consumoVap = record.meterEnd - record.meterStart;
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
 			return {
 				...record,
+				mpProcessed,
 				totalFuel,
 				consumoVap,
 				cavacoVsVapor
 			};
 		});
-	}, [steamControlRecords]);
+	}, [steamControlRecords, production]);
 	const handleDelete = () => {
 		if (deleteId) {
 			deleteSteamControlRecord(deleteId);
@@ -87311,6 +87320,10 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "min-w-[100px]",
 							children: "Data"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+							className: "text-right min-w-[120px] font-bold",
+							children: "MP Proc. (kg)"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 							className: "text-right min-w-[100px]",
@@ -87351,7 +87364,7 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 11,
+					colSpan: 12,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -87360,6 +87373,10 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "font-medium whitespace-nowrap",
 							children: format(row.date, "dd/MM/yyyy")
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold text-blue-600 dark:text-blue-400",
+							children: formatNumber(row.mpProcessed)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right",
@@ -89366,4 +89383,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DAIk6kw7.js.map
+//# sourceMappingURL=index-C_AbROZC.js.map

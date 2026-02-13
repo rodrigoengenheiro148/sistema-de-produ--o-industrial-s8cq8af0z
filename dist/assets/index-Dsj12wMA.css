@@ -1169,6 +1169,9 @@ section[aria-label='Notifications alt+T'] {
 .min-w-\[100px\]{
   min-width: 100px;
 }
+.min-w-\[120px\]{
+  min-width: 120px;
+}
 .min-w-\[12rem\]{
   min-width: 12rem;
 }
@@ -2398,6 +2401,10 @@ section[aria-label='Notifications alt+T'] {
 .text-blue-500{
   --tw-text-opacity: 1;
   color: rgb(59 130 246 / var(--tw-text-opacity, 1));
+}
+.text-blue-600{
+  --tw-text-opacity: 1;
+  color: rgb(37 99 235 / var(--tw-text-opacity, 1));
 }
 .text-blue-700{
   --tw-text-opacity: 1;

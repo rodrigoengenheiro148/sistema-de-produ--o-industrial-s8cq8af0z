@@ -40,7 +40,8 @@ import { useToast } from '@/hooks/use-toast'
 import { formatNumber } from '@/lib/utils'
 
 export function SteamControlTable() {
-  const { steamControlRecords, deleteSteamControlRecord } = useData()
+  const { steamControlRecords, deleteSteamControlRecord, production } =
+    useData()
   const { toast } = useToast()
 
   const [editingItem, setEditingItem] = useState<SteamControlEntry | undefined>(
@@ -50,12 +51,23 @@ export function SteamControlTable() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const tableData = useMemo(() => {
+    // Optimization: Create a map of daily production totals
+    const productionMap = new Map<string, number>()
+    production.forEach((p) => {
+      const dateKey = format(p.date, 'yyyy-MM-dd')
+      const current = productionMap.get(dateKey) || 0
+      productionMap.set(dateKey, current + (p.mpUsed || 0))
+    })
+
     // We want to display records sorted by date descending
     const sortedRecords = [...steamControlRecords].sort(
       (a, b) => b.date.getTime() - a.date.getTime(),
     )
 
     return sortedRecords.map((record) => {
+      const dateKey = format(record.date, 'yyyy-MM-dd')
+      const mpProcessed = productionMap.get(dateKey) || 0
+
       const totalFuel =
         record.soyWaste + record.firewood + record.riceHusk + record.woodChips
       const consumoVap = record.meterEnd - record.meterStart
@@ -66,12 +78,13 @@ export function SteamControlTable() {
 
       return {
         ...record,
+        mpProcessed,
         totalFuel,
         consumoVap,
         cavacoVsVapor,
       }
     })
-  }, [steamControlRecords])
+  }, [steamControlRecords, production])
 
   const handleDelete = () => {
     if (deleteId) {
@@ -96,6 +109,9 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
+              <TableHead className="text-right min-w-[120px] font-bold">
+                MP Proc. (kg)
+              </TableHead>
               <TableHead className="text-right min-w-[100px]">
                 Res. Soja
               </TableHead>
@@ -127,7 +143,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={11}
+                  colSpan={12}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -138,6 +154,9 @@ export function SteamControlTable() {
                 <TableRow key={row.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-blue-600 dark:text-blue-400">
+                    {formatNumber(row.mpProcessed)}
                   </TableCell>
                   <TableCell className="text-right">
                     {formatNumber(row.soyWaste)}
