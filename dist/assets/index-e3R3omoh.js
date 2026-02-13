@@ -71234,24 +71234,16 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				activeCategories.map((category, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+				activeCategories.map((category) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: category,
-					stackId: "a",
 					fill: `var(--color-${category})`,
 					radius: [
-						0,
-						0,
+						4,
+						4,
 						0,
 						0
 					],
-					maxBarSize: 50,
-					children: index$1 === activeCategories.length - 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "total",
-						position: "top",
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 9 : 10,
-						formatter: formatYAxis
-					})
+					maxBarSize: 50
 				}, category))
 			]
 		})
@@ -90185,4 +90177,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-37w94tEC.js.map
+//# sourceMappingURL=index-e3R3omoh.js.map

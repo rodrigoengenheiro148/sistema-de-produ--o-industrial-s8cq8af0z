@@ -15,7 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts'
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   Dialog,
   DialogContent,
@@ -217,7 +217,7 @@ export function RawMaterialCompositionChart({
     })
   }, [data, selectedMaterials, selectedSupplier])
 
-  // Process data for Stacked Bar Chart (Group by Date)
+  // Process data for Chart (Group by Date)
   const chartData = useMemo(() => {
     const dailyMap = new Map<string, any>()
 
@@ -362,25 +362,14 @@ export function RawMaterialCompositionChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {activeCategories.map((category, index) => (
+        {activeCategories.map((category) => (
           <Bar
             key={category}
             dataKey={category}
-            stackId="a"
             fill={`var(--color-${category})`}
-            radius={[0, 0, 0, 0]}
+            radius={[4, 4, 0, 0]}
             maxBarSize={50}
-          >
-            {index === activeCategories.length - 1 && (
-              <LabelList
-                dataKey="total"
-                position="top"
-                className="fill-foreground font-bold"
-                fontSize={isMobile ? 9 : 10}
-                formatter={formatYAxis}
-              />
-            )}
-          </Bar>
+          />
         ))}
       </BarChart>
     </ChartContainer>
