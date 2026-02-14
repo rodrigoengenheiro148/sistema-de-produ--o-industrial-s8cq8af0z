@@ -87146,10 +87146,6 @@ function calculateDailyMetrics(date$4, cookingTimeRecords = [], downtimeRecords 
 		throughput: rateTon
 	};
 }
-function formatDuration(minutes) {
-	if (!minutes && minutes !== 0) return "0h 00m";
-	return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60).toString().padStart(2, "0")}m`;
-}
 function ProcessMetricsCard({ date: date$4 }) {
 	const { production, cookingTimeRecords, downtimeRecords } = useData();
 	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords || [], downtimeRecords || [], production || []);
@@ -88664,62 +88660,6 @@ function SteamControlCharts() {
 		})]
 	});
 }
-function CookingMetricsCard({ cookingTimeMinutes = 0, throughput = 0, targetThroughput = 14.125, referenceDate = /* @__PURE__ */ new Date(), className }) {
-	const isBelowTarget = throughput < targetThroughput;
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("bg-white", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-center justify-between space-y-0 pb-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-				className: "text-xs font-bold text-muted-foreground uppercase tracking-widest",
-				children: "Tempo de Cozimento"
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-4 w-4 text-blue-600" })]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-			className: "text-3xl font-bold text-slate-900",
-			children: formatDuration(cookingTimeMinutes)
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "mt-4 flex items-end justify-between border-t pt-4",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "space-y-1",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
-						"REF:",
-						" ",
-						referenceDate.toLocaleDateString("pt-BR", {
-							day: "2-digit",
-							month: "2-digit"
-						})
-					]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-1.5 font-bold text-lg text-slate-700",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4" }),
-						throughput.toLocaleString("pt-BR", {
-							minimumFractionDigits: 2,
-							maximumFractionDigits: 2
-						}),
-						" ",
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "text-xs text-muted-foreground font-medium self-end mb-1",
-							children: "t/h"
-						})
-					]
-				})]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col items-end gap-0.5",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "text-[10px] font-bold text-muted-foreground uppercase tracking-wider",
-					children: "Meta"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-1 text-sm font-bold text-slate-600",
-					children: [targetThroughput.toLocaleString("pt-BR", { minimumFractionDigits: 3 }), isBelowTarget ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingDown, { className: "h-4 w-4 text-red-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-4 w-4 text-emerald-500" })]
-				})]
-			})]
-		})] })]
-	});
-}
 function SteamControl() {
 	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
 	const { checkPcpAuth } = usePcp();
@@ -88768,10 +88708,6 @@ function SteamControl() {
 						})
 					})
 				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CookingMetricsCard, {})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
 				defaultValue: "records",
@@ -90686,4 +90622,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CfdNsox4.js.map
+//# sourceMappingURL=index-DdAle6n4.js.map
