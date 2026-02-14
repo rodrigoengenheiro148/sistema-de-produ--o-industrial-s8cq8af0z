@@ -16,6 +16,7 @@ import {
   CalendarDays,
   Scale,
   Undo2,
+  FlaskConical,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -233,6 +234,14 @@ export function OverviewCards({
     const currentMinutes = Math.round(totalCookingMinutesCurrent % 60)
     const processTimeCurrentDisplay = `${currentHours}h ${currentMinutes.toString().padStart(2, '0')}m`
 
+    // 14. Saturated Oil Input
+    const saturatedOilInputKg = rawMaterials
+      .filter((r) => {
+        const type = r.type?.toLowerCase() || ''
+        return type === 'óleo saturado' || type === 'oleo saturado'
+      })
+      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+
     return {
       rawMaterialInputKg,
       totalProduction,
@@ -248,6 +257,7 @@ export function OverviewCards({
       previousDateFormatted,
       estimatedWeightByTime,
       processTimeCurrentDisplay,
+      saturatedOilInputKg,
     }
   }, [
     rawMaterials,
@@ -450,6 +460,15 @@ export function OverviewCards({
         iconColor="text-red-600"
         borderColor="border-l-red-600"
         textColor="text-red-600"
+      />
+
+      {/* Saturated Oil Input - NEW CARD */}
+      <MetricCard
+        title="Total de Óleo Saturado Recebido"
+        value={formatNumberDisplay(metrics.saturatedOilInputKg, 'kg')}
+        icon={FlaskConical}
+        iconColor="text-violet-600 dark:text-violet-400"
+        borderColor="border-l-violet-600 dark:border-l-violet-400"
       />
 
       {/* 6. Rendimento Sebo - Styled dynamically */}

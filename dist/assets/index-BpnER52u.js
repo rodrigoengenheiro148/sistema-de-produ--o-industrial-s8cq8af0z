@@ -64478,7 +64478,11 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			tonPerHourD1,
 			previousDateFormatted,
 			estimatedWeightByTime: totalCookingMinutesCurrent * .55,
-			processTimeCurrentDisplay: `${Math.floor(totalCookingMinutesCurrent / 60)}h ${Math.round(totalCookingMinutesCurrent % 60).toString().padStart(2, "0")}m`
+			processTimeCurrentDisplay: `${Math.floor(totalCookingMinutesCurrent / 60)}h ${Math.round(totalCookingMinutesCurrent % 60).toString().padStart(2, "0")}m`,
+			saturatedOilInputKg: rawMaterials.filter((r$2) => {
+				const type = r$2.type?.toLowerCase() || "";
+				return type === "óleo saturado" || type === "oleo saturado";
+			}).reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
 		};
 	}, [
 		rawMaterials,
@@ -64639,6 +64643,13 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				iconColor: "text-red-600",
 				borderColor: "border-l-red-600",
 				textColor: "text-red-600"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				title: "Total de Óleo Saturado Recebido",
+				value: formatNumberDisplay(metrics.saturatedOilInputKg, "kg"),
+				icon: FlaskConical,
+				iconColor: "text-violet-600 dark:text-violet-400",
+				borderColor: "border-l-violet-600 dark:border-l-violet-400"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Sebo",
@@ -90815,4 +90826,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CZURbFTd.js.map
+//# sourceMappingURL=index-BpnER52u.js.map
