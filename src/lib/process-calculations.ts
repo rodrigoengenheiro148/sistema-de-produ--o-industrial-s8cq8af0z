@@ -10,6 +10,9 @@ export interface ProcessBatch {
   status?: string
 }
 
+// 0.55 tons per minute * 60 minutes = 33 tons per hour
+export const TARGET_HOURLY_RATE = 33
+
 export interface DailyMetrics {
   totalConsumption: number
   totalProduced: number
@@ -18,6 +21,8 @@ export interface DailyMetrics {
   totalDowntimeMinutes: number
   rateTon: number
   yieldPercentage: number
+  targetHourlyRate: number
+  productionCapacity: number // Estimated production in Tons based on active hours
   // Legacy fields for backward compatibility
   totalProcessed?: number
   cookingTimeMinutes?: number
@@ -97,6 +102,9 @@ export function calculateDailyMetrics(
   const yieldPercentage =
     totalConsumption > 0 ? (totalProduced / totalConsumption) * 100 : 0
 
+  // Production Estimate based on Constant Rate
+  const productionCapacity = netActiveHours * TARGET_HOURLY_RATE
+
   return {
     totalConsumption,
     totalProduced,
@@ -105,6 +113,8 @@ export function calculateDailyMetrics(
     totalDowntimeMinutes,
     rateTon,
     yieldPercentage,
+    targetHourlyRate: TARGET_HOURLY_RATE,
+    productionCapacity,
     // Mapping for legacy support if needed
     totalProcessed: totalConsumption,
     cookingTimeMinutes: netActiveMinutes,

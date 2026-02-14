@@ -1,14 +1,20 @@
 import { useData } from '@/context/DataContext'
-import { calculateDailyMetrics } from '@/lib/process-calculations'
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+  calculateDailyMetrics,
+  TARGET_HOURLY_RATE,
+} from '@/lib/process-calculations'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, formatNumber } from '@/lib/utils'
-import { Activity, Clock, AlertCircle, Scale, Gauge } from 'lucide-react'
+import {
+  Activity,
+  Clock,
+  AlertCircle,
+  Scale,
+  Calendar,
+  ArrowDown,
+  ArrowUp,
+} from 'lucide-react'
+import { format } from 'date-fns'
 
 interface ProcessMetricsCardProps {
   date: Date
@@ -25,8 +31,7 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
     production || [],
   )
 
-  const TARGET_FLOW_RATE = 7.125
-  const flowRateDiff = metrics.rateTon - TARGET_FLOW_RATE
+  const flowRateDiff = metrics.rateTon - TARGET_HOURLY_RATE
   const isBelowTarget = flowRateDiff < 0
 
   // Formatters
@@ -86,65 +91,48 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
         </CardContent>
       </Card>
 
-      <Card
-        className={cn(
-          'border-l-4',
-          isBelowTarget ? 'border-l-destructive' : 'border-l-green-500',
-        )}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Vazão Média</CardTitle>
-          <Gauge
-            className={cn(
-              'h-4 w-4',
-              isBelowTarget ? 'text-destructive' : 'text-green-500',
-            )}
-          />
-        </CardHeader>
-        <CardContent>
-          {metrics.netActiveHours > 0 ? (
-            <>
-              <div className="text-2xl font-bold">
+      {/* Main Productivity Card with Updated UI */}
+      <Card className="border-l-4 border-l-blue-500 flex flex-col justify-between">
+        <div className="p-4 pb-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">
+            <Calendar className="h-3 w-3" />
+            REF: {format(date, 'dd/MM')}
+          </div>
+
+          <div className="flex items-end justify-between">
+            <div className="flex items-baseline gap-1">
+              <Activity className="h-4 w-4 text-blue-500 mr-1" />
+              <span className="text-3xl font-bold">
                 {formatNumber(metrics.rateTon, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })}{' '}
-                t/h
+                })}
+              </span>
+              <span className="text-sm font-medium text-blue-500">t/h</span>
+            </div>
+
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">
+                META
+              </span>
+              <div
+                className={cn(
+                  'flex items-center gap-1 text-sm font-bold',
+                  isBelowTarget ? 'text-destructive' : 'text-green-600',
+                )}
+              >
+                {formatNumber(TARGET_HOURLY_RATE, {
+                  minimumFractionDigits: 3,
+                })}
+                {isBelowTarget ? (
+                  <ArrowDown className="h-3 w-3" />
+                ) : (
+                  <ArrowUp className="h-3 w-3" />
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Meta:{' '}
-                <span className="font-medium">
-                  {formatNumber(TARGET_FLOW_RATE, {
-                    minimumFractionDigits: 3,
-                  })}{' '}
-                  t/h
-                </span>
-                <span
-                  className={cn(
-                    'ml-2',
-                    isBelowTarget ? 'text-destructive' : 'text-green-600',
-                  )}
-                >
-                  ({flowRateDiff > 0 ? '+' : ''}
-                  {formatNumber(flowRateDiff, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                  )
-                </span>
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="text-2xl font-bold text-muted-foreground">
-                N/A
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Sem tempo líquido de processo
-              </p>
-            </>
-          )}
-        </CardContent>
+            </div>
+          </div>
+        </div>
       </Card>
     </div>
   )

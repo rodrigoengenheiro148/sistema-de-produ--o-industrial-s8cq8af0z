@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { CookingTimeForm } from '@/components/process/CookingTimeForm'
 import { DowntimeManager } from '@/components/process/DowntimeManager'
 import { HourlyProductionEfficiencyChart } from '@/components/process/HourlyProductionEfficiencyChart'
 import { ProcessMetricsCard } from '@/components/process/ProcessMetricsCard'
@@ -14,19 +13,20 @@ export default function ProcessManagement() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
-            Tempos de Processo
+            Gestão de Processo
           </h2>
           <p className="text-muted-foreground">
-            Gerencie os tempos de cozimento e paradas para cálculo de
-            produtividade.
+            Gerencie as paradas e visualize indicadores de produtividade.
           </p>
         </div>
         <ProcessExportMenu />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <CookingTimeForm />
-        <DowntimeManager />
+        {/* CookingTimeForm removed as per requirements */}
+        <div className="md:col-span-2">
+          <DowntimeManager />
+        </div>
       </div>
 
       <div className="space-y-4 pt-6 border-t">
