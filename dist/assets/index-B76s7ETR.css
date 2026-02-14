@@ -933,6 +933,9 @@ section[aria-label='Notifications alt+T'] {
 .h-\[200px\]{
   height: 200px;
 }
+.h-\[250px\]{
+  height: 250px;
+}
 .h-\[300px\]{
   height: 300px;
 }
@@ -2521,6 +2524,10 @@ section[aria-label='Notifications alt+T'] {
 .text-red-700{
   --tw-text-opacity: 1;
   color: rgb(185 28 28 / var(--tw-text-opacity, 1));
+}
+.text-red-800{
+  --tw-text-opacity: 1;
+  color: rgb(153 27 27 / var(--tw-text-opacity, 1));
 }
 .text-red-900{
   --tw-text-opacity: 1;

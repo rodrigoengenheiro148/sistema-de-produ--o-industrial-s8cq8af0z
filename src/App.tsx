@@ -18,6 +18,7 @@ import SeboInventory from './pages/gestao/SeboInventory'
 import ProcessManagement from './pages/gestao/ProcessManagement'
 import ForecastManagement from './pages/gestao/ForecastManagement'
 import SteamControl from './pages/gestao/SteamControl'
+import Returns from './pages/Returns'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
 import AuthPage from './pages/Auth'
@@ -64,6 +65,7 @@ const App = () => (
                 />
                 <Route path="/estoque" element={<Inventory />} />
                 <Route path="/expedicao" element={<Shipping />} />
+                <Route path="/devolucoes" element={<Returns />} />
                 <Route path="/fabricas" element={<Factories />} />
                 <Route path="/settings" element={<Settings />} />
 

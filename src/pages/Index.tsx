@@ -29,6 +29,7 @@ import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
+import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,7 @@ export default function Dashboard() {
     downtimeRecords,
     qualityRecords,
     acidityRecords,
+    returns,
     dateRange,
     setDateRange,
     factories,
@@ -100,6 +102,7 @@ export default function Dashboard() {
     filteredDowntime,
     filteredQuality,
     filteredAcidity,
+    filteredReturns,
     uniqueClients,
   } = useMemo(() => {
     // Extract unique clients from ALL shipping data (not just filtered) to populate the filter list
@@ -125,6 +128,9 @@ export default function Dashboard() {
       filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
       filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
       filteredAcidity: acidityRecords.filter((a) => filterByDate(a.date)),
+      filteredReturns: returns
+        .filter((r) => filterByDate(r.date))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
       uniqueClients: uniqueClientsList,
     }
   }, [
@@ -135,6 +141,7 @@ export default function Dashboard() {
     downtimeRecords,
     qualityRecords,
     acidityRecords,
+    returns,
     dateRange,
   ])
 
@@ -361,6 +368,7 @@ export default function Dashboard() {
             cookingTimeRecords={filteredCookingTime}
             downtimeRecords={filteredDowntime}
             acidityRecords={filteredAcidity}
+            returns={filteredReturns}
             notificationSettings={notificationSettings}
             fullProductionHistory={production}
             fullCookingTimeRecords={cookingTimeRecords}
@@ -402,11 +410,14 @@ export default function Dashboard() {
               timeScale="daily"
               allClients={uniqueClients}
             />
-            <LossAnalysisChart
-              data={filteredProduction}
-              isMobile={isMobile}
-              timeScale="daily"
-            />
+            <div className="grid gap-4">
+              <LossAnalysisChart
+                data={filteredProduction}
+                isMobile={isMobile}
+                timeScale="daily"
+              />
+              <ReturnsImpactChart data={filteredReturns} />
+            </div>
           </div>
         </TabsContent>
 

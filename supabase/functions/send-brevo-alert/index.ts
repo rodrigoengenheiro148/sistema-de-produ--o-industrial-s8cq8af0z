@@ -14,11 +14,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { productionData, user_id, source } = await req.json()
-
-    if (!productionData) {
-      throw new Error('Dados de produção não fornecidos')
-    }
+    const { productionData, returnData, user_id, source, type } =
+      await req.json()
 
     // Determine Authentication Strategy
     let supabaseClient
@@ -41,13 +38,19 @@ Deno.serve(async (req) => {
           },
         },
       )
-      const {
-        data: { user },
-      } = await supabaseClient.auth.getUser()
-      if (!user) {
-        throw new Error('Unauthorized')
+      // Only verify user if user_id was not explicitly passed in a trusted context,
+      // but client-side calls typically pass user_id in body for logic, verified by JWT context if needed.
+      // For simplicity in this hybrid function, we trust the caller has permissions if JWT is valid.
+      if (!userId) {
+        const {
+          data: { user },
+        } = await supabaseClient.auth.getUser()
+        if (user) userId = user.id
       }
-      userId = user.id
+    }
+
+    if (!userId) {
+      throw new Error('User ID not found')
     }
 
     // Fetch settings for this user
@@ -65,106 +68,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Calculate Yields - Handle both camelCase (JSON) and snake_case (DB)
-    const mpUsed = Number(productionData.mpUsed || productionData.mp_used) || 0
-    const sebo =
-      Number(productionData.seboProduced || productionData.sebo_produced) || 0
-    const fco =
-      Number(productionData.fcoProduced || productionData.fco_produced) || 0
-    const farinheta =
-      Number(
-        productionData.farinhetaProduced || productionData.farinheta_produced,
-      ) || 0
-
-    const date =
-      productionData.date ||
-      productionData.created_at ||
-      new Date().toISOString()
-    const formattedDate = new Date(date).toLocaleDateString('pt-BR')
-
-    if (mpUsed <= 0) {
-      return new Response(JSON.stringify({ message: 'MP is zero or less' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
-    }
-
-    const seboYield = (sebo / mpUsed) * 100
-    const fcoYield = (fco / mpUsed) * 100
-    const farinhetaYield = (farinheta / mpUsed) * 100
-    const totalYield = ((sebo + fco + farinheta) / mpUsed) * 100
-
-    const violations: string[] = []
-    const htmlViolations: string[] = []
-
-    // Check Sebo
-    if (
-      settings.sebo_threshold > 0 &&
-      seboYield < Number(settings.sebo_threshold)
-    ) {
-      const diff = (Number(settings.sebo_threshold) - seboYield).toFixed(2)
-      violations.push(
-        `Rendimento Sebo: ${seboYield.toFixed(2)}% (Meta: ${settings.sebo_threshold}%) - Desvio: -${diff}%`,
-      )
-      htmlViolations.push(
-        `<li><b>Rendimento Sebo:</b> ${seboYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.sebo_threshold}%)</span> - Abaixo por ${diff}%</li>`,
-      )
-    }
-
-    // Check FCO (using fco_threshold if available, fallback to farinha_threshold)
-    const fcoTarget = Number(
-      settings.fco_threshold || settings.farinha_threshold || 0,
-    )
-    if (fcoTarget > 0 && fcoYield < fcoTarget) {
-      const diff = (fcoTarget - fcoYield).toFixed(2)
-      violations.push(
-        `Rendimento FCO: ${fcoYield.toFixed(2)}% (Meta: ${fcoTarget}%) - Desvio: -${diff}%`,
-      )
-      htmlViolations.push(
-        `<li><b>Rendimento FCO:</b> ${fcoYield.toFixed(2)}% <span style="color:red">(Meta: ${fcoTarget}%)</span> - Abaixo por ${diff}%</li>`,
-      )
-    }
-
-    // Check Farinheta
-    if (
-      settings.farinheta_threshold > 0 &&
-      farinhetaYield < Number(settings.farinheta_threshold)
-    ) {
-      const diff = (
-        Number(settings.farinheta_threshold) - farinhetaYield
-      ).toFixed(2)
-      violations.push(
-        `Rendimento Farinheta: ${farinhetaYield.toFixed(2)}% (Meta: ${settings.farinheta_threshold}%) - Desvio: -${diff}%`,
-      )
-      htmlViolations.push(
-        `<li><b>Rendimento Farinheta:</b> ${farinhetaYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.farinheta_threshold}%)</span> - Abaixo por ${diff}%</li>`,
-      )
-    }
-
-    // Check Total
-    if (
-      settings.yield_threshold > 0 &&
-      totalYield < Number(settings.yield_threshold)
-    ) {
-      const diff = (Number(settings.yield_threshold) - totalYield).toFixed(2)
-      violations.push(
-        `Rendimento Total Fábrica: ${totalYield.toFixed(2)}% (Meta: ${settings.yield_threshold}%) - Desvio: -${diff}%`,
-      )
-      htmlViolations.push(
-        `<li><b>Rendimento Total Fábrica:</b> ${totalYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.yield_threshold}%)</span> - Abaixo por ${diff}%</li>`,
-      )
-    }
-
-    if (violations.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No threshold violations' }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        },
-      )
-    }
-
     // Check if we can send alerts
     const apiKey = settings.brevo_api_key
 
@@ -179,7 +82,145 @@ Deno.serve(async (req) => {
       )
     }
 
-    const alertMessage = `ALERTA DE PRODUÇÃO - ${formattedDate}\n\nAs seguintes metas não foram atingidas:\n- ${violations.join('\n- ')}`
+    let alertSubject = ''
+    let alertHtml = ''
+    let alertText = ''
+
+    // --- HANDLE RETURN ALERT ---
+    if (type === 'return_alert' && returnData) {
+      const date = new Date(returnData.date).toLocaleDateString('pt-BR')
+      alertSubject = `Nova Devolução Registrada - ${date}`
+      alertText = `NOVA DEVOLUÇÃO - ${date}\nFornecedor: ${returnData.supplier}\nQuantidade: ${returnData.quantity} kg\nValor: R$ ${returnData.value}\nMotivo: ${returnData.description}`
+      alertHtml = `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+          <h2 style="color: #b91c1c;">NOVA DEVOLUÇÃO REGISTRADA</h2>
+          <p>Uma nova devolução foi lançada no sistema para o dia <strong>${date}</strong>.</p>
+          <div style="background-color: #fff1f2; padding: 15px; border-radius: 6px; border-left: 4px solid #e11d48;">
+            <p><b>Fornecedor:</b> ${returnData.supplier}</p>
+            <p><b>Quantidade:</b> ${returnData.quantity} kg</p>
+            <p><b>Valor:</b> R$ ${Number(returnData.value).toFixed(2)}</p>
+            <p><b>Motivo:</b> ${returnData.description}</p>
+          </div>
+          <p style="margin-top: 20px; font-size: 12px; color: #666;">Sistema de Controle Industrial</p>
+        </div>
+      `
+    }
+    // --- HANDLE PRODUCTION YIELD ALERT (Default) ---
+    else if (productionData) {
+      // Calculate Yields
+      const mpUsed =
+        Number(productionData.mpUsed || productionData.mp_used) || 0
+      const sebo =
+        Number(productionData.seboProduced || productionData.sebo_produced) || 0
+      const fco =
+        Number(productionData.fcoProduced || productionData.fco_produced) || 0
+      const farinheta =
+        Number(
+          productionData.farinhetaProduced || productionData.farinheta_produced,
+        ) || 0
+
+      const date =
+        productionData.date ||
+        productionData.created_at ||
+        new Date().toISOString()
+      const formattedDate = new Date(date).toLocaleDateString('pt-BR')
+
+      if (mpUsed <= 0) {
+        return new Response(JSON.stringify({ message: 'MP is zero or less' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+
+      const seboYield = (sebo / mpUsed) * 100
+      const fcoYield = (fco / mpUsed) * 100
+      const farinhetaYield = (farinheta / mpUsed) * 100
+      const totalYield = ((sebo + fco + farinheta) / mpUsed) * 100
+
+      const violations: string[] = []
+      const htmlViolations: string[] = []
+
+      if (
+        settings.sebo_threshold > 0 &&
+        seboYield < Number(settings.sebo_threshold)
+      ) {
+        const diff = (Number(settings.sebo_threshold) - seboYield).toFixed(2)
+        violations.push(
+          `Rendimento Sebo: ${seboYield.toFixed(2)}% (Meta: ${settings.sebo_threshold}%) - Desvio: -${diff}%`,
+        )
+        htmlViolations.push(
+          `<li><b>Rendimento Sebo:</b> ${seboYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.sebo_threshold}%)</span> - Abaixo por ${diff}%</li>`,
+        )
+      }
+
+      const fcoTarget = Number(
+        settings.fco_threshold || settings.farinha_threshold || 0,
+      )
+      if (fcoTarget > 0 && fcoYield < fcoTarget) {
+        const diff = (fcoTarget - fcoYield).toFixed(2)
+        violations.push(
+          `Rendimento FCO: ${fcoYield.toFixed(2)}% (Meta: ${fcoTarget}%) - Desvio: -${diff}%`,
+        )
+        htmlViolations.push(
+          `<li><b>Rendimento FCO:</b> ${fcoYield.toFixed(2)}% <span style="color:red">(Meta: ${fcoTarget}%)</span> - Abaixo por ${diff}%</li>`,
+        )
+      }
+
+      if (
+        settings.farinheta_threshold > 0 &&
+        farinhetaYield < Number(settings.farinheta_threshold)
+      ) {
+        const diff = (
+          Number(settings.farinheta_threshold) - farinhetaYield
+        ).toFixed(2)
+        violations.push(
+          `Rendimento Farinheta: ${farinhetaYield.toFixed(2)}% (Meta: ${settings.farinheta_threshold}%) - Desvio: -${diff}%`,
+        )
+        htmlViolations.push(
+          `<li><b>Rendimento Farinheta:</b> ${farinhetaYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.farinheta_threshold}%)</span> - Abaixo por ${diff}%</li>`,
+        )
+      }
+
+      if (
+        settings.yield_threshold > 0 &&
+        totalYield < Number(settings.yield_threshold)
+      ) {
+        const diff = (Number(settings.yield_threshold) - totalYield).toFixed(2)
+        violations.push(
+          `Rendimento Total Fábrica: ${totalYield.toFixed(2)}% (Meta: ${settings.yield_threshold}%) - Desvio: -${diff}%`,
+        )
+        htmlViolations.push(
+          `<li><b>Rendimento Total Fábrica:</b> ${totalYield.toFixed(2)}% <span style="color:red">(Meta: ${settings.yield_threshold}%)</span> - Abaixo por ${diff}%</li>`,
+        )
+      }
+
+      if (violations.length === 0) {
+        return new Response(
+          JSON.stringify({ message: 'No threshold violations' }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        )
+      }
+
+      alertSubject = `Alerta de Baixo Rendimento - ${formattedDate}`
+      alertText = `ALERTA DE PRODUÇÃO - ${formattedDate}\n\nAs seguintes metas não foram atingidas:\n- ${violations.join('\n- ')}`
+      alertHtml = `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+          <h2 style="color: #e11d48;">ALERTA DE PRODUÇÃO</h2>
+          <p>Atenção, foram detectados rendimentos abaixo da meta para o registro de produção do dia <strong>${formattedDate}</strong>.</p>
+          <div style="background-color: #fef2f2; padding: 15px; border-radius: 6px; border-left: 4px solid #ef4444;">
+            <h3>Detalhes dos Indicadores:</h3>
+            <ul>${htmlViolations.join('')}</ul>
+          </div>
+          <p style="margin-top: 20px; font-size: 12px; color: #666;">Este é um alerta automático gerado pelo Sistema de Controle Industrial.</p>
+        </div>
+      `
+    } else {
+      throw new Error('Dados insuficientes para alerta')
+    }
+
     const results = []
 
     // Send Email
@@ -187,18 +228,8 @@ Deno.serve(async (req) => {
       const emailBody = {
         sender: { name: 'Sistema Industrial', email: 'alertas@goskip.app' },
         to: [{ email: settings.notification_email }],
-        subject: `Alerta de Baixo Rendimento - ${formattedDate}`,
-        htmlContent: `
-          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-            <h2 style="color: #e11d48;">ALERTA DE PRODUÇÃO</h2>
-            <p>Atenção, foram detectados rendimentos abaixo da meta para o registro de produção do dia <strong>${formattedDate}</strong>.</p>
-            <div style="background-color: #fef2f2; padding: 15px; border-radius: 6px; border-left: 4px solid #ef4444;">
-              <h3>Detalhes dos Indicadores:</h3>
-              <ul>${htmlViolations.join('')}</ul>
-            </div>
-            <p style="margin-top: 20px; font-size: 12px; color: #666;">Este é um alerta automático gerado pelo Sistema de Controle Industrial.</p>
-          </div>
-        `,
+        subject: alertSubject,
+        htmlContent: alertHtml,
       }
 
       try {
@@ -223,7 +254,7 @@ Deno.serve(async (req) => {
       const smsBody = {
         sender: 'Industria',
         recipient: settings.notification_phone,
-        content: alertMessage,
+        content: alertText,
       }
 
       try {

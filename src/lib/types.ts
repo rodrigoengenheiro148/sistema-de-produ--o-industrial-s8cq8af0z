@@ -71,6 +71,18 @@ export interface QualityEntry {
   createdAt?: Date
 }
 
+export interface ReturnEntry {
+  id: string
+  date: Date
+  supplier: string
+  quantity: number
+  description: string
+  value: number
+  factoryId: string
+  userId: string
+  createdAt?: Date
+}
+
 export interface SeboInventoryRecord {
   id?: string
   factoryId: string
@@ -234,6 +246,7 @@ export interface DataContextType {
   downtimeRecords: DowntimeRecord[]
   steamControlRecords: SteamControlEntry[]
   dailyForecasts: DailyProductionForecast[]
+  returns: ReturnEntry[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (
@@ -276,6 +289,10 @@ export interface DataContextType {
     materialType?: string,
   ) => Promise<void>
   deleteDailyForecast: (id: string) => Promise<void>
+
+  addReturn: (entry: Omit<ReturnEntry, 'id'>) => void
+  updateReturn: (entry: ReturnEntry) => void
+  deleteReturn: (id: string) => void
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

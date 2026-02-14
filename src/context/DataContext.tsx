@@ -25,6 +25,7 @@ import {
   DowntimeRecord,
   DailyProductionForecast,
   SteamControlEntry,
+  ReturnEntry,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -99,6 +100,8 @@ const mapData = (data: any[]) => {
     meterStart: Number(item.meter_start || 0),
     meterEnd: Number(item.meter_end || 0),
     steamConsumption: Number(item.steam_consumption || 0),
+    quantity: Number(item.quantity || 0),
+    value: Number(item.value || 0),
   }))
 }
 
@@ -157,6 +160,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [dailyForecasts, setDailyForecasts] = useState<
     DailyProductionForecast[]
   >([])
+  const [returns, setReturns] = useState<ReturnEntry[]>([])
 
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
@@ -294,6 +298,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setDowntimeRecords([])
       setSteamControlRecords([])
       setDailyForecasts([])
+      setReturns([])
       return
     }
 
@@ -325,6 +330,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           { data: downtime },
           { data: steam },
           { data: forecasts },
+          { data: rets },
         ] = await Promise.all([
           applyFilters(supabase.from('raw_materials').select('*')),
           applyFilters(supabase.from('production').select('*')),
@@ -335,6 +341,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('downtime_records').select('*')),
           applyFilters(supabase.from('steam_control_records').select('*')),
           applyFilters(supabase.from('daily_production_forecasts').select('*')),
+          applyFilters(supabase.from('returns').select('*')),
         ])
 
         if (raw) setRawMaterials(mapData(raw))
@@ -355,6 +362,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
               materialType: f.material_type,
               userId: f.user_id,
               createdAt: f.created_at ? new Date(f.created_at) : undefined,
+            })),
+          )
+        }
+        if (rets) {
+          setReturns(
+            rets.map((r: any) => ({
+              id: r.id,
+              date: parseAsLocalNoon(r.date),
+              supplier: r.supplier,
+              quantity: Number(r.quantity || 0),
+              description: r.description,
+              value: Number(r.value || 0),
+              factoryId: r.factory_id,
+              userId: r.user_id,
+              createdAt: r.created_at ? new Date(r.created_at) : undefined,
             })),
           )
         }
@@ -428,6 +450,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'downtime_records',
       'steam_control_records',
       'daily_production_forecasts',
+      'returns',
     ]
 
     tables.forEach((table) => {
@@ -469,7 +492,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, handleRealtimeUpdate])
 
-  // CRUD Operations... (unchanged, reusing existing supabase client with retry)
+  // CRUD Operations...
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({
@@ -835,6 +858,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }
 
+  const addReturn = async (entry: Omit<ReturnEntry, 'id'>) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('returns').insert({
+      date: entry.date.toISOString(),
+      supplier: entry.supplier,
+      quantity: entry.quantity,
+      description: entry.description,
+      value: entry.value,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+
+    if (!error) {
+      // Trigger Alert if configured
+      if (
+        notificationSettings.emailEnabled ||
+        notificationSettings.smsEnabled
+      ) {
+        supabase.functions.invoke('send-brevo-alert', {
+          body: {
+            returnData: {
+              ...entry,
+              date: entry.date.toISOString(),
+            },
+            type: 'return_alert',
+            user_id: user?.id,
+          },
+        })
+      }
+      fetchOperationalData()
+    }
+  }
+
+  const updateReturn = async (entry: ReturnEntry) => {
+    const { error } = await supabase
+      .from('returns')
+      .update({
+        date: entry.date.toISOString(),
+        supplier: entry.supplier,
+        quantity: entry.quantity,
+        description: entry.description,
+        value: entry.value,
+      })
+      .eq('id', entry.id)
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteReturn = async (id: string) => {
+    const { error } = await supabase.from('returns').delete().eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -1010,6 +1085,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         .from('daily_production_forecasts')
         .delete()
         .eq('user_id', user.id),
+      supabase.from('returns').delete().eq('user_id', user.id),
     ])
     fetchOperationalData()
   }
@@ -1053,6 +1129,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         dailyForecasts,
         saveDailyForecast,
         deleteDailyForecast,
+        returns,
+        addReturn,
+        updateReturn,
+        deleteReturn,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},

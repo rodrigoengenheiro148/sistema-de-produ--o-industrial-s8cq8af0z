@@ -19962,7 +19962,7 @@ var Smartphone = createLucideIcon("smartphone", [["rect", {
 	d: "M12 18h.01",
 	key: "mhygvu"
 }]]);
-var Table = createLucideIcon("table", [
+var Table$1 = createLucideIcon("table", [
 	["path", {
 		d: "M12 3v18",
 		key: "108xh3"
@@ -20102,6 +20102,13 @@ var Truck = createLucideIcon("truck", [
 		key: "19iecd"
 	}]
 ]);
+var Undo2 = createLucideIcon("undo-2", [["path", {
+	d: "M9 14 4 9l5-5",
+	key: "102s5s"
+}], ["path", {
+	d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11",
+	key: "f3b9sd"
+}]]);
 var Upload = createLucideIcon("upload", [
 	["path", {
 		d: "M12 3v12",
@@ -36046,7 +36053,9 @@ var mapData = (data) => {
 		woodChips: Number(item.wood_chips || 0),
 		meterStart: Number(item.meter_start || 0),
 		meterEnd: Number(item.meter_end || 0),
-		steamConsumption: Number(item.steam_consumption || 0)
+		steamConsumption: Number(item.steam_consumption || 0),
+		quantity: Number(item.quantity || 0),
+		value: Number(item.value || 0)
 	}));
 };
 async function withRetry(fn, retries = 3, delay = 1e3) {
@@ -36082,6 +36091,7 @@ const DataProvider = ({ children }) => {
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
 	const [steamControlRecords, setSteamControlRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
+	const [returns, setReturns] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
 	const [systemSettings, setSystemSettings] = (0, import_react.useState)(DEFAULT_SETTINGS);
@@ -36178,6 +36188,7 @@ const DataProvider = ({ children }) => {
 			setDowntimeRecords([]);
 			setSteamControlRecords([]);
 			setDailyForecasts([]);
+			setReturns([]);
 			return;
 		}
 		try {
@@ -36190,7 +36201,7 @@ const DataProvider = ({ children }) => {
 					if (toDateStr) q = q.lte("date", toDateStr);
 					return q.order("date", { ascending: false });
 				};
-				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }] = await Promise.all([
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }] = await Promise.all([
 					applyFilters(supabase.from("raw_materials").select("*")),
 					applyFilters(supabase.from("production").select("*")),
 					applyFilters(supabase.from("shipping").select("*")),
@@ -36199,7 +36210,8 @@ const DataProvider = ({ children }) => {
 					applyFilters(supabase.from("cooking_time_records").select("*")),
 					applyFilters(supabase.from("downtime_records").select("*")),
 					applyFilters(supabase.from("steam_control_records").select("*")),
-					applyFilters(supabase.from("daily_production_forecasts").select("*"))
+					applyFilters(supabase.from("daily_production_forecasts").select("*")),
+					applyFilters(supabase.from("returns").select("*"))
 				]);
 				if (raw) setRawMaterials(mapData(raw));
 				if (prod) setProduction(mapData(prod));
@@ -36217,6 +36229,17 @@ const DataProvider = ({ children }) => {
 					materialType: f.material_type,
 					userId: f.user_id,
 					createdAt: f.created_at ? new Date(f.created_at) : void 0
+				})));
+				if (rets) setReturns(rets.map((r$2) => ({
+					id: r$2.id,
+					date: parseAsLocalNoon(r$2.date),
+					supplier: r$2.supplier,
+					quantity: Number(r$2.quantity || 0),
+					description: r$2.description,
+					value: Number(r$2.value || 0),
+					factoryId: r$2.factory_id,
+					userId: r$2.user_id,
+					createdAt: r$2.created_at ? new Date(r$2.created_at) : void 0
 				})));
 				setLastProtheusSync(/* @__PURE__ */ new Date());
 				setConnectionStatus("online");
@@ -36268,7 +36291,8 @@ const DataProvider = ({ children }) => {
 			"cooking_time_records",
 			"downtime_records",
 			"steam_control_records",
-			"daily_production_forecasts"
+			"daily_production_forecasts",
+			"returns"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
 				event: "*",
@@ -36580,6 +36604,43 @@ const DataProvider = ({ children }) => {
 			throw error;
 		}
 	};
+	const addReturn = async (entry) => {
+		if (!currentFactoryId) return;
+		const { error } = await supabase.from("returns").insert({
+			date: entry.date.toISOString(),
+			supplier: entry.supplier,
+			quantity: entry.quantity,
+			description: entry.description,
+			value: entry.value,
+			user_id: user?.id,
+			factory_id: currentFactoryId
+		});
+		if (!error) {
+			if (notificationSettings.emailEnabled || notificationSettings.smsEnabled) supabase.functions.invoke("send-brevo-alert", { body: {
+				returnData: {
+					...entry,
+					date: entry.date.toISOString()
+				},
+				type: "return_alert",
+				user_id: user?.id
+			} });
+			fetchOperationalData();
+		}
+	};
+	const updateReturn = async (entry) => {
+		const { error } = await supabase.from("returns").update({
+			date: entry.date.toISOString(),
+			supplier: entry.supplier,
+			quantity: entry.quantity,
+			description: entry.description,
+			value: entry.value
+		}).eq("id", entry.id);
+		if (!error) fetchOperationalData();
+	};
+	const deleteReturn = async (id) => {
+		const { error } = await supabase.from("returns").delete().eq("id", id);
+		if (!error) fetchOperationalData();
+	};
 	const addFactory = async (entry) => {
 		const { error } = await supabase.from("factories").insert({
 			name: entry.name,
@@ -36716,7 +36777,8 @@ const DataProvider = ({ children }) => {
 			supabase.from("cooking_time_records").delete().eq("user_id", user.id),
 			supabase.from("downtime_records").delete().eq("user_id", user.id),
 			supabase.from("steam_control_records").delete().eq("user_id", user.id),
-			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id)
+			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id),
+			supabase.from("returns").delete().eq("user_id", user.id)
 		]);
 		fetchOperationalData();
 	};
@@ -36758,6 +36820,10 @@ const DataProvider = ({ children }) => {
 			dailyForecasts,
 			saveDailyForecast,
 			deleteDailyForecast,
+			returns,
+			addReturn,
+			updateReturn,
+			deleteReturn,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -64340,7 +64406,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], returns = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u$1 = unit$1?.toLowerCase() || "";
@@ -64355,6 +64421,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const bloodMealProduced = production.reduce((acc, curr) => acc + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
 		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced;
 		const totalRevenue = shipping.reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0);
+		const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0);
 		const industrialRecords = production.filter((p$1) => !isBloodRecord(p$1));
 		const mpUsedMainLine = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced, 0);
@@ -64401,6 +64468,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			rawMaterialInputKg,
 			totalProduction,
 			totalRevenue,
+			totalReturnsKg,
 			seboYield,
 			fcoYield,
 			farinhetaYield,
@@ -64417,6 +64485,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		production,
 		shipping,
 		cookingTimeRecords,
+		returns,
 		fullProductionHistory,
 		fullCookingTimeRecords,
 		referenceDate
@@ -64562,6 +64631,14 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				icon: DollarSign,
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				title: "Total de Devoluções",
+				value: formatNumberDisplay(metrics.totalReturnsKg, "kg"),
+				icon: Undo2,
+				iconColor: "text-red-600",
+				borderColor: "border-l-red-600",
+				textColor: "text-red-600"
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Rendimento Sebo",
@@ -71661,6 +71738,92 @@ function BloodYieldBarChart({ productionData, rawMaterialData, isMobile = false,
 		})]
 	});
 }
+function ReturnsImpactChart({ data, className }) {
+	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const dailyMap = /* @__PURE__ */ new Map();
+		data.forEach((item) => {
+			const dateKey = format(item.date, "yyyy-MM-dd");
+			dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + item.value);
+		});
+		return {
+			chartData: Array.from(dailyMap.entries()).map(([dateKey, value]) => ({
+				date: format(new Date(dateKey), "dd/MM"),
+				fullDate: format(new Date(dateKey), "dd 'de' MMMM", { locale: ptBR }),
+				originalDate: new Date(dateKey),
+				value: -value
+			})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime()),
+			chartConfig: { value: {
+				label: "Valor Devolvido",
+				color: "hsl(var(--destructive))"
+			} }
+		};
+	}, [data]);
+	if (!data || data.length === 0) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-destructive/20", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+			className: "flex items-center gap-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Undo2, { className: "h-5 w-5 text-destructive" }), "Impacto de Devoluções"]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Valor financeiro das devoluções ao longo do tempo (Negativo)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: chartConfig$1,
+			className: "aspect-auto h-[250px] w-full",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				data: chartData,
+				margin: {
+					top: 10,
+					right: 10,
+					left: 0,
+					bottom: 0
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						vertical: false,
+						strokeDasharray: "3 3"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "date",
+						tickLine: false,
+						axisLine: false,
+						tickMargin: 10,
+						minTickGap: 30,
+						fontSize: 12
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+						tickLine: false,
+						axisLine: false,
+						width: 60,
+						tickFormatter: (value) => new Intl.NumberFormat("pt-BR", {
+							notation: "compact",
+							compactDisplay: "short",
+							style: "currency",
+							currency: "BRL"
+						}).format(value),
+						fontSize: 12
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReferenceLine, {
+						y: 0,
+						stroke: "hsl(var(--muted-foreground))"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+						formatter: (value) => formatCurrency(Math.abs(Number(value))),
+						labelFormatter: (label, payload) => payload[0]?.payload?.fullDate || label
+					}) }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+						dataKey: "value",
+						fill: "var(--color-value)",
+						radius: [
+							0,
+							0,
+							4,
+							4
+						],
+						maxBarSize: 50
+					})
+				]
+			})
+		}) })]
+	});
+}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -71688,7 +71851,7 @@ var AlertDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 }));
 AlertDescription.displayName = "AlertDescription";
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
@@ -71717,7 +71880,7 @@ function Dashboard() {
 			end: dateRange.to
 		});
 	};
-	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, uniqueClients } = (0, import_react.useMemo)(() => {
+	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, filteredReturns, uniqueClients } = (0, import_react.useMemo)(() => {
 		const clients = /* @__PURE__ */ new Set();
 		shipping.forEach((s$3) => {
 			if (s$3.client) clients.add(s$3.client);
@@ -71731,6 +71894,7 @@ function Dashboard() {
 			filteredDowntime: downtimeRecords.filter((d) => filterByDate(d.date)),
 			filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
 			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date)),
+			filteredReturns: returns.filter((r$2) => filterByDate(r$2.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
 			uniqueClients: uniqueClientsList
 		};
 	}, [
@@ -71741,6 +71905,7 @@ function Dashboard() {
 		downtimeRecords,
 		qualityRecords,
 		acidityRecords,
+		returns,
 		dateRange
 	]);
 	const farinhaQuality = filteredQuality.filter((q) => q.product === "Farinha");
@@ -71887,6 +72052,7 @@ function Dashboard() {
 								cookingTimeRecords: filteredCookingTime,
 								downtimeRecords: filteredDowntime,
 								acidityRecords: filteredAcidity,
+								returns: filteredReturns,
 								notificationSettings,
 								fullProductionHistory: production,
 								fullCookingTimeRecords: cookingTimeRecords,
@@ -71925,10 +72091,13 @@ function Dashboard() {
 									isMobile,
 									timeScale: "daily",
 									allClients: uniqueClients
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
-									data: filteredProduction,
-									isMobile,
-									timeScale: "daily"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "grid gap-4",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
+										data: filteredProduction,
+										isMobile,
+										timeScale: "daily"
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReturnsImpactChart, { data: filteredReturns })]
 								})]
 							})
 						]
@@ -72013,7 +72182,7 @@ function Dashboard() {
 		]
 	});
 }
-var Table$1 = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+var Table = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 	className: "relative w-full overflow-auto",
 	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("table", {
 		ref,
@@ -72021,7 +72190,7 @@ var Table$1 = import_react.forwardRef(({ className, ...props }, ref) => /* @__PU
 		...props
 	})
 }));
-Table$1.displayName = "Table";
+Table.displayName = "Table";
 var TableHeader = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", {
 	ref,
 	className: cn("[&_tr]:border-b", className),
@@ -77745,7 +77914,7 @@ function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP",
 		})
 	});
 }
-var formSchema$9 = object({
+var formSchema$10 = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
 	type: string().min(1, "Tipo é obrigatório"),
@@ -77760,7 +77929,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$9),
+		resolver: a(formSchema$10),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -78751,7 +78920,7 @@ function RawMaterial() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Matéria-Prima" }),
@@ -78894,7 +79063,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$8 = object({
+var formSchema$9 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -78914,7 +79083,7 @@ function ProductionForm({ initialData, onSuccess }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$8),
+		resolver: a(formSchema$9),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -79457,7 +79626,7 @@ function Production() {
 								})
 							}, entry.id);
 						})
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -79575,7 +79744,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -79594,7 +79763,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -79920,7 +80089,7 @@ function BloodProduction() {
 					className: "flex items-center justify-between gap-4",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Produção" })
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registros recentes de farinha de sangue." })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -80393,7 +80562,7 @@ function Yields() {
 								})
 							}, entry.id);
 						})
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -80632,7 +80801,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -80645,7 +80814,7 @@ var formSchema$6 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -81096,7 +81265,7 @@ function DailyAcidity() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Hora" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Tanque" }),
@@ -81223,7 +81392,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$5 = object({
+var formSchema$6 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -81235,7 +81404,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -81737,7 +81906,7 @@ function Quality() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Produto" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -82159,7 +82328,7 @@ function Inventory() {
 		]
 	});
 }
-var formSchema$4 = object({
+var formSchema$5 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -82182,7 +82351,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -82552,7 +82721,7 @@ function Shipping() {
 							})
 						}, entry.id);
 					})
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Cliente" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Produto" }),
@@ -83583,7 +83752,7 @@ function CsvExport() {
 		]
 	});
 }
-var formSchema$3 = object({
+var formSchema$4 = object({
 	baseUrl: string().optional(),
 	apiToken: string().optional(),
 	apiDocumentationUrl: string().optional()
@@ -83592,7 +83761,7 @@ function SkipAiConfig() {
 	const { protheusConfig, updateProtheusConfig } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			baseUrl: protheusConfig.baseUrl,
 			apiToken: protheusConfig.apiToken,
@@ -84498,7 +84667,7 @@ function Settings() {
 		})]
 	});
 }
-var formSchema$2 = object({
+var formSchema$3 = object({
 	name: string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 	location: string().min(2, "Localização é obrigatória"),
 	manager: string().min(2, "Nome do responsável é obrigatório"),
@@ -84508,7 +84677,7 @@ function FactoryForm({ initialData, onSuccess }) {
 	const { addFactory, updateFactory } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$2),
+		resolver: a(formSchema$3),
 		defaultValues: {
 			name: initialData?.name || "",
 			location: initialData?.location || "",
@@ -86212,7 +86381,7 @@ function SeboInventory() {
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "h-8 w-8 animate-spin text-primary" })
 						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "overflow-x-auto",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, {
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, {
 								className: "border-collapse",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 									className: "bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30",
@@ -86510,7 +86679,7 @@ function SeboInventory() {
 		]
 	});
 }
-var formSchema$1 = object({
+var formSchema$2 = object({
 	date: string().min(1, "Data é obrigatória"),
 	totalHours: number().min(.1, "Horas devem ser maiores que 0").max(24, "Máximo 24 horas")
 });
@@ -86531,7 +86700,7 @@ function CookingTimeForm() {
 		setPendingAction(null);
 	};
 	const form = useForm({
-		resolver: a(formSchema$1),
+		resolver: a(formSchema$2),
 		defaultValues: {
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			totalHours: 0
@@ -86616,7 +86785,7 @@ function CookingTimeForm() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "rounded-md border",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table$1, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						colSpan: 3,
 						className: "text-center text-muted-foreground",
 						children: "Nenhum registro para este dia."
@@ -86891,7 +87060,7 @@ function DowntimeManager() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "rounded-md border",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Dia" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Duração (Horas)" }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Motivo" }),
@@ -87787,7 +87956,7 @@ function ForecastManagement() {
 			className: "grid gap-4 md:grid-cols-3",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 				className: "md:col-span-2",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, { children: ["Previsões para ", format(date$4, "dd/MM/yyyy")] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Lista de materiais previstos para o ciclo de 24h." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, { children: ["Previsões para ", format(date$4, "dd/MM/yyyy")] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Lista de materiais previstos para o ciclo de 24h." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Material" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
@@ -87856,7 +88025,7 @@ function ForecastManagement() {
 		})]
 	});
 }
-var formSchema = object({
+var formSchema$1 = object({
 	date: string().min(1, "Data é obrigatória"),
 	soyWaste: number().min(0, "Deve ser maior ou igual a 0"),
 	firewood: number().min(0, "Deve ser maior ou igual a 0"),
@@ -87873,7 +88042,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
 	const form = useForm({
-		resolver: a(formSchema),
+		resolver: a(formSchema$1),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			soyWaste: initialData?.soyWaste || 0,
@@ -88120,7 +88289,7 @@ function SteamControlTable() {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "rounded-md border overflow-x-auto",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table$1, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 					className: "bg-muted/50",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -88742,7 +88911,7 @@ function SteamControl() {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
 							value: "records",
 							className: "gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table, { className: "h-4 w-4" }), " Registros"]
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table$1, { className: "h-4 w-4" }), " Registros"]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
 							value: "charts",
 							className: "gap-2",
@@ -88768,6 +88937,371 @@ function SteamControl() {
 					if (pcpPendingAction) pcpPendingAction();
 					setPcpPendingAction(null);
 				}
+			})
+		]
+	});
+}
+var formSchema = object({
+	date: string().min(1, "Data é obrigatória"),
+	supplier: string().min(1, "Fornecedor é obrigatório"),
+	quantity: number().min(.01, "Quantidade deve ser maior que 0"),
+	description: string().min(1, "Descrição é obrigatória"),
+	value: number().min(0, "Valor deve ser positivo")
+});
+function ReturnForm({ initialData, onSuccess, onCancel }) {
+	const { addReturn, updateReturn } = useData();
+	const { toast: toast$2 } = useToast();
+	const form = useForm({
+		resolver: a(formSchema),
+		defaultValues: {
+			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
+			supplier: initialData?.supplier || "",
+			quantity: initialData?.quantity || 0,
+			description: initialData?.description || "",
+			value: initialData?.value || 0
+		}
+	});
+	function onSubmit(values) {
+		const entryData = {
+			date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
+			supplier: values.supplier,
+			quantity: values.quantity,
+			description: values.description,
+			value: values.value
+		};
+		if (initialData) {
+			updateReturn({
+				...entryData,
+				id: initialData.id,
+				factoryId: initialData.factoryId,
+				userId: initialData.userId
+			});
+			toast$2({
+				title: "Sucesso",
+				description: "Devolução atualizada com sucesso!"
+			});
+		} else {
+			addReturn(entryData);
+			toast$2({
+				title: "Sucesso",
+				description: "Devolução registrada com sucesso!"
+			});
+		}
+		form.reset();
+		onSuccess();
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+		...form,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: form.handleSubmit(onSubmit),
+			className: "space-y-4 py-4",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "date",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "date",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "supplier",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fornecedor" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							placeholder: "Nome do Fornecedor",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "quantity",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Quantidade (kg)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "value",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Valor (R$)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "description",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Descrição" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Textarea, {
+							placeholder: "Motivo da devolução...",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex justify-end gap-2 pt-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "button",
+						variant: "outline",
+						onClick: onCancel,
+						children: "Cancelar"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "submit",
+						children: initialData ? "Salvar Alterações" : "Registrar Devolução"
+					})]
+				})
+			]
+		})
+	});
+}
+function Returns() {
+	const { returns, deleteReturn, dateRange } = useData();
+	const { toast: toast$2 } = useToast();
+	const isMobile = useIsMobile();
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const [searchTerm, setSearchTerm] = (0, import_react.useState)("");
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const [isSecurityOpen, setIsSecurityOpen] = (0, import_react.useState)(false);
+	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
+	const handleNewRecord = () => {
+		setEditingItem(void 0);
+		setIsOpen(true);
+	};
+	const handleEditClick = (item) => {
+		if (canEditRecord(item.createdAt)) {
+			setEditingItem(item);
+			setIsOpen(true);
+		} else {
+			setSecurityAction({
+				type: "edit",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleDeleteClick = (item) => {
+		if (canEditRecord(item.createdAt)) setDeleteId(item.id);
+		else {
+			setSecurityAction({
+				type: "delete",
+				item
+			});
+			setIsSecurityOpen(true);
+		}
+	};
+	const handleSecuritySuccess = () => {
+		setIsSecurityOpen(false);
+		if (securityAction) {
+			if (securityAction.type === "edit") {
+				setEditingItem(securityAction.item);
+				setIsOpen(true);
+			} else if (securityAction.type === "delete") setDeleteId(securityAction.item.id);
+			setSecurityAction(null);
+		}
+	};
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteReturn(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "A devolução foi removida com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const filteredReturns = returns.filter((item) => {
+		if (dateRange.from) {
+			const start = startOfDay(dateRange.from);
+			const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+			if (!isWithinInterval(item.date, {
+				start,
+				end
+			})) return false;
+		}
+		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.toLowerCase());
+	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
+	const totalQuantity = filteredReturns.reduce((acc, curr) => acc + curr.quantity, 0);
+	const totalValue = filteredReturns.reduce((acc, curr) => acc + curr.value, 0);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+						className: "text-2xl font-bold tracking-tight flex items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Undo2, { className: "h-6 w-6 text-red-600" }), "Devoluções"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-muted-foreground",
+						children: "Gerenciamento de produtos devolvidos e perdas."
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						className: "gap-2 w-full sm:w-auto",
+						onClick: handleNewRecord,
+						size: isMobile ? "default" : "default",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Nova Devolução"]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+						open: isOpen,
+						onOpenChange: setIsOpen,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[500px]",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: editingItem ? "Editar Devolução" : "Registrar Devolução" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: editingItem ? "Atualize os detalhes do registro selecionado." : "Insira os detalhes da devolução de produto." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReturnForm, {
+								initialData: editingItem,
+								onSuccess: () => setIsOpen(false),
+								onCancel: () => setIsOpen(false)
+							})]
+						})
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "grid gap-4 md:grid-cols-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+					className: "bg-red-50/50 border-red-100",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
+						className: "pb-2",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+							className: "text-sm font-medium text-red-800",
+							children: "Total Quantidade Devolvida"
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-2xl font-bold text-red-600",
+						children: [formatNumber(totalQuantity), " kg"]
+					}) })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+					className: "bg-red-50/50 border-red-100",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
+						className: "pb-2",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+							className: "text-sm font-medium text-red-800",
+							children: "Valor Total de Devoluções"
+						})
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-2xl font-bold text-red-600",
+						children: formatCurrency(totalValue)
+					}) })]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-center justify-between gap-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Devoluções" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "relative w-full sm:w-64",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Search, { className: "absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+						placeholder: "Buscar fornecedor...",
+						className: "pl-8",
+						value: searchTerm,
+						onChange: (e) => setSearchTerm(e.target.value)
+					})]
+				})]
+			}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+				className: isMobile ? "p-4 pt-0" : "p-6 pt-0",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Quantidade (kg)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Valor (R$)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Descrição" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "w-[80px]",
+						children: "Ações"
+					})
+				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredReturns.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 6,
+					className: "text-center h-24 text-muted-foreground",
+					children: "Nenhuma devolução registrada no período."
+				}) }) : filteredReturns.map((entry) => {
+					const isEditable = canEditRecord(entry.createdAt);
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "font-medium",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center gap-2",
+									children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+										asChild: true,
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.supplier }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "text-right font-mono text-red-600 font-medium",
+								children: ["-", formatNumber(entry.quantity)]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "text-right font-mono text-red-600",
+								children: ["-", formatCurrency(entry.value)]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "max-w-[200px] truncate text-muted-foreground",
+								children: entry.description
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+								className: "flex items-center gap-1",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: isEditable ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "text-muted-foreground",
+									onClick: () => handleEditClick(entry),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									className: isEditable ? "text-red-500 hover:text-red-600 hover:bg-red-50" : "text-muted-foreground",
+									onClick: () => handleDeleteClick(entry),
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+								})]
+							})
+						]
+					}, entry.id);
+				}) })] })
+			})] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover esta devolução? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+				isOpen: isSecurityOpen,
+				onOpenChange: setIsSecurityOpen,
+				onSuccess: handleSecuritySuccess,
+				title: "Proteção de Registro",
+				description: "Esta ação requer senha de supervisor para registros com mais de 5 minutos."
 			})
 		]
 	});
@@ -89839,6 +90373,11 @@ var operationalItems = [
 		icon: Send
 	},
 	{
+		title: "Devoluções",
+		url: "/devolucoes",
+		icon: Undo2
+	},
+	{
 		title: "Fábricas",
 		url: "/fabricas",
 		icon: Building2
@@ -90233,6 +90772,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Shipping, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/devolucoes",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Returns, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/fabricas",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Factories, {})
 					}),
@@ -90272,4 +90815,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-QhOC3Tcy.js.map
+//# sourceMappingURL=index-CZURbFTd.js.map

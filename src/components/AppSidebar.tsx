@@ -15,6 +15,7 @@ import {
   Droplet,
   TrendingUp,
   Gauge,
+  Undo2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -84,6 +85,11 @@ const operationalItems = [
     title: 'Expedição',
     url: '/expedicao',
     icon: Send,
+  },
+  {
+    title: 'Devoluções',
+    url: '/devolucoes',
+    icon: Undo2,
   },
   {
     title: 'Fábricas',

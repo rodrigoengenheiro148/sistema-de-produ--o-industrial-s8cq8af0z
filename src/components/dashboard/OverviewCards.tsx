@@ -15,6 +15,7 @@ import {
   ArrowDownRight,
   CalendarDays,
   Scale,
+  Undo2,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -24,6 +25,7 @@ import {
   DowntimeRecord,
   NotificationSettings,
   AcidityEntry,
+  ReturnEntry,
 } from '@/lib/types'
 import {
   cn,
@@ -43,6 +45,7 @@ interface OverviewCardsProps {
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
   acidityRecords: AcidityEntry[]
+  returns?: ReturnEntry[]
   notificationSettings: NotificationSettings
   fullProductionHistory?: ProductionEntry[]
   fullCookingTimeRecords?: CookingTimeRecord[]
@@ -54,6 +57,7 @@ export function OverviewCards({
   production = [],
   shipping = [],
   cookingTimeRecords = [],
+  returns = [],
   notificationSettings,
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
@@ -104,6 +108,9 @@ export function OverviewCards({
       (acc, curr) => acc + curr.quantity * curr.unitPrice,
       0,
     )
+
+    // 5. Total de Devoluções
+    const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0)
 
     // 6, 7, 8. Specific Yields (Industrial Only)
     // Filter out blood records for MP denominator calculation to ensure accurate industrial yield
@@ -230,6 +237,7 @@ export function OverviewCards({
       rawMaterialInputKg,
       totalProduction,
       totalRevenue,
+      totalReturnsKg,
       seboYield,
       fcoYield,
       farinhetaYield,
@@ -246,6 +254,7 @@ export function OverviewCards({
     production,
     shipping,
     cookingTimeRecords,
+    returns,
     fullProductionHistory,
     fullCookingTimeRecords,
     referenceDate,
@@ -253,8 +262,6 @@ export function OverviewCards({
 
   // Logic for Conditional Styling
   const getYieldStyle = (current: number, threshold: number = 0) => {
-    // If the calculated yield is lower than its corresponding threshold value,
-    // the card must display a red visual state. Otherwise green.
     const isBelow = current < threshold
 
     if (isBelow) {
@@ -433,6 +440,16 @@ export function OverviewCards({
         icon={DollarSign}
         iconColor="text-emerald-600"
         borderColor="border-l-emerald-600"
+      />
+
+      {/* Total de Devoluções */}
+      <MetricCard
+        title="Total de Devoluções"
+        value={formatNumberDisplay(metrics.totalReturnsKg, 'kg')}
+        icon={Undo2}
+        iconColor="text-red-600"
+        borderColor="border-l-red-600"
+        textColor="text-red-600"
       />
 
       {/* 6. Rendimento Sebo - Styled dynamically */}
