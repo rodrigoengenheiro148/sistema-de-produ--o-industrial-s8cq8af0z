@@ -20,6 +20,10 @@ export interface ProductionEntry {
   farinhetaProduced: number
   bloodMealProduced: number
   bloodMealBags?: number
+  viscerasMealProduced?: number
+  featherMealProduced?: number
+  fishMealProduced?: number
+  viscerasOilProduced?: number
   losses: number
   factoryId?: string
   createdAt?: Date

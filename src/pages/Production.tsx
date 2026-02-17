@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -52,7 +52,13 @@ import { PcpGate } from '@/components/PcpGate'
 import { SteamLossCorrelationChart } from '@/components/production/SteamLossCorrelationChart'
 
 export default function Production() {
-  const { production, deleteProduction, dateRange } = useData()
+  const {
+    production,
+    deleteProduction,
+    dateRange,
+    factories,
+    currentFactoryId,
+  } = useData()
   const { toast } = useToast()
   const { checkPcpAuth } = usePcp()
   const isMobile = useIsMobile()
@@ -74,6 +80,12 @@ export default function Production() {
   const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
     null,
   )
+
+  // Identify factory type
+  const isMarReciclagem = useMemo(() => {
+    const factory = factories.find((f) => f.id === currentFactoryId)
+    return factory?.name.toLowerCase().includes('mar reciclagem')
+  }, [factories, currentFactoryId])
 
   // Custom formatter for losses to replace periods with commas
   const formatLosses = (value: number) => {
@@ -150,7 +162,10 @@ export default function Production() {
       if (dateRange.from && dateRange.to) {
         if (item.date < dateRange.from || item.date > dateRange.to) return false
       }
-      // Content Filter: Exclude purely blood records (assuming 0 main production)
+      // Content Filter: Exclude purely blood records (assuming 0 main production) if NOT Mar Reciclagem
+      // For Mar Reciclagem, we show everything because blood is part of main production now
+      if (isMarReciclagem) return true
+
       const hasMainProduction =
         item.seboProduced > 0 ||
         item.fcoProduced > 0 ||
@@ -278,30 +293,103 @@ export default function Production() {
                           </div>
 
                           <div className="space-y-1 text-sm border-t pt-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Sebo:
-                              </span>
-                              <span className="font-mono">
-                                {formatNumber(entry.seboProduced)} kg
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                FCO:
-                              </span>
-                              <span className="font-mono">
-                                {formatNumber(entry.fcoProduced)} kg
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Farinheta:
-                              </span>
-                              <span className="font-mono">
-                                {formatNumber(entry.farinhetaProduced)} kg
-                              </span>
-                            </div>
+                            {isMarReciclagem ? (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    F. Sangue:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.bloodMealProduced)} kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    FCO:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.fcoProduced)} kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    F. Vísceras:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(
+                                      entry.viscerasMealProduced || 0,
+                                    )}{' '}
+                                    kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    F. Penas:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(
+                                      entry.featherMealProduced || 0,
+                                    )}{' '}
+                                    kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    F. Peixe:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.fishMealProduced || 0)}{' '}
+                                    kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Sebo:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.seboProduced)} kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Óleo Vísc.:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(
+                                      entry.viscerasOilProduced || 0,
+                                    )}{' '}
+                                    kg
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Sebo:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.seboProduced)} kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    FCO:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.fcoProduced)} kg
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">
+                                    Farinheta:
+                                  </span>
+                                  <span className="font-mono">
+                                    {formatNumber(entry.farinhetaProduced)} kg
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -310,104 +398,168 @@ export default function Production() {
                 )}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Turno</TableHead>
-                    <TableHead className="text-right">
-                      Entrada de MP (kg)
-                    </TableHead>
-                    <TableHead className="text-right">Sebo (kg)</TableHead>
-                    <TableHead className="text-right">FCO (kg)</TableHead>
-                    <TableHead className="text-right">Farinheta (kg)</TableHead>
-                    <TableHead className="text-right text-red-500">
-                      Perdas (kg)
-                    </TableHead>
-                    <TableHead className="w-[80px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProduction.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="text-center h-24 text-muted-foreground"
-                      >
-                        Nenhum registro encontrado no período.
-                      </TableCell>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Turno</TableHead>
+                      {isMarReciclagem ? (
+                        <>
+                          <TableHead className="text-right whitespace-nowrap">
+                            F. Sangue (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            FCO (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            F. Vísceras (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            F. Penas (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            F. Peixe (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            Sebo (kg)
+                          </TableHead>
+                          <TableHead className="text-right whitespace-nowrap">
+                            Óleo Vísc. (kg)
+                          </TableHead>
+                        </>
+                      ) : (
+                        <>
+                          <TableHead className="text-right">
+                            Sebo (kg)
+                          </TableHead>
+                          <TableHead className="text-right">FCO (kg)</TableHead>
+                          <TableHead className="text-right">
+                            Farinheta (kg)
+                          </TableHead>
+                        </>
+                      )}
+                      <TableHead className="text-right whitespace-nowrap">
+                        Entrada MP (kg)
+                      </TableHead>
+                      <TableHead className="text-right text-red-500 whitespace-nowrap">
+                        Perdas (kg)
+                      </TableHead>
+                      <TableHead className="w-[80px]">Ações</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredProduction.map((entry) => {
-                      const isEditable = canEditRecord(entry.createdAt)
-                      return (
-                        <TableRow
-                          key={entry.id}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProduction.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={isMarReciclagem ? 12 : 8}
+                          className="text-center h-24 text-muted-foreground"
                         >
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {format(entry.date, 'dd/MM/yyyy')}
-                              {!isEditable && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Lock className="h-3 w-3 text-muted-foreground/50" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Edição requer senha</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{entry.shift}</TableCell>
-                          <TableCell className="text-right font-mono">
-                            {formatNumber(entry.mpUsed)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
-                            {formatNumber(entry.seboProduced)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
-                            {formatNumber(entry.fcoProduced)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-muted-foreground">
-                            {formatNumber(entry.farinhetaProduced)}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-red-500 font-medium">
-                            {formatLosses(entry.losses)}
-                          </TableCell>
-                          <TableCell className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={
-                                isEditable
-                                  ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
-                                  : 'h-8 w-8 text-muted-foreground'
-                              }
-                              onClick={() => handleEditClick(entry)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={
-                                isEditable
-                                  ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
-                                  : 'h-8 w-8 text-muted-foreground'
-                              }
-                              onClick={() => handleDeleteClick(entry)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
-                </TableBody>
-              </Table>
+                          Nenhum registro encontrado no período.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredProduction.map((entry) => {
+                        const isEditable = canEditRecord(entry.createdAt)
+                        return (
+                          <TableRow
+                            key={entry.id}
+                            className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                          >
+                            <TableCell className="font-medium whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                {format(entry.date, 'dd/MM/yyyy')}
+                                {!isEditable && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Edição requer senha</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{entry.shift}</TableCell>
+                            {isMarReciclagem ? (
+                              <>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.bloodMealProduced)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.fcoProduced)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(
+                                    entry.viscerasMealProduced || 0,
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.featherMealProduced || 0)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.fishMealProduced || 0)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.seboProduced)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.viscerasOilProduced || 0)}
+                                </TableCell>
+                              </>
+                            ) : (
+                              <>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.seboProduced)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.fcoProduced)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {formatNumber(entry.farinhetaProduced)}
+                                </TableCell>
+                              </>
+                            )}
+                            <TableCell className="text-right font-mono">
+                              {formatNumber(entry.mpUsed)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-red-500 font-medium">
+                              {formatLosses(entry.losses)}
+                            </TableCell>
+                            <TableCell className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={
+                                  isEditable
+                                    ? 'h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50'
+                                    : 'h-8 w-8 text-muted-foreground'
+                                }
+                                onClick={() => handleEditClick(entry)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={
+                                  isEditable
+                                    ? 'h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50'
+                                    : 'h-8 w-8 text-muted-foreground'
+                                }
+                                onClick={() => handleDeleteClick(entry)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

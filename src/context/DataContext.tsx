@@ -77,6 +77,10 @@ const mapData = (data: any[]) => {
     farinhetaProduced: Number(item.farinheta_produced || 0),
     bloodMealProduced: Number(item.blood_meal_produced || 0),
     bloodMealBags: Number(item.blood_meal_bags || 0),
+    viscerasMealProduced: Number(item.visceras_meal_produced || 0),
+    featherMealProduced: Number(item.feather_meal_produced || 0),
+    fishMealProduced: Number(item.fish_meal_produced || 0),
+    viscerasOilProduced: Number(item.visceras_oil_produced || 0),
     unitPrice: Number(item.unit_price || 0),
     docRef: item.doc_ref,
     performedTimes: item.performed_times,
@@ -105,7 +109,6 @@ const mapData = (data: any[]) => {
   }))
 }
 
-// Robust retry utility for data fetching
 async function withRetry<T>(
   fn: () => Promise<T>,
   retries = 3,
@@ -199,7 +202,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user?.id) return
 
     try {
-      // Use retry mechanism for improved reliability
       await withRetry(async () => {
         const [{ data: fact }, { data: integration }, { data: notifications }] =
           await Promise.all([
@@ -273,8 +275,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       })
     } catch (error) {
       console.error('Error fetching global data:', error)
-      // We don't block the UI here, just log error.
-      // Connection status will handle UI feedback.
     }
   }, [user?.id])
 
@@ -303,9 +303,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      // Use retry mechanism for operational data
       await withRetry(async () => {
-        // Prepare date filters
         const fromDateStr = dateRange.from
           ? format(startOfDay(subDays(dateRange.from, 1)), 'yyyy-MM-dd')
           : undefined
@@ -387,8 +385,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error('Error fetching operational data after retries:', error)
       setConnectionStatus('error')
-      // Important: Don't clear data on temporary fetch failure to avoid flickering
-      // Keep displaying old data if available (React state is persistent)
     }
   }, [user?.id, currentFactoryId, dateRange])
 
@@ -415,8 +411,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       clearTimeout(refreshTimeoutRef.current)
     }
 
-    // Add jitter (0-2000ms) to base delay (1000ms) to prevent thundering herd
-    // from 50+ concurrent clients hitting the DB simultaneously
     const jitter = Math.floor(Math.random() * 2000)
     const delay = 1000 + jitter
 
@@ -472,7 +466,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         setConnectionStatus('online')
       } else if (status === 'CHANNEL_ERROR') {
         console.warn(`Realtime subscription issue on ${channelName}`)
-        // Don't set error status just for realtime failure, as long as fetch works
       } else if (status === 'TIMED_OUT') {
         console.warn(`Realtime subscription timed out on ${channelName}`)
       }
@@ -492,7 +485,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [user?.id, currentFactoryId, handleRealtimeUpdate])
 
-  // CRUD Operations...
   const addRawMaterial = async (entry: Omit<RawMaterialEntry, 'id'>) => {
     if (!currentFactoryId) return
     const { error } = await supabase.from('raw_materials').insert({
@@ -559,6 +551,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       farinheta_produced: entry.farinhetaProduced,
       blood_meal_produced: entry.bloodMealProduced,
       blood_meal_bags: entry.bloodMealBags,
+      visceras_meal_produced: entry.viscerasMealProduced,
+      feather_meal_produced: entry.featherMealProduced,
+      fish_meal_produced: entry.fishMealProduced,
+      visceras_oil_produced: entry.viscerasOilProduced,
       losses: entry.losses,
       user_id: user?.id,
       factory_id: targetFactoryId,
@@ -576,6 +572,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       farinheta_produced: entry.farinhetaProduced,
       blood_meal_produced: entry.bloodMealProduced,
       blood_meal_bags: entry.bloodMealBags,
+      visceras_meal_produced: entry.viscerasMealProduced,
+      feather_meal_produced: entry.featherMealProduced,
+      fish_meal_produced: entry.fishMealProduced,
+      visceras_oil_produced: entry.viscerasOilProduced,
       losses: entry.losses,
     }
 
@@ -871,7 +871,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     })
 
     if (!error) {
-      // Trigger Alert if configured
       if (
         notificationSettings.emailEnabled ||
         notificationSettings.smsEnabled

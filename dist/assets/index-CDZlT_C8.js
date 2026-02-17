@@ -36053,6 +36053,10 @@ var mapData = (data) => {
 		farinhetaProduced: Number(item.farinheta_produced || 0),
 		bloodMealProduced: Number(item.blood_meal_produced || 0),
 		bloodMealBags: Number(item.blood_meal_bags || 0),
+		viscerasMealProduced: Number(item.visceras_meal_produced || 0),
+		featherMealProduced: Number(item.feather_meal_produced || 0),
+		fishMealProduced: Number(item.fish_meal_produced || 0),
+		viscerasOilProduced: Number(item.visceras_oil_produced || 0),
 		unitPrice: Number(item.unit_price || 0),
 		docRef: item.doc_ref,
 		performedTimes: item.performed_times,
@@ -36395,6 +36399,10 @@ const DataProvider = ({ children }) => {
 			farinheta_produced: entry.farinhetaProduced,
 			blood_meal_produced: entry.bloodMealProduced,
 			blood_meal_bags: entry.bloodMealBags,
+			visceras_meal_produced: entry.viscerasMealProduced,
+			feather_meal_produced: entry.featherMealProduced,
+			fish_meal_produced: entry.fishMealProduced,
+			visceras_oil_produced: entry.viscerasOilProduced,
 			losses: entry.losses,
 			user_id: user?.id,
 			factory_id: targetFactoryId
@@ -36411,6 +36419,10 @@ const DataProvider = ({ children }) => {
 			farinheta_produced: entry.farinhetaProduced,
 			blood_meal_produced: entry.bloodMealProduced,
 			blood_meal_bags: entry.bloodMealBags,
+			visceras_meal_produced: entry.viscerasMealProduced,
+			feather_meal_produced: entry.featherMealProduced,
+			fish_meal_produced: entry.fishMealProduced,
+			visceras_oil_produced: entry.viscerasOilProduced,
 			losses: entry.losses
 		};
 		if (entry.factoryId) payload.factory_id = entry.factoryId;
@@ -79116,14 +79128,22 @@ var formSchema$8 = object({
 	sebo: number().min(0, "Valor deve ser positivo"),
 	fco: number().min(0, "Valor deve ser positivo"),
 	farinheta: number().min(0, "Valor deve ser positivo"),
+	bloodMealProduced: number().min(0, "Valor deve ser positivo"),
+	viscerasMealProduced: number().min(0, "Valor deve ser positivo"),
+	featherMealProduced: number().min(0, "Valor deve ser positivo"),
+	fishMealProduced: number().min(0, "Valor deve ser positivo"),
+	viscerasOilProduced: number().min(0, "Valor deve ser positivo"),
 	losses: number()
 });
 function ProductionForm({ initialData, onSuccess }) {
-	const { addProduction, updateProduction } = useData();
+	const { addProduction, updateProduction, currentFactoryId, factories } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
+	const isMarReciclagem = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("mar reciclagem");
+	}, [factories, currentFactoryId]);
 	const form = useForm({
 		resolver: a(formSchema$8),
 		defaultValues: {
@@ -79133,6 +79153,11 @@ function ProductionForm({ initialData, onSuccess }) {
 			sebo: initialData?.seboProduced || 0,
 			fco: initialData?.fcoProduced || 0,
 			farinheta: initialData?.farinhetaProduced || 0,
+			bloodMealProduced: initialData?.bloodMealProduced || 0,
+			viscerasMealProduced: initialData?.viscerasMealProduced || 0,
+			featherMealProduced: initialData?.featherMealProduced || 0,
+			fishMealProduced: initialData?.fishMealProduced || 0,
+			viscerasOilProduced: initialData?.viscerasOilProduced || 0,
 			losses: initialData?.losses || 0
 		}
 	});
@@ -79140,8 +79165,17 @@ function ProductionForm({ initialData, onSuccess }) {
 	const sebo = form.watch("sebo");
 	const fco = form.watch("fco");
 	const farinheta = form.watch("farinheta");
+	const bloodMealProduced = form.watch("bloodMealProduced");
+	const viscerasMealProduced = form.watch("viscerasMealProduced");
+	const featherMealProduced = form.watch("featherMealProduced");
+	const fishMealProduced = form.watch("fishMealProduced");
+	const viscerasOilProduced = form.watch("viscerasOilProduced");
 	(0, import_react.useEffect)(() => {
-		const calculatedLosses = (Number(mpUsed) || 0) - ((Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0));
+		const input = Number(mpUsed) || 0;
+		let output = 0;
+		if (isMarReciclagem) output = (Number(sebo) || 0) + (Number(fco) || 0) + (Number(bloodMealProduced) || 0) + (Number(viscerasMealProduced) || 0) + (Number(featherMealProduced) || 0) + (Number(fishMealProduced) || 0) + (Number(viscerasOilProduced) || 0);
+		else output = (Number(sebo) || 0) + (Number(fco) || 0) + (Number(farinheta) || 0);
+		const calculatedLosses = input - output;
 		form.setValue("losses", Math.max(0, calculatedLosses), {
 			shouldValidate: true,
 			shouldDirty: true,
@@ -79152,7 +79186,13 @@ function ProductionForm({ initialData, onSuccess }) {
 		sebo,
 		fco,
 		farinheta,
-		form
+		bloodMealProduced,
+		viscerasMealProduced,
+		featherMealProduced,
+		fishMealProduced,
+		viscerasOilProduced,
+		form,
+		isMarReciclagem
 	]);
 	function onSubmit(values) {
 		const submitAction = () => {
@@ -79162,15 +79202,19 @@ function ProductionForm({ initialData, onSuccess }) {
 				mpUsed: values.mpUsed,
 				seboProduced: values.sebo,
 				fcoProduced: values.fco,
-				farinhetaProduced: values.farinheta,
+				farinhetaProduced: isMarReciclagem ? 0 : values.farinheta,
 				losses: values.losses,
-				bloodMealProduced: 0,
-				bloodMealBags: 0
+				bloodMealProduced: isMarReciclagem ? values.bloodMealProduced : 0,
+				bloodMealBags: 0,
+				viscerasMealProduced: isMarReciclagem ? values.viscerasMealProduced : 0,
+				featherMealProduced: isMarReciclagem ? values.featherMealProduced : 0,
+				fishMealProduced: isMarReciclagem ? values.fishMealProduced : 0,
+				viscerasOilProduced: isMarReciclagem ? values.viscerasOilProduced : 0
 			};
 			if (initialData) {
 				updateProduction({
 					...entryData,
-					bloodMealProduced: initialData.bloodMealProduced || 0,
+					bloodMealProduced: isMarReciclagem ? values.bloodMealProduced : initialData.bloodMealProduced || 0,
 					bloodMealBags: initialData.bloodMealBags || 0,
 					id: initialData.id
 				});
@@ -79244,7 +79288,7 @@ function ProductionForm({ initialData, onSuccess }) {
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
 							className: "font-medium text-sm text-slate-500",
-							children: "Linha Principal"
+							children: isMarReciclagem ? "Produção Mar Reciclagem" : "Linha Principal"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 							control: form.control,
@@ -79258,7 +79302,95 @@ function ProductionForm({ initialData, onSuccess }) {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 							] })
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-2 gap-4",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "bloodMealProduced",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha de Sangue (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "fco",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "FCO (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "viscerasMealProduced",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha de Vísceras (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "featherMealProduced",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha de Penas (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "fishMealProduced",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Farinha de Peixe (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "sebo",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Sebo (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "viscerasOilProduced",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Óleo de Vísceras (kg)" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "number",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									] })
+								})
+							]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "grid grid-cols-2 gap-4",
 							children: [
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
@@ -79296,23 +79428,26 @@ function ProductionForm({ initialData, onSuccess }) {
 										}) }),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 									] })
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "losses",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Perdas (kg)" }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-											type: "number",
-											...field,
-											readOnly: true,
-											tabIndex: -1,
-											className: "bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
-										}) }),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-									] })
 								})
 							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "grid grid-cols-1 gap-4",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+								control: form.control,
+								name: "losses",
+								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Perdas (kg)" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										...field,
+										readOnly: true,
+										tabIndex: -1,
+										className: "bg-red-50 border-red-200 text-red-700 cursor-not-allowed"
+									}) }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+								] })
+							})
 						})
 					]
 				}),
@@ -79446,7 +79581,7 @@ function SteamLossCorrelationChart() {
 	}) })] });
 }
 function Production() {
-	const { production, deleteProduction, dateRange } = useData();
+	const { production, deleteProduction, dateRange, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
@@ -79457,6 +79592,9 @@ function Production() {
 	const [securityAction, setSecurityAction] = (0, import_react.useState)(null);
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const isMarReciclagem = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("mar reciclagem");
+	}, [factories, currentFactoryId]);
 	const formatLosses = (value) => {
 		return formatNumber(value).replace(/\./g, ",");
 	};
@@ -79522,6 +79660,7 @@ function Production() {
 		if (dateRange.from && dateRange.to) {
 			if (item.date < dateRange.from || item.date > dateRange.to) return false;
 		}
+		if (isMarReciclagem) return true;
 		return item.seboProduced > 0 || item.fcoProduced > 0 || item.farinhetaProduced > 0 || item.losses > 0 || item.mpUsed > 0 && item.bloodMealProduced === 0;
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -79629,9 +79768,96 @@ function Production() {
 												})]
 											})]
 										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 											className: "space-y-1 text-sm border-t pt-2",
-											children: [
+											children: isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "F. Sangue:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.bloodMealProduced), " kg"]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "FCO:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.fcoProduced), " kg"]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "F. Vísceras:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [
+															formatNumber(entry.viscerasMealProduced || 0),
+															" ",
+															"kg"
+														]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "F. Penas:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [
+															formatNumber(entry.featherMealProduced || 0),
+															" ",
+															"kg"
+														]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "F. Peixe:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [
+															formatNumber(entry.fishMealProduced || 0),
+															" ",
+															"kg"
+														]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "Sebo:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [formatNumber(entry.seboProduced), " kg"]
+													})]
+												}),
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex justify-between",
+													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-muted-foreground",
+														children: "Óleo Vísc.:"
+													}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+														className: "font-mono",
+														children: [
+															formatNumber(entry.viscerasOilProduced || 0),
+															" ",
+															"kg"
+														]
+													})]
+												})
+											] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 													className: "flex justify-between",
 													children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
@@ -79662,98 +79888,163 @@ function Production() {
 														children: [formatNumber(entry.farinhetaProduced), " kg"]
 													})]
 												})
-											]
+											] })
 										})
 									]
 								})
 							}, entry.id);
 						})
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right",
-							children: "Entrada de MP (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right",
-							children: "Sebo (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right",
-							children: "FCO (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right",
-							children: "Farinheta (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right text-red-500",
-							children: "Perdas (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "w-[80px]",
-							children: "Ações"
-						})
-					] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-						colSpan: 8,
-						className: "text-center h-24 text-muted-foreground",
-						children: "Nenhum registro encontrado no período."
-					}) }) : filteredProduction.map((entry) => {
-						const isEditable = canEditRecord(entry.createdAt);
-						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
-							className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "font-medium",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "flex items-center gap-2",
-										children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
-											asChild: true,
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
-									})
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "overflow-x-auto",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Turno" }),
+							isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "F. Sangue (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right font-mono",
-									children: formatNumber(entry.mpUsed)
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "FCO (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right font-mono text-muted-foreground",
-									children: formatNumber(entry.seboProduced)
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "F. Vísceras (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right font-mono text-muted-foreground",
-									children: formatNumber(entry.fcoProduced)
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "F. Penas (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right font-mono text-muted-foreground",
-									children: formatNumber(entry.farinhetaProduced)
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "F. Peixe (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-									className: "text-right font-mono text-red-500 font-medium",
-									children: formatLosses(entry.losses)
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "Sebo (kg)"
 								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-									className: "flex items-center gap-1",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										variant: "ghost",
-										size: "icon",
-										className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
-										onClick: () => handleEditClick(entry),
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										variant: "ghost",
-										size: "icon",
-										className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
-										onClick: () => handleDeleteClick(entry),
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
-									})]
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right whitespace-nowrap",
+									children: "Óleo Vísc. (kg)"
 								})
-							]
-						}, entry.id);
-					}) })] })
+							] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right",
+									children: "Sebo (kg)"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right",
+									children: "FCO (kg)"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+									className: "text-right",
+									children: "Farinheta (kg)"
+								})
+							] }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right whitespace-nowrap",
+								children: "Entrada MP (kg)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right text-red-500 whitespace-nowrap",
+								children: "Perdas (kg)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "w-[80px]",
+								children: "Ações"
+							})
+						] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredProduction.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							colSpan: isMarReciclagem ? 12 : 8,
+							className: "text-center h-24 text-muted-foreground",
+							children: "Nenhum registro encontrado no período."
+						}) }) : filteredProduction.map((entry) => {
+							const isEditable = canEditRecord(entry.createdAt);
+							return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+								className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+										className: "font-medium whitespace-nowrap",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex items-center gap-2",
+											children: [format(entry.date, "dd/MM/yyyy"), !isEditable && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, {
+												asChild: true,
+												children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Edição requer senha" }) })] })]
+										})
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.shift }),
+									isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.bloodMealProduced)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.fcoProduced)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.viscerasMealProduced || 0)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.featherMealProduced || 0)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.fishMealProduced || 0)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.seboProduced)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.viscerasOilProduced || 0)
+										})
+									] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.seboProduced)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.fcoProduced)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+											className: "text-right font-mono text-muted-foreground",
+											children: formatNumber(entry.farinhetaProduced)
+										})
+									] }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+										className: "text-right font-mono",
+										children: formatNumber(entry.mpUsed)
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+										className: "text-right font-mono text-red-500 font-medium",
+										children: formatLosses(entry.losses)
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
+										className: "flex items-center gap-1",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+											variant: "ghost",
+											size: "icon",
+											className: isEditable ? "h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50" : "h-8 w-8 text-muted-foreground",
+											onClick: () => handleEditClick(entry),
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "h-4 w-4" })
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+											variant: "ghost",
+											size: "icon",
+											className: isEditable ? "h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" : "h-8 w-8 text-muted-foreground",
+											onClick: () => handleDeleteClick(entry),
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+										})]
+									})
+								]
+							}, entry.id);
+						}) })] })
+					})
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "mt-2",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamLossCorrelationChart, {})
@@ -90639,4 +90930,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BWV8-VJO.js.map
+//# sourceMappingURL=index-CDZlT_C8.js.map
