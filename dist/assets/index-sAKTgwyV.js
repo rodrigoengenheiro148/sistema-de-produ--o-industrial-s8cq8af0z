@@ -63682,7 +63682,8 @@ var calculateExponentialTrend = (dataPoints) => {
 };
 function YieldHistoryChart({ data, isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
-	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
+	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const [selectedProducts, setSelectedProducts] = (0, import_react.useState)([]);
 	(0, import_react.useEffect)(() => {
@@ -64047,7 +64048,8 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 }
 function YieldBarChart({ data, isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
-	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
+	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
@@ -64518,7 +64520,8 @@ function SyncDeviceDialog({ className }) {
 }
 function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], returns = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const { factories, currentFactoryId } = useData();
-	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
+	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u$1 = unit$1?.toLowerCase() || "";
@@ -64770,7 +64773,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				borderColor: "border-l-red-600",
 				textColor: "text-red-600"
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+			!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de Óleo Saturado Recebido",
 				value: formatNumberDisplay(metrics.saturatedOilInputKg, "kg"),
 				icon: FlaskConical,
@@ -64852,27 +64855,29 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 					className: farinhetaStyle.bgClass
 				})
 			] }),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Total de entrada de sangue",
-				value: formatNumberDisplay(metrics.bloodInputKg, "kg"),
-				icon: Droplet,
-				iconColor: "text-red-600",
-				borderColor: "border-l-red-600"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Total farinha de sangue",
-				value: formatNumberDisplay(metrics.bloodMealProduced, "kg"),
-				icon: Database,
-				iconColor: "text-red-600",
-				borderColor: "border-l-red-600"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Rendimento sangue",
-				value: formatPercent(metrics.bloodYield),
-				icon: Activity,
-				iconColor: "text-red-600",
-				borderColor: "border-l-red-600"
-			})
+			!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Total de entrada de sangue",
+					value: formatNumberDisplay(metrics.bloodInputKg, "kg"),
+					icon: Droplet,
+					iconColor: "text-red-600",
+					borderColor: "border-l-red-600"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Total farinha de sangue",
+					value: formatNumberDisplay(metrics.bloodMealProduced, "kg"),
+					icon: Database,
+					iconColor: "text-red-600",
+					borderColor: "border-l-red-600"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento sangue",
+					value: formatPercent(metrics.bloodYield),
+					icon: Activity,
+					iconColor: "text-red-600",
+					borderColor: "border-l-red-600"
+				})
+			] })
 		]
 	});
 }
@@ -65277,7 +65282,8 @@ function LoadForecast({ referenceDate, className }) {
 }
 function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
-	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
+	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
 		const calculateProd = (p$1) => {
@@ -72049,7 +72055,7 @@ function Dashboard() {
 	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
-	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem";
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -72310,7 +72316,7 @@ function Dashboard() {
 								data: filteredProduction,
 								isMobile
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
+							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
 								productionData: filteredProduction,
 								rawMaterialData: filteredRawMaterials,
 								isMobile
@@ -91089,4 +91095,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CrP5QqVJ.js.map
+//# sourceMappingURL=index-sAKTgwyV.js.map

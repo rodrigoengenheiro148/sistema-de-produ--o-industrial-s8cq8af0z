@@ -55,7 +55,9 @@ export default function Dashboard() {
   const isMobile = useIsMobile()
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
+  const isMarReciclagem =
+    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
   // Track current day to auto-update context when day changes
   const [today, setToday] = useState(new Date())
@@ -429,11 +431,13 @@ export default function Dashboard() {
         <TabsContent value="yields" className="space-y-4">
           <YieldBarChart data={filteredProduction} isMobile={isMobile} />
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
-          <BloodYieldBarChart
-            productionData={filteredProduction}
-            rawMaterialData={filteredRawMaterials}
-            isMobile={isMobile}
-          />
+          {!isMarReciclagem && (
+            <BloodYieldBarChart
+              productionData={filteredProduction}
+              rawMaterialData={filteredRawMaterials}
+              isMobile={isMobile}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="quality" className="space-y-4">

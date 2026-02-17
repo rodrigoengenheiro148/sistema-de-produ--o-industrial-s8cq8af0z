@@ -53,7 +53,9 @@ export function ProductionPerformanceChart({
 }: ProductionPerformanceChartProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
+  const isMarReciclagem =
+    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
   const { chartData, chartConfig } = useMemo(() => {
     // Filter out blood records for strict industrial performance view

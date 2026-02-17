@@ -69,7 +69,9 @@ export function OverviewCards({
 }: OverviewCardsProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
+  const isMarReciclagem =
+    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
   const metrics = useMemo(() => {
     // Helper to normalize quantity to kg
@@ -519,14 +521,16 @@ export function OverviewCards({
         textColor="text-red-600"
       />
 
-      {/* Saturated Oil Input */}
-      <MetricCard
-        title="Total de Óleo Saturado Recebido"
-        value={formatNumberDisplay(metrics.saturatedOilInputKg, 'kg')}
-        icon={FlaskConical}
-        iconColor="text-violet-600 dark:text-violet-400"
-        borderColor="border-l-violet-600 dark:border-l-violet-400"
-      />
+      {/* Saturated Oil Input - Hidden for Mar Reciclagem */}
+      {!isMarReciclagem && (
+        <MetricCard
+          title="Total de Óleo Saturado Recebido"
+          value={formatNumberDisplay(metrics.saturatedOilInputKg, 'kg')}
+          icon={FlaskConical}
+          iconColor="text-violet-600 dark:text-violet-400"
+          borderColor="border-l-violet-600 dark:border-l-violet-400"
+        />
+      )}
 
       {isMarReciclagem ? (
         <>
@@ -618,32 +622,37 @@ export function OverviewCards({
         </>
       )}
 
-      {/* 9. Total de entrada de sangue */}
-      <MetricCard
-        title="Total de entrada de sangue"
-        value={formatNumberDisplay(metrics.bloodInputKg, 'kg')}
-        icon={Droplet}
-        iconColor="text-red-600"
-        borderColor="border-l-red-600"
-      />
+      {/* Blood metrics - Hidden for Mar Reciclagem */}
+      {!isMarReciclagem && (
+        <>
+          {/* 9. Total de entrada de sangue */}
+          <MetricCard
+            title="Total de entrada de sangue"
+            value={formatNumberDisplay(metrics.bloodInputKg, 'kg')}
+            icon={Droplet}
+            iconColor="text-red-600"
+            borderColor="border-l-red-600"
+          />
 
-      {/* 10. Total farinha de sangue */}
-      <MetricCard
-        title="Total farinha de sangue"
-        value={formatNumberDisplay(metrics.bloodMealProduced, 'kg')}
-        icon={Database}
-        iconColor="text-red-600"
-        borderColor="border-l-red-600"
-      />
+          {/* 10. Total farinha de sangue */}
+          <MetricCard
+            title="Total farinha de sangue"
+            value={formatNumberDisplay(metrics.bloodMealProduced, 'kg')}
+            icon={Database}
+            iconColor="text-red-600"
+            borderColor="border-l-red-600"
+          />
 
-      {/* 11. Rendimento sangue */}
-      <MetricCard
-        title="Rendimento sangue"
-        value={formatPercent(metrics.bloodYield)}
-        icon={Activity}
-        iconColor="text-red-600"
-        borderColor="border-l-red-600"
-      />
+          {/* 11. Rendimento sangue */}
+          <MetricCard
+            title="Rendimento sangue"
+            value={formatPercent(metrics.bloodYield)}
+            icon={Activity}
+            iconColor="text-red-600"
+            borderColor="border-l-red-600"
+          />
+        </>
+      )}
     </div>
   )
 }

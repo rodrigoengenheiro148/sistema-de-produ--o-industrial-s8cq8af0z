@@ -92,7 +92,9 @@ export function YieldHistoryChart({
 }: YieldHistoryChartProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
+  const isMarReciclagem =
+    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
