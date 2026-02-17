@@ -375,7 +375,9 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          <LoadForecast referenceDate={effectiveForecastDate} />
+          {currentFactory?.name !== 'Mar Reciclagem' && (
+            <LoadForecast referenceDate={effectiveForecastDate} />
+          )}
 
           <div className="grid gap-4 md:grid-cols-3">
             <YieldGaugeChart

@@ -72083,7 +72083,7 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
+							currentFactory?.name !== "Mar Reciclagem" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
@@ -90639,4 +90639,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CUbnwq_Q.js.map
+//# sourceMappingURL=index-BWV8-VJO.js.map
