@@ -36,6 +36,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
 import { isBloodRecord, formatNumber } from '@/lib/utils'
+import { useData } from '@/context/DataContext'
 
 interface ProductionPerformanceChartProps {
   data: ProductionEntry[]
@@ -50,9 +51,26 @@ export function ProductionPerformanceChart({
   isMobile = false,
   className,
 }: ProductionPerformanceChartProps) {
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+
   const { chartData, chartConfig } = useMemo(() => {
     // Filter out blood records for strict industrial performance view
     const industrialData = data.filter((p) => !isBloodRecord(p))
+
+    const calculateProd = (p: ProductionEntry) => {
+      if (isMarReciclagem) {
+        return (
+          p.seboProduced +
+          p.fcoProduced +
+          (p.viscerasMealProduced || 0) +
+          (p.featherMealProduced || 0) +
+          (p.viscerasOilProduced || 0)
+        )
+      }
+      return p.seboProduced + p.fcoProduced + p.farinhetaProduced
+    }
 
     let processedData = []
 
@@ -74,7 +92,7 @@ export function ProductionPerformanceChart({
         }
 
         const entry = monthlyData.get(dateKey)
-        entry.producao += p.seboProduced + p.fcoProduced + p.farinhetaProduced
+        entry.producao += calculateProd(p)
         entry.mp += p.mpUsed
       })
 
@@ -88,7 +106,7 @@ export function ProductionPerformanceChart({
           date: format(p.date, 'dd/MM'),
           fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
           originalDate: p.date,
-          producao: p.seboProduced + p.fcoProduced + p.farinhetaProduced,
+          producao: calculateProd(p),
           mp: p.mpUsed,
         }))
         .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
@@ -106,7 +124,7 @@ export function ProductionPerformanceChart({
     }
 
     return { chartData: processedData, chartConfig: config }
-  }, [data, timeScale])
+  }, [data, timeScale, isMarReciclagem])
 
   const formatValue = (value: number) => {
     if (value >= 1000) {

@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Maximize2, CalendarDays, CalendarRange, BarChart3 } from 'lucide-react'
 import { cn, isBloodRecord } from '@/lib/utils'
+import { useData } from '@/context/DataContext'
 
 interface YieldBarChartProps {
   data: ProductionEntry[]
@@ -39,6 +40,10 @@ export function YieldBarChart({
   isMobile = false,
   className,
 }: YieldBarChartProps) {
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
 
   const { chartData, chartConfig } = useMemo(() => {
@@ -49,6 +54,19 @@ export function YieldBarChart({
       return { chartData: [], chartConfig: {} }
 
     let processedData: any[] = []
+
+    const calculateProd = (item: ProductionEntry) => {
+      if (isMarReciclagem) {
+        return (
+          item.seboProduced +
+          item.fcoProduced +
+          (item.viscerasMealProduced || 0) +
+          (item.featherMealProduced || 0) +
+          (item.viscerasOilProduced || 0)
+        )
+      }
+      return item.seboProduced + item.fcoProduced + item.farinhetaProduced
+    }
 
     if (timeScale === 'daily') {
       const dailyMap = new Map<
@@ -63,8 +81,7 @@ export function YieldBarChart({
         }
         const entry = dailyMap.get(key)!
         entry.mp += item.mpUsed
-        entry.prod +=
-          item.seboProduced + item.fcoProduced + item.farinhetaProduced
+        entry.prod += calculateProd(item)
       })
 
       processedData = Array.from(dailyMap.values())
@@ -88,8 +105,7 @@ export function YieldBarChart({
         }
         const entry = monthlyMap.get(key)!
         entry.mp += item.mpUsed
-        entry.prod +=
-          item.seboProduced + item.fcoProduced + item.farinhetaProduced
+        entry.prod += calculateProd(item)
       })
 
       processedData = Array.from(monthlyMap.values())
@@ -110,7 +126,7 @@ export function YieldBarChart({
     } satisfies ChartConfig
 
     return { chartData: processedData, chartConfig: config }
-  }, [data, timeScale])
+  }, [data, timeScale, isMarReciclagem])
 
   if (!data || data.length === 0) {
     return (
@@ -118,7 +134,8 @@ export function YieldBarChart({
         <CardHeader>
           <CardTitle>Performance de Rendimento</CardTitle>
           <CardDescription>
-            Visualização do rendimento industrial (Sebo + FCO + Farinheta)
+            Visualização do rendimento industrial (
+            {isMarReciclagem ? 'Total' : 'Sebo + FCO + Farinheta'})
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">

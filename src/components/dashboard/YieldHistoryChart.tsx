@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ProductionEntry } from '@/lib/types'
 import {
   Card,
@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn, isBloodRecord } from '@/lib/utils'
+import { useData } from '@/context/DataContext'
 
 interface YieldHistoryChartProps {
   data: ProductionEntry[]
@@ -51,10 +52,7 @@ interface YieldHistoryChartProps {
   className?: string
 }
 
-// Helper to calculate exponential trend line points: y = a * e^(b * x)
 const calculateExponentialTrend = (dataPoints: number[]) => {
-  // Filter valid points for regression (y > 0 for log)
-  // x is the index
   const validPoints = dataPoints
     .map((y, x) => ({ x, y }))
     .filter((p) => p.y > 0)
@@ -81,10 +79,8 @@ const calculateExponentialTrend = (dataPoints: number[]) => {
   const b = (n * sumXY - sumX * sumY) / denominator
   const a = Math.exp((sumY - b * sumX) / n)
 
-  // Generate trend points for all original indices
   return dataPoints.map((_, x) => {
     const val = a * Math.exp(b * x)
-    // Cap at 100% or 0% for sanity, though exponential can grow indefinitely
     return Math.max(0, Math.min(100, val))
   })
 }
@@ -94,32 +90,60 @@ export function YieldHistoryChart({
   isMobile = false,
   className,
 }: YieldHistoryChartProps) {
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([
-    'sebo',
-    'fco',
-    'farinheta',
-  ])
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+
+  // Initialize selected products based on factory
+  useEffect(() => {
+    if (isMarReciclagem) {
+      setSelectedProducts([
+        'farinhaCarne',
+        'farinhaVisceras',
+        'farinhaPenas',
+        'sebo',
+        'oleo',
+      ])
+    } else {
+      setSelectedProducts(['sebo', 'fco', 'farinheta'])
+    }
+  }, [isMarReciclagem])
 
   const { chartData, chartConfig } = useMemo(() => {
-    // Filter out blood records
     const industrialData = data.filter((p) => !isBloodRecord(p))
-
     let processedData: any[] = []
 
-    // 1. Prepare Base Data
+    const mapYield = (prod: number, mp: number) =>
+      mp > 0 ? (prod / mp) * 100 : 0
+
     if (timeScale === 'daily') {
       processedData = industrialData
         .sort((a, b) => a.date.getTime() - b.date.getTime())
-        .map((p) => ({
-          date: format(p.date, 'dd/MM'),
-          fullDate: p.date,
-          sebo: p.mpUsed > 0 ? (p.seboProduced / p.mpUsed) * 100 : 0,
-          fco: p.mpUsed > 0 ? (p.fcoProduced / p.mpUsed) * 100 : 0,
-          farinheta: p.mpUsed > 0 ? (p.farinhetaProduced / p.mpUsed) * 100 : 0,
-        }))
+        .map((p) => {
+          const entry: any = {
+            date: format(p.date, 'dd/MM'),
+            fullDate: p.date,
+          }
+          if (isMarReciclagem) {
+            entry.farinhaCarne = mapYield(p.fcoProduced, p.mpUsed)
+            entry.farinhaVisceras = mapYield(
+              p.viscerasMealProduced || 0,
+              p.mpUsed,
+            )
+            entry.farinhaPenas = mapYield(p.featherMealProduced || 0, p.mpUsed)
+            entry.sebo = mapYield(p.seboProduced, p.mpUsed)
+            entry.oleo = mapYield(p.viscerasOilProduced || 0, p.mpUsed)
+          } else {
+            entry.sebo = mapYield(p.seboProduced, p.mpUsed)
+            entry.fco = mapYield(p.fcoProduced, p.mpUsed)
+            entry.farinheta = mapYield(p.farinhetaProduced, p.mpUsed)
+          }
+          return entry
+        })
     } else {
-      // Monthly Aggregation
       const monthlyData = new Map<string, any>()
       const sortedData = [...industrialData].sort(
         (a, b) => a.date.getTime() - b.date.getTime(),
@@ -137,6 +161,9 @@ export function YieldHistoryChart({
             seboProduced: 0,
             fcoProduced: 0,
             farinhetaProduced: 0,
+            viscerasMealProduced: 0,
+            featherMealProduced: 0,
+            viscerasOilProduced: 0,
           })
         }
 
@@ -145,50 +172,124 @@ export function YieldHistoryChart({
         entry.seboProduced += p.seboProduced
         entry.fcoProduced += p.fcoProduced
         entry.farinhetaProduced += p.farinhetaProduced
+        entry.viscerasMealProduced += p.viscerasMealProduced || 0
+        entry.featherMealProduced += p.featherMealProduced || 0
+        entry.viscerasOilProduced += p.viscerasOilProduced || 0
       })
 
-      processedData = Array.from(monthlyData.values()).map((entry) => ({
-        date: entry.date,
-        sebo: entry.mpUsed > 0 ? (entry.seboProduced / entry.mpUsed) * 100 : 0,
-        fco: entry.mpUsed > 0 ? (entry.fcoProduced / entry.mpUsed) * 100 : 0,
-        farinheta:
-          entry.mpUsed > 0 ? (entry.farinhetaProduced / entry.mpUsed) * 100 : 0,
-      }))
+      processedData = Array.from(monthlyData.values()).map((entry) => {
+        const result: any = { date: entry.date }
+        if (isMarReciclagem) {
+          result.farinhaCarne = mapYield(entry.fcoProduced, entry.mpUsed)
+          result.farinhaVisceras = mapYield(
+            entry.viscerasMealProduced,
+            entry.mpUsed,
+          )
+          result.farinhaPenas = mapYield(
+            entry.featherMealProduced,
+            entry.mpUsed,
+          )
+          result.sebo = mapYield(entry.seboProduced, entry.mpUsed)
+          result.oleo = mapYield(entry.viscerasOilProduced, entry.mpUsed)
+        } else {
+          result.sebo = mapYield(entry.seboProduced, entry.mpUsed)
+          result.fco = mapYield(entry.fcoProduced, entry.mpUsed)
+          result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed)
+        }
+        return result
+      })
     }
 
-    // 2. Calculate Trend Lines
-    // Extract series
-    const seboSeries = processedData.map((d) => d.sebo as number)
-    const fcoSeries = processedData.map((d) => d.fco as number)
-    const farinhetaSeries = processedData.map((d) => d.farinheta as number)
+    // Trends calculation
+    let trends: any = {}
+    if (isMarReciclagem) {
+      trends.farinhaCarne_trend = calculateExponentialTrend(
+        processedData.map((d) => d.farinhaCarne),
+      )
+      trends.farinhaVisceras_trend = calculateExponentialTrend(
+        processedData.map((d) => d.farinhaVisceras),
+      )
+      trends.farinhaPenas_trend = calculateExponentialTrend(
+        processedData.map((d) => d.farinhaPenas),
+      )
+      trends.sebo_trend = calculateExponentialTrend(
+        processedData.map((d) => d.sebo),
+      )
+      trends.oleo_trend = calculateExponentialTrend(
+        processedData.map((d) => d.oleo),
+      )
+    } else {
+      trends.sebo_trend = calculateExponentialTrend(
+        processedData.map((d) => d.sebo),
+      )
+      trends.fco_trend = calculateExponentialTrend(
+        processedData.map((d) => d.fco),
+      )
+      trends.farinheta_trend = calculateExponentialTrend(
+        processedData.map((d) => d.farinheta),
+      )
+    }
 
-    // Compute trends
-    const seboTrend = calculateExponentialTrend(seboSeries)
-    const fcoTrend = calculateExponentialTrend(fcoSeries)
-    const farinhetaTrend = calculateExponentialTrend(farinhetaSeries)
+    const finalData = processedData.map((item, index) => {
+      const trendItem: any = {}
+      Object.keys(trends).forEach((key) => {
+        trendItem[key] = trends[key][index]
+      })
+      return { ...item, ...trendItem }
+    })
 
-    // Merge trends back into processedData
-    const finalData = processedData.map((item, index) => ({
-      ...item,
-      sebo_trend: seboTrend[index],
-      fco_trend: fcoTrend[index],
-      farinheta_trend: farinhetaTrend[index],
-    }))
-
-    const config: ChartConfig = {
-      sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
-      fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
-      farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
-      sebo_trend: { label: 'Tendência Sebo', color: 'hsl(var(--chart-1))' },
-      fco_trend: { label: 'Tendência FCO', color: 'hsl(var(--chart-2))' },
-      farinheta_trend: {
-        label: 'Tendência Farinheta',
-        color: 'hsl(var(--chart-3))',
-      },
+    let config: ChartConfig
+    if (isMarReciclagem) {
+      config = {
+        farinhaCarne: { label: 'Far. Carne', color: 'hsl(var(--chart-1))' },
+        farinhaVisceras: {
+          label: 'Far. Vísceras',
+          color: 'hsl(var(--chart-2))',
+        },
+        farinhaPenas: { label: 'Far. Penas', color: 'hsl(var(--chart-3))' },
+        sebo: { label: 'Sebo', color: 'hsl(var(--chart-4))' },
+        oleo: { label: 'Óleo', color: 'hsl(var(--chart-5))' },
+        farinhaCarne_trend: {
+          label: 'Tend. Far. Carne',
+          color: 'hsl(var(--chart-1))',
+        },
+        farinhaVisceras_trend: {
+          label: 'Tend. Far. Vísceras',
+          color: 'hsl(var(--chart-2))',
+        },
+        farinhaPenas_trend: {
+          label: 'Tend. Far. Penas',
+          color: 'hsl(var(--chart-3))',
+        },
+        sebo_trend: { label: 'Tend. Sebo', color: 'hsl(var(--chart-4))' },
+        oleo_trend: { label: 'Tend. Óleo', color: 'hsl(var(--chart-5))' },
+      }
+    } else {
+      config = {
+        sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
+        fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
+        farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
+        sebo_trend: { label: 'Tendência Sebo', color: 'hsl(var(--chart-1))' },
+        fco_trend: { label: 'Tendência FCO', color: 'hsl(var(--chart-2))' },
+        farinheta_trend: {
+          label: 'Tendência Farinheta',
+          color: 'hsl(var(--chart-3))',
+        },
+      }
     }
 
     return { chartData: finalData, chartConfig: config }
-  }, [data, timeScale])
+  }, [data, timeScale, isMarReciclagem])
+
+  const toggleProduct = (product: string) => {
+    setSelectedProducts((prev) => {
+      if (prev.includes(product)) {
+        if (prev.length === 1) return prev
+        return prev.filter((p) => p !== product)
+      }
+      return [...prev, product]
+    })
+  }
 
   if (!data || data.length === 0) {
     return (
@@ -204,16 +305,6 @@ export function YieldHistoryChart({
         </CardContent>
       </Card>
     )
-  }
-
-  const toggleProduct = (product: string) => {
-    setSelectedProducts((prev) => {
-      if (prev.includes(product)) {
-        if (prev.length === 1) return prev
-        return prev.filter((p) => p !== product)
-      }
-      return [...prev, product]
-    })
   }
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
@@ -272,102 +363,48 @@ export function YieldHistoryChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {/* Bars */}
-        {selectedProducts.includes('sebo') && (
-          <Bar
-            dataKey="sebo"
-            fill="var(--color-sebo)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={40}
-            name="Sebo"
-          >
-            <LabelList
-              dataKey="sebo"
-              position="top"
-              offset={5}
-              className="fill-foreground font-bold"
-              fontSize={10}
-              formatter={(value: any) =>
-                value > 0 ? `${value.toFixed(2)}%` : ''
-              }
-            />
-          </Bar>
-        )}
-        {selectedProducts.includes('fco') && (
-          <Bar
-            dataKey="fco"
-            fill="var(--color-fco)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={40}
-            name="FCO"
-          >
-            <LabelList
-              dataKey="fco"
-              position="top"
-              offset={5}
-              className="fill-foreground font-bold"
-              fontSize={10}
-              formatter={(value: any) =>
-                value > 0 ? `${value.toFixed(2)}%` : ''
-              }
-            />
-          </Bar>
-        )}
-        {selectedProducts.includes('farinheta') && (
-          <Bar
-            dataKey="farinheta"
-            fill="var(--color-farinheta)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={40}
-            name="Farinheta"
-          >
-            <LabelList
-              dataKey="farinheta"
-              position="top"
-              offset={5}
-              className="fill-foreground font-bold"
-              fontSize={10}
-              formatter={(value: any) =>
-                value > 0 ? `${value.toFixed(2)}%` : ''
-              }
-            />
-          </Bar>
-        )}
+        {Object.keys(chartConfig)
+          .filter((k) => !k.includes('trend') && selectedProducts.includes(k))
+          .map((key) => (
+            <Bar
+              key={key}
+              dataKey={key}
+              fill={`var(--color-${key})`}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+              name={chartConfig[key].label as string}
+            >
+              <LabelList
+                dataKey={key}
+                position="top"
+                offset={5}
+                className="fill-foreground font-bold"
+                fontSize={10}
+                formatter={(value: any) =>
+                  value > 0 ? `${value.toFixed(2)}%` : ''
+                }
+              />
+            </Bar>
+          ))}
 
-        {/* Trend Lines (Exponential) */}
-        {selectedProducts.includes('sebo') && (
-          <Line
-            type="monotone"
-            dataKey="sebo_trend"
-            stroke="var(--color-sebo)"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-            name="Tend. Sebo"
-          />
-        )}
-        {selectedProducts.includes('fco') && (
-          <Line
-            type="monotone"
-            dataKey="fco_trend"
-            stroke="var(--color-fco)"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-            name="Tend. FCO"
-          />
-        )}
-        {selectedProducts.includes('farinheta') && (
-          <Line
-            type="monotone"
-            dataKey="farinheta_trend"
-            stroke="var(--color-farinheta)"
-            strokeWidth={2}
-            strokeDasharray="4 4"
-            dot={false}
-            name="Tend. Farinheta"
-          />
-        )}
+        {Object.keys(chartConfig)
+          .filter(
+            (k) =>
+              k.includes('trend') &&
+              selectedProducts.includes(k.replace('_trend', '')),
+          )
+          .map((key) => (
+            <Line
+              key={key}
+              type="monotone"
+              dataKey={key}
+              stroke={`var(--color-${key.replace('_trend', '')})`}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              name={chartConfig[key].label as string}
+            />
+          ))}
       </ComposedChart>
     </ChartContainer>
   )
@@ -384,7 +421,6 @@ export function YieldHistoryChart({
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          {/* Time Scale Toggle */}
           <div className="bg-muted/50 p-1 rounded-md flex items-center">
             <Button
               variant={timeScale === 'daily' ? 'default' : 'ghost'}
@@ -406,7 +442,6 @@ export function YieldHistoryChart({
             </Button>
           </div>
 
-          {/* Product Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 w-9 p-0">
@@ -417,24 +452,17 @@ export function YieldHistoryChart({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Filtrar Produtos</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={selectedProducts.includes('sebo')}
-                onCheckedChange={() => toggleProduct('sebo')}
-              >
-                Sebo
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={selectedProducts.includes('fco')}
-                onCheckedChange={() => toggleProduct('fco')}
-              >
-                FCO (Farinha)
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={selectedProducts.includes('farinheta')}
-                onCheckedChange={() => toggleProduct('farinheta')}
-              >
-                Farinheta
-              </DropdownMenuCheckboxItem>
+              {Object.keys(chartConfig)
+                .filter((k) => !k.includes('trend'))
+                .map((key) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={selectedProducts.includes(key)}
+                    onCheckedChange={() => toggleProduct(key)}
+                  >
+                    {chartConfig[key].label}
+                  </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
 

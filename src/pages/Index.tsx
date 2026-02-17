@@ -55,6 +55,7 @@ export default function Dashboard() {
   const isMobile = useIsMobile()
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
 
   // Track current day to auto-update context when day changes
   const [today, setToday] = useState(new Date())
@@ -69,8 +70,6 @@ export default function Dashboard() {
   }, [today])
 
   // Determine effective date for forecast (and now for D-1 efficiency context)
-  // If the selected range includes Today, we prioritize Today for the forecast
-  // Otherwise we use the end date of the range
   const effectiveForecastDate = useMemo(() => {
     if (dateRange.from && dateRange.to) {
       if (
@@ -105,7 +104,7 @@ export default function Dashboard() {
     filteredReturns,
     uniqueClients,
   } = useMemo(() => {
-    // Extract unique clients from ALL shipping data (not just filtered) to populate the filter list
+    // Extract unique clients from ALL shipping data
     const clients = new Set<string>()
     shipping.forEach((s) => {
       if (s.client) clients.add(s.client)
@@ -183,11 +182,20 @@ export default function Dashboard() {
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
+
+    // Sum all industrial production components
     const totalProduced = industrialRecords.reduce(
       (acc, curr) =>
-        acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced,
+        acc +
+        curr.seboProduced +
+        curr.fcoProduced +
+        curr.farinhetaProduced +
+        (curr.viscerasMealProduced || 0) +
+        (curr.featherMealProduced || 0) +
+        (curr.viscerasOilProduced || 0),
       0,
     )
+
     const yieldVal = totalMp > 0 ? (totalProduced / totalMp) * 100 : 0
     const target = notificationSettings?.yieldThreshold || 58.0
 
@@ -217,7 +225,7 @@ export default function Dashboard() {
 
     // Regex for "DD/MM/YYYY"
     const singleDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
-    // Regex for "DD/MM/YYYY até DD/MM/YYYY" (allowing some spaces and case insensitivity)
+    // Regex for "DD/MM/YYYY até DD/MM/YYYY"
     const rangeDateRegex =
       /^(\d{2})\/(\d{2})\/(\d{4})\s+(até|ate|ATE|ATÉ)\s+(\d{2})\/(\d{2})\/(\d{4})$/i
 
@@ -233,7 +241,6 @@ export default function Dashboard() {
         setInputError(true)
       }
     } else if (rangeDateRegex.test(val)) {
-      // Extract parts using a simpler split to avoid complexity
       const separatorMatch = val.match(/\s+(até|ate|ATE|ATÉ)\s+/i)
       if (separatorMatch) {
         const parts = val.split(separatorMatch[0])
@@ -244,7 +251,6 @@ export default function Dashboard() {
           const startDate = parse(startStr, 'dd/MM/yyyy', new Date())
           const endDate = parse(endStr, 'dd/MM/yyyy', new Date())
 
-          // Validate both dates and range order
           if (
             isValid(startDate) &&
             isValid(endDate) &&
@@ -267,11 +273,8 @@ export default function Dashboard() {
         setInputError(true)
       }
     } else {
-      // While typing incomplete dates, we can show error or just wait.
-      // Showing error helps validation feedback immediately if pattern is completely wrong.
       const isPotentiallyRange = val.length > 10
       const isPotentiallySingle = val.length <= 10
-
       if (isPotentiallySingle && val.length === 10) setInputError(true)
       if (isPotentiallyRange && val.length > 25) setInputError(true)
     }
@@ -375,7 +378,7 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {currentFactory?.name !== 'Mar Reciclagem' && (
+          {!isMarReciclagem && (
             <LoadForecast referenceDate={effectiveForecastDate} />
           )}
 

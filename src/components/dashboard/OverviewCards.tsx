@@ -17,6 +17,8 @@ import {
   Scale,
   Undo2,
   FlaskConical,
+  Feather,
+  Fish,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -38,6 +40,7 @@ import {
 import { useMemo } from 'react'
 import { subDays, isSameDay, format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useData } from '@/context/DataContext'
 
 interface OverviewCardsProps {
   rawMaterials: RawMaterialEntry[]
@@ -64,6 +67,10 @@ export function OverviewCards({
   fullCookingTimeRecords = [],
   referenceDate,
 }: OverviewCardsProps) {
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name === 'Mar Reciclagem'
+
   const metrics = useMemo(() => {
     // Helper to normalize quantity to kg
     const normalizeToKg = (quantity: number, unit?: string) => {
@@ -101,8 +108,28 @@ export function OverviewCards({
       0,
     )
 
+    // Additional products for Mar Reciclagem
+    const viscerasMealProduced = production.reduce(
+      (acc, curr) => acc + (curr.viscerasMealProduced || 0),
+      0,
+    )
+    const featherMealProduced = production.reduce(
+      (acc, curr) => acc + (curr.featherMealProduced || 0),
+      0,
+    )
+    const viscerasOilProduced = production.reduce(
+      (acc, curr) => acc + (curr.viscerasOilProduced || 0),
+      0,
+    )
+
     const totalProduction =
-      seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced
+      seboProduced +
+      fcoProduced +
+      farinhetaProduced +
+      bloodMealProduced +
+      viscerasMealProduced +
+      featherMealProduced +
+      viscerasOilProduced
 
     // 4. Faturamento
     const totalRevenue = shipping.reduce(
@@ -135,6 +162,21 @@ export function OverviewCards({
       0,
     )
 
+    // Mar Reciclagem Specific Numerators
+    const viscerasMealProducedInd = industrialRecords.reduce(
+      (acc, curr) => acc + (curr.viscerasMealProduced || 0),
+      0,
+    )
+    const featherMealProducedInd = industrialRecords.reduce(
+      (acc, curr) => acc + (curr.featherMealProduced || 0),
+      0,
+    )
+    const viscerasOilProducedInd = industrialRecords.reduce(
+      (acc, curr) => acc + (curr.viscerasOilProduced || 0),
+      0,
+    )
+
+    // Yield Calculations
     const seboYield =
       mpUsedMainLine > 0 ? (seboProducedIndustrial / mpUsedMainLine) * 100 : 0
     const fcoYield =
@@ -143,6 +185,15 @@ export function OverviewCards({
       mpUsedMainLine > 0
         ? (farinhetaProducedIndustrial / mpUsedMainLine) * 100
         : 0
+
+    // Specific Yields for Mar Reciclagem
+    const farinhaCarneYield = fcoYield // Using FCO logic
+    const farinhaViscerasYield =
+      mpUsedMainLine > 0 ? (viscerasMealProducedInd / mpUsedMainLine) * 100 : 0
+    const farinhaPenasYield =
+      mpUsedMainLine > 0 ? (featherMealProducedInd / mpUsedMainLine) * 100 : 0
+    const oleoYield =
+      mpUsedMainLine > 0 ? (viscerasOilProducedInd / mpUsedMainLine) * 100 : 0
 
     // 11. Rendimento sangue
     const bloodInputKg = rawMaterials
@@ -163,7 +214,14 @@ export function OverviewCards({
       (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDate),
     )
     const totalProductionOutputD1 = prevDayProduction.reduce(
-      (acc, p) => acc + p.seboProduced + p.fcoProduced + p.farinhetaProduced,
+      (acc, p) =>
+        acc +
+        p.seboProduced +
+        p.fcoProduced +
+        p.farinhetaProduced +
+        (p.viscerasMealProduced || 0) +
+        (p.featherMealProduced || 0) +
+        (p.viscerasOilProduced || 0),
       0,
     )
 
@@ -187,7 +245,6 @@ export function OverviewCards({
       )
       totalMinutesD1 = totalHoursD1 * 60
     } else {
-      // Legacy Calculation (Fallback)
       totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
         if (!curr.startTime || !curr.endTime) return acc
         const toMinutes = (timeStr: string) => {
@@ -218,10 +275,8 @@ export function OverviewCards({
       ? format(previousDate, 'dd/MM', { locale: ptBR })
       : '--/--'
 
-    // 13. Estimated Weight based on Time (Current Filtered Data)
-    // Formula: (Total Hours * 60) * 0.55
+    // 13. Estimated Weight based on Time
     const totalCookingHoursCurrent = cookingTimeRecords.reduce((acc, curr) => {
-      // Ensure totalHours is treated as number and handle undefined
       const hours = typeof curr.totalHours === 'number' ? curr.totalHours : 0
       return acc + hours
     }, 0)
@@ -229,7 +284,6 @@ export function OverviewCards({
     const totalCookingMinutesCurrent = totalCookingHoursCurrent * 60
     const estimatedWeightByTime = totalCookingMinutesCurrent * 0.55
 
-    // Format current process time for display
     const currentHours = Math.floor(totalCookingMinutesCurrent / 60)
     const currentMinutes = Math.round(totalCookingMinutesCurrent % 60)
     const processTimeCurrentDisplay = `${currentHours}h ${currentMinutes.toString().padStart(2, '0')}m`
@@ -250,6 +304,10 @@ export function OverviewCards({
       seboYield,
       fcoYield,
       farinhetaYield,
+      farinhaCarneYield,
+      farinhaViscerasYield,
+      farinhaPenasYield,
+      oleoYield,
       bloodInputKg,
       bloodMealProduced,
       bloodYield,
@@ -324,7 +382,6 @@ export function OverviewCards({
 
   const TARGET_RATE = 14.125
 
-  // Reusable Card Component
   const MetricCard = ({
     title,
     value,
@@ -462,7 +519,7 @@ export function OverviewCards({
         textColor="text-red-600"
       />
 
-      {/* Saturated Oil Input - NEW CARD */}
+      {/* Saturated Oil Input */}
       <MetricCard
         title="Total de Óleo Saturado Recebido"
         value={formatNumberDisplay(metrics.saturatedOilInputKg, 'kg')}
@@ -471,38 +528,95 @@ export function OverviewCards({
         borderColor="border-l-violet-600 dark:border-l-violet-400"
       />
 
-      {/* 6. Rendimento Sebo - Styled dynamically */}
-      <MetricCard
-        title="Rendimento Sebo"
-        value={formatPercent(metrics.seboYield)}
-        icon={Droplets}
-        iconColor={seboStyle.iconColor}
-        borderColor={seboStyle.borderColor}
-        textColor={seboStyle.textColor}
-        className={seboStyle.bgClass}
-      />
+      {isMarReciclagem ? (
+        <>
+          {/* Rendimento de Farinha de Carne */}
+          <MetricCard
+            title="Rendimento de Farinha de Carne"
+            value={formatPercent(metrics.farinhaCarneYield)}
+            icon={Bone}
+            iconColor="text-emerald-600"
+            borderColor="border-l-emerald-600"
+            textColor="text-emerald-600"
+            className="bg-emerald-50/50 dark:bg-emerald-900/10"
+          />
+          {/* Rendimento de Farinha de Vísceras */}
+          <MetricCard
+            title="Rendimento de Farinha de Vísceras"
+            value={formatPercent(metrics.farinhaViscerasYield)}
+            icon={Fish}
+            iconColor="text-blue-600"
+            borderColor="border-l-blue-600"
+            textColor="text-blue-600"
+            className="bg-blue-50/50 dark:bg-blue-900/10"
+          />
+          {/* Rendimento de Farinha de Penas */}
+          <MetricCard
+            title="Rendimento de Farinha de Penas"
+            value={formatPercent(metrics.farinhaPenasYield)}
+            icon={Feather}
+            iconColor="text-amber-600"
+            borderColor="border-l-amber-600"
+            textColor="text-amber-600"
+            className="bg-amber-50/50 dark:bg-amber-900/10"
+          />
+          {/* Rendimento de Sebo */}
+          <MetricCard
+            title="Rendimento de Sebo"
+            value={formatPercent(metrics.seboYield)}
+            icon={Droplets}
+            iconColor="text-orange-600"
+            borderColor="border-l-orange-600"
+            textColor="text-orange-600"
+            className="bg-orange-50/50 dark:bg-orange-900/10"
+          />
+          {/* Rendimento de Óleo */}
+          <MetricCard
+            title="Rendimento de Óleo"
+            value={formatPercent(metrics.oleoYield)}
+            icon={Droplet}
+            iconColor="text-violet-600"
+            borderColor="border-l-violet-600"
+            textColor="text-violet-600"
+            className="bg-violet-50/50 dark:bg-violet-900/10"
+          />
+        </>
+      ) : (
+        <>
+          {/* 6. Rendimento Sebo - Styled dynamically */}
+          <MetricCard
+            title="Rendimento Sebo"
+            value={formatPercent(metrics.seboYield)}
+            icon={Droplets}
+            iconColor={seboStyle.iconColor}
+            borderColor={seboStyle.borderColor}
+            textColor={seboStyle.textColor}
+            className={seboStyle.bgClass}
+          />
 
-      {/* 7. Rendimento FCO - Styled dynamically */}
-      <MetricCard
-        title="Rendimento FCO"
-        value={formatPercent(metrics.fcoYield)}
-        icon={Bone}
-        iconColor={fcoStyle.iconColor}
-        borderColor={fcoStyle.borderColor}
-        textColor={fcoStyle.textColor}
-        className={fcoStyle.bgClass}
-      />
+          {/* 7. Rendimento FCO - Styled dynamically */}
+          <MetricCard
+            title="Rendimento FCO"
+            value={formatPercent(metrics.fcoYield)}
+            icon={Bone}
+            iconColor={fcoStyle.iconColor}
+            borderColor={fcoStyle.borderColor}
+            textColor={fcoStyle.textColor}
+            className={fcoStyle.bgClass}
+          />
 
-      {/* 8. Rendimento Farinheta - Styled dynamically */}
-      <MetricCard
-        title="Rendimento Farinheta"
-        value={formatPercent(metrics.farinhetaYield)}
-        icon={Wheat}
-        iconColor={farinhetaStyle.iconColor}
-        borderColor={farinhetaStyle.borderColor}
-        textColor={farinhetaStyle.textColor}
-        className={farinhetaStyle.bgClass}
-      />
+          {/* 8. Rendimento Farinheta - Styled dynamically */}
+          <MetricCard
+            title="Rendimento Farinheta"
+            value={formatPercent(metrics.farinhetaYield)}
+            icon={Wheat}
+            iconColor={farinhetaStyle.iconColor}
+            borderColor={farinhetaStyle.borderColor}
+            textColor={farinhetaStyle.textColor}
+            className={farinhetaStyle.bgClass}
+          />
+        </>
+      )}
 
       {/* 9. Total de entrada de sangue */}
       <MetricCard

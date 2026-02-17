@@ -19369,6 +19369,20 @@ var Factory = createLucideIcon("factory", [
 		key: "18s6g9"
 	}]
 ]);
+var Feather = createLucideIcon("feather", [
+	["path", {
+		d: "M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z",
+		key: "18jl4k"
+	}],
+	["path", {
+		d: "M16 8 2 22",
+		key: "vp34q"
+	}],
+	["path", {
+		d: "M17.5 15H9",
+		key: "1oz8nu"
+	}]
+]);
 var FileChartColumnIncreasing = createLucideIcon("file-chart-column-increasing", [
 	["path", {
 		d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
@@ -19469,6 +19483,32 @@ var FileText = createLucideIcon("file-text", [
 	["path", {
 		d: "M16 17H8",
 		key: "z1uh3a"
+	}]
+]);
+var Fish = createLucideIcon("fish", [
+	["path", {
+		d: "M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z",
+		key: "15baut"
+	}],
+	["path", {
+		d: "M18 12v.5",
+		key: "18hhni"
+	}],
+	["path", {
+		d: "M16 17.93a9.77 9.77 0 0 1 0-11.86",
+		key: "16dt7o"
+	}],
+	["path", {
+		d: "M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33",
+		key: "l9di03"
+	}],
+	["path", {
+		d: "M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4",
+		key: "1kjonw"
+	}],
+	["path", {
+		d: "m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98",
+		key: "1zlm23"
 	}]
 ]);
 var FlaskConical = createLucideIcon("flask-conical", [
@@ -63641,22 +63681,46 @@ var calculateExponentialTrend = (dataPoints) => {
 	});
 };
 function YieldHistoryChart({ data, isMobile = false, className }) {
+	const { factories, currentFactoryId } = useData();
+	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
-	const [selectedProducts, setSelectedProducts] = (0, import_react.useState)([
-		"sebo",
-		"fco",
-		"farinheta"
-	]);
+	const [selectedProducts, setSelectedProducts] = (0, import_react.useState)([]);
+	(0, import_react.useEffect)(() => {
+		if (isMarReciclagem) setSelectedProducts([
+			"farinhaCarne",
+			"farinhaVisceras",
+			"farinhaPenas",
+			"sebo",
+			"oleo"
+		]);
+		else setSelectedProducts([
+			"sebo",
+			"fco",
+			"farinheta"
+		]);
+	}, [isMarReciclagem]);
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
 		let processedData = [];
-		if (timeScale === "daily") processedData = industrialData.sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((p$1) => ({
-			date: format(p$1.date, "dd/MM"),
-			fullDate: p$1.date,
-			sebo: p$1.mpUsed > 0 ? p$1.seboProduced / p$1.mpUsed * 100 : 0,
-			fco: p$1.mpUsed > 0 ? p$1.fcoProduced / p$1.mpUsed * 100 : 0,
-			farinheta: p$1.mpUsed > 0 ? p$1.farinhetaProduced / p$1.mpUsed * 100 : 0
-		}));
+		const mapYield = (prod, mp) => mp > 0 ? prod / mp * 100 : 0;
+		if (timeScale === "daily") processedData = industrialData.sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((p$1) => {
+			const entry = {
+				date: format(p$1.date, "dd/MM"),
+				fullDate: p$1.date
+			};
+			if (isMarReciclagem) {
+				entry.farinhaCarne = mapYield(p$1.fcoProduced, p$1.mpUsed);
+				entry.farinhaVisceras = mapYield(p$1.viscerasMealProduced || 0, p$1.mpUsed);
+				entry.farinhaPenas = mapYield(p$1.featherMealProduced || 0, p$1.mpUsed);
+				entry.sebo = mapYield(p$1.seboProduced, p$1.mpUsed);
+				entry.oleo = mapYield(p$1.viscerasOilProduced || 0, p$1.mpUsed);
+			} else {
+				entry.sebo = mapYield(p$1.seboProduced, p$1.mpUsed);
+				entry.fco = mapYield(p$1.fcoProduced, p$1.mpUsed);
+				entry.farinheta = mapYield(p$1.farinhetaProduced, p$1.mpUsed);
+			}
+			return entry;
+		});
 		else {
 			const monthlyData = /* @__PURE__ */ new Map();
 			[...industrialData].sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).forEach((p$1) => {
@@ -63668,69 +63732,136 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 					mpUsed: 0,
 					seboProduced: 0,
 					fcoProduced: 0,
-					farinhetaProduced: 0
+					farinhetaProduced: 0,
+					viscerasMealProduced: 0,
+					featherMealProduced: 0,
+					viscerasOilProduced: 0
 				});
 				const entry = monthlyData.get(monthKey);
 				entry.mpUsed += p$1.mpUsed;
 				entry.seboProduced += p$1.seboProduced;
 				entry.fcoProduced += p$1.fcoProduced;
 				entry.farinhetaProduced += p$1.farinhetaProduced;
+				entry.viscerasMealProduced += p$1.viscerasMealProduced || 0;
+				entry.featherMealProduced += p$1.featherMealProduced || 0;
+				entry.viscerasOilProduced += p$1.viscerasOilProduced || 0;
 			});
-			processedData = Array.from(monthlyData.values()).map((entry) => ({
-				date: entry.date,
-				sebo: entry.mpUsed > 0 ? entry.seboProduced / entry.mpUsed * 100 : 0,
-				fco: entry.mpUsed > 0 ? entry.fcoProduced / entry.mpUsed * 100 : 0,
-				farinheta: entry.mpUsed > 0 ? entry.farinhetaProduced / entry.mpUsed * 100 : 0
-			}));
-		}
-		const seboSeries = processedData.map((d) => d.sebo);
-		const fcoSeries = processedData.map((d) => d.fco);
-		const farinhetaSeries = processedData.map((d) => d.farinheta);
-		const seboTrend = calculateExponentialTrend(seboSeries);
-		const fcoTrend = calculateExponentialTrend(fcoSeries);
-		const farinhetaTrend = calculateExponentialTrend(farinhetaSeries);
-		return {
-			chartData: processedData.map((item, index$1) => ({
-				...item,
-				sebo_trend: seboTrend[index$1],
-				fco_trend: fcoTrend[index$1],
-				farinheta_trend: farinhetaTrend[index$1]
-			})),
-			chartConfig: {
-				sebo: {
-					label: "Sebo",
-					color: "hsl(var(--chart-1))"
-				},
-				fco: {
-					label: "FCO",
-					color: "hsl(var(--chart-2))"
-				},
-				farinheta: {
-					label: "Farinheta",
-					color: "hsl(var(--chart-3))"
-				},
-				sebo_trend: {
-					label: "Tendência Sebo",
-					color: "hsl(var(--chart-1))"
-				},
-				fco_trend: {
-					label: "Tendência FCO",
-					color: "hsl(var(--chart-2))"
-				},
-				farinheta_trend: {
-					label: "Tendência Farinheta",
-					color: "hsl(var(--chart-3))"
+			processedData = Array.from(monthlyData.values()).map((entry) => {
+				const result = { date: entry.date };
+				if (isMarReciclagem) {
+					result.farinhaCarne = mapYield(entry.fcoProduced, entry.mpUsed);
+					result.farinhaVisceras = mapYield(entry.viscerasMealProduced, entry.mpUsed);
+					result.farinhaPenas = mapYield(entry.featherMealProduced, entry.mpUsed);
+					result.sebo = mapYield(entry.seboProduced, entry.mpUsed);
+					result.oleo = mapYield(entry.viscerasOilProduced, entry.mpUsed);
+				} else {
+					result.sebo = mapYield(entry.seboProduced, entry.mpUsed);
+					result.fco = mapYield(entry.fcoProduced, entry.mpUsed);
+					result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed);
 				}
+				return result;
+			});
+		}
+		let trends = {};
+		if (isMarReciclagem) {
+			trends.farinhaCarne_trend = calculateExponentialTrend(processedData.map((d) => d.farinhaCarne));
+			trends.farinhaVisceras_trend = calculateExponentialTrend(processedData.map((d) => d.farinhaVisceras));
+			trends.farinhaPenas_trend = calculateExponentialTrend(processedData.map((d) => d.farinhaPenas));
+			trends.sebo_trend = calculateExponentialTrend(processedData.map((d) => d.sebo));
+			trends.oleo_trend = calculateExponentialTrend(processedData.map((d) => d.oleo));
+		} else {
+			trends.sebo_trend = calculateExponentialTrend(processedData.map((d) => d.sebo));
+			trends.fco_trend = calculateExponentialTrend(processedData.map((d) => d.fco));
+			trends.farinheta_trend = calculateExponentialTrend(processedData.map((d) => d.farinheta));
+		}
+		const finalData = processedData.map((item, index$1) => {
+			const trendItem = {};
+			Object.keys(trends).forEach((key) => {
+				trendItem[key] = trends[key][index$1];
+			});
+			return {
+				...item,
+				...trendItem
+			};
+		});
+		let config$1;
+		if (isMarReciclagem) config$1 = {
+			farinhaCarne: {
+				label: "Far. Carne",
+				color: "hsl(var(--chart-1))"
+			},
+			farinhaVisceras: {
+				label: "Far. Vísceras",
+				color: "hsl(var(--chart-2))"
+			},
+			farinhaPenas: {
+				label: "Far. Penas",
+				color: "hsl(var(--chart-3))"
+			},
+			sebo: {
+				label: "Sebo",
+				color: "hsl(var(--chart-4))"
+			},
+			oleo: {
+				label: "Óleo",
+				color: "hsl(var(--chart-5))"
+			},
+			farinhaCarne_trend: {
+				label: "Tend. Far. Carne",
+				color: "hsl(var(--chart-1))"
+			},
+			farinhaVisceras_trend: {
+				label: "Tend. Far. Vísceras",
+				color: "hsl(var(--chart-2))"
+			},
+			farinhaPenas_trend: {
+				label: "Tend. Far. Penas",
+				color: "hsl(var(--chart-3))"
+			},
+			sebo_trend: {
+				label: "Tend. Sebo",
+				color: "hsl(var(--chart-4))"
+			},
+			oleo_trend: {
+				label: "Tend. Óleo",
+				color: "hsl(var(--chart-5))"
 			}
 		};
-	}, [data, timeScale]);
-	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos industriais" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "h-[350px] flex items-center justify-center text-muted-foreground",
-			children: "Nenhum dado de rendimento disponível."
-		})]
-	});
+		else config$1 = {
+			sebo: {
+				label: "Sebo",
+				color: "hsl(var(--chart-1))"
+			},
+			fco: {
+				label: "FCO",
+				color: "hsl(var(--chart-2))"
+			},
+			farinheta: {
+				label: "Farinheta",
+				color: "hsl(var(--chart-3))"
+			},
+			sebo_trend: {
+				label: "Tendência Sebo",
+				color: "hsl(var(--chart-1))"
+			},
+			fco_trend: {
+				label: "Tendência FCO",
+				color: "hsl(var(--chart-2))"
+			},
+			farinheta_trend: {
+				label: "Tendência Farinheta",
+				color: "hsl(var(--chart-3))"
+			}
+		};
+		return {
+			chartData: finalData,
+			chartConfig: config$1
+		};
+	}, [
+		data,
+		timeScale,
+		isMarReciclagem
+	]);
 	const toggleProduct = (product) => {
 		setSelectedProducts((prev) => {
 			if (prev.includes(product)) {
@@ -63740,6 +63871,13 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 			return [...prev, product];
 		});
 	};
+	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Rendimentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução percentual dos rendimentos industriais" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "h-[350px] flex items-center justify-center text-muted-foreground",
+			children: "Nenhum dado de rendimento disponível."
+		})]
+	});
 	const ChartContent = ({ height = "h-[350px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: `${height} w-full`,
@@ -63803,9 +63941,9 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 					}
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				selectedProducts.includes("sebo") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-					dataKey: "sebo",
-					fill: "var(--color-sebo)",
+				Object.keys(chartConfig$1).filter((k$3) => !k$3.includes("trend") && selectedProducts.includes(k$3)).map((key) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+					dataKey: key,
+					fill: `var(--color-${key})`,
 					radius: [
 						4,
 						4,
@@ -63813,83 +63951,25 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						0
 					],
 					maxBarSize: 40,
-					name: "Sebo",
+					name: chartConfig$1[key].label,
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "sebo",
+						dataKey: key,
 						position: "top",
 						offset: 5,
 						className: "fill-foreground font-bold",
 						fontSize: 10,
 						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
 					})
-				}),
-				selectedProducts.includes("fco") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-					dataKey: "fco",
-					fill: "var(--color-fco)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
-					maxBarSize: 40,
-					name: "FCO",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "fco",
-						position: "top",
-						offset: 5,
-						className: "fill-foreground font-bold",
-						fontSize: 10,
-						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
-					})
-				}),
-				selectedProducts.includes("farinheta") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-					dataKey: "farinheta",
-					fill: "var(--color-farinheta)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
-					maxBarSize: 40,
-					name: "Farinheta",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "farinheta",
-						position: "top",
-						offset: 5,
-						className: "fill-foreground font-bold",
-						fontSize: 10,
-						formatter: (value) => value > 0 ? `${value.toFixed(2)}%` : ""
-					})
-				}),
-				selectedProducts.includes("sebo") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+				}, key)),
+				Object.keys(chartConfig$1).filter((k$3) => k$3.includes("trend") && selectedProducts.includes(k$3.replace("_trend", ""))).map((key) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 					type: "monotone",
-					dataKey: "sebo_trend",
-					stroke: "var(--color-sebo)",
+					dataKey: key,
+					stroke: `var(--color-${key.replace("_trend", "")})`,
 					strokeWidth: 2,
 					strokeDasharray: "4 4",
 					dot: false,
-					name: "Tend. Sebo"
-				}),
-				selectedProducts.includes("fco") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
-					dataKey: "fco_trend",
-					stroke: "var(--color-fco)",
-					strokeWidth: 2,
-					strokeDasharray: "4 4",
-					dot: false,
-					name: "Tend. FCO"
-				}),
-				selectedProducts.includes("farinheta") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
-					dataKey: "farinheta_trend",
-					stroke: "var(--color-farinheta)",
-					strokeWidth: 2,
-					strokeDasharray: "4 4",
-					dot: false,
-					name: "Tend. Farinheta"
-				})
+					name: chartConfig$1[key].label
+				}, key))
 			]
 		})
 	});
@@ -63932,21 +64012,11 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 						children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuLabel, { children: "Filtrar Produtos" }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuSeparator, {}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
-								checked: selectedProducts.includes("sebo"),
-								onCheckedChange: () => toggleProduct("sebo"),
-								children: "Sebo"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
-								checked: selectedProducts.includes("fco"),
-								onCheckedChange: () => toggleProduct("fco"),
-								children: "FCO (Farinha)"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
-								checked: selectedProducts.includes("farinheta"),
-								onCheckedChange: () => toggleProduct("farinheta"),
-								children: "Farinheta"
-							})
+							Object.keys(chartConfig$1).filter((k$3) => !k$3.includes("trend")).map((key) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
+								checked: selectedProducts.includes(key),
+								onCheckedChange: () => toggleProduct(key),
+								children: chartConfig$1[key].label
+							}, key))
 						]
 					})] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
@@ -63976,6 +64046,8 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 	});
 }
 function YieldBarChart({ data, isMobile = false, className }) {
+	const { factories, currentFactoryId } = useData();
+	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
@@ -63984,6 +64056,10 @@ function YieldBarChart({ data, isMobile = false, className }) {
 			chartConfig: {}
 		};
 		let processedData = [];
+		const calculateProd = (item) => {
+			if (isMarReciclagem) return item.seboProduced + item.fcoProduced + (item.viscerasMealProduced || 0) + (item.featherMealProduced || 0) + (item.viscerasOilProduced || 0);
+			return item.seboProduced + item.fcoProduced + item.farinhetaProduced;
+		};
 		if (timeScale === "daily") {
 			const dailyMap = /* @__PURE__ */ new Map();
 			industrialData.forEach((item) => {
@@ -63995,7 +64071,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				});
 				const entry = dailyMap.get(key);
 				entry.mp += item.mpUsed;
-				entry.prod += item.seboProduced + item.fcoProduced + item.farinhetaProduced;
+				entry.prod += calculateProd(item);
 			});
 			processedData = Array.from(dailyMap.values()).map((entry) => ({
 				date: format(entry.date, "dd/MM"),
@@ -64014,7 +64090,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				});
 				const entry = monthlyMap.get(key);
 				entry.mp += item.mpUsed;
-				entry.prod += item.seboProduced + item.fcoProduced + item.farinhetaProduced;
+				entry.prod += calculateProd(item);
 			});
 			processedData = Array.from(monthlyMap.values()).map((entry) => ({
 				date: format(entry.date, "MMM/yy", { locale: ptBR }),
@@ -64030,10 +64106,18 @@ function YieldBarChart({ data, isMobile = false, className }) {
 				color: "hsl(var(--primary))"
 			} }
 		};
-	}, [data, timeScale]);
+	}, [
+		data,
+		timeScale,
+		isMarReciclagem
+	]);
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Visualização do rendimento industrial (Sebo + FCO + Farinheta)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
+			"Visualização do rendimento industrial (",
+			isMarReciclagem ? "Total" : "Sebo + FCO + Farinheta",
+			")"
+		] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado disponível."
 		})]
@@ -64433,6 +64517,8 @@ function SyncDeviceDialog({ className }) {
 	});
 }
 function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], returns = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+	const { factories, currentFactoryId } = useData();
+	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u$1 = unit$1?.toLowerCase() || "";
@@ -64445,7 +64531,10 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
 		const bloodMealProduced = production.reduce((acc, curr) => acc + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
-		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced;
+		const viscerasMealProduced = production.reduce((acc, curr) => acc + (curr.viscerasMealProduced || 0), 0);
+		const featherMealProduced = production.reduce((acc, curr) => acc + (curr.featherMealProduced || 0), 0);
+		const viscerasOilProduced = production.reduce((acc, curr) => acc + (curr.viscerasOilProduced || 0), 0);
+		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced + viscerasMealProduced + featherMealProduced + viscerasOilProduced;
 		const totalRevenue = shipping.reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0);
 		const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0);
 		const industrialRecords = production.filter((p$1) => !isBloodRecord(p$1));
@@ -64453,13 +64542,20 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const seboProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
+		const viscerasMealProducedInd = industrialRecords.reduce((acc, curr) => acc + (curr.viscerasMealProduced || 0), 0);
+		const featherMealProducedInd = industrialRecords.reduce((acc, curr) => acc + (curr.featherMealProduced || 0), 0);
+		const viscerasOilProducedInd = industrialRecords.reduce((acc, curr) => acc + (curr.viscerasOilProduced || 0), 0);
 		const seboYield = mpUsedMainLine > 0 ? seboProducedIndustrial / mpUsedMainLine * 100 : 0;
 		const fcoYield = mpUsedMainLine > 0 ? fcoProducedIndustrial / mpUsedMainLine * 100 : 0;
 		const farinhetaYield = mpUsedMainLine > 0 ? farinhetaProducedIndustrial / mpUsedMainLine * 100 : 0;
+		const farinhaCarneYield = fcoYield;
+		const farinhaViscerasYield = mpUsedMainLine > 0 ? viscerasMealProducedInd / mpUsedMainLine * 100 : 0;
+		const farinhaPenasYield = mpUsedMainLine > 0 ? featherMealProducedInd / mpUsedMainLine * 100 : 0;
+		const oleoYield = mpUsedMainLine > 0 ? viscerasOilProducedInd / mpUsedMainLine * 100 : 0;
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
 		const previousDate = subDays(referenceDate || /* @__PURE__ */ new Date(), 1);
-		const totalProductionOutputD1 = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, previousDate)).reduce((acc, p$1) => acc + p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced, 0);
+		const totalProductionOutputD1 = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, previousDate)).reduce((acc, p$1) => acc + p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0), 0);
 		const prevDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, previousDate));
 		let totalHoursD1 = 0;
 		let totalMinutesD1 = 0;
@@ -64498,6 +64594,10 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			seboYield,
 			fcoYield,
 			farinhetaYield,
+			farinhaCarneYield,
+			farinhaViscerasYield,
+			farinhaPenasYield,
+			oleoYield,
 			bloodInputKg,
 			bloodMealProduced,
 			bloodYield,
@@ -64677,33 +64777,81 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				iconColor: "text-violet-600 dark:text-violet-400",
 				borderColor: "border-l-violet-600 dark:border-l-violet-400"
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Rendimento Sebo",
-				value: formatPercent(metrics.seboYield),
-				icon: Droplets,
-				iconColor: seboStyle.iconColor,
-				borderColor: seboStyle.borderColor,
-				textColor: seboStyle.textColor,
-				className: seboStyle.bgClass
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Rendimento FCO",
-				value: formatPercent(metrics.fcoYield),
-				icon: Bone,
-				iconColor: fcoStyle.iconColor,
-				borderColor: fcoStyle.borderColor,
-				textColor: fcoStyle.textColor,
-				className: fcoStyle.bgClass
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
-				title: "Rendimento Farinheta",
-				value: formatPercent(metrics.farinhetaYield),
-				icon: Wheat,
-				iconColor: farinhetaStyle.iconColor,
-				borderColor: farinhetaStyle.borderColor,
-				textColor: farinhetaStyle.textColor,
-				className: farinhetaStyle.bgClass
-			}),
+			isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento de Farinha de Carne",
+					value: formatPercent(metrics.farinhaCarneYield),
+					icon: Bone,
+					iconColor: "text-emerald-600",
+					borderColor: "border-l-emerald-600",
+					textColor: "text-emerald-600",
+					className: "bg-emerald-50/50 dark:bg-emerald-900/10"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento de Farinha de Vísceras",
+					value: formatPercent(metrics.farinhaViscerasYield),
+					icon: Fish,
+					iconColor: "text-blue-600",
+					borderColor: "border-l-blue-600",
+					textColor: "text-blue-600",
+					className: "bg-blue-50/50 dark:bg-blue-900/10"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento de Farinha de Penas",
+					value: formatPercent(metrics.farinhaPenasYield),
+					icon: Feather,
+					iconColor: "text-amber-600",
+					borderColor: "border-l-amber-600",
+					textColor: "text-amber-600",
+					className: "bg-amber-50/50 dark:bg-amber-900/10"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento de Sebo",
+					value: formatPercent(metrics.seboYield),
+					icon: Droplets,
+					iconColor: "text-orange-600",
+					borderColor: "border-l-orange-600",
+					textColor: "text-orange-600",
+					className: "bg-orange-50/50 dark:bg-orange-900/10"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento de Óleo",
+					value: formatPercent(metrics.oleoYield),
+					icon: Droplet,
+					iconColor: "text-violet-600",
+					borderColor: "border-l-violet-600",
+					textColor: "text-violet-600",
+					className: "bg-violet-50/50 dark:bg-violet-900/10"
+				})
+			] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento Sebo",
+					value: formatPercent(metrics.seboYield),
+					icon: Droplets,
+					iconColor: seboStyle.iconColor,
+					borderColor: seboStyle.borderColor,
+					textColor: seboStyle.textColor,
+					className: seboStyle.bgClass
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento FCO",
+					value: formatPercent(metrics.fcoYield),
+					icon: Bone,
+					iconColor: fcoStyle.iconColor,
+					borderColor: fcoStyle.borderColor,
+					textColor: fcoStyle.textColor,
+					className: fcoStyle.bgClass
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+					title: "Rendimento Farinheta",
+					value: formatPercent(metrics.farinhetaYield),
+					icon: Wheat,
+					iconColor: farinhetaStyle.iconColor,
+					borderColor: farinhetaStyle.borderColor,
+					textColor: farinhetaStyle.textColor,
+					className: farinhetaStyle.bgClass
+				})
+			] }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de entrada de sangue",
 				value: formatNumberDisplay(metrics.bloodInputKg, "kg"),
@@ -65128,8 +65276,14 @@ function LoadForecast({ referenceDate, className }) {
 	});
 }
 function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = false, className }) {
+	const { factories, currentFactoryId } = useData();
+	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name === "Mar Reciclagem";
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
+		const calculateProd = (p$1) => {
+			if (isMarReciclagem) return p$1.seboProduced + p$1.fcoProduced + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0);
+			return p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced;
+		};
 		let processedData = [];
 		if (timeScale === "monthly") {
 			const monthlyData = /* @__PURE__ */ new Map();
@@ -65144,7 +65298,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 					mp: 0
 				});
 				const entry = monthlyData.get(dateKey);
-				entry.producao += p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced;
+				entry.producao += calculateProd(p$1);
 				entry.mp += p$1.mpUsed;
 			});
 			processedData = Array.from(monthlyData.values()).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
@@ -65152,7 +65306,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 			date: format(p$1.date, "dd/MM"),
 			fullDate: format(p$1.date, "dd 'de' MMMM", { locale: ptBR }),
 			originalDate: p$1.date,
-			producao: p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced,
+			producao: calculateProd(p$1),
 			mp: p$1.mpUsed
 		})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime());
 		return {
@@ -65168,7 +65322,11 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				}
 			}
 		};
-	}, [data, timeScale]);
+	}, [
+		data,
+		timeScale,
+		isMarReciclagem
+	]);
 	const formatValue$2 = (value) => {
 		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 0 }) + "k";
 		return formatNumber(value);
@@ -71891,6 +72049,7 @@ function Dashboard() {
 	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem";
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -71954,7 +72113,7 @@ function Dashboard() {
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
 		const industrialRecords = filteredProduction.filter((p$1) => !isBloodRecord(p$1));
 		const totalMp = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced, 0);
+		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0), 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
 			yieldTarget: notificationSettings?.yieldThreshold || 58
@@ -72095,7 +72254,7 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							currentFactory?.name !== "Mar Reciclagem" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
+							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
@@ -90930,4 +91089,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CDZlT_C8.js.map
+//# sourceMappingURL=index-CrP5QqVJ.js.map
