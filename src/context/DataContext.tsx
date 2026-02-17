@@ -26,12 +26,14 @@ import {
   DailyProductionForecast,
   SteamControlEntry,
   ReturnEntry,
+  SeboInventoryRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { saveForecast, deleteForecast } from '@/services/forecast'
+import { fetchLatestManualEntries } from '@/services/seboInventory'
 import { parseAsLocalNoon } from '@/lib/utils'
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -164,6 +166,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     DailyProductionForecast[]
   >([])
   const [returns, setReturns] = useState<ReturnEntry[]>([])
+  const [latestInventory, setLatestInventory] = useState<SeboInventoryRecord[]>(
+    [],
+  )
 
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
@@ -299,6 +304,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setSteamControlRecords([])
       setDailyForecasts([])
       setReturns([])
+      setLatestInventory([])
       return
     }
 
@@ -329,6 +335,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           { data: steam },
           { data: forecasts },
           { data: rets },
+          inventoryData,
         ] = await Promise.all([
           applyFilters(supabase.from('raw_materials').select('*')),
           applyFilters(supabase.from('production').select('*')),
@@ -340,6 +347,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('steam_control_records').select('*')),
           applyFilters(supabase.from('daily_production_forecasts').select('*')),
           applyFilters(supabase.from('returns').select('*')),
+          // Fetch latest inventory separately (limit 50 to ensure we get latest of all types)
+          fetchLatestManualEntries(currentFactoryId, 50),
         ])
 
         if (raw) setRawMaterials(mapData(raw))
@@ -377,6 +386,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
               createdAt: r.created_at ? new Date(r.created_at) : undefined,
             })),
           )
+        }
+        if (inventoryData) {
+          setLatestInventory(inventoryData)
         }
 
         setLastProtheusSync(new Date())
@@ -445,6 +457,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'steam_control_records',
       'daily_production_forecasts',
       'returns',
+      'sebo_inventory_records',
     ]
 
     tables.forEach((table) => {
@@ -1132,6 +1145,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addReturn,
         updateReturn,
         deleteReturn,
+        latestInventory,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},

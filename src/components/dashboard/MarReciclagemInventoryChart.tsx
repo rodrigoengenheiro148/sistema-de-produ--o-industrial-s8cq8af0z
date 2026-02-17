@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
-import { ProductionEntry, ShippingEntry } from '@/lib/types'
+import {
+  ProductionEntry,
+  ShippingEntry,
+  SeboInventoryRecord,
+} from '@/lib/types'
 import {
   Card,
   CardContent,
@@ -37,6 +41,7 @@ import { cn, formatNumber } from '@/lib/utils'
 interface MarReciclagemInventoryChartProps {
   production: ProductionEntry[]
   shipping: ShippingEntry[]
+  inventoryRecords?: SeboInventoryRecord[]
   className?: string
 }
 
@@ -45,9 +50,26 @@ const SEBO_DENSITY = 0.9
 export function MarReciclagemInventoryChart({
   production,
   shipping,
+  inventoryRecords = [],
   className,
 }: MarReciclagemInventoryChartProps) {
   const { chartData, chartConfig } = useMemo(() => {
+    // Helper to find latest manual record for a category
+    const getManualValue = (
+      categoryName: string,
+      defaultValue: number,
+      isLiquid = false,
+    ) => {
+      const record = inventoryRecords.find((r) => r.category === categoryName)
+      if (record) {
+        if (isLiquid) {
+          return record.quantityLt > 0 ? record.quantityLt : record.quantityKg
+        }
+        return record.quantityKg > 0 ? record.quantityKg : record.quantityLt
+      }
+      return defaultValue
+    }
+
     // 1. Calculate Production Totals (Kg)
     let prodSangue = 0
     let prodTortaCarne = 0 // FCO
@@ -110,18 +132,32 @@ export function MarReciclagemInventoryChart({
 
     // 3. Calculate Balance (Stock)
     // Balance = Production - Shipping
-    const balSangue = prodSangue - shipSangue
-    const balTortaCarne = prodTortaCarne - shipTortaCarne
-    const balVisceras = prodVisceras - shipVisceras
-    const balPenas = prodPenas - shipPenas
-    const balPeixe = prodPeixe - shipPeixe
+    // If manual record exists, use it instead
+    const balSangue = getManualValue(
+      'Farinha de Sangue',
+      prodSangue - shipSangue,
+    )
+    const balTortaCarne = getManualValue(
+      'Torta de Carne',
+      prodTortaCarne - shipTortaCarne,
+    )
+    const balVisceras = getManualValue(
+      'Farinha de Vísceras',
+      prodVisceras - shipVisceras,
+    )
+    const balPenas = getManualValue('Farinha de Penas', prodPenas - shipPenas)
+    const balPeixe = getManualValue('Farinha de Peixe', prodPeixe - shipPeixe)
+
     // Sebo/Oil in Kg first
-    const balSeboKg = prodSebo - shipSebo
-    const balOleoKg = prodOleo - shipOleo
+    const calcSeboKg = prodSebo - shipSebo
+    const calcOleoKg = prodOleo - shipOleo
 
     // 4. Convert Liquids to Liters
-    const balSeboL = balSeboKg / SEBO_DENSITY
-    const balOleoL = balOleoKg / SEBO_DENSITY
+    const calcSeboL = calcSeboKg / SEBO_DENSITY
+    const calcOleoL = calcOleoKg / SEBO_DENSITY
+
+    const balSeboL = getManualValue('Sebo', calcSeboL, true)
+    const balOleoL = getManualValue('Óleo', calcOleoL, true)
 
     const data = [
       {
@@ -173,7 +209,7 @@ export function MarReciclagemInventoryChart({
     }
 
     return { chartData: data, chartConfig: config }
-  }, [production, shipping])
+  }, [production, shipping, inventoryRecords])
 
   const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer config={chartConfig} className={cn('w-full', height)}>
@@ -248,7 +284,7 @@ export function MarReciclagemInventoryChart({
             Balanço de Estoque
           </CardTitle>
           <CardDescription>
-            Saldo estimado (Produção - Expedição) do período
+            Saldo estimado (Produção - Expedição) ou último apontamento manual
           </CardDescription>
         </div>
         <Dialog>
@@ -262,8 +298,8 @@ export function MarReciclagemInventoryChart({
             <DialogHeader>
               <DialogTitle>Balanço de Estoque Detalhado</DialogTitle>
               <DialogDescription>
-                Visualização do saldo de estoque calculado pela diferença entre
-                produção e expedição no período selecionado.
+                Visualização do saldo de estoque. Se houver apontamento manual
+                recente, este prevalece sobre o cálculo automático.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
@@ -272,10 +308,9 @@ export function MarReciclagemInventoryChart({
             <div className="bg-muted/30 p-3 rounded-md text-xs text-muted-foreground flex items-start gap-2">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                Os valores representam o balanço baseado nos dados carregados
-                (filtro de data atual). Para estoque total, certifique-se de
-                selecionar um período abrangente. Sebo e Óleo são exibidos em
-                Litros (L).
+                Os valores refletem o saldo atualizado. Apontamentos manuais de
+                estoque substituem automaticamente o cálculo de fluxo (Produção
+                - Expedição) quando disponíveis para garantir maior precisão.
               </p>
             </div>
           </DialogContent>

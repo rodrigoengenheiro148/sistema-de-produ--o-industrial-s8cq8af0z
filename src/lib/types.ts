@@ -112,6 +112,9 @@ export interface SeboInventoryRecord {
     | 'Óleo'
     | 'Farinha de Sangue'
     | 'Farinha de Penas'
+    | 'Torta de Carne'
+    | 'Farinha de Vísceras'
+    | 'Farinha de Peixe'
   description?: string
   createdAt?: Date
 }
@@ -261,6 +264,7 @@ export interface DataContextType {
   steamControlRecords: SteamControlEntry[]
   dailyForecasts: DailyProductionForecast[]
   returns: ReturnEntry[]
+  latestInventory: SeboInventoryRecord[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (

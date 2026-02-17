@@ -150,7 +150,15 @@ export const fetchLatestManualEntries = async (
       .from('sebo_inventory_records')
       .select('*')
       .eq('factory_id', factoryId)
-      .in('category', ['Sebo', 'Óleo', 'Farinha de Sangue', 'Farinha de Penas'])
+      .in('category', [
+        'Sebo',
+        'Óleo',
+        'Farinha de Sangue',
+        'Farinha de Penas',
+        'Torta de Carne',
+        'Farinha de Vísceras',
+        'Farinha de Peixe',
+      ])
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(limit)

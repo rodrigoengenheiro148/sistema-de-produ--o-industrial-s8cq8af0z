@@ -52,6 +52,7 @@ export default function Dashboard() {
     currentFactoryId,
     notificationSettings,
     connectionStatus,
+    latestInventory,
   } = useData()
   const isMobile = useIsMobile()
 
@@ -390,6 +391,7 @@ export default function Dashboard() {
               <MarReciclagemInventoryChart
                 production={filteredProduction}
                 shipping={filteredShipping}
+                inventoryRecords={latestInventory}
               />
               <YieldGaugeChart
                 value={currentYield}

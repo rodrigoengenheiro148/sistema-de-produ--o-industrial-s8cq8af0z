@@ -33441,7 +33441,7 @@ var WebAuthnApi = class {
 	}
 };
 polyfillGlobalThis();
-var DEFAULT_OPTIONS = {
+var DEFAULT_OPTIONS$1 = {
 	url: GOTRUE_URL,
 	storageKey: STORAGE_KEY,
 	autoRefreshToken: true,
@@ -33490,7 +33490,7 @@ var GoTrueClient = class GoTrueClient {
 		this.pendingInLock = [];
 		this.broadcastChannel = null;
 		this.logger = console.log;
-		const settings = Object.assign(Object.assign({}, DEFAULT_OPTIONS), options$1);
+		const settings = Object.assign(Object.assign({}, DEFAULT_OPTIONS$1), options$1);
 		this.storageKey = settings.storageKey;
 		this.instanceID = (_a$1 = GoTrueClient.nextInstanceID[this.storageKey]) !== null && _a$1 !== void 0 ? _a$1 : 0;
 		GoTrueClient.nextInstanceID[this.storageKey] = this.instanceID + 1;
@@ -36085,6 +36085,154 @@ const deleteForecast = async (id) => {
 	const { error } = await supabase.from("daily_production_forecasts").delete().eq("id", id);
 	if (error) throw error;
 };
+function generateUUID() {
+	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c$1) {
+		const r$2 = Math.random() * 16 | 0;
+		return (c$1 == "x" ? r$2 : r$2 & 3 | 8).toString(16);
+	});
+}
+var parseLocalDate = (dateStr) => {
+	if (!dateStr) return /* @__PURE__ */ new Date();
+	const [year, month, day] = dateStr.split("-").map(Number);
+	return new Date(year, month - 1, day);
+};
+const fetchSeboInventory = async (date$4, factoryId) => {
+	if (!date$4 || isNaN(date$4.getTime())) throw new Error("Data inválida fornecida.");
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	const dateStr = format(date$4, "yyyy-MM-dd");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).eq("date", dateStr).order("created_at", { ascending: true });
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
+			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
+			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
+			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
+			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
+			label: item.label,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching sebo inventory:", error);
+		if (error.message === "Failed to fetch") throw new Error("Falha na conexão com o servidor. Verifique sua conexão com a internet.");
+		throw error;
+	}
+};
+const fetchSeboInventoryHistory = async (startDate, endDate, factoryId) => {
+	if (!startDate || isNaN(startDate.getTime())) throw new Error("Data inicial inválida.");
+	if (!endDate || isNaN(endDate.getTime())) throw new Error("Data final inválida.");
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	const startStr = format(startDate, "yyyy-MM-dd");
+	const endStr = format(endDate, "yyyy-MM-dd");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).gte("date", startStr).lte("date", endStr).order("date", { ascending: true });
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
+			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
+			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
+			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
+			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
+			label: item.label,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching sebo inventory history:", error);
+		if (error.message === "Failed to fetch") throw new Error("Não foi possível carregar o histórico. Verifique sua conexão.");
+		throw error;
+	}
+};
+const fetchLatestManualEntries = async (factoryId, limit = 20) => {
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).in("category", [
+			"Sebo",
+			"Óleo",
+			"Farinha de Sangue",
+			"Farinha de Penas",
+			"Torta de Carne",
+			"Farinha de Vísceras",
+			"Farinha de Peixe"
+		]).order("date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching manual entries:", error);
+		throw new Error("Erro ao buscar histórico de apontamentos manuais.");
+	}
+};
+const saveSeboInventory = async (records) => {
+	if (records.filter((r$2) => !r$2.factoryId || !r$2.userId || !r$2.date || isNaN(r$2.date.getTime())).length > 0) throw new Error("Dados incompletos: Fábrica, Usuário ou Data não identificados.");
+	try {
+		const recordsToSave = records.map((r$2) => {
+			return {
+				id: r$2.id || generateUUID(),
+				factory_id: r$2.factoryId,
+				user_id: r$2.userId,
+				date: format(r$2.date, "yyyy-MM-dd"),
+				tank_number: r$2.tankNumber || null,
+				quantity_lt: r$2.quantityLt || 0,
+				quantity_kg: r$2.quantityKg || 0,
+				acidity: r$2.acidity !== void 0 ? r$2.acidity : null,
+				moisture: r$2.moisture !== void 0 ? r$2.moisture : null,
+				impurity: r$2.impurity !== void 0 ? r$2.impurity : null,
+				soaps: r$2.soaps !== void 0 ? r$2.soaps : null,
+				iodine: r$2.iodine !== void 0 ? r$2.iodine : null,
+				label: r$2.label || null,
+				category: r$2.category,
+				description: r$2.description || null
+			};
+		});
+		const { data, error } = await supabase.from("sebo_inventory_records").upsert(recordsToSave, { onConflict: "id" }).select();
+		if (error) throw error;
+		return data;
+	} catch (error) {
+		console.error("Error saving sebo inventory:", error);
+		if (error.message === "Failed to fetch") throw new Error("Falha ao salvar. Verifique sua conexão e tente novamente.");
+		throw error;
+	}
+};
+const deleteSeboInventoryRecord = async (id) => {
+	if (!id) throw new Error("ID do registro inválido.");
+	try {
+		const { error } = await supabase.from("sebo_inventory_records").delete().eq("id", id);
+		if (error) throw error;
+	} catch (error) {
+		console.error("Error deleting record:", error);
+		if (error.message === "Failed to fetch") throw new Error("Erro de conexão ao tentar deletar o registro.");
+		throw error;
+	}
+};
 var DataContext = (0, import_react.createContext)(void 0);
 var DEFAULT_SETTINGS = {
 	productionGoal: 5e4,
@@ -36181,6 +36329,7 @@ const DataProvider = ({ children }) => {
 	const [steamControlRecords, setSteamControlRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [returns, setReturns] = (0, import_react.useState)([]);
+	const [latestInventory, setLatestInventory] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
 	const [systemSettings, setSystemSettings] = (0, import_react.useState)(DEFAULT_SETTINGS);
@@ -36278,6 +36427,7 @@ const DataProvider = ({ children }) => {
 			setSteamControlRecords([]);
 			setDailyForecasts([]);
 			setReturns([]);
+			setLatestInventory([]);
 			return;
 		}
 		try {
@@ -36290,7 +36440,7 @@ const DataProvider = ({ children }) => {
 					if (toDateStr) q = q.lte("date", toDateStr);
 					return q.order("date", { ascending: false });
 				};
-				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }] = await Promise.all([
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, inventoryData] = await Promise.all([
 					applyFilters(supabase.from("raw_materials").select("*")),
 					applyFilters(supabase.from("production").select("*")),
 					applyFilters(supabase.from("shipping").select("*")),
@@ -36300,7 +36450,8 @@ const DataProvider = ({ children }) => {
 					applyFilters(supabase.from("downtime_records").select("*")),
 					applyFilters(supabase.from("steam_control_records").select("*")),
 					applyFilters(supabase.from("daily_production_forecasts").select("*")),
-					applyFilters(supabase.from("returns").select("*"))
+					applyFilters(supabase.from("returns").select("*")),
+					fetchLatestManualEntries(currentFactoryId, 50)
 				]);
 				if (raw) setRawMaterials(mapData(raw));
 				if (prod) setProduction(mapData(prod));
@@ -36330,6 +36481,7 @@ const DataProvider = ({ children }) => {
 					userId: r$2.user_id,
 					createdAt: r$2.created_at ? new Date(r$2.created_at) : void 0
 				})));
+				if (inventoryData) setLatestInventory(inventoryData);
 				setLastProtheusSync(/* @__PURE__ */ new Date());
 				setConnectionStatus("online");
 			});
@@ -36381,7 +36533,8 @@ const DataProvider = ({ children }) => {
 			"downtime_records",
 			"steam_control_records",
 			"daily_production_forecasts",
-			"returns"
+			"returns",
+			"sebo_inventory_records"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
 				event: "*",
@@ -36921,6 +37074,7 @@ const DataProvider = ({ children }) => {
 			addReturn,
 			updateReturn,
 			deleteReturn,
+			latestInventory,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -72057,8 +72211,16 @@ function ReturnsImpactChart({ data, className }) {
 	});
 }
 var SEBO_DENSITY = .9;
-function MarReciclagemInventoryChart({ production, shipping, className }) {
+function MarReciclagemInventoryChart({ production, shipping, inventoryRecords = [], className }) {
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const getManualValue = (categoryName, defaultValue, isLiquid = false) => {
+			const record = inventoryRecords.find((r$2) => r$2.category === categoryName);
+			if (record) {
+				if (isLiquid) return record.quantityLt > 0 ? record.quantityLt : record.quantityKg;
+				return record.quantityKg > 0 ? record.quantityKg : record.quantityLt;
+			}
+			return defaultValue;
+		};
 		let prodSangue = 0;
 		let prodTortaCarne = 0;
 		let prodVisceras = 0;
@@ -72094,15 +72256,17 @@ function MarReciclagemInventoryChart({ production, shipping, className }) {
 			else if (pName.includes("sebo")) shipSebo += qty;
 			else if (pName.includes("óleo") || pName.includes("oleo")) shipOleo += qty;
 		});
-		const balSangue = prodSangue - shipSangue;
-		const balTortaCarne = prodTortaCarne - shipTortaCarne;
-		const balVisceras = prodVisceras - shipVisceras;
-		const balPenas = prodPenas - shipPenas;
-		const balPeixe = prodPeixe - shipPeixe;
-		const balSeboKg = prodSebo - shipSebo;
-		const balOleoKg = prodOleo - shipOleo;
-		const balSeboL = balSeboKg / SEBO_DENSITY;
-		const balOleoL = balOleoKg / SEBO_DENSITY;
+		const balSangue = getManualValue("Farinha de Sangue", prodSangue - shipSangue);
+		const balTortaCarne = getManualValue("Torta de Carne", prodTortaCarne - shipTortaCarne);
+		const balVisceras = getManualValue("Farinha de Vísceras", prodVisceras - shipVisceras);
+		const balPenas = getManualValue("Farinha de Penas", prodPenas - shipPenas);
+		const balPeixe = getManualValue("Farinha de Peixe", prodPeixe - shipPeixe);
+		const calcSeboKg = prodSebo - shipSebo;
+		const calcOleoKg = prodOleo - shipOleo;
+		const calcSeboL = calcSeboKg / SEBO_DENSITY;
+		const calcOleoL = calcOleoKg / SEBO_DENSITY;
+		const balSeboL = getManualValue("Sebo", calcSeboL, true);
+		const balOleoL = getManualValue("Óleo", calcOleoL, true);
 		return {
 			chartData: [
 				{
@@ -72153,7 +72317,11 @@ function MarReciclagemInventoryChart({ production, shipping, className }) {
 				color: "hsl(var(--primary))"
 			} }
 		};
-	}, [production, shipping]);
+	}, [
+		production,
+		shipping,
+		inventoryRecords
+	]);
 	const ChartContent = ({ height = "h-[350px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: cn("w-full", height),
@@ -72243,7 +72411,7 @@ function MarReciclagemInventoryChart({ production, shipping, className }) {
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 					className: "flex items-center gap-2",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), "Balanço de Estoque"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Saldo estimado (Produção - Expedição) do período" })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Saldo estimado (Produção - Expedição) ou último apontamento manual" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
@@ -72258,14 +72426,14 @@ function MarReciclagemInventoryChart({ production, shipping, className }) {
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 				className: "max-w-[800px] flex flex-col",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Balanço de Estoque Detalhado" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização do saldo de estoque calculado pela diferença entre produção e expedição no período selecionado." })] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Balanço de Estoque Detalhado" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização do saldo de estoque. Se houver apontamento manual recente, este prevalece sobre o cálculo automático." })] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "flex-1 w-full min-h-0 py-4",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-[500px]" })
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "bg-muted/30 p-3 rounded-md text-xs text-muted-foreground flex items-start gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-4 w-4 shrink-0 mt-0.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Os valores representam o balanço baseado nos dados carregados (filtro de data atual). Para estoque total, certifique-se de selecionar um período abrangente. Sebo e Óleo são exibidos em Litros (L)." })]
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-4 w-4 shrink-0 mt-0.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Os valores refletem o saldo atualizado. Apontamentos manuais de estoque substituem automaticamente o cálculo de fluxo (Produção - Expedição) quando disponíveis para garantir maior precisão." })]
 					})
 				]
 			})] })]
@@ -72302,7 +72470,7 @@ var AlertDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 }));
 AlertDescription.displayName = "AlertDescription";
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus, latestInventory } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
@@ -72515,7 +72683,8 @@ function Dashboard() {
 								className: "grid gap-4 md:grid-cols-2",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarReciclagemInventoryChart, {
 									production: filteredProduction,
-									shipping: filteredShipping
+									shipping: filteredShipping,
+									inventoryRecords: latestInventory
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
 									value: currentYield,
 									target: yieldTarget,
@@ -82907,152 +83076,7 @@ var Progress = import_react.forwardRef(({ className, value, ...props }, ref) => 
 	})
 }));
 Progress.displayName = Root$1.displayName;
-function generateUUID() {
-	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c$1) {
-		const r$2 = Math.random() * 16 | 0;
-		return (c$1 == "x" ? r$2 : r$2 & 3 | 8).toString(16);
-	});
-}
-var parseLocalDate = (dateStr) => {
-	if (!dateStr) return /* @__PURE__ */ new Date();
-	const [year, month, day] = dateStr.split("-").map(Number);
-	return new Date(year, month - 1, day);
-};
-const fetchSeboInventory = async (date$4, factoryId) => {
-	if (!date$4 || isNaN(date$4.getTime())) throw new Error("Data inválida fornecida.");
-	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	const dateStr = format(date$4, "yyyy-MM-dd");
-	try {
-		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).eq("date", dateStr).order("created_at", { ascending: true });
-		if (error) throw error;
-		return data.map((item) => ({
-			id: item.id,
-			factoryId: item.factory_id,
-			userId: item.user_id,
-			date: parseLocalDate(item.date),
-			tankNumber: item.tank_number || "",
-			quantityLt: Number(item.quantity_lt) || 0,
-			quantityKg: Number(item.quantity_kg) || 0,
-			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
-			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
-			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
-			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
-			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
-			label: item.label,
-			category: item.category,
-			description: item.description || "",
-			createdAt: new Date(item.created_at)
-		}));
-	} catch (error) {
-		console.error("Error fetching sebo inventory:", error);
-		if (error.message === "Failed to fetch") throw new Error("Falha na conexão com o servidor. Verifique sua conexão com a internet.");
-		throw error;
-	}
-};
-const fetchSeboInventoryHistory = async (startDate, endDate, factoryId) => {
-	if (!startDate || isNaN(startDate.getTime())) throw new Error("Data inicial inválida.");
-	if (!endDate || isNaN(endDate.getTime())) throw new Error("Data final inválida.");
-	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	const startStr = format(startDate, "yyyy-MM-dd");
-	const endStr = format(endDate, "yyyy-MM-dd");
-	try {
-		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).gte("date", startStr).lte("date", endStr).order("date", { ascending: true });
-		if (error) throw error;
-		return data.map((item) => ({
-			id: item.id,
-			factoryId: item.factory_id,
-			userId: item.user_id,
-			date: parseLocalDate(item.date),
-			tankNumber: item.tank_number || "",
-			quantityLt: Number(item.quantity_lt) || 0,
-			quantityKg: Number(item.quantity_kg) || 0,
-			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
-			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
-			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
-			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
-			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
-			label: item.label,
-			category: item.category,
-			description: item.description || "",
-			createdAt: new Date(item.created_at)
-		}));
-	} catch (error) {
-		console.error("Error fetching sebo inventory history:", error);
-		if (error.message === "Failed to fetch") throw new Error("Não foi possível carregar o histórico. Verifique sua conexão.");
-		throw error;
-	}
-};
-const fetchLatestManualEntries = async (factoryId, limit = 20) => {
-	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	try {
-		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).in("category", [
-			"Sebo",
-			"Óleo",
-			"Farinha de Sangue",
-			"Farinha de Penas"
-		]).order("date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
-		if (error) throw error;
-		return data.map((item) => ({
-			id: item.id,
-			factoryId: item.factory_id,
-			userId: item.user_id,
-			date: parseLocalDate(item.date),
-			tankNumber: item.tank_number || "",
-			quantityLt: Number(item.quantity_lt) || 0,
-			quantityKg: Number(item.quantity_kg) || 0,
-			category: item.category,
-			description: item.description || "",
-			createdAt: new Date(item.created_at)
-		}));
-	} catch (error) {
-		console.error("Error fetching manual entries:", error);
-		throw new Error("Erro ao buscar histórico de apontamentos manuais.");
-	}
-};
-const saveSeboInventory = async (records) => {
-	if (records.filter((r$2) => !r$2.factoryId || !r$2.userId || !r$2.date || isNaN(r$2.date.getTime())).length > 0) throw new Error("Dados incompletos: Fábrica, Usuário ou Data não identificados.");
-	try {
-		const recordsToSave = records.map((r$2) => {
-			return {
-				id: r$2.id || generateUUID(),
-				factory_id: r$2.factoryId,
-				user_id: r$2.userId,
-				date: format(r$2.date, "yyyy-MM-dd"),
-				tank_number: r$2.tankNumber || null,
-				quantity_lt: r$2.quantityLt || 0,
-				quantity_kg: r$2.quantityKg || 0,
-				acidity: r$2.acidity !== void 0 ? r$2.acidity : null,
-				moisture: r$2.moisture !== void 0 ? r$2.moisture : null,
-				impurity: r$2.impurity !== void 0 ? r$2.impurity : null,
-				soaps: r$2.soaps !== void 0 ? r$2.soaps : null,
-				iodine: r$2.iodine !== void 0 ? r$2.iodine : null,
-				label: r$2.label || null,
-				category: r$2.category,
-				description: r$2.description || null
-			};
-		});
-		const { data, error } = await supabase.from("sebo_inventory_records").upsert(recordsToSave, { onConflict: "id" }).select();
-		if (error) throw error;
-		return data;
-	} catch (error) {
-		console.error("Error saving sebo inventory:", error);
-		if (error.message === "Failed to fetch") throw new Error("Falha ao salvar. Verifique sua conexão e tente novamente.");
-		throw error;
-	}
-};
-const deleteSeboInventoryRecord = async (id) => {
-	if (!id) throw new Error("ID do registro inválido.");
-	try {
-		const { error } = await supabase.from("sebo_inventory_records").delete().eq("id", id);
-		if (error) throw error;
-	} catch (error) {
-		console.error("Error deleting record:", error);
-		if (error.message === "Failed to fetch") throw new Error("Erro de conexão ao tentar deletar o registro.");
-		throw error;
-	}
-};
-var MATERIAL_OPTIONS = [
+var DEFAULT_OPTIONS = [
 	{
 		value: "Sebo",
 		label: "Sebo",
@@ -83074,15 +83098,38 @@ var MATERIAL_OPTIONS = [
 		unit: "kg"
 	}
 ];
+var MAR_OPTIONS = [
+	{
+		value: "Torta de Carne",
+		label: "Torta de Carne",
+		unit: "kg"
+	},
+	{
+		value: "Farinha de Vísceras",
+		label: "Farinha de Vísceras",
+		unit: "kg"
+	},
+	{
+		value: "Farinha de Peixe",
+		label: "Farinha de Peixe",
+		unit: "kg"
+	}
+];
 function ManualEntryForm({ onSuccess }) {
-	const { currentFactoryId } = useData();
+	const { currentFactoryId, factories, refreshOperationalData } = useData();
 	const { user } = useAuth();
 	const { toast: toast$2 } = useToast();
 	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	const [material, setMaterial] = (0, import_react.useState)("");
 	const [quantity, setQuantity] = (0, import_react.useState)("");
 	const [loading, setLoading] = (0, import_react.useState)(false);
-	const selectedMaterial = MATERIAL_OPTIONS.find((m$1) => m$1.value === material);
+	const currentFactory = factories.find((f) => f.id === currentFactoryId);
+	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const availableOptions = (0, import_react.useMemo)(() => {
+		if (isMarReciclagem) return [...DEFAULT_OPTIONS, ...MAR_OPTIONS];
+		return DEFAULT_OPTIONS;
+	}, [isMarReciclagem]);
+	const selectedMaterial = availableOptions.find((m$1) => m$1.value === material);
 	const unitLabel = selectedMaterial ? selectedMaterial.unit : "Unidade";
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -83113,14 +83160,16 @@ function ManualEntryForm({ onSuccess }) {
 		}
 		setLoading(true);
 		try {
+			const isLiquid = material === "Sebo" || material === "Óleo";
 			await saveSeboInventory([{
 				factoryId: currentFactoryId,
 				userId: user.id,
 				date: date$4,
 				category: material,
-				quantityLt: material === "Sebo" || material === "Óleo" ? qtyValue : 0,
-				quantityKg: material === "Farinha de Sangue" || material === "Farinha de Penas" ? qtyValue : 0
+				quantityLt: isLiquid ? qtyValue : 0,
+				quantityKg: !isLiquid ? qtyValue : 0
 			}]);
+			await refreshOperationalData();
 			toast$2({
 				title: "Apontamento Salvo",
 				description: "O estoque foi atualizado com sucesso.",
@@ -83182,7 +83231,7 @@ function ManualEntryForm({ onSuccess }) {
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
 								id: "material",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione o material" })
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: MATERIAL_OPTIONS.map((opt) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: availableOptions.map((opt) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
 								value: opt.value,
 								children: opt.label
 							}, opt.value)) })]
@@ -91696,4 +91745,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BlVDBzGh.js.map
+//# sourceMappingURL=index-nn3JwwmL.js.map

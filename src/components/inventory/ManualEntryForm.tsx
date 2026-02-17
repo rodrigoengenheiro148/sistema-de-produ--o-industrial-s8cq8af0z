@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
@@ -37,15 +37,21 @@ interface ManualEntryFormProps {
   onSuccess: () => void
 }
 
-const MATERIAL_OPTIONS = [
+const DEFAULT_OPTIONS = [
   { value: 'Sebo', label: 'Sebo', unit: 'Litros' },
   { value: 'Óleo', label: 'Óleo', unit: 'Litros' },
   { value: 'Farinha de Sangue', label: 'Farinha de Sangue', unit: 'kg' },
   { value: 'Farinha de Penas', label: 'Farinha de Penas', unit: 'kg' },
 ] as const
 
+const MAR_OPTIONS = [
+  { value: 'Torta de Carne', label: 'Torta de Carne', unit: 'kg' },
+  { value: 'Farinha de Vísceras', label: 'Farinha de Vísceras', unit: 'kg' },
+  { value: 'Farinha de Peixe', label: 'Farinha de Peixe', unit: 'kg' },
+] as const
+
 export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
-  const { currentFactoryId } = useData()
+  const { currentFactoryId, factories, refreshOperationalData } = useData()
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -54,7 +60,18 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
   const [quantity, setQuantity] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
-  const selectedMaterial = MATERIAL_OPTIONS.find((m) => m.value === material)
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem =
+    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
+
+  const availableOptions = useMemo(() => {
+    if (isMarReciclagem) {
+      return [...DEFAULT_OPTIONS, ...MAR_OPTIONS]
+    }
+    return DEFAULT_OPTIONS
+  }, [isMarReciclagem])
+
+  const selectedMaterial = availableOptions.find((m) => m.value === material)
   const unitLabel = selectedMaterial ? selectedMaterial.unit : 'Unidade'
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,19 +107,20 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
 
     setLoading(true)
     try {
+      const isLiquid = material === 'Sebo' || material === 'Óleo'
       const record: SeboInventoryRecord = {
         factoryId: currentFactoryId,
         userId: user.id,
         date: date,
         category: material as any,
-        quantityLt: material === 'Sebo' || material === 'Óleo' ? qtyValue : 0,
-        quantityKg:
-          material === 'Farinha de Sangue' || material === 'Farinha de Penas'
-            ? qtyValue
-            : 0,
+        quantityLt: isLiquid ? qtyValue : 0,
+        quantityKg: !isLiquid ? qtyValue : 0,
       }
 
       await saveSeboInventory([record])
+
+      // Trigger data refresh to update charts in dashboard
+      await refreshOperationalData()
 
       toast({
         title: 'Apontamento Salvo',
@@ -175,7 +193,7 @@ export function ManualEntryForm({ onSuccess }: ManualEntryFormProps) {
                   <SelectValue placeholder="Selecione o material" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MATERIAL_OPTIONS.map((opt) => (
+                  {availableOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
