@@ -64936,7 +64936,7 @@ function LoadForecast({ referenceDate, className }) {
 	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const FIXED_FLOW_1450 = 5.8;
 	const FIXED_FLOW_1500 = 6;
-	const SEBO_DENSITY = .9;
+	const SEBO_DENSITY$1 = .9;
 	const YIELD_FACTORS = {
 		sebo: .15,
 		fco: .2,
@@ -64958,11 +64958,11 @@ function LoadForecast({ referenceDate, className }) {
 		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
 	};
 	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data, isLiquid = false }) => {
-		const flow1450L = isLiquid ? FIXED_FLOW_1450 * 1e3 / SEBO_DENSITY : 0;
-		const flow1500L = isLiquid ? FIXED_FLOW_1500 * 1e3 / SEBO_DENSITY : 0;
-		const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY : 0;
-		const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY : 0;
-		const totalVolL = isLiquid ? data.estProdTons * 1e3 / SEBO_DENSITY : 0;
+		const flow1450L = isLiquid ? FIXED_FLOW_1450 * 1e3 / SEBO_DENSITY$1 : 0;
+		const flow1500L = isLiquid ? FIXED_FLOW_1500 * 1e3 / SEBO_DENSITY$1 : 0;
+		const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY$1 : 0;
+		const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY$1 : 0;
+		const totalVolL = isLiquid ? data.estProdTons * 1e3 / SEBO_DENSITY$1 : 0;
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -72025,6 +72025,225 @@ function ReturnsImpactChart({ data, className }) {
 		}) })]
 	});
 }
+var SEBO_DENSITY = .9;
+function MarReciclagemInventoryChart({ production, shipping, className }) {
+	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		let prodSangue = 0;
+		let prodTortaCarne = 0;
+		let prodVisceras = 0;
+		let prodPenas = 0;
+		let prodPeixe = 0;
+		let prodSebo = 0;
+		let prodOleo = 0;
+		production.forEach((p$1) => {
+			const sangue = p$1.bloodMealBags && p$1.bloodMealBags > 0 ? p$1.bloodMealBags * 1400 : p$1.bloodMealProduced || 0;
+			prodSangue += sangue;
+			prodTortaCarne += p$1.fcoProduced || 0;
+			prodVisceras += p$1.viscerasMealProduced || 0;
+			prodPenas += p$1.featherMealProduced || 0;
+			prodPeixe += p$1.fishMealProduced || 0;
+			prodSebo += p$1.seboProduced || 0;
+			prodOleo += p$1.viscerasOilProduced || 0;
+		});
+		let shipSangue = 0;
+		let shipTortaCarne = 0;
+		let shipVisceras = 0;
+		let shipPenas = 0;
+		let shipPeixe = 0;
+		let shipSebo = 0;
+		let shipOleo = 0;
+		shipping.forEach((s$3) => {
+			const pName = s$3.product.toLowerCase();
+			const qty = s$3.quantity;
+			if (pName.includes("sangue")) shipSangue += qty;
+			else if (pName.includes("torta") || pName === "fco" || pName.includes("carne")) shipTortaCarne += qty;
+			else if (pName.includes("vísceras") || pName.includes("visceras")) shipVisceras += qty;
+			else if (pName.includes("penas")) shipPenas += qty;
+			else if (pName.includes("peixe")) shipPeixe += qty;
+			else if (pName.includes("sebo")) shipSebo += qty;
+			else if (pName.includes("óleo") || pName.includes("oleo")) shipOleo += qty;
+		});
+		const balSangue = prodSangue - shipSangue;
+		const balTortaCarne = prodTortaCarne - shipTortaCarne;
+		const balVisceras = prodVisceras - shipVisceras;
+		const balPenas = prodPenas - shipPenas;
+		const balPeixe = prodPeixe - shipPeixe;
+		const balSeboKg = prodSebo - shipSebo;
+		const balOleoKg = prodOleo - shipOleo;
+		const balSeboL = balSeboKg / SEBO_DENSITY;
+		const balOleoL = balOleoKg / SEBO_DENSITY;
+		return {
+			chartData: [
+				{
+					name: "Farinha de Sangue",
+					value: balSangue,
+					unit: "kg",
+					fill: "#dc2626"
+				},
+				{
+					name: "Torta de Carne",
+					value: balTortaCarne,
+					unit: "kg",
+					fill: "#d97706"
+				},
+				{
+					name: "Farinha de Vísceras",
+					value: balVisceras,
+					unit: "kg",
+					fill: "#2563eb"
+				},
+				{
+					name: "Farinha de Penas",
+					value: balPenas,
+					unit: "kg",
+					fill: "#4b5563"
+				},
+				{
+					name: "Farinha de Peixe",
+					value: balPeixe,
+					unit: "kg",
+					fill: "#06b6d4"
+				},
+				{
+					name: "Sebo",
+					value: balSeboL,
+					unit: "L",
+					fill: "#16a34a"
+				},
+				{
+					name: "Óleo",
+					value: balOleoL,
+					unit: "L",
+					fill: "#8b5cf6"
+				}
+			],
+			chartConfig: { value: {
+				label: "Estoque",
+				color: "hsl(var(--primary))"
+			} }
+		};
+	}, [production, shipping]);
+	const ChartContent = ({ height = "h-[350px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		config: chartConfig$1,
+		className: cn("w-full", height),
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+			data: chartData,
+			layout: "vertical",
+			margin: {
+				top: 10,
+				right: 80,
+				left: 10,
+				bottom: 0
+			},
+			barSize: 32,
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+					horizontal: false,
+					strokeDasharray: "3 3"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+					dataKey: "name",
+					type: "category",
+					tickLine: false,
+					axisLine: false,
+					width: 130,
+					fontSize: 12,
+					tick: { fill: "hsl(var(--muted-foreground))" }
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+					type: "number",
+					hide: true
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+					cursor: { fill: "hsl(var(--muted)/0.3)" },
+					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+						hideLabel: true,
+						formatter: (value, name, item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "h-2 w-2 rounded-full",
+									style: { backgroundColor: item.payload.fill }
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "text-muted-foreground",
+									children: [item.payload.name, ":"]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "font-mono font-bold",
+									children: [
+										formatNumber(Number(value), { maximumFractionDigits: 0 }),
+										" ",
+										item.payload.unit
+									]
+								})
+							]
+						})
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Bar, {
+					dataKey: "value",
+					radius: [
+						0,
+						4,
+						4,
+						0
+					],
+					children: [chartData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: entry.fill }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "value",
+						position: "right",
+						className: "fill-foreground font-bold",
+						fontSize: 12,
+						formatter: (value, _$1, entry) => {
+							const unit$1 = chartData.find((d) => d.value === value)?.unit || "";
+							return formatNumber(value, { maximumFractionDigits: 0 }) + " " + unit$1;
+						}
+					})]
+				})
+			]
+		})
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+					className: "flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), "Balanço de Estoque"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Saldo estimado (Produção - Expedição) do período" })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+				asChild: true,
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					variant: "ghost",
+					size: "icon",
+					className: "h-8 w-8",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "sr-only",
+						children: "Expandir"
+					})]
+				})
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+				className: "max-w-[800px] flex flex-col",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Balanço de Estoque Detalhado" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização do saldo de estoque calculado pela diferença entre produção e expedição no período selecionado." })] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "flex-1 w-full min-h-0 py-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-[500px]" })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "bg-muted/30 p-3 rounded-md text-xs text-muted-foreground flex items-start gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-4 w-4 shrink-0 mt-0.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Os valores representam o balanço baseado nos dados carregados (filtro de data atual). Para estoque total, certifique-se de selecionar um período abrangente. Sebo e Óleo são exibidos em Litros (L)." })]
+					})
+				]
+			})] })]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "pt-4 pb-2",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {})
+		})]
+	});
+}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -72261,7 +72480,18 @@ function Dashboard() {
 								referenceDate: effectiveForecastDate
 							}),
 							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 md:grid-cols-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarReciclagemInventoryChart, {
+									production: filteredProduction,
+									shipping: filteredShipping
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
+									value: currentYield,
+									target: yieldTarget,
+									className: "h-full"
+								})]
+							}),
+							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
 									value: currentYield,
@@ -72276,6 +72506,11 @@ function Dashboard() {
 										className: "h-full"
 									})
 								})]
+							}),
+							isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
+								data: filteredProduction,
+								isMobile,
+								timeScale: "daily"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialCompositionChart, {
 								data: filteredRawMaterials,
@@ -91095,4 +91330,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-sAKTgwyV.js.map
+//# sourceMappingURL=index-EvCGNM-H.js.map

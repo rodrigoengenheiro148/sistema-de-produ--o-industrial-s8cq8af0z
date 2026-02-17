@@ -30,6 +30,7 @@ import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
+import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -384,21 +385,45 @@ export default function Dashboard() {
             <LoadForecast referenceDate={effectiveForecastDate} />
           )}
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <YieldGaugeChart
-              value={currentYield}
-              target={yieldTarget}
-              className="h-full"
-            />
-            <div className="md:col-span-2">
-              <ProductionPerformanceChart
-                data={filteredProduction}
-                isMobile={isMobile}
-                timeScale="daily"
+          {isMarReciclagem && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <MarReciclagemInventoryChart
+                production={filteredProduction}
+                shipping={filteredShipping}
+              />
+              <YieldGaugeChart
+                value={currentYield}
+                target={yieldTarget}
                 className="h-full"
               />
             </div>
-          </div>
+          )}
+
+          {!isMarReciclagem && (
+            <div className="grid gap-4 md:grid-cols-3">
+              <YieldGaugeChart
+                value={currentYield}
+                target={yieldTarget}
+                className="h-full"
+              />
+              <div className="md:col-span-2">
+                <ProductionPerformanceChart
+                  data={filteredProduction}
+                  isMobile={isMobile}
+                  timeScale="daily"
+                  className="h-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {isMarReciclagem && (
+            <ProductionPerformanceChart
+              data={filteredProduction}
+              isMobile={isMobile}
+              timeScale="daily"
+            />
+          )}
 
           <RawMaterialCompositionChart
             data={filteredRawMaterials}

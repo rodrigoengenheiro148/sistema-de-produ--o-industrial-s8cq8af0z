@@ -41,6 +41,10 @@ export interface ShippingEntry {
     | 'Farinha Especial'
     | 'Farinha de Peixe'
     | 'Farinha de Sangue'
+    | 'Farinha de Vísceras'
+    | 'Farinha de Penas'
+    | 'Óleo'
+    | 'Torta de Carne'
   quantity: number
   unitPrice: number
   docRef: string

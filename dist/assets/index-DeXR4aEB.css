@@ -1220,6 +1220,9 @@ section[aria-label='Notifications alt+T'] {
 .max-w-\[70\%\]{
   max-width: 70%;
 }
+.max-w-\[800px\]{
+  max-width: 800px;
+}
 .max-w-\[90vw\]{
   max-width: 90vw;
 }
