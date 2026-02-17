@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -11,10 +11,14 @@ import {
   AlertTriangle,
   RefreshCw,
   Clock,
+  ClipboardList,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ManualEntryForm } from '@/components/inventory/ManualEntryForm'
+import { ManualEntryHistory } from '@/components/inventory/ManualEntryHistory'
 
 export default function Inventory() {
   const {
@@ -24,9 +28,16 @@ export default function Inventory() {
     protheusConfig,
     syncProtheusData,
     lastProtheusSync,
+    factories,
+    currentFactoryId,
   } = useData()
   const { toast } = useToast()
   const [isSyncing, setIsSyncing] = useState(false)
+  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0)
+
+  // Identify factory
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isMarReciclagem = currentFactory?.name?.includes('Mar Reciclagem')
 
   // MP Balance = Sum(Entries) - Sum(Used in Production)
   const mpIn = rawMaterials.reduce((acc, curr) => acc + curr.quantity, 0)
@@ -140,37 +151,8 @@ export default function Inventory() {
     )
   }
 
-  return (
+  const AutoOverview = () => (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
-        {protheusConfig.isActive && protheusConfig.syncInventory && (
-          <div className="flex items-center gap-3">
-            {lastProtheusSync && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Atualizado:{' '}
-                {format(lastProtheusSync, "dd/MM 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`}
-              />
-              {isSyncing ? 'Sincronizando...' : 'Sync Protheus'}
-            </Button>
-          </div>
-        )}
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <InventoryCard
           title="Matéria-Prima (MP)"
@@ -231,6 +213,75 @@ export default function Inventory() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold tracking-tight">Gestão de Estoque</h2>
+        {protheusConfig.isActive && protheusConfig.syncInventory && (
+          <div className="flex items-center gap-3">
+            {lastProtheusSync && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Atualizado:{' '}
+                {format(lastProtheusSync, "dd/MM 'às' HH:mm", {
+                  locale: ptBR,
+                })}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`}
+              />
+              {isSyncing ? 'Sincronizando...' : 'Sync Protheus'}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {isMarReciclagem ? (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="overview">Visão Geral (Cálculo)</TabsTrigger>
+            <TabsTrigger value="manual" className="gap-2">
+              <ClipboardList className="h-4 w-4" /> Apontamento Manual
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="overview"
+            className="animate-in fade-in slide-in-from-left-4"
+          >
+            <AutoOverview />
+          </TabsContent>
+
+          <TabsContent
+            value="manual"
+            className="space-y-6 animate-in fade-in slide-in-from-right-4"
+          >
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <ManualEntryForm
+                  onSuccess={() => setRefreshHistoryTrigger((prev) => prev + 1)}
+                />
+              </div>
+              <div>
+                <ManualEntryHistory refreshTrigger={refreshHistoryTrigger} />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <AutoOverview />
+      )}
     </div>
   )
 }

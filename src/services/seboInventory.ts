@@ -23,7 +23,6 @@ const parseLocalDate = (dateStr: string): Date => {
 }
 
 // Fetch records for a specific date and factory
-// We removed userId filter to allow managers to see all records for the day
 export const fetchSeboInventory = async (
   date: Date,
   factoryId: string,
@@ -135,6 +134,44 @@ export const fetchSeboInventoryHistory = async (
       )
     }
     throw error
+  }
+}
+
+export const fetchLatestManualEntries = async (
+  factoryId: string,
+  limit = 20,
+): Promise<SeboInventoryRecord[]> => {
+  if (!factoryId) {
+    throw new Error('Fábrica não selecionada.')
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('sebo_inventory_records')
+      .select('*')
+      .eq('factory_id', factoryId)
+      .in('category', ['Sebo', 'Óleo', 'Farinha de Sangue', 'Farinha de Penas'])
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+
+    return data.map((item: any) => ({
+      id: item.id,
+      factoryId: item.factory_id,
+      userId: item.user_id,
+      date: parseLocalDate(item.date),
+      tankNumber: item.tank_number || '',
+      quantityLt: Number(item.quantity_lt) || 0,
+      quantityKg: Number(item.quantity_kg) || 0,
+      category: item.category,
+      description: item.description || '',
+      createdAt: new Date(item.created_at),
+    }))
+  } catch (error: any) {
+    console.error('Error fetching manual entries:', error)
+    throw new Error('Erro ao buscar histórico de apontamentos manuais.')
   }
 }
 

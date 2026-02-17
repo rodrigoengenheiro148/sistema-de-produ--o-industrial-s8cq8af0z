@@ -19244,6 +19244,37 @@ var ClipboardCheck = createLucideIcon("clipboard-check", [
 		key: "df797q"
 	}]
 ]);
+var ClipboardList = createLucideIcon("clipboard-list", [
+	["rect", {
+		width: "8",
+		height: "4",
+		x: "8",
+		y: "2",
+		rx: "1",
+		ry: "1",
+		key: "tgr4d6"
+	}],
+	["path", {
+		d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+		key: "116196"
+	}],
+	["path", {
+		d: "M12 11h4",
+		key: "1jrz19"
+	}],
+	["path", {
+		d: "M12 16h4",
+		key: "n85exb"
+	}],
+	["path", {
+		d: "M8 11h.01",
+		key: "1dfujw"
+	}],
+	["path", {
+		d: "M8 16h.01",
+		key: "18s6g9"
+	}]
+]);
 var Clock = createLucideIcon("clock", [["path", {
 	d: "M12 6v6l4 2",
 	key: "mmk7yg"
@@ -82876,10 +82907,434 @@ var Progress = import_react.forwardRef(({ className, value, ...props }, ref) => 
 	})
 }));
 Progress.displayName = Root$1.displayName;
+function generateUUID() {
+	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c$1) {
+		const r$2 = Math.random() * 16 | 0;
+		return (c$1 == "x" ? r$2 : r$2 & 3 | 8).toString(16);
+	});
+}
+var parseLocalDate = (dateStr) => {
+	if (!dateStr) return /* @__PURE__ */ new Date();
+	const [year, month, day] = dateStr.split("-").map(Number);
+	return new Date(year, month - 1, day);
+};
+const fetchSeboInventory = async (date$4, factoryId) => {
+	if (!date$4 || isNaN(date$4.getTime())) throw new Error("Data inválida fornecida.");
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	const dateStr = format(date$4, "yyyy-MM-dd");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).eq("date", dateStr).order("created_at", { ascending: true });
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
+			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
+			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
+			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
+			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
+			label: item.label,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching sebo inventory:", error);
+		if (error.message === "Failed to fetch") throw new Error("Falha na conexão com o servidor. Verifique sua conexão com a internet.");
+		throw error;
+	}
+};
+const fetchSeboInventoryHistory = async (startDate, endDate, factoryId) => {
+	if (!startDate || isNaN(startDate.getTime())) throw new Error("Data inicial inválida.");
+	if (!endDate || isNaN(endDate.getTime())) throw new Error("Data final inválida.");
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	const startStr = format(startDate, "yyyy-MM-dd");
+	const endStr = format(endDate, "yyyy-MM-dd");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).gte("date", startStr).lte("date", endStr).order("date", { ascending: true });
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
+			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
+			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
+			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
+			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
+			label: item.label,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching sebo inventory history:", error);
+		if (error.message === "Failed to fetch") throw new Error("Não foi possível carregar o histórico. Verifique sua conexão.");
+		throw error;
+	}
+};
+const fetchLatestManualEntries = async (factoryId, limit = 20) => {
+	if (!factoryId) throw new Error("Fábrica não selecionada.");
+	try {
+		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).in("category", [
+			"Sebo",
+			"Óleo",
+			"Farinha de Sangue",
+			"Farinha de Penas"
+		]).order("date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+		if (error) throw error;
+		return data.map((item) => ({
+			id: item.id,
+			factoryId: item.factory_id,
+			userId: item.user_id,
+			date: parseLocalDate(item.date),
+			tankNumber: item.tank_number || "",
+			quantityLt: Number(item.quantity_lt) || 0,
+			quantityKg: Number(item.quantity_kg) || 0,
+			category: item.category,
+			description: item.description || "",
+			createdAt: new Date(item.created_at)
+		}));
+	} catch (error) {
+		console.error("Error fetching manual entries:", error);
+		throw new Error("Erro ao buscar histórico de apontamentos manuais.");
+	}
+};
+const saveSeboInventory = async (records) => {
+	if (records.filter((r$2) => !r$2.factoryId || !r$2.userId || !r$2.date || isNaN(r$2.date.getTime())).length > 0) throw new Error("Dados incompletos: Fábrica, Usuário ou Data não identificados.");
+	try {
+		const recordsToSave = records.map((r$2) => {
+			return {
+				id: r$2.id || generateUUID(),
+				factory_id: r$2.factoryId,
+				user_id: r$2.userId,
+				date: format(r$2.date, "yyyy-MM-dd"),
+				tank_number: r$2.tankNumber || null,
+				quantity_lt: r$2.quantityLt || 0,
+				quantity_kg: r$2.quantityKg || 0,
+				acidity: r$2.acidity !== void 0 ? r$2.acidity : null,
+				moisture: r$2.moisture !== void 0 ? r$2.moisture : null,
+				impurity: r$2.impurity !== void 0 ? r$2.impurity : null,
+				soaps: r$2.soaps !== void 0 ? r$2.soaps : null,
+				iodine: r$2.iodine !== void 0 ? r$2.iodine : null,
+				label: r$2.label || null,
+				category: r$2.category,
+				description: r$2.description || null
+			};
+		});
+		const { data, error } = await supabase.from("sebo_inventory_records").upsert(recordsToSave, { onConflict: "id" }).select();
+		if (error) throw error;
+		return data;
+	} catch (error) {
+		console.error("Error saving sebo inventory:", error);
+		if (error.message === "Failed to fetch") throw new Error("Falha ao salvar. Verifique sua conexão e tente novamente.");
+		throw error;
+	}
+};
+const deleteSeboInventoryRecord = async (id) => {
+	if (!id) throw new Error("ID do registro inválido.");
+	try {
+		const { error } = await supabase.from("sebo_inventory_records").delete().eq("id", id);
+		if (error) throw error;
+	} catch (error) {
+		console.error("Error deleting record:", error);
+		if (error.message === "Failed to fetch") throw new Error("Erro de conexão ao tentar deletar o registro.");
+		throw error;
+	}
+};
+var MATERIAL_OPTIONS = [
+	{
+		value: "Sebo",
+		label: "Sebo",
+		unit: "Litros"
+	},
+	{
+		value: "Óleo",
+		label: "Óleo",
+		unit: "Litros"
+	},
+	{
+		value: "Farinha de Sangue",
+		label: "Farinha de Sangue",
+		unit: "kg"
+	},
+	{
+		value: "Farinha de Penas",
+		label: "Farinha de Penas",
+		unit: "kg"
+	}
+];
+function ManualEntryForm({ onSuccess }) {
+	const { currentFactoryId } = useData();
+	const { user } = useAuth();
+	const { toast: toast$2 } = useToast();
+	const [date$4, setDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
+	const [material, setMaterial] = (0, import_react.useState)("");
+	const [quantity, setQuantity] = (0, import_react.useState)("");
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const selectedMaterial = MATERIAL_OPTIONS.find((m$1) => m$1.value === material);
+	const unitLabel = selectedMaterial ? selectedMaterial.unit : "Unidade";
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		if (!date$4 || !material || !quantity) {
+			toast$2({
+				title: "Campos Obrigatórios",
+				description: "Por favor, preencha todos os campos.",
+				variant: "destructive"
+			});
+			return;
+		}
+		const qtyValue = parseFloat(quantity);
+		if (isNaN(qtyValue) || qtyValue < 0) {
+			toast$2({
+				title: "Quantidade Inválida",
+				description: "A quantidade deve ser um número válido e positivo.",
+				variant: "destructive"
+			});
+			return;
+		}
+		if (!currentFactoryId || !user?.id) {
+			toast$2({
+				title: "Erro de Contexto",
+				description: "Fábrica ou usuário não identificado.",
+				variant: "destructive"
+			});
+			return;
+		}
+		setLoading(true);
+		try {
+			await saveSeboInventory([{
+				factoryId: currentFactoryId,
+				userId: user.id,
+				date: date$4,
+				category: material,
+				quantityLt: material === "Sebo" || material === "Óleo" ? qtyValue : 0,
+				quantityKg: material === "Farinha de Sangue" || material === "Farinha de Penas" ? qtyValue : 0
+			}]);
+			toast$2({
+				title: "Apontamento Salvo",
+				description: "O estoque foi atualizado com sucesso.",
+				className: "bg-green-600 text-white border-none"
+			});
+			setMaterial("");
+			setQuantity("");
+			onSuccess();
+		} catch (error) {
+			console.error(error);
+			toast$2({
+				title: "Erro ao Salvar",
+				description: error.message || "Ocorreu um erro ao salvar o registro.",
+				variant: "destructive"
+			});
+		} finally {
+			setLoading(false);
+		}
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "w-full",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Registro Manual de Estoque" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Informe a contagem física atual do material." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: handleSubmit,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+				className: "space-y-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-1 md:grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+							htmlFor: "date",
+							children: "Data da Contagem"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Popover, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverTrigger, {
+							asChild: true,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+								variant: "outline",
+								className: cn("w-full justify-start text-left font-normal", !date$4 && "text-muted-foreground"),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "mr-2 h-4 w-4" }), date$4 ? format(date$4, "PPP", { locale: ptBR }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Selecione uma data" })]
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PopoverContent, {
+							className: "w-auto p-0",
+							align: "start",
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar$1, {
+								mode: "single",
+								selected: date$4,
+								onSelect: (d) => d && setDate(d),
+								initialFocus: true,
+								locale: ptBR
+							})
+						})] })]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, {
+							htmlFor: "material",
+							children: "Material"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+							value: material,
+							onValueChange: setMaterial,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+								id: "material",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione o material" })
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: MATERIAL_OPTIONS.map((opt) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: opt.value,
+								children: opt.label
+							}, opt.value)) })]
+						})]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "space-y-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Label, {
+						htmlFor: "quantity",
+						children: ["Quantidade ", selectedMaterial && `(${unitLabel})`]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "relative",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							id: "quantity",
+							type: "number",
+							step: "0.01",
+							placeholder: "0.00",
+							value: quantity,
+							onChange: (e) => setQuantity(e.target.value),
+							disabled: !material
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground text-sm bg-muted/20 pl-2 border-l",
+							children: unitLabel
+						})]
+					})]
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
+				className: "flex justify-end",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					type: "submit",
+					disabled: loading || !material || !quantity,
+					children: [loading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "mr-2 h-4 w-4 animate-spin" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "mr-2 h-4 w-4" }), "Registrar Estoque"]
+				})
+			})]
+		})]
+	});
+}
+function ManualEntryHistory({ refreshTrigger }) {
+	const { currentFactoryId } = useData();
+	const { toast: toast$2 } = useToast();
+	const [data, setData] = (0, import_react.useState)([]);
+	const [loading, setLoading] = (0, import_react.useState)(false);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const loadData = async () => {
+		if (!currentFactoryId) return;
+		setLoading(true);
+		try {
+			setData(await fetchLatestManualEntries(currentFactoryId));
+		} catch (error) {
+			console.error(error);
+			toast$2({
+				title: "Erro ao carregar histórico",
+				description: "Não foi possível atualizar a lista de registros.",
+				variant: "destructive"
+			});
+		} finally {
+			setLoading(false);
+		}
+	};
+	(0, import_react.useEffect)(() => {
+		loadData();
+	}, [currentFactoryId, refreshTrigger]);
+	const handleDelete = async () => {
+		if (!deleteId) return;
+		try {
+			await deleteSeboInventoryRecord(deleteId);
+			toast$2({
+				title: "Registro Excluído",
+				description: "O apontamento foi removido com sucesso."
+			});
+			loadData();
+		} catch (error) {
+			toast$2({
+				title: "Erro ao Excluir",
+				description: "Não foi possível remover o registro.",
+				variant: "destructive"
+			});
+		} finally {
+			setDeleteId(null);
+		}
+	};
+	if (loading && data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "flex justify-center p-8",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "h-8 w-8 animate-spin text-primary" })
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Apontamentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Últimos registros manuais realizados." })] }),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "rounded-md border",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Material" }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "text-right",
+					children: "Quantidade"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+					className: "text-right",
+					children: "Unidade"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[80px]" })
+			] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: data.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+				colSpan: 5,
+				className: "text-center h-24 text-muted-foreground",
+				children: "Nenhum registro encontrado."
+			}) }) : data.map((record) => {
+				const qty = record.quantityLt > 0 ? record.quantityLt : record.quantityKg;
+				const unit$1 = record.quantityLt > 0 ? "Litros" : "kg";
+				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "font-medium",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3 text-muted-foreground" }), format(record.date, "dd/MM/yyyy")]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.category }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "text-right font-mono",
+						children: formatNumber(qty)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						className: "text-right text-muted-foreground text-xs",
+						children: unit$1
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						size: "icon",
+						className: "h-8 w-8 text-muted-foreground hover:text-red-600",
+						onClick: () => record.id && setDeleteId(record.id),
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+					}) })
+				] }, record.id);
+			}) })] })
+		}) }),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+			open: !!deleteId,
+			onOpenChange: () => setDeleteId(null),
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Apontamento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja excluir este registro de estoque? Esta ação não pode ser desfeita." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+				onClick: handleDelete,
+				className: "bg-destructive hover:bg-destructive/90",
+				children: "Excluir"
+			})] })] })
+		})
+	] });
+}
 function Inventory() {
-	const { rawMaterials, production, shipping, protheusConfig, syncProtheusData, lastProtheusSync } = useData();
+	const { rawMaterials, production, shipping, protheusConfig, syncProtheusData, lastProtheusSync, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const [isSyncing, setIsSyncing] = (0, import_react.useState)(false);
+	const [refreshHistoryTrigger, setRefreshHistoryTrigger] = (0, import_react.useState)(0);
+	const isMarReciclagem = factories.find((f) => f.id === currentFactoryId)?.name?.includes("Mar Reciclagem");
 	const mpIn = rawMaterials.reduce((acc, curr) => acc + curr.quantity, 0);
 	const mpOut = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
 	const mpStock = mpIn - mpOut;
@@ -82967,98 +83422,127 @@ function Inventory() {
 			})
 		] })] });
 	};
+	const AutoOverview = () => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
+					title: "Matéria-Prima (MP)",
+					stock: mpStock,
+					inVal: mpIn,
+					outVal: mpOut,
+					capacity: 1e5
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
+					title: "Sebo",
+					stock: seboStock,
+					inVal: seboIn,
+					outVal: seboOut
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
+					title: "Farinha Carne/Osso",
+					stock: fcoStock,
+					inVal: fcoIn,
+					outVal: fcoOut
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
+					title: "Farinheta",
+					stock: farinhetaStock,
+					inVal: farinhetaIn,
+					outVal: farinhetaOut,
+					capacity: 2e4
+				})
+			]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+			className: "bg-slate-900 text-white",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+				className: "flex items-center gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Truck, { className: "h-5 w-5" }), " Status Geral"]
+			}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "grid grid-cols-1 md:grid-cols-3 gap-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-slate-400 text-sm",
+						children: "Movimentação Total (Entradas)"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-2xl font-bold mt-1",
+						children: [mpIn.toLocaleString("pt-BR"), " kg"]
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-slate-400 text-sm",
+						children: "Produção Total"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-2xl font-bold mt-1",
+						children: [(seboIn + fcoIn + farinhetaIn).toLocaleString("pt-BR"), " kg"]
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "text-slate-400 text-sm",
+						children: "Expedição Total"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "text-2xl font-bold mt-1",
+						children: [(seboOut + fcoOut + farinhetaOut).toLocaleString("pt-BR"), " kg"]
+					})] })
+				]
+			}) })]
+		})]
+	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "flex flex-col md:flex-row items-start md:items-center justify-between gap-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-					className: "text-2xl font-bold tracking-tight",
-					children: "Gestão de Estoque"
-				}), protheusConfig.isActive && protheusConfig.syncInventory && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-3",
-					children: [lastProtheusSync && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-						className: "text-xs text-muted-foreground flex items-center gap-1",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3 w-3" }),
-							"Atualizado:",
-							" ",
-							format(lastProtheusSync, "dd/MM 'às' HH:mm", { locale: ptBR })
-						]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-						variant: "outline",
-						size: "sm",
-						onClick: handleSync,
-						disabled: isSyncing,
-						className: "gap-2 border-blue-200 text-blue-700 hover:bg-blue-50",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: `h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}` }), isSyncing ? "Sincronizando..." : "Sync Protheus"]
-					})]
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
-						title: "Matéria-Prima (MP)",
-						stock: mpStock,
-						inVal: mpIn,
-						outVal: mpOut,
-						capacity: 1e5
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
-						title: "Sebo",
-						stock: seboStock,
-						inVal: seboIn,
-						outVal: seboOut
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
-						title: "Farinha Carne/Osso",
-						stock: fcoStock,
-						inVal: fcoIn,
-						outVal: fcoOut
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(InventoryCard, {
-						title: "Farinheta",
-						stock: farinhetaStock,
-						inVal: farinhetaIn,
-						outVal: farinhetaOut,
-						capacity: 2e4
-					})
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-				className: "bg-slate-900 text-white",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Truck, { className: "h-5 w-5" }), " Status Geral"]
-				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "grid grid-cols-1 md:grid-cols-3 gap-4",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex flex-col md:flex-row items-start md:items-center justify-between gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "text-2xl font-bold tracking-tight",
+				children: "Gestão de Estoque"
+			}), protheusConfig.isActive && protheusConfig.syncInventory && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex items-center gap-3",
+				children: [lastProtheusSync && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+					className: "text-xs text-muted-foreground flex items-center gap-1",
 					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "text-slate-400 text-sm",
-							children: "Movimentação Total (Entradas)"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "text-2xl font-bold mt-1",
-							children: [mpIn.toLocaleString("pt-BR"), " kg"]
-						})] }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "text-slate-400 text-sm",
-							children: "Produção Total"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "text-2xl font-bold mt-1",
-							children: [(seboIn + fcoIn + farinhetaIn).toLocaleString("pt-BR"), " kg"]
-						})] }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "text-slate-400 text-sm",
-							children: "Expedição Total"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "text-2xl font-bold mt-1",
-							children: [(seboOut + fcoOut + farinhetaOut).toLocaleString("pt-BR"), " kg"]
-						})] })
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3 w-3" }),
+						"Atualizado:",
+						" ",
+						format(lastProtheusSync, "dd/MM 'às' HH:mm", { locale: ptBR })
 					]
-				}) })]
-			})
-		]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					variant: "outline",
+					size: "sm",
+					onClick: handleSync,
+					disabled: isSyncing,
+					className: "gap-2 border-blue-200 text-blue-700 hover:bg-blue-50",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RefreshCw, { className: `h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}` }), isSyncing ? "Sincronizando..." : "Sync Protheus"]
+				})]
+			})]
+		}), isMarReciclagem ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+			defaultValue: "overview",
+			className: "space-y-6",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+					className: "grid w-full grid-cols-2 max-w-[400px]",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+						value: "overview",
+						children: "Visão Geral (Cálculo)"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+						value: "manual",
+						className: "gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClipboardList, { className: "h-4 w-4" }), " Apontamento Manual"]
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+					value: "overview",
+					className: "animate-in fade-in slide-in-from-left-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AutoOverview, {})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+					value: "manual",
+					className: "space-y-6 animate-in fade-in slide-in-from-right-4",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid gap-6 md:grid-cols-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ManualEntryForm, { onSuccess: () => setRefreshHistoryTrigger((prev) => prev + 1) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ManualEntryHistory, { refreshTrigger: refreshHistoryTrigger }) })]
+					})
+				})
+			]
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AutoOverview, {})]
 	});
 }
 var formSchema$4 = object({
@@ -86227,124 +86711,6 @@ function AdvancedReports() {
 		})]
 	});
 }
-function generateUUID() {
-	if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c$1) {
-		const r$2 = Math.random() * 16 | 0;
-		return (c$1 == "x" ? r$2 : r$2 & 3 | 8).toString(16);
-	});
-}
-var parseLocalDate = (dateStr) => {
-	if (!dateStr) return /* @__PURE__ */ new Date();
-	const [year, month, day] = dateStr.split("-").map(Number);
-	return new Date(year, month - 1, day);
-};
-const fetchSeboInventory = async (date$4, factoryId) => {
-	if (!date$4 || isNaN(date$4.getTime())) throw new Error("Data inválida fornecida.");
-	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	const dateStr = format(date$4, "yyyy-MM-dd");
-	try {
-		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).eq("date", dateStr).order("created_at", { ascending: true });
-		if (error) throw error;
-		return data.map((item) => ({
-			id: item.id,
-			factoryId: item.factory_id,
-			userId: item.user_id,
-			date: parseLocalDate(item.date),
-			tankNumber: item.tank_number || "",
-			quantityLt: Number(item.quantity_lt) || 0,
-			quantityKg: Number(item.quantity_kg) || 0,
-			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
-			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
-			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
-			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
-			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
-			label: item.label,
-			category: item.category,
-			description: item.description || "",
-			createdAt: new Date(item.created_at)
-		}));
-	} catch (error) {
-		console.error("Error fetching sebo inventory:", error);
-		if (error.message === "Failed to fetch") throw new Error("Falha na conexão com o servidor. Verifique sua conexão com a internet.");
-		throw error;
-	}
-};
-const fetchSeboInventoryHistory = async (startDate, endDate, factoryId) => {
-	if (!startDate || isNaN(startDate.getTime())) throw new Error("Data inicial inválida.");
-	if (!endDate || isNaN(endDate.getTime())) throw new Error("Data final inválida.");
-	if (!factoryId) throw new Error("Fábrica não selecionada.");
-	const startStr = format(startDate, "yyyy-MM-dd");
-	const endStr = format(endDate, "yyyy-MM-dd");
-	try {
-		const { data, error } = await supabase.from("sebo_inventory_records").select("*").eq("factory_id", factoryId).gte("date", startStr).lte("date", endStr).order("date", { ascending: true });
-		if (error) throw error;
-		return data.map((item) => ({
-			id: item.id,
-			factoryId: item.factory_id,
-			userId: item.user_id,
-			date: parseLocalDate(item.date),
-			tankNumber: item.tank_number || "",
-			quantityLt: Number(item.quantity_lt) || 0,
-			quantityKg: Number(item.quantity_kg) || 0,
-			acidity: item.acidity !== null ? Number(item.acidity) : void 0,
-			moisture: item.moisture !== null ? Number(item.moisture) : void 0,
-			impurity: item.impurity !== null ? Number(item.impurity) : void 0,
-			soaps: item.soaps !== null ? Number(item.soaps) : void 0,
-			iodine: item.iodine !== null ? Number(item.iodine) : void 0,
-			label: item.label,
-			category: item.category,
-			description: item.description || "",
-			createdAt: new Date(item.created_at)
-		}));
-	} catch (error) {
-		console.error("Error fetching sebo inventory history:", error);
-		if (error.message === "Failed to fetch") throw new Error("Não foi possível carregar o histórico. Verifique sua conexão.");
-		throw error;
-	}
-};
-const saveSeboInventory = async (records) => {
-	if (records.filter((r$2) => !r$2.factoryId || !r$2.userId || !r$2.date || isNaN(r$2.date.getTime())).length > 0) throw new Error("Dados incompletos: Fábrica, Usuário ou Data não identificados.");
-	try {
-		const recordsToSave = records.map((r$2) => {
-			return {
-				id: r$2.id || generateUUID(),
-				factory_id: r$2.factoryId,
-				user_id: r$2.userId,
-				date: format(r$2.date, "yyyy-MM-dd"),
-				tank_number: r$2.tankNumber || null,
-				quantity_lt: r$2.quantityLt || 0,
-				quantity_kg: r$2.quantityKg || 0,
-				acidity: r$2.acidity !== void 0 ? r$2.acidity : null,
-				moisture: r$2.moisture !== void 0 ? r$2.moisture : null,
-				impurity: r$2.impurity !== void 0 ? r$2.impurity : null,
-				soaps: r$2.soaps !== void 0 ? r$2.soaps : null,
-				iodine: r$2.iodine !== void 0 ? r$2.iodine : null,
-				label: r$2.label || null,
-				category: r$2.category,
-				description: r$2.description || null
-			};
-		});
-		const { data, error } = await supabase.from("sebo_inventory_records").upsert(recordsToSave, { onConflict: "id" }).select();
-		if (error) throw error;
-		return data;
-	} catch (error) {
-		console.error("Error saving sebo inventory:", error);
-		if (error.message === "Failed to fetch") throw new Error("Falha ao salvar. Verifique sua conexão e tente novamente.");
-		throw error;
-	}
-};
-const deleteSeboInventoryRecord = async (id) => {
-	if (!id) throw new Error("ID do registro inválido.");
-	try {
-		const { error } = await supabase.from("sebo_inventory_records").delete().eq("id", id);
-		if (error) throw error;
-	} catch (error) {
-		console.error("Error deleting record:", error);
-		if (error.message === "Failed to fetch") throw new Error("Erro de conexão ao tentar deletar o registro.");
-		throw error;
-	}
-};
 function Skeleton({ className, ...props }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 		className: cn("animate-pulse rounded-md bg-muted", className),
@@ -91330,4 +91696,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-EvCGNM-H.js.map
+//# sourceMappingURL=index-BlVDBzGh.js.map

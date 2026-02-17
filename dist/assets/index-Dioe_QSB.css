@@ -2141,6 +2141,9 @@ section[aria-label='Notifications alt+T'] {
 .p-6{
   padding: 1.5rem;
 }
+.p-8{
+  padding: 2rem;
+}
 .p-\[1px\]{
   padding: 1px;
 }
@@ -2275,6 +2278,9 @@ section[aria-label='Notifications alt+T'] {
 }
 .pr-2\.5{
   padding-right: 0.625rem;
+}
+.pr-3{
+  padding-right: 0.75rem;
 }
 .pr-8{
   padding-right: 2rem;
@@ -2825,6 +2831,12 @@ section[aria-label='Notifications alt+T'] {
 }
 .slide-in-from-bottom-2{
   --tw-enter-translate-y: 0.5rem;
+}
+.slide-in-from-left-4{
+  --tw-enter-translate-x: -1rem;
+}
+.slide-in-from-right-4{
+  --tw-enter-translate-x: 1rem;
 }
 .slide-in-from-top-2{
   --tw-enter-translate-y: -0.5rem;

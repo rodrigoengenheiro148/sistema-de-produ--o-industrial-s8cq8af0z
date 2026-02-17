@@ -105,7 +105,13 @@ export interface SeboInventoryRecord {
   soaps?: number
   iodine?: number
   label?: string
-  category: 'tank' | 'extra'
+  category:
+    | 'tank'
+    | 'extra'
+    | 'Sebo'
+    | 'Óleo'
+    | 'Farinha de Sangue'
+    | 'Farinha de Penas'
   description?: string
   createdAt?: Date
 }
