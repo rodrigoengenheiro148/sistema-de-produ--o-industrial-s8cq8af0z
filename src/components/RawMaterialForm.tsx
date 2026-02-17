@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -25,7 +25,11 @@ import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
 import { RawMaterialEntry } from '@/lib/types'
 import { DialogFooter } from '@/components/ui/dialog'
-import { RAW_MATERIAL_TYPES, MEASUREMENT_UNITS } from '@/lib/constants'
+import {
+  RAW_MATERIAL_TYPES,
+  MAR_RECICLAGEM_TYPES,
+  MEASUREMENT_UNITS,
+} from '@/lib/constants'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
 
@@ -51,11 +55,19 @@ export function RawMaterialForm({
   onSuccess,
   onCancel,
 }: RawMaterialFormProps) {
-  const { addRawMaterial, updateRawMaterial } = useData()
+  const { addRawMaterial, updateRawMaterial, factories, currentFactoryId } =
+    useData()
   const { toast } = useToast()
   const { checkPcpAuth } = usePcp()
   const [showPcpGate, setShowPcpGate] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
+
+  const materialTypes = useMemo(() => {
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const isMarReciclagem =
+      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [factories, currentFactoryId])
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -171,6 +183,7 @@ export function RawMaterialForm({
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  key={`select-${materialTypes.length}`} // Force re-render if types change
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -178,7 +191,7 @@ export function RawMaterialForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {RAW_MATERIAL_TYPES.map((type) => (
+                    {materialTypes.map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
                       </SelectItem>

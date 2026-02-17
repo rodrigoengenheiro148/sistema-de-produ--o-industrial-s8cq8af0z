@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,7 +15,11 @@ import { Upload, Download, FileSpreadsheet, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
 import { RawMaterialEntry } from '@/lib/types'
-import { RAW_MATERIAL_TYPES, MEASUREMENT_UNITS } from '@/lib/constants'
+import {
+  RAW_MATERIAL_TYPES,
+  MAR_RECICLAGEM_TYPES,
+  MEASUREMENT_UNITS,
+} from '@/lib/constants'
 import { parse, isValid } from 'date-fns'
 
 export function RawMaterialImportDialog() {
@@ -24,7 +28,14 @@ export function RawMaterialImportDialog() {
   const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
-  const { bulkAddRawMaterials } = useData()
+  const { bulkAddRawMaterials, factories, currentFactoryId } = useData()
+
+  const validTypes = useMemo(() => {
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const isMarReciclagem =
+      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [factories, currentFactoryId])
 
   const handleDownloadTemplate = () => {
     const headers = [
@@ -38,7 +49,7 @@ export function RawMaterialImportDialog() {
     const exampleRow = [
       '01/01/2026',
       'Fornecedor Exemplo',
-      'Ossos',
+      validTypes[0],
       '1000',
       'kg',
       'Observação exemplo',
@@ -138,19 +149,17 @@ export function RawMaterialImportDialog() {
 
       // Type Validation
       if (
-        !RAW_MATERIAL_TYPES.includes(type as any) &&
-        !RAW_MATERIAL_TYPES.some((t) => t.toLowerCase() === type.toLowerCase())
+        !validTypes.includes(type as any) &&
+        !validTypes.some((t) => t.toLowerCase() === type.toLowerCase())
       ) {
         errors.push(
-          `Linha ${i + 1}: Tipo de matéria-prima inválido (${type}). Tipos permitidos: ${RAW_MATERIAL_TYPES.join(', ')}`,
+          `Linha ${i + 1}: Tipo de matéria-prima inválido (${type}). Tipos permitidos: ${validTypes.join(', ')}`,
         )
         continue
       }
       // Normalize type casing if needed
       const normalizedType =
-        RAW_MATERIAL_TYPES.find(
-          (t) => t.toLowerCase() === type.toLowerCase(),
-        ) || type
+        validTypes.find((t) => t.toLowerCase() === type.toLowerCase()) || type
 
       const quantity = Number(quantityStr)
       if (isNaN(quantity) || quantity <= 0) {
@@ -270,7 +279,7 @@ export function RawMaterialImportDialog() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Tipos permitidos: {RAW_MATERIAL_TYPES.join(', ')}
+              Tipos permitidos: {validTypes.join(', ')}
             </p>
           </div>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useData } from '@/context/DataContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -70,7 +70,7 @@ import {
 import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
 import { RawMaterialImportDialog } from '@/components/RawMaterialImportDialog'
-import { RAW_MATERIAL_TYPES } from '@/lib/constants'
+import { RAW_MATERIAL_TYPES, MAR_RECICLAGEM_TYPES } from '@/lib/constants'
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { cn } from '@/lib/utils'
 import { usePcp } from '@/context/PcpContext'
@@ -83,6 +83,8 @@ export default function RawMaterial() {
     dateRange,
     setDateRange,
     production,
+    factories,
+    currentFactoryId,
   } = useData()
   const { toast } = useToast()
   const { checkPcpAuth } = usePcp()
@@ -104,6 +106,13 @@ export default function RawMaterial() {
   const [pcpPendingAction, setPcpPendingAction] = useState<(() => void) | null>(
     null,
   )
+
+  const materialTypes = useMemo(() => {
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const isMarReciclagem =
+      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [factories, currentFactoryId])
 
   const handleProtectedAction = (
     createdAt: Date | undefined,
@@ -368,7 +377,7 @@ export default function RawMaterial() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os tipos</SelectItem>
-                  {RAW_MATERIAL_TYPES.map((type) => (
+                  {materialTypes.map((type) => (
                     <SelectItem key={type} value={type}>
                       {type}
                     </SelectItem>

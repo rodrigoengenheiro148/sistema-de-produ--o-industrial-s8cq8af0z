@@ -77793,6 +77793,12 @@ const RAW_MATERIAL_TYPES = [
 	"COURO BOVINO",
 	"Óleo Saturado"
 ];
+const MAR_RECICLAGEM_TYPES = [
+	"Peixe",
+	"Bovino",
+	"Aves",
+	"Pena"
+];
 const MEASUREMENT_UNITS = [
 	{
 		value: "kg",
@@ -77948,11 +77954,14 @@ var formSchema$9 = object({
 	notes: string().optional()
 });
 function RawMaterialForm({ initialData, onSuccess, onCancel }) {
-	const { addRawMaterial, updateRawMaterial } = useData();
+	const { addRawMaterial, updateRawMaterial, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
+	const materialTypes = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [factories, currentFactoryId]);
 	const form = useForm({
 		resolver: a(formSchema$9),
 		defaultValues: {
@@ -78055,11 +78064,11 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
 							onValueChange: field.onChange,
 							defaultValue: field.value,
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione o tipo" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: RAW_MATERIAL_TYPES.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Selecione o tipo" }) }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: materialTypes.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
 								value: type,
 								children: type
 							}, type)) })]
-						}),
+						}, `select-${materialTypes.length}`),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 					] })
 				}),
@@ -78415,23 +78424,28 @@ function RawMaterialImportDialog() {
 	const [isLoading, setIsLoading] = (0, import_react.useState)(false);
 	const fileInputRef = (0, import_react.useRef)(null);
 	const { toast: toast$2 } = useToast();
-	const { bulkAddRawMaterials } = useData();
+	const { bulkAddRawMaterials, factories, currentFactoryId } = useData();
+	const validTypes = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [factories, currentFactoryId]);
 	const handleDownloadTemplate = () => {
-		const csvContent = [[
+		const headers = [
 			"Data",
 			"Fornecedor",
 			"Tipo",
 			"Quantidade",
 			"Unidade",
 			"Observações"
-		].join(","), [
+		];
+		const exampleRow = [
 			"01/01/2026",
 			"Fornecedor Exemplo",
-			"Ossos",
+			validTypes[0],
 			"1000",
 			"kg",
 			"Observação exemplo"
-		].join(",")].join("\n");
+		];
+		const csvContent = [headers.join(","), exampleRow.join(",")].join("\n");
 		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 		const link = document.createElement("a");
 		const url = URL.createObjectURL(blob);
@@ -78489,11 +78503,11 @@ function RawMaterialImportDialog() {
 				errors.push(`Linha ${i$2 + 1}: Fornecedor inválido.`);
 				continue;
 			}
-			if (!RAW_MATERIAL_TYPES.includes(type) && !RAW_MATERIAL_TYPES.some((t$1) => t$1.toLowerCase() === type.toLowerCase())) {
-				errors.push(`Linha ${i$2 + 1}: Tipo de matéria-prima inválido (${type}). Tipos permitidos: ${RAW_MATERIAL_TYPES.join(", ")}`);
+			if (!validTypes.includes(type) && !validTypes.some((t$1) => t$1.toLowerCase() === type.toLowerCase())) {
+				errors.push(`Linha ${i$2 + 1}: Tipo de matéria-prima inválido (${type}). Tipos permitidos: ${validTypes.join(", ")}`);
 				continue;
 			}
-			const normalizedType = RAW_MATERIAL_TYPES.find((t$1) => t$1.toLowerCase() === type.toLowerCase()) || type;
+			const normalizedType = validTypes.find((t$1) => t$1.toLowerCase() === type.toLowerCase()) || type;
 			const quantity = Number(quantityStr);
 			if (isNaN(quantity) || quantity <= 0) {
 				errors.push(`Linha ${i$2 + 1}: Quantidade inválida (${quantityStr}).`);
@@ -78608,7 +78622,7 @@ function RawMaterialImportDialog() {
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 									className: "text-xs text-muted-foreground",
-									children: ["Tipos permitidos: ", RAW_MATERIAL_TYPES.join(", ")]
+									children: ["Tipos permitidos: ", validTypes.join(", ")]
 								})
 							]
 						}),
@@ -78633,7 +78647,7 @@ function RawMaterialImportDialog() {
 	});
 }
 function RawMaterial() {
-	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production } = useData();
+	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const isMobile = useIsMobile();
@@ -78646,6 +78660,9 @@ function RawMaterial() {
 	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const materialTypes = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [factories, currentFactoryId]);
 	const handleProtectedAction = (createdAt, action) => {
 		if (shouldRequireAuth(createdAt)) {
 			setPendingAction(() => action);
@@ -78848,7 +78865,7 @@ function RawMaterial() {
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SelectContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
 								value: "all",
 								children: "Todos os tipos"
-							}), RAW_MATERIAL_TYPES.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+							}), materialTypes.map((type) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
 								value: type,
 								children: type
 							}, type))] })]
@@ -90622,4 +90639,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DdAle6n4.js.map
+//# sourceMappingURL=index-CUbnwq_Q.js.map
