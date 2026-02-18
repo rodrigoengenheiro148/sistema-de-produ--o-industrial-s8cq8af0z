@@ -65118,9 +65118,8 @@ var Separator = import_react.forwardRef(({ className, orientation = "horizontal"
 }));
 Separator.displayName = Root$4.displayName;
 function LoadForecast({ referenceDate, className }) {
-	const { rawMaterials, dailyForecasts, factories, currentFactoryId } = useData();
+	const { rawMaterials, dailyForecasts } = useData();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
-	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
 	const forecastData = (0, import_react.useMemo)(() => {
 		const forecasts$1 = dailyForecasts.filter((f) => isSameDay(f.date, targetDate));
 		const mainLineForecast = forecasts$1.filter((f) => f.materialType !== "Sangue").reduce((acc, curr) => acc + curr.mpForecast, 0);
@@ -65419,7 +65418,7 @@ function LoadForecast({ referenceDate, className }) {
 				className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -65474,7 +65473,7 @@ function LoadForecast({ referenceDate, className }) {
 					bgClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30",
 					data: forecasts.farinheta
 				}),
-				!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
 					title: "Farinha de Sangue",
 					icon: Droplet,
 					colorClass: "text-red-600 dark:text-red-400",
@@ -91975,4 +91974,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-59q1kXBm.js.map
+//# sourceMappingURL=index-Hfz6SkNj.js.map

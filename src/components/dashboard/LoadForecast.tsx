@@ -30,11 +30,8 @@ interface LoadForecastProps {
 }
 
 export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
-  const { rawMaterials, dailyForecasts, factories, currentFactoryId } =
-    useData()
+  const { rawMaterials, dailyForecasts } = useData()
   const targetDate = referenceDate || new Date()
-  const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isFarinorte = currentFactory?.name === 'Farinorte'
 
   // Calculate sum of forecasts for the day
   // Filter for Main Line vs Blood Line
@@ -384,10 +381,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
           <div className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
             <div>
-              {/* Hide title for Farinorte */}
-              {!isFarinorte && (
-                <CardTitle>Planejamento de Produção & Logística</CardTitle>
-              )}
+              <CardTitle>Planejamento de Produção & Logística</CardTitle>
               <CardDescription>
                 Previsão de bags baseada na entrada de matéria-prima do dia
               </CardDescription>
@@ -445,17 +439,14 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             bgClass="bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30"
             data={forecasts.farinheta}
           />
-          {/* Hide Blood Forecast for Farinorte */}
-          {!isFarinorte && (
-            <BloodForecastCard
-              title="Farinha de Sangue"
-              icon={Droplet}
-              colorClass="text-red-600 dark:text-red-400"
-              bgClass="bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
-              data={forecasts.sangue}
-              inputValue={activeBloodValue}
-            />
-          )}
+          <BloodForecastCard
+            title="Farinha de Sangue"
+            icon={Droplet}
+            colorClass="text-red-600 dark:text-red-400"
+            bgClass="bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
+            data={forecasts.sangue}
+            inputValue={activeBloodValue}
+          />
         </div>
       </CardContent>
     </Card>
