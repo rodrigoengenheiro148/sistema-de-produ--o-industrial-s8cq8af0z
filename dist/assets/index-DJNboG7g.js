@@ -83281,30 +83281,12 @@ function ManualEntryForm({ onSuccess }) {
 	});
 }
 function ManualEntryHistory({ refreshTrigger }) {
-	const { currentFactoryId } = useData();
+	const { latestInventory, refreshOperationalData } = useData();
 	const { toast: toast$2 } = useToast();
-	const [data, setData] = (0, import_react.useState)([]);
-	const [loading, setLoading] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
-	const loadData = async () => {
-		if (!currentFactoryId) return;
-		setLoading(true);
-		try {
-			setData(await fetchLatestManualEntries(currentFactoryId));
-		} catch (error) {
-			console.error(error);
-			toast$2({
-				title: "Erro ao carregar histórico",
-				description: "Não foi possível atualizar a lista de registros.",
-				variant: "destructive"
-			});
-		} finally {
-			setLoading(false);
-		}
-	};
 	(0, import_react.useEffect)(() => {
-		loadData();
-	}, [currentFactoryId, refreshTrigger]);
+		refreshOperationalData();
+	}, [refreshTrigger, refreshOperationalData]);
 	const handleDelete = async () => {
 		if (!deleteId) return;
 		try {
@@ -83313,7 +83295,7 @@ function ManualEntryHistory({ refreshTrigger }) {
 				title: "Registro Excluído",
 				description: "O apontamento foi removido com sucesso."
 			});
-			loadData();
+			refreshOperationalData();
 		} catch (error) {
 			toast$2({
 				title: "Erro ao Excluir",
@@ -83324,10 +83306,6 @@ function ManualEntryHistory({ refreshTrigger }) {
 			setDeleteId(null);
 		}
 	};
-	if (loading && data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: "flex justify-center p-8",
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoaderCircle, { className: "h-8 w-8 animate-spin text-primary" })
-	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [
 		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Histórico de Apontamentos" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Últimos registros manuais realizados." })] }),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -83344,11 +83322,11 @@ function ManualEntryHistory({ refreshTrigger }) {
 					children: "Unidade"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[80px]" })
-			] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: data.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+			] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: latestInventory.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 				colSpan: 5,
 				className: "text-center h-24 text-muted-foreground",
 				children: "Nenhum registro encontrado."
-			}) }) : data.map((record) => {
+			}) }) : latestInventory.map((record) => {
 				const qty = record.quantityLt > 0 ? record.quantityLt : record.quantityKg;
 				const unit$1 = record.quantityLt > 0 ? "Litros" : "kg";
 				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
@@ -91756,4 +91734,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DvFNX4DZ.js.map
+//# sourceMappingURL=index-DJNboG7g.js.map

@@ -16,14 +16,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trash2, Loader2, Calendar } from 'lucide-react'
+import { Trash2, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import {
-  fetchLatestManualEntries,
-  deleteSeboInventoryRecord,
-} from '@/services/seboInventory'
-import { SeboInventoryRecord } from '@/lib/types'
+import { deleteSeboInventoryRecord } from '@/services/seboInventory'
 import { useToast } from '@/hooks/use-toast'
 import { formatNumber } from '@/lib/utils'
 import {
@@ -44,33 +39,14 @@ interface ManualEntryHistoryProps {
 export function ManualEntryHistory({
   refreshTrigger,
 }: ManualEntryHistoryProps) {
-  const { currentFactoryId } = useData()
+  const { latestInventory, refreshOperationalData } = useData()
   const { toast } = useToast()
-  const [data, setData] = useState<SeboInventoryRecord[]>([])
-  const [loading, setLoading] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const loadData = async () => {
-    if (!currentFactoryId) return
-    setLoading(true)
-    try {
-      const records = await fetchLatestManualEntries(currentFactoryId)
-      setData(records)
-    } catch (error) {
-      console.error(error)
-      toast({
-        title: 'Erro ao carregar histórico',
-        description: 'Não foi possível atualizar a lista de registros.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Force refresh if trigger changes
   useEffect(() => {
-    loadData()
-  }, [currentFactoryId, refreshTrigger])
+    refreshOperationalData()
+  }, [refreshTrigger, refreshOperationalData])
 
   const handleDelete = async () => {
     if (!deleteId) return
@@ -80,7 +56,7 @@ export function ManualEntryHistory({
         title: 'Registro Excluído',
         description: 'O apontamento foi removido com sucesso.',
       })
-      loadData()
+      refreshOperationalData()
     } catch (error) {
       toast({
         title: 'Erro ao Excluir',
@@ -90,14 +66,6 @@ export function ManualEntryHistory({
     } finally {
       setDeleteId(null)
     }
-  }
-
-  if (loading && data.length === 0) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
   }
 
   return (
@@ -119,7 +87,7 @@ export function ManualEntryHistory({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length === 0 ? (
+              {latestInventory.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={5}
@@ -129,7 +97,7 @@ export function ManualEntryHistory({
                   </TableCell>
                 </TableRow>
               ) : (
-                data.map((record) => {
+                latestInventory.map((record) => {
                   const qty =
                     record.quantityLt > 0
                       ? record.quantityLt
