@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { useData } from '@/context/DataContext'
@@ -85,13 +86,6 @@ export function SteamControlForm({
       volumeM3: initialData?.volumeM3 || 0,
     },
   })
-
-  // Watch values for real-time calculations in Farinorte mode
-  const watchWeightKg = form.watch('weightKg')
-  const watchPackageCount = form.watch('packageCount')
-
-  const calculatedPack = (watchPackageCount || 0) * 2
-  const calculatedWeight = (watchWeightKg || 0) * 0.18
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const submitAction = () => {
@@ -186,6 +180,10 @@ export function SteamControlForm({
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
                       </FormControl>
+                      <FormDescription className="text-emerald-600 font-medium">
+                        Cálculo (x 0.18):{' '}
+                        {((Number(field.value) || 0) * 0.18).toFixed(2)}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -199,6 +197,10 @@ export function SteamControlForm({
                       <FormControl>
                         <Input type="number" step="1" {...field} />
                       </FormControl>
+                      <FormDescription className="text-emerald-600 font-medium">
+                        Cálculo (x 2):{' '}
+                        {((Number(field.value) || 0) * 2).toFixed(2)}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -219,17 +221,6 @@ export function SteamControlForm({
                     </FormItem>
                   )}
                 />
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-muted-foreground mt-8">
-                    Cálculo Automático:
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Pacotes x 2: {calculatedPack.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Kg x 0.18: {calculatedWeight.toFixed(2)}
-                  </div>
-                </div>
               </div>
             </>
           ) : (

@@ -89047,9 +89047,6 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 			volumeM3: initialData?.volumeM3 || 0
 		}
 	});
-	const watchWeightKg = form.watch("weightKg");
-	const calculatedPack = (form.watch("packageCount") || 0) * 2;
-	const calculatedWeight = (watchWeightKg || 0) * .18;
 	function onSubmit(values) {
 		const submitAction = () => {
 			setIsSubmitting(true);
@@ -89133,6 +89130,14 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 								step: "0.01",
 								...field
 							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
+								className: "text-emerald-600 font-medium",
+								children: [
+									"Cálculo (x 0.18):",
+									" ",
+									((Number(field.value) || 0) * .18).toFixed(2)
+								]
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
@@ -89145,12 +89150,20 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 								step: "1",
 								...field
 							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
+								className: "text-emerald-600 font-medium",
+								children: [
+									"Cálculo (x 2):",
+									" ",
+									((Number(field.value) || 0) * 2).toFixed(2)
+								]
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
 					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "grid grid-cols-2 gap-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 						control: form.control,
 						name: "volumeM3",
 						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
@@ -89162,23 +89175,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 							}) }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "space-y-2",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "text-sm font-medium text-muted-foreground mt-8",
-								children: "Cálculo Automático:"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-muted-foreground",
-								children: ["Pacotes x 2: ", calculatedPack.toFixed(2)]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-muted-foreground",
-								children: ["Kg x 0.18: ", calculatedWeight.toFixed(2)]
-							})
-						]
-					})]
+					})
 				})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid grid-cols-2 gap-4",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
@@ -89540,11 +89537,12 @@ function SteamControlTable() {
 	});
 }
 function SteamControlCharts() {
-	const { steamControlRecords, production } = useData();
+	const { steamControlRecords, production, factories, currentFactoryId } = useData();
 	const [dateRange, setDateRange] = (0, import_react.useState)({
 		from: subDays(/* @__PURE__ */ new Date(), 30),
 		to: /* @__PURE__ */ new Date()
 	});
+	const isFarinorte = (0, import_react.useMemo)(() => factories.find((f) => f.id === currentFactoryId), [factories, currentFactoryId])?.name.toLowerCase().includes("farinorte") ?? false;
 	const filteredData = (0, import_react.useMemo)(() => {
 		if (!dateRange?.from || !dateRange?.to) return [];
 		const prodMap = /* @__PURE__ */ new Map();
@@ -89573,12 +89571,18 @@ function SteamControlCharts() {
 			let firewood = 0;
 			let riceHusk = 0;
 			let woodChips = 0;
+			let weightKg = 0;
+			let packageCount = 0;
+			let volumeM3 = 0;
 			daySteamRecords.forEach((r$2) => {
 				steamConsumption += r$2.meterEnd - r$2.meterStart;
 				soyWaste += r$2.soyWaste;
 				firewood += r$2.firewood;
 				riceHusk += r$2.riceHusk;
 				woodChips += r$2.woodChips;
+				weightKg += r$2.weightKg || 0;
+				packageCount += r$2.packageCount || 0;
+				volumeM3 += r$2.volumeM3 || 0;
 			});
 			const totalFuel = soyWaste + firewood + riceHusk + woodChips;
 			const ratioMpVapor = steamConsumption > 0 ? entradaMp / steamConsumption : 0;
@@ -89593,15 +89597,20 @@ function SteamControlCharts() {
 				soyWaste,
 				firewood,
 				riceHusk,
-				woodChips
+				woodChips,
+				weightKg,
+				packageCount,
+				volumeM3
 			};
-		}).filter((d) => d.steamConsumption > 0 || d.entradaMp > 0);
+		}).filter((d) => isFarinorte ? d.weightKg > 0 || d.packageCount > 0 || d.volumeM3 > 0 : d.steamConsumption > 0 || d.entradaMp > 0);
 	}, [
 		steamControlRecords,
 		production,
-		dateRange
+		dateRange,
+		isFarinorte
 	]);
 	const fuelData = (0, import_react.useMemo)(() => {
+		if (isFarinorte) return [];
 		const totals = filteredData.reduce((acc, curr) => ({
 			soyWaste: acc.soyWaste + curr.soyWaste,
 			firewood: acc.firewood + curr.firewood,
@@ -89635,7 +89644,122 @@ function SteamControlCharts() {
 				color: "#10b981"
 			}
 		].filter((d) => d.value > 0);
-	}, [filteredData]);
+	}, [filteredData, isFarinorte]);
+	const consumptionConfig = {
+		steamConsumption: {
+			label: "Consumo Vapor (t)",
+			color: "hsl(var(--chart-1))"
+		},
+		entradaMp: {
+			label: "Entrada de MP (t)",
+			color: "hsl(var(--chart-2))"
+		}
+	};
+	const ratioConfig = {
+		ratioMpVapor: {
+			label: "Entrada MP vs Vapor",
+			color: "hsl(var(--chart-3))"
+		},
+		ratioCavacoVapor: {
+			label: "Cavaco vs Vapor",
+			color: "hsl(var(--chart-4))"
+		}
+	};
+	const fuelConfig = { value: { label: "Quantidade" } };
+	const farinorteConfig = {
+		weightKg: {
+			label: "Peso (Kg)",
+			color: "hsl(var(--chart-1))"
+		},
+		packageCount: {
+			label: "Pacotes",
+			color: "hsl(var(--chart-2))"
+		},
+		volumeM3: {
+			label: "Volume (m³)",
+			color: "hsl(var(--chart-3))"
+		}
+	};
+	if (isFarinorte) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "flex justify-end",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DatePickerWithRange, {
+				date: dateRange,
+				setDate: setDateRange,
+				className: "w-[300px]"
+			})
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "grid gap-6 md:grid-cols-2",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+				className: "md:col-span-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Entradas Diárias" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Acompanhamento de Kg, Pacotes e Volume" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+					config: farinorteConfig,
+					className: "aspect-auto h-[400px] w-full",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data: filteredData,
+						margin: {
+							top: 20,
+							right: 0,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								vertical: false,
+								strokeDasharray: "3 3"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "date",
+								tickLine: false,
+								axisLine: false,
+								tickMargin: 8
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								tickLine: false,
+								axisLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "weightKg",
+								fill: "var(--color-weightKg)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Peso (Kg)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "packageCount",
+								fill: "var(--color-packageCount)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Pacotes"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "volumeM3",
+								fill: "var(--color-volumeM3)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Volume (m³)"
+							})
+						]
+					})
+				}) })]
+			})
+		})]
+	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -89649,16 +89773,7 @@ function SteamControlCharts() {
 			className: "grid gap-6 md:grid-cols-2",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Consumo de Vapor x MP" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Relação diária entre consumo de vapor e entrada de matéria-prima" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-					config: {
-						steamConsumption: {
-							label: "Consumo Vapor (t)",
-							color: "hsl(var(--chart-1))"
-						},
-						entradaMp: {
-							label: "Entrada de MP (t)",
-							color: "hsl(var(--chart-2))"
-						}
-					},
+					config: consumptionConfig,
 					className: "aspect-auto h-[300px] w-full",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 						data: filteredData,
@@ -89733,16 +89848,7 @@ function SteamControlCharts() {
 					})
 				}) })] }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Indicadores de Eficiência" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Evolução dos índices de produtividade térmica" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-					config: {
-						ratioMpVapor: {
-							label: "Entrada MP vs Vapor",
-							color: "hsl(var(--chart-3))"
-						},
-						ratioCavacoVapor: {
-							label: "Cavaco vs Vapor",
-							color: "hsl(var(--chart-4))"
-						}
-					},
+					config: ratioConfig,
 					className: "aspect-auto h-[300px] w-full",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 						data: filteredData,
@@ -89778,18 +89884,7 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Entrada MP vs Vapor",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-									dataKey: "ratioMpVapor",
-									position: "top",
-									offset: 12,
-									className: "fill-foreground",
-									fontSize: 12,
-									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									})
-								})
+								name: "Entrada MP vs Vapor"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "ratioCavacoVapor",
@@ -89800,18 +89895,7 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Cavaco vs Vapor",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-									dataKey: "ratioCavacoVapor",
-									position: "top",
-									offset: 12,
-									className: "fill-foreground",
-									fontSize: 12,
-									formatter: (val) => val === 0 ? "" : val.toLocaleString("pt-BR", {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									})
-								})
+								name: "Cavaco vs Vapor"
 							})
 						]
 					})
@@ -89821,7 +89905,7 @@ function SteamControlCharts() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Distribuição de Combustível" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Total consumido no período selecionado" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 						className: "h-[300px]",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-							config: { value: { label: "Quantidade" } },
+							config: fuelConfig,
 							className: "aspect-auto h-full w-full",
 							children: fuelData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 								data: fuelData,
@@ -91844,4 +91928,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DkjK18Fm.js.map
+//# sourceMappingURL=index-BsN42bFQ.js.map

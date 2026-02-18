@@ -38,7 +38,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { formatNumber, isBloodRecord, cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
   TooltipContent,
@@ -70,7 +69,6 @@ export function SteamControlTable() {
     currentFactory?.name.toLowerCase().includes('farinorte') ?? false
 
   // Determine efficiency threshold (Ton Steam / Ton MP)
-  // If settings provide a plausible ratio (e.g. < 10), use it. Otherwise default to 0.24
   const efficiencyThreshold =
     notificationSettings.yieldThreshold > 0 &&
     notificationSettings.yieldThreshold < 10
@@ -105,11 +103,7 @@ export function SteamControlTable() {
       const consumoVap = record.meterEnd - record.meterStart
 
       // Ratios Calculation
-      // CAVACO VS TONS VAPOR: CONSUMO VAP / TOTAL FUEL
       const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0
-
-      // VAPOR / MP: CONSUMO VAP (Tons) / MP PROCESSED (Tons)
-      // mpProcessed is in kg, convert to tons for the ratio calculation to get Ton/Ton
       const mpProcessedTons = mpProcessed / 1000
       const vaporVsMp = mpProcessedTons > 0 ? consumoVap / mpProcessedTons : 0
 
