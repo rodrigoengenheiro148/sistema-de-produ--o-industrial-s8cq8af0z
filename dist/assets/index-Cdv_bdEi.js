@@ -89047,6 +89047,17 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 			volumeM3: initialData?.volumeM3 || 0
 		}
 	});
+	const packageCount = form.watch("packageCount");
+	(0, import_react.useEffect)(() => {
+		if (isFarinorte) {
+			const calculatedVolume = (Number(packageCount) || 0) * 2;
+			if (form.getValues("volumeM3") !== calculatedVolume) form.setValue("volumeM3", calculatedVolume);
+		}
+	}, [
+		packageCount,
+		isFarinorte,
+		form
+	]);
 	function onSubmit(values) {
 		const submitAction = () => {
 			setIsSubmitting(true);
@@ -89171,7 +89182,9 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 								type: "number",
 								step: "0.01",
-								...field
+								...field,
+								readOnly: isFarinorte,
+								className: cn(isFarinorte && "bg-muted")
 							}) }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
@@ -91928,4 +91941,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BsN42bFQ.js.map
+//# sourceMappingURL=index-Cdv_bdEi.js.map

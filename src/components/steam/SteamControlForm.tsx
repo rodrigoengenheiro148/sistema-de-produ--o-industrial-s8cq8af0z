@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,6 +19,7 @@ import { useData } from '@/context/DataContext'
 import { SteamControlEntry } from '@/lib/types'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
+import { cn } from '@/lib/utils'
 
 // Combined schema that works for both modes.
 // Fields are optional because they depend on the factory mode.
@@ -86,6 +87,23 @@ export function SteamControlForm({
       volumeM3: initialData?.volumeM3 || 0,
     },
   })
+
+  // Watch packageCount to automatically calculate volumeM3 for Farinorte
+  const packageCount = form.watch('packageCount')
+
+  useEffect(() => {
+    if (isFarinorte) {
+      const count = Number(packageCount) || 0
+      const calculatedVolume = count * 2
+      const currentVolume = form.getValues('volumeM3')
+
+      // Only update if the value is different to avoid unnecessary updates
+      // This enforces the calculation rule: packageCount * 2
+      if (currentVolume !== calculatedVolume) {
+        form.setValue('volumeM3', calculatedVolume)
+      }
+    }
+  }, [packageCount, isFarinorte, form])
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const submitAction = () => {
@@ -215,7 +233,13 @@ export function SteamControlForm({
                     <FormItem>
                       <FormLabel>Entrada m³</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...field}
+                          readOnly={isFarinorte}
+                          className={cn(isFarinorte && 'bg-muted')}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
