@@ -67073,151 +67073,6 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		]
 	});
 }
-function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, className }) {
-	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const filteredData = data.filter((p$1) => !isBloodRecord(p$1));
-		let processedData = [];
-		if (timeScale === "monthly") {
-			const monthlyData = /* @__PURE__ */ new Map();
-			filteredData.forEach((p$1) => {
-				const dateKey = format(p$1.date, "yyyy-MM");
-				const displayDate = format(p$1.date, "MMM/yy", { locale: ptBR });
-				if (!monthlyData.has(dateKey)) monthlyData.set(dateKey, {
-					dateKey,
-					date: displayDate,
-					originalDate: p$1.date,
-					perdas: 0,
-					mp: 0
-				});
-				const entry = monthlyData.get(dateKey);
-				entry.perdas += p$1.losses;
-				entry.mp += p$1.mpUsed;
-			});
-			processedData = Array.from(monthlyData.values()).filter((d) => d.perdas > 0).map((d) => ({
-				...d,
-				percentage: d.mp > 0 ? d.perdas / d.mp * 100 : 0
-			})).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
-		} else processedData = filteredData.filter((p$1) => p$1.losses > 0).map((p$1) => ({
-			date: format(p$1.date, "dd/MM"),
-			originalDate: p$1.date,
-			perdas: p$1.losses,
-			percentage: p$1.mpUsed > 0 ? p$1.losses / p$1.mpUsed * 100 : 0
-		})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime());
-		return {
-			chartData: processedData,
-			chartConfig: { perdas: {
-				label: "Perdas",
-				color: "hsl(var(--destructive))"
-			} }
-		};
-	}, [data, timeScale]);
-	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
-			"Volume de quebra técnica e perdas",
-			" ",
-			timeScale === "monthly" ? "mensais" : "diárias"
-		] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "h-[300px] flex items-center justify-center text-muted-foreground",
-			children: "Nenhum dado disponível."
-		})]
-	});
-	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-		config: chartConfig$1,
-		className: `${height} w-full`,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-			data: chartData,
-			margin: {
-				top: 20,
-				right: 10,
-				left: 0,
-				bottom: 0
-			},
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
-					vertical: false,
-					strokeDasharray: "3 3"
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-					dataKey: "date",
-					tickLine: false,
-					axisLine: false,
-					tickMargin: 8,
-					minTickGap: 32,
-					fontSize: isMobile ? 10 : 12
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-					tickLine: false,
-					axisLine: false,
-					width: isMobile ? 30 : 50,
-					fontSize: isMobile ? 10 : 12,
-					tickFormatter: (value) => value >= 1e3 ? `${formatNumber(value / 1e3, { maximumFractionDigits: 1 })}k` : formatNumber(value, { maximumFractionDigits: 0 })
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value) => formatNumber(Number(value), {
-					minimumFractionDigits: 0,
-					maximumFractionDigits: 2
-				}) }) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-					dataKey: "perdas",
-					fill: "var(--color-perdas)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "percentage",
-						position: "top",
-						offset: 8,
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 9 : 11,
-						formatter: (value) => value > 0 ? `${formatNumber(value, { maximumFractionDigits: 1 })}%` : ""
-					})
-				})
-			]
-		})
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-center justify-between space-y-0 pb-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
-				"Volume de quebra técnica e perdas",
-				" ",
-				timeScale === "monthly" ? "mensais" : "diárias",
-				" ( > 0kg )"
-			] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-					variant: "ghost",
-					size: "icon",
-					className: "h-8 w-8",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "sr-only",
-						children: "Expandir"
-					})]
-				})
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-				className: "max-w-[90vw] h-[80vh] flex flex-col",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogTitle, { children: [
-					"Análise de Perdas (",
-					timeScale === "monthly" ? "Mensal" : "Diário",
-					")"
-				] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada das perdas com percentual." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "flex-1 w-full min-h-0 py-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
-				})]
-			})] })]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "pt-4",
-			children: chartData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "h-[300px] flex items-center justify-center text-muted-foreground text-sm",
-				children: "Nenhuma perda registrada no período."
-			})
-		})]
-	});
-}
 function YieldGaugeChart({ value, target, className }) {
 	const MAX_VALUE = 100;
 	const safeValue = Math.min(Math.max(value, 0), MAX_VALUE);
@@ -72814,13 +72669,9 @@ function Dashboard() {
 									isMobile,
 									timeScale: "daily",
 									allClients: uniqueClients
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "grid gap-4",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
-										data: filteredProduction,
-										isMobile,
-										timeScale: "daily"
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReturnsImpactChart, { data: filteredReturns })]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "grid gap-4 content-start",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReturnsImpactChart, { data: filteredReturns })
 								})]
 							})
 						]
@@ -89710,6 +89561,7 @@ function SteamControlCharts() {
 			let weightKg = 0;
 			let packageCount = 0;
 			let volumeM3 = 0;
+			let totalCost = 0;
 			daySteamRecords.forEach((r$2) => {
 				steamConsumption += r$2.meterEnd - r$2.meterStart;
 				soyWaste += r$2.soyWaste;
@@ -89719,6 +89571,7 @@ function SteamControlCharts() {
 				weightKg += r$2.weightKg || 0;
 				packageCount += r$2.packageCount || 0;
 				volumeM3 += r$2.volumeM3 || 0;
+				totalCost += (r$2.weightKg || 0) * (r$2.value || 0);
 			});
 			const totalFuel = soyWaste + firewood + riceHusk + woodChips;
 			const ratioMpVapor = steamConsumption > 0 ? entradaMp / steamConsumption : 0;
@@ -89736,7 +89589,8 @@ function SteamControlCharts() {
 				woodChips,
 				weightKg,
 				packageCount,
-				volumeM3
+				volumeM3,
+				totalCost
 			};
 		}).filter((d) => isFarinorte ? d.weightKg > 0 || d.packageCount > 0 || d.volumeM3 > 0 : d.steamConsumption > 0 || d.entradaMp > 0);
 	}, [
@@ -89816,6 +89670,10 @@ function SteamControlCharts() {
 			color: "hsl(var(--chart-3))"
 		}
 	};
+	const costConfig = { totalCost: {
+		label: "Custo Total",
+		color: "hsl(var(--chart-4))"
+	} };
 	if (isFarinorte) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -89825,9 +89683,9 @@ function SteamControlCharts() {
 				setDate: setDateRange,
 				className: "w-[300px]"
 			})
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "grid gap-6 md:grid-cols-2",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 				className: "md:col-span-2",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Entradas Diárias" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Acompanhamento de Kg, Pacotes e Volume" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 					config: farinorteConfig,
@@ -89866,7 +89724,15 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Peso (Kg)"
+								name: "Peso (Kg)",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "weightKg",
+									position: "top",
+									offset: 10,
+									className: "fill-foreground font-bold",
+									fontSize: 10,
+									formatter: (val) => formatNumber(val, { maximumFractionDigits: 0 })
+								})
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "packageCount",
@@ -89877,7 +89743,15 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Pacotes"
+								name: "Pacotes",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "packageCount",
+									position: "top",
+									offset: 10,
+									className: "fill-foreground font-bold",
+									fontSize: 10,
+									formatter: (val) => formatNumber(val, { maximumFractionDigits: 0 })
+								})
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 								dataKey: "volumeM3",
@@ -89888,12 +89762,80 @@ function SteamControlCharts() {
 									0,
 									0
 								],
-								name: "Volume (m³)"
+								name: "Volume (m³)",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "volumeM3",
+									position: "top",
+									offset: 10,
+									className: "fill-foreground font-bold",
+									fontSize: 10,
+									formatter: (val) => formatNumber(val, { maximumFractionDigits: 0 })
+								})
 							})
 						]
 					})
 				}) })]
-			})
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+				className: "md:col-span-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Custo Total de Vapor (R$)" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Valor financeiro diário baseado no peso e valor unitário" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+					config: costConfig,
+					className: "aspect-auto h-[350px] w-full",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data: filteredData,
+						margin: {
+							top: 30,
+							right: 0,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								vertical: false,
+								strokeDasharray: "3 3"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "date",
+								tickLine: false,
+								axisLine: false,
+								tickMargin: 8
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								tickLine: false,
+								axisLine: false,
+								tickFormatter: (value) => formatNumber(value, {
+									notation: "compact",
+									compactDisplay: "short"
+								})
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value) => formatCurrency(Number(value)) }) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "totalCost",
+								fill: "var(--color-totalCost)",
+								radius: [
+									4,
+									4,
+									0,
+									0
+								],
+								name: "Valor em Reais",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+									dataKey: "totalCost",
+									position: "top",
+									offset: 10,
+									className: "fill-foreground font-bold",
+									fontSize: 11,
+									formatter: (val) => formatNumber(val, {
+										maximumFractionDigits: 0,
+										style: "currency",
+										currency: "BRL"
+									})
+								})
+							})
+						]
+					})
+				}) })]
+			})]
 		})]
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -92064,4 +92006,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DAl9CMJJ.js.map
+//# sourceMappingURL=index-BuE5pT-x.js.map

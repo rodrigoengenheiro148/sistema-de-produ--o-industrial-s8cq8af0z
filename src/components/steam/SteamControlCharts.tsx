@@ -29,7 +29,7 @@ import {
 import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
 import { SteamControlEntry } from '@/lib/types'
-import { isBloodRecord } from '@/lib/utils'
+import { isBloodRecord, formatCurrency, formatNumber } from '@/lib/utils'
 
 export function SteamControlCharts() {
   const { steamControlRecords, production, factories, currentFactoryId } =
@@ -88,6 +88,7 @@ export function SteamControlCharts() {
         let weightKg = 0
         let packageCount = 0
         let volumeM3 = 0
+        let totalCost = 0
 
         daySteamRecords.forEach((r) => {
           steamConsumption += r.meterEnd - r.meterStart
@@ -98,6 +99,7 @@ export function SteamControlCharts() {
           weightKg += r.weightKg || 0
           packageCount += r.packageCount || 0
           volumeM3 += r.volumeM3 || 0
+          totalCost += (r.weightKg || 0) * (r.value || 0)
         })
 
         // Calculate ratios (avoid div by zero)
@@ -122,6 +124,7 @@ export function SteamControlCharts() {
           weightKg,
           packageCount,
           volumeM3,
+          totalCost,
         }
       })
       .filter((d) =>
@@ -187,6 +190,10 @@ export function SteamControlCharts() {
     volumeM3: { label: 'Volume (m³)', color: 'hsl(var(--chart-3))' },
   } satisfies ChartConfig
 
+  const costConfig = {
+    totalCost: { label: 'Custo Total', color: 'hsl(var(--chart-4))' },
+  } satisfies ChartConfig
+
   if (isFarinorte) {
     return (
       <div className="space-y-6">
@@ -229,19 +236,119 @@ export function SteamControlCharts() {
                     fill="var(--color-weightKg)"
                     radius={[4, 4, 0, 0]}
                     name="Peso (Kg)"
-                  />
+                  >
+                    <LabelList
+                      dataKey="weightKg"
+                      position="top"
+                      offset={10}
+                      className="fill-foreground font-bold"
+                      fontSize={10}
+                      formatter={(val: number) =>
+                        formatNumber(val, { maximumFractionDigits: 0 })
+                      }
+                    />
+                  </Bar>
                   <Bar
                     dataKey="packageCount"
                     fill="var(--color-packageCount)"
                     radius={[4, 4, 0, 0]}
                     name="Pacotes"
-                  />
+                  >
+                    <LabelList
+                      dataKey="packageCount"
+                      position="top"
+                      offset={10}
+                      className="fill-foreground font-bold"
+                      fontSize={10}
+                      formatter={(val: number) =>
+                        formatNumber(val, { maximumFractionDigits: 0 })
+                      }
+                    />
+                  </Bar>
                   <Bar
                     dataKey="volumeM3"
                     fill="var(--color-volumeM3)"
                     radius={[4, 4, 0, 0]}
                     name="Volume (m³)"
+                  >
+                    <LabelList
+                      dataKey="volumeM3"
+                      position="top"
+                      offset={10}
+                      className="fill-foreground font-bold"
+                      fontSize={10}
+                      formatter={(val: number) =>
+                        formatNumber(val, { maximumFractionDigits: 0 })
+                      }
+                    />
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Custo Total de Vapor (R$)</CardTitle>
+              <CardDescription>
+                Valor financeiro diário baseado no peso e valor unitário
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={costConfig}
+                className="aspect-auto h-[350px] w-full"
+              >
+                <BarChart
+                  data={filteredData}
+                  margin={{ top: 30, right: 0, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
                   />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) =>
+                      formatNumber(value, {
+                        notation: 'compact',
+                        compactDisplay: 'short',
+                      })
+                    }
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => formatCurrency(Number(value))}
+                      />
+                    }
+                  />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar
+                    dataKey="totalCost"
+                    fill="var(--color-totalCost)"
+                    radius={[4, 4, 0, 0]}
+                    name="Valor em Reais"
+                  >
+                    <LabelList
+                      dataKey="totalCost"
+                      position="top"
+                      offset={10}
+                      className="fill-foreground font-bold"
+                      fontSize={11}
+                      formatter={(val: number) =>
+                        formatNumber(val, {
+                          maximumFractionDigits: 0,
+                          style: 'currency',
+                          currency: 'BRL',
+                        })
+                      }
+                    />
+                  </Bar>
                 </BarChart>
               </ChartContainer>
             </CardContent>

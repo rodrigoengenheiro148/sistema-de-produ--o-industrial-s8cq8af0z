@@ -25,7 +25,6 @@ import { OverviewCards } from '@/components/dashboard/OverviewCards'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
 import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
-import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
 import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialCompositionChart'
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
@@ -447,12 +446,7 @@ export default function Dashboard() {
               timeScale="daily"
               allClients={uniqueClients}
             />
-            <div className="grid gap-4">
-              <LossAnalysisChart
-                data={filteredProduction}
-                isMobile={isMobile}
-                timeScale="daily"
-              />
+            <div className="grid gap-4 content-start">
               <ReturnsImpactChart data={filteredReturns} />
             </div>
           </div>

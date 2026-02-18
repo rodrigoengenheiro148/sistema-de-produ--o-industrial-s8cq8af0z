@@ -1406,6 +1406,9 @@ section[aria-label='Notifications alt+T'] {
 .flex-wrap{
   flex-wrap: wrap;
 }
+.content-start{
+  align-content: flex-start;
+}
 .items-start{
   align-items: flex-start;
 }
