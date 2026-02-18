@@ -157,6 +157,8 @@ export interface SteamControlEntry {
   weightKg: number
   packageCount: number
   volumeM3: number
+  supplier?: string
+  value?: number
   createdAt?: Date
 }
 

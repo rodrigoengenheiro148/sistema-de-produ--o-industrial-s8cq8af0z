@@ -814,6 +814,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       weight_kg: entry.weightKg,
       package_count: entry.packageCount,
       volume_m3: entry.volumeM3,
+      supplier: entry.supplier,
+      value: entry.value,
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
@@ -835,6 +837,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         weight_kg: entry.weightKg,
         package_count: entry.packageCount,
         volume_m3: entry.volumeM3,
+        supplier: entry.supplier,
+        value: entry.value,
       })
       .eq('id', entry.id)
     if (!error) fetchOperationalData()

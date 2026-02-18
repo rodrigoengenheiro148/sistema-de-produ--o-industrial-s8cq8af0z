@@ -37,7 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
-import { formatNumber, isBloodRecord, cn } from '@/lib/utils'
+import { formatNumber, isBloodRecord, cn, formatCurrency } from '@/lib/utils'
 import {
   Tooltip,
   TooltipContent,
@@ -153,6 +153,12 @@ export function SteamControlTable() {
                   <TableHead className="text-right min-w-[120px]">
                     Entrada m³
                   </TableHead>
+                  <TableHead className="text-left min-w-[150px]">
+                    Fornecedor
+                  </TableHead>
+                  <TableHead className="text-right min-w-[120px]">
+                    Valor
+                  </TableHead>
                 </>
               ) : (
                 <>
@@ -200,7 +206,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={isFarinorte ? 5 : 13}
+                  colSpan={isFarinorte ? 7 : 13}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -222,6 +228,12 @@ export function SteamControlTable() {
                       </TableCell>
                       <TableCell className="text-right">
                         {formatNumber(row.volumeM3)}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        {row.supplier || '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.value ? formatCurrency(row.value) : '-'}
                       </TableCell>
                     </>
                   ) : (

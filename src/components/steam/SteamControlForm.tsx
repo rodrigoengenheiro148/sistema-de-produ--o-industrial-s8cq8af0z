@@ -36,6 +36,8 @@ const formSchema = z.object({
   weightKg: z.coerce.number().min(0).optional(),
   packageCount: z.coerce.number().min(0).optional(),
   volumeM3: z.coerce.number().min(0).optional(),
+  supplier: z.string().optional(),
+  value: z.coerce.number().min(0).optional(),
 })
 
 interface SteamControlFormProps {
@@ -85,6 +87,8 @@ export function SteamControlForm({
       weightKg: initialData?.weightKg || 0,
       packageCount: initialData?.packageCount || 0,
       volumeM3: initialData?.volumeM3 || 0,
+      supplier: initialData?.supplier || '',
+      value: initialData?.value || 0,
     },
   })
 
@@ -131,6 +135,8 @@ export function SteamControlForm({
           weightKg: isFarinorte ? values.weightKg || 0 : 0,
           packageCount: isFarinorte ? values.packageCount || 0 : 0,
           volumeM3: isFarinorte ? values.volumeM3 || 0 : 0,
+          supplier: isFarinorte ? values.supplier || '' : '',
+          value: isFarinorte ? values.value || 0 : 0,
           userId: '', // handled by context
           factoryId: '', // handled by context
         }
@@ -240,6 +246,35 @@ export function SteamControlForm({
                           readOnly={isFarinorte}
                           className={cn(isFarinorte && 'bg-muted')}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="supplier"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fornecedor</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Nome do fornecedor" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Valor</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

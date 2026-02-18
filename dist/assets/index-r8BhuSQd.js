@@ -36820,6 +36820,8 @@ const DataProvider = ({ children }) => {
 			weight_kg: entry.weightKg,
 			package_count: entry.packageCount,
 			volume_m3: entry.volumeM3,
+			supplier: entry.supplier,
+			value: entry.value,
 			user_id: user?.id,
 			factory_id: currentFactoryId
 		});
@@ -36837,7 +36839,9 @@ const DataProvider = ({ children }) => {
 			steam_consumption: entry.steamConsumption,
 			weight_kg: entry.weightKg,
 			package_count: entry.packageCount,
-			volume_m3: entry.volumeM3
+			volume_m3: entry.volumeM3,
+			supplier: entry.supplier,
+			value: entry.value
 		}).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
@@ -89055,7 +89059,9 @@ var formSchema$1 = object({
 	meterEnd: number().min(0).optional(),
 	weightKg: number().min(0).optional(),
 	packageCount: number().min(0).optional(),
-	volumeM3: number().min(0).optional()
+	volumeM3: number().min(0).optional(),
+	supplier: string().optional(),
+	value: number().min(0).optional()
 });
 function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	const { addSteamControlRecord, updateSteamControlRecord, factories, currentFactoryId } = useData();
@@ -89077,7 +89083,9 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 			meterEnd: initialData?.meterEnd || 0,
 			weightKg: initialData?.weightKg || 0,
 			packageCount: initialData?.packageCount || 0,
-			volumeM3: initialData?.volumeM3 || 0
+			volumeM3: initialData?.volumeM3 || 0,
+			supplier: initialData?.supplier || "",
+			value: initialData?.value || 0
 		}
 	});
 	const packageCount = form.watch("packageCount");
@@ -89109,6 +89117,8 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 					weightKg: isFarinorte ? values.weightKg || 0 : 0,
 					packageCount: isFarinorte ? values.packageCount || 0 : 0,
 					volumeM3: isFarinorte ? values.volumeM3 || 0 : 0,
+					supplier: isFarinorte ? values.supplier || "" : "",
+					value: isFarinorte ? values.value || 0 : 0,
 					userId: "",
 					factoryId: ""
 				};
@@ -89162,67 +89172,97 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 					] })
 				}),
-				isFarinorte ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "grid grid-cols-2 gap-4",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "weightKg",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada Kg" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								step: "0.01",
-								...field
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
-								className: "text-emerald-600 font-medium",
-								children: [
-									"Cálculo (x 0.18):",
-									" ",
-									((Number(field.value) || 0) * .18).toFixed(2)
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "packageCount",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada de pacotes" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								step: "1",
-								...field
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
-								className: "text-emerald-600 font-medium",
-								children: [
-									"Cálculo (x 2):",
-									" ",
-									((Number(field.value) || 0) * 2).toFixed(2)
-								]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
-					})]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "grid grid-cols-2 gap-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-						control: form.control,
-						name: "volumeM3",
-						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada m³" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-								type: "number",
-								step: "0.01",
-								...field,
-								readOnly: isFarinorte,
-								className: cn(isFarinorte && "bg-muted")
-							}) }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-						] })
+				isFarinorte ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid grid-cols-2 gap-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "weightKg",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada Kg" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
+									className: "text-emerald-600 font-medium",
+									children: [
+										"Cálculo (x 0.18):",
+										" ",
+										((Number(field.value) || 0) * .18).toFixed(2)
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "packageCount",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada de pacotes" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "1",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormDescription, {
+									className: "text-emerald-600 font-medium",
+									children: [
+										"Cálculo (x 2):",
+										" ",
+										((Number(field.value) || 0) * 2).toFixed(2)
+									]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "grid grid-cols-2 gap-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "volumeM3",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada m³" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field,
+									readOnly: isFarinorte,
+									className: cn(isFarinorte && "bg-muted")
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "grid grid-cols-2 gap-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "supplier",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fornecedor" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									...field,
+									placeholder: "Nome do fornecedor"
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+							control: form.control,
+							name: "value",
+							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Valor" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+									type: "number",
+									step: "0.01",
+									...field
+								}) }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+							] })
+						})]
 					})
-				})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid grid-cols-2 gap-4",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 						control: form.control,
@@ -89410,6 +89450,14 @@ function SteamControlTable() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 								className: "text-right min-w-[120px]",
 								children: "Entrada m³"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-left min-w-[150px]",
+								children: "Fornecedor"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px]",
+								children: "Valor"
 							})
 						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -89460,7 +89508,7 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: isFarinorte ? 5 : 13,
+					colSpan: isFarinorte ? 7 : 13,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -89482,6 +89530,14 @@ function SteamControlTable() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right",
 								children: formatNumber(row.volumeM3)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-left",
+								children: row.supplier || "-"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: row.value ? formatCurrency(row.value) : "-"
 							})
 						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
@@ -91974,4 +92030,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Hfz6SkNj.js.map
+//# sourceMappingURL=index-r8BhuSQd.js.map
