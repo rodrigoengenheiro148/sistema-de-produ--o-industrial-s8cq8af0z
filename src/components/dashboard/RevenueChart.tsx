@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { ShippingEntry, ProductionEntry, RawMaterialEntry } from '@/lib/types'
 import {
   Card,
@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
+import { useData } from '@/context/DataContext'
 
 interface RevenueChartProps {
   data: ShippingEntry[]
@@ -107,18 +108,38 @@ export function RevenueChart({
   isMobile = false,
   className,
   forecastMetrics,
-  activeFilter = DEFAULT_FILTERS,
+  activeFilter,
   onFilterChange,
   clientFilter,
   onClientFilterChange,
   allClients = [],
 }: RevenueChartProps) {
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isFarinorte = currentFactory?.name === 'Farinorte'
+
+  // Calculate default filters based on factory
+  const effectiveDefaultFilters = useMemo(() => {
+    if (isFarinorte) {
+      return ['Sebo', 'FCO', 'Farinha Especial']
+    }
+    return DEFAULT_FILTERS
+  }, [isFarinorte])
+
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
   const [clientSearchTerm, setClientSearchTerm] = useState('')
 
   // Local state for material filter if not controlled
-  const [localFilter, setLocalFilter] = useState<string[]>(DEFAULT_FILTERS)
-  const currentFilter = onFilterChange ? activeFilter : localFilter
+  const [localFilter, setLocalFilter] = useState<string[]>(
+    effectiveDefaultFilters,
+  )
+
+  // Reset local filters if factory changes
+  useEffect(() => {
+    setLocalFilter(effectiveDefaultFilters)
+  }, [effectiveDefaultFilters])
+
+  const currentFilter = onFilterChange ? activeFilter || [] : localFilter
 
   // Local state for client filter if not controlled
   const [localClientFilter, setLocalClientFilter] = useState<string[]>([])
@@ -217,12 +238,19 @@ export function RevenueChart({
     const globalYields: Record<string, number> = {
       Sebo: globalTotalMp > 0 ? globalSebo / globalTotalMp : 0.15,
       FCO: globalTotalMp > 0 ? globalFco / globalTotalMp : 0.2,
-      Farinheta: globalTotalMp > 0 ? globalFarinheta / globalTotalMp : 0.05,
+      Farinheta:
+        !isFarinorte && globalTotalMp > 0
+          ? globalFarinheta / globalTotalMp
+          : 0.05,
       'Farinha Especial': 0.1,
     }
 
     // Avg Prices (Last 10 records per product)
-    const productsToCheck = ['Sebo', 'FCO', 'Farinheta', 'Farinha Especial']
+    const productsToCheck = ['Sebo', 'FCO', 'Farinha Especial']
+    if (!isFarinorte) {
+      productsToCheck.push('Farinheta')
+    }
+
     const globalAvgPrices: Record<string, number> = {}
 
     productsToCheck.forEach((product) => {
@@ -245,6 +273,13 @@ export function RevenueChart({
     const counts: Record<string, number> = {}
 
     data.forEach((s) => {
+      // Exclude excluded products for Farinorte
+      if (
+        isFarinorte &&
+        (s.product === 'Farinheta' || s.product === 'Farinha de Sangue')
+      )
+        return
+
       const product = s.product
       if (!prices[product]) {
         prices[product] = 0
@@ -278,7 +313,9 @@ export function RevenueChart({
       Sebo: totalMp > 0 ? totalSebo / totalMp : globalYields['Sebo'],
       FCO: totalMp > 0 ? totalFco / totalMp : globalYields['FCO'],
       Farinheta:
-        totalMp > 0 ? totalFarinheta / totalMp : globalYields['Farinheta'],
+        !isFarinorte && totalMp > 0
+          ? totalFarinheta / totalMp
+          : globalYields['Farinheta'],
       'Farinha Especial': 0.1,
     }
 
@@ -290,6 +327,12 @@ export function RevenueChart({
     // 3. Process Shipping Data (Realized Revenue)
     data.forEach((s) => {
       if (!s.date) return
+      // Exclude excluded products for Farinorte
+      if (
+        isFarinorte &&
+        (s.product === 'Farinheta' || s.product === 'Farinha de Sangue')
+      )
+        return
       if (!currentFilter.includes(s.product)) return
       // Apply Client Filter
       if (
@@ -386,7 +429,7 @@ export function RevenueChart({
           yields['FCO'] *
           (avgPrices['FCO'] || avgPrices['Farinha'] || 0)
       }
-      if (currentFilter.includes('Farinheta')) {
+      if (!isFarinorte && currentFilter.includes('Farinheta')) {
         dailyForecast +=
           quantityKg * yields['Farinheta'] * (avgPrices['Farinheta'] || 0)
       }
@@ -425,7 +468,7 @@ export function RevenueChart({
             projectedRevenue +=
               globalAvgMp * globalYields['FCO'] * (globalAvgPrices['FCO'] || 0)
           }
-          if (currentFilter.includes('Farinheta')) {
+          if (!isFarinorte && currentFilter.includes('Farinheta')) {
             projectedRevenue +=
               globalAvgMp *
               globalYields['Farinheta'] *
@@ -520,6 +563,7 @@ export function RevenueChart({
     timeScale,
     currentFilter,
     currentClientFilter,
+    isFarinorte,
   ])
 
   const formatCompact = (value: number) =>
@@ -731,7 +775,7 @@ export function RevenueChart({
                 <Button variant="outline" size="sm" className="h-8 px-2 gap-2">
                   <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="hidden xs:inline text-xs">Materiais</span>
-                  {currentFilter.length < 4 && (
+                  {currentFilter.length < effectiveDefaultFilters.length && (
                     <Badge variant="secondary" className="h-5 px-1 text-[10px]">
                       {currentFilter.length}
                     </Badge>
@@ -753,26 +797,30 @@ export function RevenueChart({
                 >
                   FCO
                 </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={currentFilter.includes('Farinheta')}
-                  onCheckedChange={() => handleFilterChange('Farinheta')}
-                >
-                  Farinheta
-                </DropdownMenuCheckboxItem>
+                {!isFarinorte && (
+                  <DropdownMenuCheckboxItem
+                    checked={currentFilter.includes('Farinheta')}
+                    onCheckedChange={() => handleFilterChange('Farinheta')}
+                  >
+                    Farinheta
+                  </DropdownMenuCheckboxItem>
+                )}
                 <DropdownMenuCheckboxItem
                   checked={currentFilter.includes('Farinha Especial')}
                   onCheckedChange={() => handleFilterChange('Farinha Especial')}
                 >
                   Farinha Especial
                 </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={currentFilter.includes('Farinha de Sangue')}
-                  onCheckedChange={() =>
-                    handleFilterChange('Farinha de Sangue')
-                  }
-                >
-                  Farinha de Sangue
-                </DropdownMenuCheckboxItem>
+                {!isFarinorte && (
+                  <DropdownMenuCheckboxItem
+                    checked={currentFilter.includes('Farinha de Sangue')}
+                    onCheckedChange={() =>
+                      handleFilterChange('Farinha de Sangue')
+                    }
+                  >
+                    Farinha de Sangue
+                  </DropdownMenuCheckboxItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 

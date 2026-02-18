@@ -56,6 +56,8 @@ export function ProductionPerformanceChart({
   // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
+  // Check for 'Farinorte' factory
+  const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const { chartData, chartConfig } = useMemo(() => {
     // Filter out blood records for strict industrial performance view
@@ -71,7 +73,9 @@ export function ProductionPerformanceChart({
           (p.viscerasOilProduced || 0)
         )
       }
-      return p.seboProduced + p.fcoProduced + p.farinhetaProduced
+      return (
+        p.seboProduced + p.fcoProduced + (isFarinorte ? 0 : p.farinhetaProduced)
+      )
     }
 
     let processedData = []
@@ -116,7 +120,9 @@ export function ProductionPerformanceChart({
 
     const config: ChartConfig = {
       producao: {
-        label: 'Produção Total (Industrial)',
+        label: isFarinorte
+          ? 'Produção (Sebo + FCO)'
+          : 'Produção Total (Industrial)',
         color: '#166534', // Dark Green (emerald-800)
       },
       mp: {
@@ -126,7 +132,7 @@ export function ProductionPerformanceChart({
     }
 
     return { chartData: processedData, chartConfig: config }
-  }, [data, timeScale, isMarReciclagem])
+  }, [data, timeScale, isMarReciclagem, isFarinorte])
 
   const formatValue = (value: number) => {
     if (value >= 1000) {

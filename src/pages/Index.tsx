@@ -385,7 +385,7 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {!isMarReciclagem && (
+          {!isMarReciclagem && !isFarinorte && (
             <LoadForecast referenceDate={effectiveForecastDate} />
           )}
 

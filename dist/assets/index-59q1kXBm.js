@@ -65490,11 +65490,12 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	const { factories, currentFactoryId } = useData();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const isFarinorte = currentFactory?.name === "Farinorte";
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
 		const calculateProd = (p$1) => {
 			if (isMarReciclagem) return p$1.seboProduced + p$1.fcoProduced + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0);
-			return p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced;
+			return p$1.seboProduced + p$1.fcoProduced + (isFarinorte ? 0 : p$1.farinhetaProduced);
 		};
 		let processedData = [];
 		if (timeScale === "monthly") {
@@ -65525,7 +65526,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 			chartData: processedData,
 			chartConfig: {
 				producao: {
-					label: "Produção Total (Industrial)",
+					label: isFarinorte ? "Produção (Sebo + FCO)" : "Produção Total (Industrial)",
 					color: "#166534"
 				},
 				mp: {
@@ -65537,7 +65538,8 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	}, [
 		data,
 		timeScale,
-		isMarReciclagem
+		isMarReciclagem,
+		isFarinorte
 	]);
 	const formatValue$2 = (value) => {
 		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 0 }) + "k";
@@ -66396,11 +66398,24 @@ var DEFAULT_FILTERS = [
 	"Farinheta",
 	"Farinha Especial"
 ];
-function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", isMobile = false, className, forecastMetrics, activeFilter = DEFAULT_FILTERS, onFilterChange, clientFilter, onClientFilterChange, allClients = [] }) {
+function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", isMobile = false, className, forecastMetrics, activeFilter, onFilterChange, clientFilter, onClientFilterChange, allClients = [] }) {
+	const { factories, currentFactoryId } = useData();
+	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
+	const effectiveDefaultFilters = (0, import_react.useMemo)(() => {
+		if (isFarinorte) return [
+			"Sebo",
+			"FCO",
+			"Farinha Especial"
+		];
+		return DEFAULT_FILTERS;
+	}, [isFarinorte]);
 	const [groupBy, setGroupBy] = (0, import_react.useState)("product");
 	const [clientSearchTerm, setClientSearchTerm] = (0, import_react.useState)("");
-	const [localFilter, setLocalFilter] = (0, import_react.useState)(DEFAULT_FILTERS);
-	const currentFilter = onFilterChange ? activeFilter : localFilter;
+	const [localFilter, setLocalFilter] = (0, import_react.useState)(effectiveDefaultFilters);
+	(0, import_react.useEffect)(() => {
+		setLocalFilter(effectiveDefaultFilters);
+	}, [effectiveDefaultFilters]);
+	const currentFilter = onFilterChange ? activeFilter || [] : localFilter;
 	const [localClientFilter, setLocalClientFilter] = (0, import_react.useState)([]);
 	const currentClientFilter = onClientFilterChange ? clientFilter || [] : localClientFilter;
 	const handleFilterChange = (val) => {
@@ -66448,15 +66463,15 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		const globalYields = {
 			Sebo: globalTotalMp > 0 ? globalSebo / globalTotalMp : .15,
 			FCO: globalTotalMp > 0 ? globalFco / globalTotalMp : .2,
-			Farinheta: globalTotalMp > 0 ? globalFarinheta / globalTotalMp : .05,
+			Farinheta: !isFarinorte && globalTotalMp > 0 ? globalFarinheta / globalTotalMp : .05,
 			"Farinha Especial": .1
 		};
 		const productsToCheck = [
 			"Sebo",
 			"FCO",
-			"Farinheta",
 			"Farinha Especial"
 		];
+		if (!isFarinorte) productsToCheck.push("Farinheta");
 		const globalAvgPrices = {};
 		productsToCheck.forEach((product) => {
 			const productSales = allData.filter((s$3) => s$3.product === product).sort((a$2, b$1) => new Date(b$1.date).getTime() - new Date(a$2.date).getTime()).slice(0, 10);
@@ -66466,6 +66481,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		const prices = {};
 		const counts = {};
 		data.forEach((s$3) => {
+			if (isFarinorte && (s$3.product === "Farinheta" || s$3.product === "Farinha de Sangue")) return;
 			const product = s$3.product;
 			if (!prices[product]) {
 				prices[product] = 0;
@@ -66493,7 +66509,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		const yields = {
 			Sebo: totalMp > 0 ? totalSebo / totalMp : globalYields["Sebo"],
 			FCO: totalMp > 0 ? totalFco / totalMp : globalYields["FCO"],
-			Farinheta: totalMp > 0 ? totalFarinheta / totalMp : globalYields["Farinheta"],
+			Farinheta: !isFarinorte && totalMp > 0 ? totalFarinheta / totalMp : globalYields["Farinheta"],
 			"Farinha Especial": .1
 		};
 		const uniqueKeys = /* @__PURE__ */ new Set();
@@ -66502,6 +66518,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		let globalForecast = 0;
 		data.forEach((s$3) => {
 			if (!s$3.date) return;
+			if (isFarinorte && (s$3.product === "Farinheta" || s$3.product === "Farinha de Sangue")) return;
 			if (!currentFilter.includes(s$3.product)) return;
 			if (currentClientFilter.length > 0 && !currentClientFilter.includes(s$3.client)) return;
 			let dateKey;
@@ -66566,7 +66583,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 			let dailyForecast = 0;
 			if (currentFilter.includes("Sebo")) dailyForecast += quantityKg * yields["Sebo"] * (avgPrices["Sebo"] || 0);
 			if (currentFilter.includes("FCO")) dailyForecast += quantityKg * yields["FCO"] * (avgPrices["FCO"] || avgPrices["Farinha"] || 0);
-			if (currentFilter.includes("Farinheta")) dailyForecast += quantityKg * yields["Farinheta"] * (avgPrices["Farinheta"] || 0);
+			if (!isFarinorte && currentFilter.includes("Farinheta")) dailyForecast += quantityKg * yields["Farinheta"] * (avgPrices["Farinheta"] || 0);
 			if (currentFilter.includes("Farinha Especial")) dailyForecast += quantityKg * yields["Farinha Especial"] * (avgPrices["Farinha Especial"] || 0);
 			entry.forecastRevenue += dailyForecast;
 			globalForecast += dailyForecast;
@@ -66582,7 +66599,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 					let projectedRevenue = 0;
 					if (currentFilter.includes("Sebo")) projectedRevenue += globalAvgMp * globalYields["Sebo"] * (globalAvgPrices["Sebo"] || 0);
 					if (currentFilter.includes("FCO")) projectedRevenue += globalAvgMp * globalYields["FCO"] * (globalAvgPrices["FCO"] || 0);
-					if (currentFilter.includes("Farinheta")) projectedRevenue += globalAvgMp * globalYields["Farinheta"] * (globalAvgPrices["Farinheta"] || 0);
+					if (!isFarinorte && currentFilter.includes("Farinheta")) projectedRevenue += globalAvgMp * globalYields["Farinheta"] * (globalAvgPrices["Farinheta"] || 0);
 					if (currentFilter.includes("Farinha Especial")) projectedRevenue += globalAvgMp * globalYields["Farinha Especial"] * (globalAvgPrices["Farinha Especial"] || 0);
 					if (projectedRevenue > 0) {
 						dateMap.set(dateKey, {
@@ -66650,7 +66667,8 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		groupBy,
 		timeScale,
 		currentFilter,
-		currentClientFilter
+		currentClientFilter,
+		isFarinorte
 	]);
 	const formatCompact = (value) => new Intl.NumberFormat("pt-BR", {
 		notation: "compact",
@@ -66872,7 +66890,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 											className: "hidden xs:inline text-xs",
 											children: "Materiais"
 										}),
-										currentFilter.length < 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
+										currentFilter.length < effectiveDefaultFilters.length && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Badge, {
 											variant: "secondary",
 											className: "h-5 px-1 text-[10px]",
 											children: currentFilter.length
@@ -66894,7 +66912,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 										onCheckedChange: () => handleFilterChange("FCO"),
 										children: "FCO"
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
+									!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
 										checked: currentFilter.includes("Farinheta"),
 										onCheckedChange: () => handleFilterChange("Farinheta"),
 										children: "Farinheta"
@@ -66904,7 +66922,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 										onCheckedChange: () => handleFilterChange("Farinha Especial"),
 										children: "Farinha Especial"
 									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
+									!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuCheckboxItem, {
 										checked: currentFilter.includes("Farinha de Sangue"),
 										onCheckedChange: () => handleFilterChange("Farinha de Sangue"),
 										children: "Farinha de Sangue"
@@ -72743,7 +72761,7 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
+							!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-2",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarReciclagemInventoryChart, {
@@ -91957,4 +91975,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BzrdN0mw.js.map
+//# sourceMappingURL=index-59q1kXBm.js.map
