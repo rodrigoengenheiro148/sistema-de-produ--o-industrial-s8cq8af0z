@@ -19,7 +19,7 @@ import { useData } from '@/context/DataContext'
 import { SteamControlEntry } from '@/lib/types'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 // Combined schema that works for both modes.
 // Fields are optional because they depend on the factory mode.
@@ -94,6 +94,12 @@ export function SteamControlForm({
 
   // Watch packageCount to automatically calculate volumeM3 for Farinorte
   const packageCount = form.watch('packageCount')
+  // Watch fields for total value calculation
+  const weightKg = form.watch('weightKg')
+  const unitValue = form.watch('value')
+
+  const calculatedTotalValue =
+    (Number(weightKg) || 0) * (Number(unitValue) || 0)
 
   useEffect(() => {
     if (isFarinorte) {
@@ -272,7 +278,7 @@ export function SteamControlForm({
                   name="value"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valor</FormLabel>
+                      <FormLabel>Valor Unitário (R$)</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
                       </FormControl>
@@ -280,6 +286,21 @@ export function SteamControlForm({
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="p-4 rounded-md bg-muted/50 border border-muted">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Valor Total Calculado
+                  </span>
+                  <span className="text-xl font-bold text-primary">
+                    {formatCurrency(calculatedTotalValue)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 text-right">
+                  {Number(weightKg) || 0} kg x{' '}
+                  {formatCurrency(Number(unitValue) || 0)}
+                </p>
               </div>
             </>
           ) : (

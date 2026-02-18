@@ -89089,6 +89089,9 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 		}
 	});
 	const packageCount = form.watch("packageCount");
+	const weightKg = form.watch("weightKg");
+	const unitValue = form.watch("value");
+	const calculatedTotalValue = (Number(weightKg) || 0) * (Number(unitValue) || 0);
 	(0, import_react.useEffect)(() => {
 		if (isFarinorte) {
 			const calculatedVolume = (Number(packageCount) || 0) * 2;
@@ -89252,7 +89255,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 							control: form.control,
 							name: "value",
 							render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Valor" }),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Valor Unitário (R$)" }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									type: "number",
 									step: "0.01",
@@ -89260,6 +89263,27 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 								}) }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 							] })
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "p-4 rounded-md bg-muted/50 border border-muted",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center justify-between",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-sm font-medium text-muted-foreground",
+								children: "Valor Total Calculado"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-xl font-bold text-primary",
+								children: formatCurrency(calculatedTotalValue)
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+							className: "text-xs text-muted-foreground mt-1 text-right",
+							children: [
+								Number(weightKg) || 0,
+								" kg x",
+								" ",
+								formatCurrency(Number(unitValue) || 0)
+							]
 						})]
 					})
 				] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -89397,6 +89421,7 @@ function SteamControlTable() {
 			const cavacoVsVapor = totalFuel > 0 ? consumoVap / totalFuel : 0;
 			const mpProcessedTons = mpProcessed / 1e3;
 			const vaporVsMp = mpProcessedTons > 0 ? consumoVap / mpProcessedTons : 0;
+			const calculatedTotalValue = (record.weightKg || 0) * (record.value || 0);
 			return {
 				...record,
 				mpProcessed,
@@ -89404,7 +89429,8 @@ function SteamControlTable() {
 				consumoVap,
 				cavacoVsVapor,
 				vaporVsMp,
-				isInefficient: vaporVsMp > efficiencyThreshold
+				isInefficient: vaporVsMp > efficiencyThreshold,
+				calculatedTotalValue
 			};
 		});
 	}, [
@@ -89457,7 +89483,11 @@ function SteamControlTable() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 								className: "text-right min-w-[120px]",
-								children: "Valor"
+								children: "Valor Unit."
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px] font-bold",
+								children: "Valor Total"
 							})
 						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -89508,7 +89538,7 @@ function SteamControlTable() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: isFarinorte ? 7 : 13,
+					colSpan: isFarinorte ? 8 : 13,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -89538,6 +89568,10 @@ function SteamControlTable() {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right",
 								children: row.value ? formatCurrency(row.value) : "-"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold text-emerald-600",
+								children: row.calculatedTotalValue ? formatCurrency(row.calculatedTotalValue) : "-"
 							})
 						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
@@ -92030,4 +92064,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-r8BhuSQd.js.map
+//# sourceMappingURL=index-DAl9CMJJ.js.map

@@ -107,6 +107,9 @@ export function SteamControlTable() {
       const mpProcessedTons = mpProcessed / 1000
       const vaporVsMp = mpProcessedTons > 0 ? consumoVap / mpProcessedTons : 0
 
+      // Calculate Total Value
+      const calculatedTotalValue = (record.weightKg || 0) * (record.value || 0)
+
       return {
         ...record,
         mpProcessed,
@@ -115,6 +118,7 @@ export function SteamControlTable() {
         cavacoVsVapor,
         vaporVsMp,
         isInefficient: vaporVsMp > efficiencyThreshold,
+        calculatedTotalValue,
       }
     })
   }, [steamControlRecords, production, efficiencyThreshold])
@@ -157,7 +161,10 @@ export function SteamControlTable() {
                     Fornecedor
                   </TableHead>
                   <TableHead className="text-right min-w-[120px]">
-                    Valor
+                    Valor Unit.
+                  </TableHead>
+                  <TableHead className="text-right min-w-[120px] font-bold">
+                    Valor Total
                   </TableHead>
                 </>
               ) : (
@@ -206,7 +213,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={isFarinorte ? 7 : 13}
+                  colSpan={isFarinorte ? 8 : 13}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -234,6 +241,11 @@ export function SteamControlTable() {
                       </TableCell>
                       <TableCell className="text-right">
                         {row.value ? formatCurrency(row.value) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-emerald-600">
+                        {row.calculatedTotalValue
+                          ? formatCurrency(row.calculatedTotalValue)
+                          : '-'}
                       </TableCell>
                     </>
                   ) : (
