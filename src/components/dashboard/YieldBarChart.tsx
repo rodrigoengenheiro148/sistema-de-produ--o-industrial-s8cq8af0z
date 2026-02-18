@@ -45,6 +45,8 @@ export function YieldBarChart({
   // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
+  // Check for 'Farinorte' as per requirements
+  const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
 
@@ -67,7 +69,11 @@ export function YieldBarChart({
           (item.viscerasOilProduced || 0)
         )
       }
-      return item.seboProduced + item.fcoProduced + item.farinhetaProduced
+      return (
+        item.seboProduced +
+        item.fcoProduced +
+        (isFarinorte ? 0 : item.farinhetaProduced)
+      )
     }
 
     if (timeScale === 'daily') {
@@ -128,7 +134,7 @@ export function YieldBarChart({
     } satisfies ChartConfig
 
     return { chartData: processedData, chartConfig: config }
-  }, [data, timeScale, isMarReciclagem])
+  }, [data, timeScale, isMarReciclagem, isFarinorte])
 
   if (!data || data.length === 0) {
     return (
@@ -137,7 +143,12 @@ export function YieldBarChart({
           <CardTitle>Performance de Rendimento</CardTitle>
           <CardDescription>
             Visualização do rendimento industrial (
-            {isMarReciclagem ? 'Total' : 'Sebo + FCO + Farinheta'})
+            {isMarReciclagem
+              ? 'Total'
+              : isFarinorte
+                ? 'Sebo + FCO'
+                : 'Sebo + FCO + Farinheta'}
+            )
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">

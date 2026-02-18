@@ -63879,6 +63879,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const isFarinorte = currentFactory?.name === "Farinorte";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const [selectedProducts, setSelectedProducts] = (0, import_react.useState)([]);
 	(0, import_react.useEffect)(() => {
@@ -63889,12 +63890,13 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 			"sebo",
 			"oleo"
 		]);
+		else if (isFarinorte) setSelectedProducts(["sebo", "fco"]);
 		else setSelectedProducts([
 			"sebo",
 			"fco",
 			"farinheta"
 		]);
-	}, [isMarReciclagem]);
+	}, [isMarReciclagem, isFarinorte]);
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
 		let processedData = [];
@@ -63913,7 +63915,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 			} else {
 				entry.sebo = mapYield(p$1.seboProduced, p$1.mpUsed);
 				entry.fco = mapYield(p$1.fcoProduced, p$1.mpUsed);
-				entry.farinheta = mapYield(p$1.farinhetaProduced, p$1.mpUsed);
+				if (!isFarinorte) entry.farinheta = mapYield(p$1.farinhetaProduced, p$1.mpUsed);
 			}
 			return entry;
 		});
@@ -63953,7 +63955,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 				} else {
 					result.sebo = mapYield(entry.seboProduced, entry.mpUsed);
 					result.fco = mapYield(entry.fcoProduced, entry.mpUsed);
-					result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed);
+					if (!isFarinorte) result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed);
 				}
 				return result;
 			});
@@ -63968,7 +63970,7 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 		} else {
 			trends.sebo_trend = calculateExponentialTrend(processedData.map((d) => d.sebo));
 			trends.fco_trend = calculateExponentialTrend(processedData.map((d) => d.fco));
-			trends.farinheta_trend = calculateExponentialTrend(processedData.map((d) => d.farinheta));
+			if (!isFarinorte) trends.farinheta_trend = calculateExponentialTrend(processedData.map((d) => d.farinheta));
 		}
 		const finalData = processedData.map((item, index$1) => {
 			const trendItem = {};
@@ -64023,32 +64025,36 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 				color: "hsl(var(--chart-5))"
 			}
 		};
-		else config$1 = {
-			sebo: {
-				label: "Sebo",
-				color: "hsl(var(--chart-1))"
-			},
-			fco: {
-				label: "FCO",
-				color: "hsl(var(--chart-2))"
-			},
-			farinheta: {
-				label: "Farinheta",
-				color: "hsl(var(--chart-3))"
-			},
-			sebo_trend: {
-				label: "Tendência Sebo",
-				color: "hsl(var(--chart-1))"
-			},
-			fco_trend: {
-				label: "Tendência FCO",
-				color: "hsl(var(--chart-2))"
-			},
-			farinheta_trend: {
-				label: "Tendência Farinheta",
-				color: "hsl(var(--chart-3))"
+		else {
+			config$1 = {
+				sebo: {
+					label: "Sebo",
+					color: "hsl(var(--chart-1))"
+				},
+				fco: {
+					label: "FCO",
+					color: "hsl(var(--chart-2))"
+				},
+				sebo_trend: {
+					label: "Tendência Sebo",
+					color: "hsl(var(--chart-1))"
+				},
+				fco_trend: {
+					label: "Tendência FCO",
+					color: "hsl(var(--chart-2))"
+				}
+			};
+			if (!isFarinorte) {
+				config$1.farinheta = {
+					label: "Farinheta",
+					color: "hsl(var(--chart-3))"
+				};
+				config$1.farinheta_trend = {
+					label: "Tendência Farinheta",
+					color: "hsl(var(--chart-3))"
+				};
 			}
-		};
+		}
 		return {
 			chartData: finalData,
 			chartConfig: config$1
@@ -64056,7 +64062,8 @@ function YieldHistoryChart({ data, isMobile = false, className }) {
 	}, [
 		data,
 		timeScale,
-		isMarReciclagem
+		isMarReciclagem,
+		isFarinorte
 	]);
 	const toggleProduct = (product) => {
 		setSelectedProducts((prev) => {
@@ -64245,6 +64252,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const isFarinorte = currentFactory?.name === "Farinorte";
 	const [timeScale, setTimeScale] = (0, import_react.useState)("daily");
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
 		const industrialData = data.filter((p$1) => !isBloodRecord(p$1));
@@ -64255,7 +64263,7 @@ function YieldBarChart({ data, isMobile = false, className }) {
 		let processedData = [];
 		const calculateProd = (item) => {
 			if (isMarReciclagem) return item.seboProduced + item.fcoProduced + (item.viscerasMealProduced || 0) + (item.featherMealProduced || 0) + (item.viscerasOilProduced || 0);
-			return item.seboProduced + item.fcoProduced + item.farinhetaProduced;
+			return item.seboProduced + item.fcoProduced + (isFarinorte ? 0 : item.farinhetaProduced);
 		};
 		if (timeScale === "daily") {
 			const dailyMap = /* @__PURE__ */ new Map();
@@ -64306,13 +64314,14 @@ function YieldBarChart({ data, isMobile = false, className }) {
 	}, [
 		data,
 		timeScale,
-		isMarReciclagem
+		isMarReciclagem,
+		isFarinorte
 	]);
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Performance de Rendimento" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
 			"Visualização do rendimento industrial (",
-			isMarReciclagem ? "Total" : "Sebo + FCO + Farinheta",
+			isMarReciclagem ? "Total" : isFarinorte ? "Sebo + FCO" : "Sebo + FCO + Farinheta",
 			")"
 		] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
@@ -64717,6 +64726,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 	const { factories, currentFactoryId } = useData();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const isFarinorte = currentFactory?.name === "Farinorte";
 	const metrics = (0, import_react.useMemo)(() => {
 		const normalizeToKg = (quantity, unit$1) => {
 			const u$1 = unit$1?.toLowerCase() || "";
@@ -64968,7 +64978,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				borderColor: "border-l-red-600",
 				textColor: "text-red-600"
 			}),
-			!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+			!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de Óleo Saturado Recebido",
 				value: formatNumberDisplay(metrics.saturatedOilInputKg, "kg"),
 				icon: FlaskConical,
@@ -65040,7 +65050,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 					textColor: fcoStyle.textColor,
 					className: fcoStyle.bgClass
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 					title: "Rendimento Farinheta",
 					value: formatPercent(metrics.farinhetaYield),
 					icon: Wheat,
@@ -65050,7 +65060,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 					className: farinhetaStyle.bgClass
 				})
 			] }),
-			!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+			!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 					title: "Total de entrada de sangue",
 					value: formatNumberDisplay(metrics.bloodInputKg, "kg"),
@@ -65108,8 +65118,9 @@ var Separator = import_react.forwardRef(({ className, orientation = "horizontal"
 }));
 Separator.displayName = Root$4.displayName;
 function LoadForecast({ referenceDate, className }) {
-	const { rawMaterials, dailyForecasts } = useData();
+	const { rawMaterials, dailyForecasts, factories, currentFactoryId } = useData();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
+	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
 	const forecastData = (0, import_react.useMemo)(() => {
 		const forecasts$1 = dailyForecasts.filter((f) => isSameDay(f.date, targetDate));
 		const mainLineForecast = forecasts$1.filter((f) => f.materialType !== "Sangue").reduce((acc, curr) => acc + curr.mpForecast, 0);
@@ -65408,7 +65419,7 @@ function LoadForecast({ referenceDate, className }) {
 				className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -65463,7 +65474,7 @@ function LoadForecast({ referenceDate, className }) {
 					bgClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30",
 					data: forecasts.farinheta
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
+				!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
 					title: "Farinha de Sangue",
 					icon: Droplet,
 					colorClass: "text-red-600 dark:text-red-400",
@@ -72523,6 +72534,7 @@ function Dashboard() {
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
+	const isFarinorte = currentFactory?.name === "Farinorte";
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -72586,12 +72598,16 @@ function Dashboard() {
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
 		const industrialRecords = filteredProduction.filter((p$1) => !isBloodRecord(p$1));
 		const totalMp = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0), 0);
+		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0), 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
 			yieldTarget: notificationSettings?.yieldThreshold || 58
 		};
-	}, [filteredProduction, notificationSettings]);
+	}, [
+		filteredProduction,
+		notificationSettings,
+		isFarinorte
+	]);
 	const [dateInput, setDateInput] = (0, import_react.useState)("");
 	const [inputError, setInputError] = (0, import_react.useState)(false);
 	(0, import_react.useEffect)(() => {
@@ -72800,7 +72816,7 @@ function Dashboard() {
 								data: filteredProduction,
 								isMobile
 							}),
-							!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
+							!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodYieldBarChart, {
 								productionData: filteredProduction,
 								rawMaterialData: filteredRawMaterials,
 								isMobile
@@ -91941,4 +91957,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Cdv_bdEi.js.map
+//# sourceMappingURL=index-BzrdN0mw.js.map

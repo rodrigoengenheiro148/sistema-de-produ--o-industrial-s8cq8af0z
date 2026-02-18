@@ -72,6 +72,8 @@ export function OverviewCards({
   // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
+  // Check for 'Farinorte' as per requirements
+  const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const metrics = useMemo(() => {
     // Helper to normalize quantity to kg
@@ -521,8 +523,8 @@ export function OverviewCards({
         textColor="text-red-600"
       />
 
-      {/* Saturated Oil Input - Hidden for Mar Reciclagem */}
-      {!isMarReciclagem && (
+      {/* Saturated Oil Input - Hidden for Mar Reciclagem AND Farinorte */}
+      {!isMarReciclagem && !isFarinorte && (
         <MetricCard
           title="Total de Óleo Saturado Recebido"
           value={formatNumberDisplay(metrics.saturatedOilInputKg, 'kg')}
@@ -610,20 +612,23 @@ export function OverviewCards({
           />
 
           {/* 8. Rendimento Farinheta - Styled dynamically */}
-          <MetricCard
-            title="Rendimento Farinheta"
-            value={formatPercent(metrics.farinhetaYield)}
-            icon={Wheat}
-            iconColor={farinhetaStyle.iconColor}
-            borderColor={farinhetaStyle.borderColor}
-            textColor={farinhetaStyle.textColor}
-            className={farinhetaStyle.bgClass}
-          />
+          {/* Hidden for Farinorte */}
+          {!isFarinorte && (
+            <MetricCard
+              title="Rendimento Farinheta"
+              value={formatPercent(metrics.farinhetaYield)}
+              icon={Wheat}
+              iconColor={farinhetaStyle.iconColor}
+              borderColor={farinhetaStyle.borderColor}
+              textColor={farinhetaStyle.textColor}
+              className={farinhetaStyle.bgClass}
+            />
+          )}
         </>
       )}
 
-      {/* Blood metrics - Hidden for Mar Reciclagem */}
-      {!isMarReciclagem && (
+      {/* Blood metrics - Hidden for Mar Reciclagem AND Farinorte */}
+      {!isMarReciclagem && !isFarinorte && (
         <>
           {/* 9. Total de entrada de sangue */}
           <MetricCard

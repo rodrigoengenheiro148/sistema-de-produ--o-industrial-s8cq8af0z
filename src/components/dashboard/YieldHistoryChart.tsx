@@ -95,6 +95,8 @@ export function YieldHistoryChart({
   // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
+  // Check for 'Farinorte' as per requirements
+  const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const [timeScale, setTimeScale] = useState<'daily' | 'monthly'>('daily')
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -110,9 +112,13 @@ export function YieldHistoryChart({
         'oleo',
       ])
     } else {
-      setSelectedProducts(['sebo', 'fco', 'farinheta'])
+      if (isFarinorte) {
+        setSelectedProducts(['sebo', 'fco'])
+      } else {
+        setSelectedProducts(['sebo', 'fco', 'farinheta'])
+      }
     }
-  }, [isMarReciclagem])
+  }, [isMarReciclagem, isFarinorte])
 
   const { chartData, chartConfig } = useMemo(() => {
     const industrialData = data.filter((p) => !isBloodRecord(p))
@@ -141,7 +147,9 @@ export function YieldHistoryChart({
           } else {
             entry.sebo = mapYield(p.seboProduced, p.mpUsed)
             entry.fco = mapYield(p.fcoProduced, p.mpUsed)
-            entry.farinheta = mapYield(p.farinhetaProduced, p.mpUsed)
+            if (!isFarinorte) {
+              entry.farinheta = mapYield(p.farinhetaProduced, p.mpUsed)
+            }
           }
           return entry
         })
@@ -196,7 +204,9 @@ export function YieldHistoryChart({
         } else {
           result.sebo = mapYield(entry.seboProduced, entry.mpUsed)
           result.fco = mapYield(entry.fcoProduced, entry.mpUsed)
-          result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed)
+          if (!isFarinorte) {
+            result.farinheta = mapYield(entry.farinhetaProduced, entry.mpUsed)
+          }
         }
         return result
       })
@@ -227,9 +237,11 @@ export function YieldHistoryChart({
       trends.fco_trend = calculateExponentialTrend(
         processedData.map((d) => d.fco),
       )
-      trends.farinheta_trend = calculateExponentialTrend(
-        processedData.map((d) => d.farinheta),
-      )
+      if (!isFarinorte) {
+        trends.farinheta_trend = calculateExponentialTrend(
+          processedData.map((d) => d.farinheta),
+        )
+      }
     }
 
     const finalData = processedData.map((item, index) => {
@@ -270,18 +282,20 @@ export function YieldHistoryChart({
       config = {
         sebo: { label: 'Sebo', color: 'hsl(var(--chart-1))' },
         fco: { label: 'FCO', color: 'hsl(var(--chart-2))' },
-        farinheta: { label: 'Farinheta', color: 'hsl(var(--chart-3))' },
         sebo_trend: { label: 'Tendência Sebo', color: 'hsl(var(--chart-1))' },
         fco_trend: { label: 'Tendência FCO', color: 'hsl(var(--chart-2))' },
-        farinheta_trend: {
+      }
+      if (!isFarinorte) {
+        config.farinheta = { label: 'Farinheta', color: 'hsl(var(--chart-3))' }
+        config.farinheta_trend = {
           label: 'Tendência Farinheta',
           color: 'hsl(var(--chart-3))',
-        },
+        }
       }
     }
 
     return { chartData: finalData, chartConfig: config }
-  }, [data, timeScale, isMarReciclagem])
+  }, [data, timeScale, isMarReciclagem, isFarinorte])
 
   const toggleProduct = (product: string) => {
     setSelectedProducts((prev) => {

@@ -61,6 +61,9 @@ export default function Dashboard() {
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
+  // Check for 'Farinorte' factory
+  const isFarinorte = currentFactory?.name === 'Farinorte'
+
   // Track current day to auto-update context when day changes
   const [today, setToday] = useState(new Date())
   useEffect(() => {
@@ -193,7 +196,7 @@ export default function Dashboard() {
         acc +
         curr.seboProduced +
         curr.fcoProduced +
-        curr.farinhetaProduced +
+        (isFarinorte ? 0 : curr.farinhetaProduced) + // Exclude Farinheta for Farinorte
         (curr.viscerasMealProduced || 0) +
         (curr.featherMealProduced || 0) +
         (curr.viscerasOilProduced || 0),
@@ -204,7 +207,7 @@ export default function Dashboard() {
     const target = notificationSettings?.yieldThreshold || 58.0
 
     return { currentYield: yieldVal, yieldTarget: target }
-  }, [filteredProduction, notificationSettings])
+  }, [filteredProduction, notificationSettings, isFarinorte])
 
   // Input state for manual date entry
   const [dateInput, setDateInput] = useState('')
@@ -458,7 +461,7 @@ export default function Dashboard() {
         <TabsContent value="yields" className="space-y-4">
           <YieldBarChart data={filteredProduction} isMobile={isMobile} />
           <YieldHistoryChart data={filteredProduction} isMobile={isMobile} />
-          {!isMarReciclagem && (
+          {!isMarReciclagem && !isFarinorte && (
             <BloodYieldBarChart
               productionData={filteredProduction}
               rawMaterialData={filteredRawMaterials}
