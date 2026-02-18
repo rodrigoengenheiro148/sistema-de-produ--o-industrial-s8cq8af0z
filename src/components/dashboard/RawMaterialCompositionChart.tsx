@@ -70,6 +70,7 @@ import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { DateRange } from 'react-day-picker'
 import { useData } from '@/context/DataContext'
 import { supabase } from '@/lib/supabase/client'
+import { MAR_RECICLAGEM_TYPES, RAW_MATERIAL_TYPES } from '@/lib/constants'
 
 interface RawMaterialCompositionChartProps {
   data: RawMaterialEntry[]
@@ -77,21 +78,8 @@ interface RawMaterialCompositionChartProps {
   className?: string
 }
 
-// Updated set of categories including 'Sangue' and 'Óleo Saturado'
-const CATEGORIES = [
-  'Barrigada',
-  'COURO BOVINO',
-  'Despojo',
-  'MUXIBA',
-  'Misto',
-  'Ossos',
-  'VISCERAS DE PEIXE',
-  'Sangue',
-  'Óleo Saturado',
-]
-
-// Colors mapped to match the visual requirement
-const CATEGORY_COLORS: Record<string, string> = {
+// Extended colors for dynamic types
+const TYPE_COLORS: Record<string, string> = {
   Barrigada: '#14532d', // green-900
   'COURO BOVINO': '#15803d', // green-700
   Despojo: '#22c55e', // green-500
@@ -101,7 +89,22 @@ const CATEGORY_COLORS: Record<string, string> = {
   'VISCERAS DE PEIXE': '#3b82f6', // blue-500
   Sangue: '#dc2626', // red-600
   'Óleo Saturado': '#8b5cf6', // violet-500
+  Peixe: '#0ea5e9', // sky-500
+  Bovino: '#7f1d1d', // red-900
+  Aves: '#fbbf24', // amber-400
+  Pena: '#71717a', // zinc-500
+  Vísceras: '#f43f5e', // rose-500
+  Visceras: '#f43f5e', // rose-500
 }
+
+const FALLBACK_COLORS = [
+  '#2563eb', // blue-600
+  '#16a34a', // green-600
+  '#d97706', // amber-600
+  '#9333ea', // purple-600
+  '#db2777', // pink-600
+  '#0891b2', // cyan-600
+]
 
 export function RawMaterialCompositionChart({
   data: initialData,
@@ -109,9 +112,9 @@ export function RawMaterialCompositionChart({
   className,
 }: RawMaterialCompositionChartProps) {
   const { currentFactoryId } = useData()
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
+  // Store EXCLUDED materials so new materials appear by default
+  const [excludedMaterials, setExcludedMaterials] = useState<string[]>([])
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
-  const [isFilterInitialized, setIsFilterInitialized] = useState(false)
   const [openMaterialFilter, setOpenMaterialFilter] = useState(false)
   const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked')
 
@@ -127,7 +130,6 @@ export function RawMaterialCompositionChart({
     if (dateRange?.from) {
       const toDate = dateRange.to || dateRange.from
       const isSingleDay = isSameDay(dateRange.from, toDate)
-      // Automatically toggle to grouped if single day, otherwise stacked
       setChartType(isSingleDay ? 'grouped' : 'stacked')
     }
   }, [dateRange])
@@ -148,8 +150,6 @@ export function RawMaterialCompositionChart({
         return
       }
 
-      // If "to" is missing, we might typically wait, but DatePicker often sets "from" first.
-      // We'll require both for a valid range fetch, or single day if "to" is undefined (treated as single day filter)
       const fromDate = dateRange.from
       const toDate = dateRange.to || dateRange.from
 
@@ -175,7 +175,7 @@ export function RawMaterialCompositionChart({
           const mappedData: RawMaterialEntry[] = result.map((item) => ({
             id: item.id,
             date: parseAsLocalNoon(item.date),
-            supplier: item.supplier,
+            supplier: item.supplier || '',
             type: item.type,
             quantity: Number(item.quantity),
             unit: item.unit,
@@ -199,11 +199,14 @@ export function RawMaterialCompositionChart({
     }
   }, [dateRange, currentFactoryId])
 
-  // Extract unique options for filters from the provided data and fixed categories
-  const { materialOptions, supplierOptions } = useMemo(() => {
+  // Extract unique options from data dynamically
+  const { materialOptions, supplierOptions, categoryColors } = useMemo(() => {
     const suppliers = new Set<string>()
-    // Start with predefined categories to ensure they appear in filter
-    const materials = new Set<string>(CATEGORIES)
+    const materials = new Set<string>()
+
+    // Add constants as base options
+    RAW_MATERIAL_TYPES.forEach((t) => materials.add(t))
+    MAR_RECICLAGEM_TYPES.forEach((t) => materials.add(t))
 
     if (data) {
       data.forEach((item) => {
@@ -212,30 +215,39 @@ export function RawMaterialCompositionChart({
       })
     }
 
+    const sortedMaterials = Array.from(materials).sort()
+    const computedColors: Record<string, string> = { ...TYPE_COLORS }
+
+    // Assign fallback colors to unknown types
+    sortedMaterials.forEach((mat, idx) => {
+      if (!computedColors[mat]) {
+        computedColors[mat] = FALLBACK_COLORS[idx % FALLBACK_COLORS.length]
+      }
+    })
+
     return {
-      materialOptions: Array.from(materials).sort(),
+      materialOptions: sortedMaterials,
       supplierOptions: Array.from(suppliers).sort(),
+      categoryColors: computedColors,
     }
   }, [data])
 
-  // Initialize selectedMaterials with all options on first load
-  useEffect(() => {
-    if (!isFilterInitialized && materialOptions.length > 0) {
-      setSelectedMaterials(materialOptions)
-      setIsFilterInitialized(true)
-    }
-  }, [materialOptions, isFilterInitialized])
+  // Calculate selected materials based on exclusion
+  const selectedMaterials = useMemo(
+    () => materialOptions.filter((m) => !excludedMaterials.includes(m)),
+    [materialOptions, excludedMaterials],
+  )
 
   // Filter the data based on selection
   const filteredData = useMemo(() => {
     if (!data) return []
     return data.filter((item) => {
-      const matchMaterial = selectedMaterials.includes(item.type)
+      const matchMaterial = !excludedMaterials.includes(item.type)
       const matchSupplier =
         selectedSupplier === 'all' || item.supplier === selectedSupplier
       return matchMaterial && matchSupplier
     })
-  }, [data, selectedMaterials, selectedSupplier])
+  }, [data, excludedMaterials, selectedSupplier])
 
   // Process data for Chart (Group by Date)
   const chartData = useMemo(() => {
@@ -253,35 +265,29 @@ export function RawMaterialCompositionChart({
           fullDateLabel,
           timestamp: item.date.getTime(),
           total: 0,
-          // Initialize categories to 0
-          ...CATEGORIES.reduce((acc, cat) => ({ ...acc, [cat]: 0 }), {}),
         })
       }
 
       const entry = dailyMap.get(dateKey)
-
-      // Find category matching the item type (case insensitive)
-      const category = CATEGORIES.find(
-        (c) => c.toLowerCase() === item.type.toLowerCase(),
-      )
-
-      if (category) {
-        let quantity = item.quantity
-        const unit = item.unit?.toLowerCase() || ''
-
-        // Conversion logic (Bag -> kg)
-        if (unit.includes('bag')) {
-          quantity = quantity * 1400
-        } else if (unit.includes('ton')) {
-          quantity = quantity * 1000
-        }
-
-        entry[category] += quantity
-        entry.total += quantity
+      // Ensure category key exists initialized to 0 if new
+      if (entry[item.type] === undefined) {
+        entry[item.type] = 0
       }
+
+      let quantity = item.quantity
+      const unit = item.unit?.toLowerCase() || ''
+
+      // Conversion logic (Bag -> kg)
+      if (unit.includes('bag')) {
+        quantity = quantity * 1400
+      } else if (unit.includes('ton')) {
+        quantity = quantity * 1000
+      }
+
+      entry[item.type] += quantity
+      entry.total += quantity
     })
 
-    // Return sorted by date
     return Array.from(dailyMap.values()).sort(
       (a, b) => a.timestamp - b.timestamp,
     )
@@ -291,25 +297,34 @@ export function RawMaterialCompositionChart({
   const activeCategories = useMemo(() => {
     const active = new Set<string>()
     chartData.forEach((entry) => {
-      CATEGORIES.forEach((cat) => {
-        if (entry[cat] > 0) active.add(cat)
+      Object.keys(entry).forEach((key) => {
+        if (
+          key !== 'dateKey' &&
+          key !== 'displayDate' &&
+          key !== 'fullDateLabel' &&
+          key !== 'timestamp' &&
+          key !== 'total' &&
+          entry[key] > 0
+        ) {
+          active.add(key)
+        }
       })
     })
-    // Maintain the original order for consistency in colors/stacking
-    return CATEGORIES.filter((cat) => active.has(cat))
+    // Sort to maintain consistent order (e.g. alphabetical or specific)
+    return Array.from(active).sort()
   }, [chartData])
 
-  // Build ChartConfig
+  // Build ChartConfig dynamically
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {}
-    CATEGORIES.forEach((cat) => {
+    materialOptions.forEach((cat) => {
       config[cat] = {
         label: cat,
-        color: CATEGORY_COLORS[cat] || '#cccccc',
+        color: categoryColors[cat] || '#cccccc',
       }
     })
     return config
-  }, [])
+  }, [materialOptions, categoryColors])
 
   const formatValue = (value: number) => {
     if (value >= 1000) {
@@ -319,7 +334,7 @@ export function RawMaterialCompositionChart({
   }
 
   const toggleMaterial = (material: string) => {
-    setSelectedMaterials((current) =>
+    setExcludedMaterials((current) =>
       current.includes(material)
         ? current.filter((item) => item !== material)
         : [...current, material],
@@ -327,10 +342,10 @@ export function RawMaterialCompositionChart({
   }
 
   const toggleAllMaterials = () => {
-    if (selectedMaterials.length === materialOptions.length) {
-      setSelectedMaterials([])
+    if (excludedMaterials.length > 0) {
+      setExcludedMaterials([])
     } else {
-      setSelectedMaterials(materialOptions)
+      setExcludedMaterials(materialOptions)
     }
   }
 
@@ -389,7 +404,7 @@ export function RawMaterialCompositionChart({
           <Bar
             key={category}
             dataKey={category}
-            fill={`var(--color-${category})`}
+            fill={categoryColors[category] || '#cccccc'}
             radius={chartType === 'stacked' ? [0, 0, 0, 0] : [4, 4, 0, 0]}
             maxBarSize={50}
             stackId={chartType === 'stacked' ? 'a' : undefined}
@@ -496,7 +511,7 @@ export function RawMaterialCompositionChart({
                       <div
                         className={cn(
                           'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                          selectedMaterials.length === materialOptions.length
+                          excludedMaterials.length === 0
                             ? 'bg-primary text-primary-foreground'
                             : 'opacity-50 [&_svg]:invisible',
                         )}
@@ -509,7 +524,7 @@ export function RawMaterialCompositionChart({
                   <CommandSeparator />
                   <CommandGroup className="max-h-[200px] overflow-auto">
                     {materialOptions.map((material) => {
-                      const isSelected = selectedMaterials.includes(material)
+                      const isSelected = !excludedMaterials.includes(material)
                       return (
                         <CommandItem
                           key={material}
