@@ -30,12 +30,14 @@ export function RawMaterialImportDialog() {
   const { toast } = useToast()
   const { bulkAddRawMaterials, factories, currentFactoryId } = useData()
 
-  const validTypes = useMemo(() => {
+  const isMarReciclagem = useMemo(() => {
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
-    const isMarReciclagem =
-      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
-    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+    return currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
   }, [factories, currentFactoryId])
+
+  const validTypes = useMemo(() => {
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [isMarReciclagem])
 
   const handleDownloadTemplate = () => {
     const headers = [
@@ -121,7 +123,7 @@ export function RawMaterialImportDialog() {
       }
 
       const dateStr = cols[idxDate]
-      const supplier = cols[idxSupplier]
+      const supplier = cols[idxSupplier] || ''
       const type = cols[idxType]
       const quantityStr = cols[idxQuantity]
       const unit = cols[idxUnit]
@@ -142,9 +144,12 @@ export function RawMaterialImportDialog() {
       // Force noon to avoid timezone issues
       date.setHours(12, 0, 0, 0)
 
-      if (!supplier || supplier.length < 2) {
-        errors.push(`Linha ${i + 1}: Fornecedor inválido.`)
-        continue
+      // Supplier Validation (Optional for Mar Reciclagem)
+      if (!isMarReciclagem) {
+        if (!supplier || supplier.length < 2) {
+          errors.push(`Linha ${i + 1}: Fornecedor inválido.`)
+          continue
+        }
       }
 
       // Type Validation

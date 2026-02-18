@@ -71,6 +71,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 const mapData = (data: any[]) => {
   return data.map((item) => ({
     ...item,
+    supplier: item.supplier ?? '',
     date: parseAsLocalNoon(item.date),
     createdAt: item.created_at ? new Date(item.created_at) : undefined,
     mpUsed: Number(item.mp_used || 0),

@@ -36264,6 +36264,7 @@ var DEFAULT_NOTIFICATION_SETTINGS = {
 var mapData = (data) => {
 	return data.map((item) => ({
 		...item,
+		supplier: item.supplier ?? "",
 		date: parseAsLocalNoon(item.date),
 		createdAt: item.created_at ? new Date(item.created_at) : void 0,
 		mpUsed: Number(item.mp_used || 0),
@@ -78557,25 +78558,30 @@ function PcpGate({ isOpen, onOpenChange, onSuccess, title = "Autorização PCP",
 		})
 	});
 }
-var formSchema$9 = object({
-	date: string().min(1, "Data é obrigatória"),
-	supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres"),
-	type: string().min(1, "Tipo é obrigatório"),
-	quantity: string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Quantidade deve ser um número positivo" }),
-	unit: string().min(1, "Unidade é obrigatória"),
-	notes: string().optional()
-});
 function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const { addRawMaterial, updateRawMaterial, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
-	const materialTypes = (0, import_react.useMemo)(() => {
-		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	const isMarReciclagem = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem";
 	}, [factories, currentFactoryId]);
+	const materialTypes = (0, import_react.useMemo)(() => {
+		return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [isMarReciclagem]);
 	const form = useForm({
-		resolver: a(formSchema$9),
+		resolver: a((0, import_react.useMemo)(() => {
+			const baseSchema = object({
+				date: string().min(1, "Data é obrigatória"),
+				type: string().min(1, "Tipo é obrigatório"),
+				quantity: string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Quantidade deve ser um número positivo" }),
+				unit: string().min(1, "Unidade é obrigatória"),
+				notes: string().optional()
+			});
+			if (isMarReciclagem) return baseSchema.extend({ supplier: string().optional() });
+			return baseSchema.extend({ supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres") });
+		}, [isMarReciclagem])),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			supplier: initialData?.supplier || "",
@@ -78608,7 +78614,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 			const quantityValue = Number(values.quantity);
 			const entryData = {
 				date: /* @__PURE__ */ new Date(`${values.date}T12:00:00`),
-				supplier: values.supplier,
+				supplier: values.supplier || "",
 				type: values.type,
 				quantity: quantityValue,
 				unit: values.unit,
@@ -78660,7 +78666,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 					control: form.control,
 					name: "supplier",
 					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fornecedor" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormLabel, { children: ["Fornecedor", isMarReciclagem ? " (Opcional)" : ""] }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 							placeholder: "Nome do fornecedor",
 							...field
@@ -79037,9 +79043,12 @@ function RawMaterialImportDialog() {
 	const fileInputRef = (0, import_react.useRef)(null);
 	const { toast: toast$2 } = useToast();
 	const { bulkAddRawMaterials, factories, currentFactoryId } = useData();
-	const validTypes = (0, import_react.useMemo)(() => {
-		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	const isMarReciclagem = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem";
 	}, [factories, currentFactoryId]);
+	const validTypes = (0, import_react.useMemo)(() => {
+		return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [isMarReciclagem]);
 	const handleDownloadTemplate = () => {
 		const headers = [
 			"Data",
@@ -79099,7 +79108,7 @@ function RawMaterialImportDialog() {
 				continue;
 			}
 			const dateStr = cols[idxDate];
-			const supplier = cols[idxSupplier];
+			const supplier = cols[idxSupplier] || "";
 			const type = cols[idxType];
 			const quantityStr = cols[idxQuantity];
 			const unit$1 = cols[idxUnit];
@@ -79111,9 +79120,11 @@ function RawMaterialImportDialog() {
 				continue;
 			}
 			date$4.setHours(12, 0, 0, 0);
-			if (!supplier || supplier.length < 2) {
-				errors.push(`Linha ${i$2 + 1}: Fornecedor inválido.`);
-				continue;
+			if (!isMarReciclagem) {
+				if (!supplier || supplier.length < 2) {
+					errors.push(`Linha ${i$2 + 1}: Fornecedor inválido.`);
+					continue;
+				}
 			}
 			if (!validTypes.includes(type) && !validTypes.some((t$1) => t$1.toLowerCase() === type.toLowerCase())) {
 				errors.push(`Linha ${i$2 + 1}: Tipo de matéria-prima inválido (${type}). Tipos permitidos: ${validTypes.join(", ")}`);
@@ -91745,4 +91756,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-nn3JwwmL.js.map
+//# sourceMappingURL=index-DvFNX4DZ.js.map

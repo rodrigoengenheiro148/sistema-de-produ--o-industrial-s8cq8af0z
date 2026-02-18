@@ -1,0 +1,1 @@
+ALTER TABLE raw_materials ALTER COLUMN supplier DROP NOT NULL;

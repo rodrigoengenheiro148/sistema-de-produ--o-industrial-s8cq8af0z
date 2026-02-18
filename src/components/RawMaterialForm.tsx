@@ -33,17 +33,6 @@ import {
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
 
-const formSchema = z.object({
-  date: z.string().min(1, 'Data é obrigatória'),
-  supplier: z.string().min(2, 'Fornecedor deve ter pelo menos 2 caracteres'),
-  type: z.string().min(1, 'Tipo é obrigatório'),
-  quantity: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'Quantidade deve ser um número positivo',
-  }),
-  unit: z.string().min(1, 'Unidade é obrigatória'),
-  notes: z.string().optional(),
-})
-
 interface RawMaterialFormProps {
   initialData?: RawMaterialEntry
   onSuccess: () => void
@@ -62,14 +51,44 @@ export function RawMaterialForm({
   const [showPcpGate, setShowPcpGate] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
 
-  const materialTypes = useMemo(() => {
+  const isMarReciclagem = useMemo(() => {
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
-    const isMarReciclagem =
-      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
-    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+    return currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
   }, [factories, currentFactoryId])
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const materialTypes = useMemo(() => {
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [isMarReciclagem])
+
+  const formSchema = useMemo(() => {
+    const baseSchema = z.object({
+      date: z.string().min(1, 'Data é obrigatória'),
+      type: z.string().min(1, 'Tipo é obrigatório'),
+      quantity: z
+        .string()
+        .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+          message: 'Quantidade deve ser um número positivo',
+        }),
+      unit: z.string().min(1, 'Unidade é obrigatória'),
+      notes: z.string().optional(),
+    })
+
+    if (isMarReciclagem) {
+      return baseSchema.extend({
+        supplier: z.string().optional(),
+      })
+    }
+
+    return baseSchema.extend({
+      supplier: z
+        .string()
+        .min(2, 'Fornecedor deve ter pelo menos 2 caracteres'),
+    })
+  }, [isMarReciclagem])
+
+  type FormSchemaType = z.infer<typeof formSchema>
+
+  const form = useForm<FormSchemaType>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: initialData
@@ -105,15 +124,18 @@ export function RawMaterialForm({
     }
   }, [initialData, form])
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: FormSchemaType) {
     const submitAction = () => {
       const quantityValue = Number(values.quantity)
       // Append T12:00:00 to force local noon interpretation and prevent timezone shifts
       const dateValue = new Date(`${values.date}T12:00:00`)
 
+      // Ensure supplier is treated as string, defaulting to empty string if undefined/null
+      const supplierValue = values.supplier || ''
+
       const entryData = {
         date: dateValue,
-        supplier: values.supplier,
+        supplier: supplierValue,
         type: values.type,
         quantity: quantityValue,
         unit: values.unit,
@@ -166,7 +188,9 @@ export function RawMaterialForm({
             name="supplier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Fornecedor</FormLabel>
+                <FormLabel>
+                  Fornecedor{isMarReciclagem ? ' (Opcional)' : ''}
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Nome do fornecedor" {...field} />
                 </FormControl>
