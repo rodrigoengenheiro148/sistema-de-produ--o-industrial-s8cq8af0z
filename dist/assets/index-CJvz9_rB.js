@@ -36292,6 +36292,9 @@ var mapData = (data) => {
 		meterStart: Number(item.meter_start || 0),
 		meterEnd: Number(item.meter_end || 0),
 		steamConsumption: Number(item.steam_consumption || 0),
+		weightKg: Number(item.weight_kg || 0),
+		packageCount: Number(item.package_count || 0),
+		volumeM3: Number(item.volume_m3 || 0),
 		quantity: Number(item.quantity || 0),
 		value: Number(item.value || 0)
 	}));
@@ -36814,6 +36817,9 @@ const DataProvider = ({ children }) => {
 			meter_start: entry.meterStart,
 			meter_end: entry.meterEnd,
 			steam_consumption: entry.steamConsumption,
+			weight_kg: entry.weightKg,
+			package_count: entry.packageCount,
+			volume_m3: entry.volumeM3,
 			user_id: user?.id,
 			factory_id: currentFactoryId
 		});
@@ -36828,7 +36834,10 @@ const DataProvider = ({ children }) => {
 			wood_chips: entry.woodChips,
 			meter_start: entry.meterStart,
 			meter_end: entry.meterEnd,
-			steam_consumption: entry.steamConsumption
+			steam_consumption: entry.steamConsumption,
+			weight_kg: entry.weightKg,
+			package_count: entry.packageCount,
+			volume_m3: entry.volumeM3
 		}).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
@@ -89005,20 +89014,24 @@ function ForecastManagement() {
 }
 var formSchema$1 = object({
 	date: string().min(1, "Data é obrigatória"),
-	soyWaste: number().min(0, "Deve ser maior ou igual a 0"),
-	firewood: number().min(0, "Deve ser maior ou igual a 0"),
-	riceHusk: number().min(0, "Deve ser maior ou igual a 0"),
-	woodChips: number().min(0, "Deve ser maior ou igual a 0"),
-	meterStart: number().min(0, "Deve ser maior ou igual a 0"),
-	meterEnd: number().min(0, "Deve ser maior ou igual a 0")
+	soyWaste: number().min(0).optional(),
+	firewood: number().min(0).optional(),
+	riceHusk: number().min(0).optional(),
+	woodChips: number().min(0).optional(),
+	meterStart: number().min(0).optional(),
+	meterEnd: number().min(0).optional(),
+	weightKg: number().min(0).optional(),
+	packageCount: number().min(0).optional(),
+	volumeM3: number().min(0).optional()
 });
 function SteamControlForm({ initialData, onSuccess, onCancel }) {
-	const { addSteamControlRecord, updateSteamControlRecord } = useData();
+	const { addSteamControlRecord, updateSteamControlRecord, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const { checkPcpAuth } = usePcp();
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
+	const isFarinorte = (0, import_react.useMemo)(() => factories.find((f) => f.id === currentFactoryId), [factories, currentFactoryId])?.name.toLowerCase().includes("farinorte") ?? false;
 	const form = useForm({
 		resolver: a(formSchema$1),
 		defaultValues: {
@@ -89028,24 +89041,33 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 			riceHusk: initialData?.riceHusk || 0,
 			woodChips: initialData?.woodChips || 0,
 			meterStart: initialData?.meterStart || 0,
-			meterEnd: initialData?.meterEnd || 0
+			meterEnd: initialData?.meterEnd || 0,
+			weightKg: initialData?.weightKg || 0,
+			packageCount: initialData?.packageCount || 0,
+			volumeM3: initialData?.volumeM3 || 0
 		}
 	});
+	const watchWeightKg = form.watch("weightKg");
+	const calculatedPack = (form.watch("packageCount") || 0) * 2;
+	const calculatedWeight = (watchWeightKg || 0) * .18;
 	function onSubmit(values) {
 		const submitAction = () => {
 			setIsSubmitting(true);
 			try {
 				const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
-				const steamConsumption = values.meterEnd - values.meterStart;
+				const steamConsumption = (values.meterEnd || 0) - (values.meterStart || 0);
 				const entry = {
 					date: dateObj,
-					soyWaste: values.soyWaste,
-					firewood: values.firewood,
-					riceHusk: values.riceHusk,
-					woodChips: values.woodChips,
-					meterStart: values.meterStart,
-					meterEnd: values.meterEnd,
-					steamConsumption: steamConsumption < 0 ? 0 : steamConsumption,
+					soyWaste: isFarinorte ? 0 : values.soyWaste || 0,
+					firewood: isFarinorte ? 0 : values.firewood || 0,
+					riceHusk: isFarinorte ? 0 : values.riceHusk || 0,
+					woodChips: isFarinorte ? 0 : values.woodChips || 0,
+					meterStart: isFarinorte ? 0 : values.meterStart || 0,
+					meterEnd: isFarinorte ? 0 : values.meterEnd || 0,
+					steamConsumption: isFarinorte ? 0 : steamConsumption < 0 ? 0 : steamConsumption,
+					weightKg: isFarinorte ? values.weightKg || 0 : 0,
+					packageCount: isFarinorte ? values.packageCount || 0 : 0,
+					volumeM3: isFarinorte ? values.volumeM3 || 0 : 0,
 					userId: "",
 					factoryId: ""
 				};
@@ -89099,7 +89121,65 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 					] })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				isFarinorte ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "weightKg",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada Kg" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "packageCount",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada de pacotes" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "1",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "volumeM3",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Entrada m³" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "text-sm font-medium text-muted-foreground mt-8",
+								children: "Cálculo Automático:"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "text-xs text-muted-foreground",
+								children: ["Pacotes x 2: ", calculatedPack.toFixed(2)]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "text-xs text-muted-foreground",
+								children: ["Kg x 0.18: ", calculatedWeight.toFixed(2)]
+							})
+						]
+					})]
+				})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid grid-cols-2 gap-4",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 						control: form.control,
@@ -89126,8 +89206,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
 					})]
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid grid-cols-2 gap-4",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
@@ -89183,7 +89262,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 							] })
 						})
 					]
-				}),
+				})] }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex justify-end gap-2 pt-4",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
@@ -91733,4 +91812,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BBvzWH-i.js.map
+//# sourceMappingURL=index-CJvz9_rB.js.map

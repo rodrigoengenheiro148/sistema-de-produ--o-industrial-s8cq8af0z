@@ -107,6 +107,9 @@ const mapData = (data: any[]) => {
     meterStart: Number(item.meter_start || 0),
     meterEnd: Number(item.meter_end || 0),
     steamConsumption: Number(item.steam_consumption || 0),
+    weightKg: Number(item.weight_kg || 0),
+    packageCount: Number(item.package_count || 0),
+    volumeM3: Number(item.volume_m3 || 0),
     quantity: Number(item.quantity || 0),
     value: Number(item.value || 0),
   }))
@@ -348,7 +351,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('steam_control_records').select('*')),
           applyFilters(supabase.from('daily_production_forecasts').select('*')),
           applyFilters(supabase.from('returns').select('*')),
-          // Fetch latest inventory separately (limit 50 to ensure we get latest of all types)
           fetchLatestManualEntries(currentFactoryId, 50),
         ])
 
@@ -809,6 +811,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       meter_start: entry.meterStart,
       meter_end: entry.meterEnd,
       steam_consumption: entry.steamConsumption,
+      weight_kg: entry.weightKg,
+      package_count: entry.packageCount,
+      volume_m3: entry.volumeM3,
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
@@ -827,6 +832,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         meter_start: entry.meterStart,
         meter_end: entry.meterEnd,
         steam_consumption: entry.steamConsumption,
+        weight_kg: entry.weightKg,
+        package_count: entry.packageCount,
+        volume_m3: entry.volumeM3,
       })
       .eq('id', entry.id)
     if (!error) fetchOperationalData()
