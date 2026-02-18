@@ -89274,6 +89274,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 						type: "submit",
 						disabled: isSubmitting,
+						className: "bg-emerald-700 hover:bg-emerald-800 text-white",
 						children: isSubmitting ? "Salvando..." : "Salvar"
 					})]
 				})
@@ -89289,11 +89290,12 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	})] });
 }
 function SteamControlTable() {
-	const { steamControlRecords, deleteSteamControlRecord, production, notificationSettings } = useData();
+	const { steamControlRecords, deleteSteamControlRecord, production, notificationSettings, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
 	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
 	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
 	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const isFarinorte = (0, import_react.useMemo)(() => factories.find((f) => f.id === currentFactoryId), [factories, currentFactoryId])?.name.toLowerCase().includes("farinorte") ?? false;
 	const efficiencyThreshold = notificationSettings.yieldThreshold > 0 && notificationSettings.yieldThreshold < 10 ? notificationSettings.yieldThreshold : .24;
 	const tableData = (0, import_react.useMemo)(() => {
 		const productionMap = /* @__PURE__ */ new Map();
@@ -89353,54 +89355,69 @@ function SteamControlTable() {
 							className: "min-w-[100px]",
 							children: "Data"
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[120px] font-bold",
-							children: "Entrada de MP (kg)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px]",
-							children: "Res. Soja"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[80px]",
-							children: "Lenha"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px]",
-							children: "Palha Arroz"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[80px]",
-							children: "Cavaco"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] font-bold",
-							children: "Total Comb."
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px]",
-							children: "Início PR"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px]",
-							children: "Término PR"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] font-bold",
-							children: "Consumo Vap"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
-							children: "Vapor / MP (t/t)"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-							className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
-							children: "Cavaco vs Vapor"
-						}),
+						isFarinorte ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px]",
+								children: "Entrada Kg"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px]",
+								children: "Entrada Pacotes"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px]",
+								children: "Entrada m³"
+							})
+						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[120px] font-bold",
+								children: "Entrada de MP (kg)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px]",
+								children: "Res. Soja"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[80px]",
+								children: "Lenha"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px]",
+								children: "Palha Arroz"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[80px]",
+								children: "Cavaco"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px] font-bold",
+								children: "Total Comb."
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px]",
+								children: "Início PR"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px]",
+								children: "Término PR"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px] font-bold",
+								children: "Consumo Vap"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
+								children: "Vapor / MP (t/t)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20",
+								children: "Cavaco vs Vapor"
+							})
+						] }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					]
 				}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 13,
+					colSpan: isFarinorte ? 5 : 13,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado."
 				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
@@ -89410,60 +89427,75 @@ function SteamControlTable() {
 							className: "font-medium whitespace-nowrap",
 							children: format(row.date, "dd/MM/yyyy")
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right font-bold text-blue-600 dark:text-blue-400",
-							children: formatNumber(row.mpProcessed)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right",
-							children: formatNumber(row.soyWaste)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right",
-							children: formatNumber(row.firewood)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right",
-							children: formatNumber(row.riceHusk)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right",
-							children: formatNumber(row.woodChips)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right font-bold",
-							children: formatNumber(row.totalFuel)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right text-muted-foreground",
-							children: formatNumber(row.meterStart)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right text-muted-foreground",
-							children: formatNumber(row.meterEnd)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right font-bold",
-							children: formatNumber(row.consumoVap)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
-							children: row.mpProcessed > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-center justify-end gap-1",
-								children: [row.isInefficient && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-3 w-3 text-red-500" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-									"Eficiência abaixo do esperado (>",
-									efficiencyThreshold,
-									")"
-								] }) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: cn(row.isInefficient && "text-red-600 font-bold"),
-									children: formatNumber(row.vaporVsMp)
-								})]
-							}) : "-"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-							className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
-							children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
-						}),
+						isFarinorte ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.weightKg)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.packageCount)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.volumeM3)
+							})
+						] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold text-blue-600 dark:text-blue-400",
+								children: formatNumber(row.mpProcessed)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.soyWaste)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.firewood)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.riceHusk)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: formatNumber(row.woodChips)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold",
+								children: formatNumber(row.totalFuel)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right text-muted-foreground",
+								children: formatNumber(row.meterStart)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right text-muted-foreground",
+								children: formatNumber(row.meterEnd)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold",
+								children: formatNumber(row.consumoVap)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
+								children: row.mpProcessed > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex items-center justify-end gap-1",
+									children: [row.isInefficient && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tooltip, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-3 w-3 text-red-500" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TooltipContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+										"Eficiência abaixo do esperado (>",
+										efficiencyThreshold,
+										")"
+									] }) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: cn(row.isInefficient && "text-red-600 font-bold"),
+										children: formatNumber(row.vaporVsMp)
+									})]
+								}) : "-"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs",
+								children: row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : "-"
+							})
+						] }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 							asChild: true,
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
@@ -91812,4 +91844,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CJvz9_rB.js.map
+//# sourceMappingURL=index-DkjK18Fm.js.map

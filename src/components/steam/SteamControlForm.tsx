@@ -330,7 +330,11 @@ export function SteamControlForm({
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white"
+            >
               {isSubmitting ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>

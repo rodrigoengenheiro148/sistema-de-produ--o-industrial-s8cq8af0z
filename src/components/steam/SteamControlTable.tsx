@@ -51,6 +51,8 @@ export function SteamControlTable() {
     deleteSteamControlRecord,
     production,
     notificationSettings,
+    factories,
+    currentFactoryId,
   } = useData()
   const { toast } = useToast()
 
@@ -59,6 +61,13 @@ export function SteamControlTable() {
   )
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+
+  const currentFactory = useMemo(
+    () => factories.find((f) => f.id === currentFactoryId),
+    [factories, currentFactoryId],
+  )
+  const isFarinorte =
+    currentFactory?.name.toLowerCase().includes('farinorte') ?? false
 
   // Determine efficiency threshold (Ton Steam / Ton MP)
   // If settings provide a plausible ratio (e.g. < 10), use it. Otherwise default to 0.24
@@ -139,36 +148,57 @@ export function SteamControlTable() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="min-w-[100px]">Data</TableHead>
-              <TableHead className="text-right min-w-[120px] font-bold">
-                Entrada de MP (kg)
-              </TableHead>
-              <TableHead className="text-right min-w-[100px]">
-                Res. Soja
-              </TableHead>
-              <TableHead className="text-right min-w-[80px]">Lenha</TableHead>
-              <TableHead className="text-right min-w-[100px]">
-                Palha Arroz
-              </TableHead>
-              <TableHead className="text-right min-w-[80px]">Cavaco</TableHead>
-              <TableHead className="text-right min-w-[100px] font-bold">
-                Total Comb.
-              </TableHead>
-              <TableHead className="text-right min-w-[100px]">
-                Início PR
-              </TableHead>
-              <TableHead className="text-right min-w-[100px]">
-                Término PR
-              </TableHead>
-              <TableHead className="text-right min-w-[100px] font-bold">
-                Consumo Vap
-              </TableHead>
-              {/* Efficiency Ratios columns */}
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
-                Vapor / MP (t/t)
-              </TableHead>
-              <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
-                Cavaco vs Vapor
-              </TableHead>
+              {isFarinorte ? (
+                <>
+                  <TableHead className="text-right min-w-[120px]">
+                    Entrada Kg
+                  </TableHead>
+                  <TableHead className="text-right min-w-[120px]">
+                    Entrada Pacotes
+                  </TableHead>
+                  <TableHead className="text-right min-w-[120px]">
+                    Entrada m³
+                  </TableHead>
+                </>
+              ) : (
+                <>
+                  <TableHead className="text-right min-w-[120px] font-bold">
+                    Entrada de MP (kg)
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px]">
+                    Res. Soja
+                  </TableHead>
+                  <TableHead className="text-right min-w-[80px]">
+                    Lenha
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px]">
+                    Palha Arroz
+                  </TableHead>
+                  <TableHead className="text-right min-w-[80px]">
+                    Cavaco
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px] font-bold">
+                    Total Comb.
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px]">
+                    Início PR
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px]">
+                    Término PR
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px] font-bold">
+                    Consumo Vap
+                  </TableHead>
+                  {/* Efficiency Ratios columns */}
+                  <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
+                    Vapor / MP (t/t)
+                  </TableHead>
+                  <TableHead className="text-right min-w-[100px] bg-blue-50/50 dark:bg-blue-950/20">
+                    Cavaco vs Vapor
+                  </TableHead>
+                </>
+              )}
+
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -176,7 +206,7 @@ export function SteamControlTable() {
             {tableData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={13}
+                  colSpan={isFarinorte ? 5 : 13}
                   className="text-center h-24 text-muted-foreground"
                 >
                   Nenhum registro encontrado.
@@ -188,66 +218,84 @@ export function SteamControlTable() {
                   <TableCell className="font-medium whitespace-nowrap">
                     {format(row.date, 'dd/MM/yyyy')}
                   </TableCell>
-                  <TableCell className="text-right font-bold text-blue-600 dark:text-blue-400">
-                    {formatNumber(row.mpProcessed)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.soyWaste)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.firewood)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.riceHusk)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {formatNumber(row.woodChips)}
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {formatNumber(row.totalFuel)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {formatNumber(row.meterStart)}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {formatNumber(row.meterEnd)}
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    {formatNumber(row.consumoVap)}
-                  </TableCell>
+                  {isFarinorte ? (
+                    <>
+                      <TableCell className="text-right">
+                        {formatNumber(row.weightKg)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.packageCount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.volumeM3)}
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="text-right font-bold text-blue-600 dark:text-blue-400">
+                        {formatNumber(row.mpProcessed)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.soyWaste)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.firewood)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.riceHusk)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatNumber(row.woodChips)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatNumber(row.totalFuel)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatNumber(row.meterStart)}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {formatNumber(row.meterEnd)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatNumber(row.consumoVap)}
+                      </TableCell>
 
-                  {/* Ratios Display */}
-                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
-                    {row.mpProcessed > 0 ? (
-                      <div className="flex items-center justify-end gap-1">
-                        {row.isInefficient && (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <AlertTriangle className="h-3 w-3 text-red-500" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Eficiência abaixo do esperado (&gt;
-                                {efficiencyThreshold})
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
+                      {/* Ratios Display */}
+                      <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
+                        {row.mpProcessed > 0 ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {row.isInefficient && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertTriangle className="h-3 w-3 text-red-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>
+                                    Eficiência abaixo do esperado (&gt;
+                                    {efficiencyThreshold})
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            <span
+                              className={cn(
+                                row.isInefficient && 'text-red-600 font-bold',
+                              )}
+                            >
+                              {formatNumber(row.vaporVsMp)}
+                            </span>
+                          </div>
+                        ) : (
+                          '-'
                         )}
-                        <span
-                          className={cn(
-                            row.isInefficient && 'text-red-600 font-bold',
-                          )}
-                        >
-                          {formatNumber(row.vaporVsMp)}
-                        </span>
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
-                    {row.totalFuel > 0 ? formatNumber(row.cavacoVsVapor) : '-'}
-                  </TableCell>
+                      </TableCell>
+                      <TableCell className="text-right bg-blue-50/30 dark:bg-blue-950/10 font-mono text-xs">
+                        {row.totalFuel > 0
+                          ? formatNumber(row.cavacoVsVapor)
+                          : '-'}
+                      </TableCell>
+                    </>
+                  )}
 
                   <TableCell>
                     <DropdownMenu>

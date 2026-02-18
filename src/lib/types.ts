@@ -154,9 +154,9 @@ export interface SteamControlEntry {
   meterStart: number
   meterEnd: number
   steamConsumption: number
-  weightKg?: number
-  packageCount?: number
-  volumeM3?: number
+  weightKg: number
+  packageCount: number
+  volumeM3: number
   createdAt?: Date
 }
 
