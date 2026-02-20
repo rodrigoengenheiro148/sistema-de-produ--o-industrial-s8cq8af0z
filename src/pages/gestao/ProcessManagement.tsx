@@ -4,6 +4,7 @@ import { HourlyProductionEfficiencyChart } from '@/components/process/HourlyProd
 import { ProcessMetricsCard } from '@/components/process/ProcessMetricsCard'
 import { DatePicker } from '@/components/ui/date-picker'
 import { ProcessExportMenu } from '@/components/process/ProcessExportMenu'
+import { CookingTimeForm } from '@/components/process/CookingTimeForm'
 
 export default function ProcessManagement() {
   const [analysisDate, setAnalysisDate] = useState<Date>(new Date())
@@ -16,15 +17,18 @@ export default function ProcessManagement() {
             Gestão de Processo
           </h2>
           <p className="text-muted-foreground">
-            Gerencie as paradas e visualize indicadores de produtividade.
+            Gerencie o tempo de processo e paradas para análise de
+            produtividade.
           </p>
         </div>
         <ProcessExportMenu />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* CookingTimeForm removed as per requirements */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-1">
+          <CookingTimeForm />
+        </div>
+        <div className="md:col-span-1">
           <DowntimeManager />
         </div>
       </div>

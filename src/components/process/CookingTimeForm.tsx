@@ -22,27 +22,44 @@ import {
   CardContent,
   CardDescription,
 } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
-import { Trash2, Clock, Check, Lock, Edit2 } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  TableHeader,
+  TableHead,
+} from '@/components/ui/table'
+import { Trash2, Clock, Check, Lock } from 'lucide-react'
 import { shouldRequireAuth } from '@/lib/security'
 import { SecurityGate } from '@/components/SecurityGate'
-import { cn } from '@/lib/utils'
 
-const formSchema = z.object({
-  date: z.string().min(1, 'Data é obrigatória'),
-  totalHours: z.coerce
-    .number()
-    .min(0.1, 'Horas devem ser maiores que 0')
-    .max(24, 'Máximo 24 horas'),
-})
+const formSchema = z
+  .object({
+    date: z.string().min(1, 'Data é obrigatória'),
+    startTime: z.string().min(1, 'Hora de início é obrigatória'),
+    endTime: z.string().min(1, 'Hora de fim é obrigatória'),
+  })
+  .refine(
+    (data) => {
+      if (data.startTime && data.endTime) {
+        const [startH, startM] = data.startTime.split(':').map(Number)
+        const [endH, endM] = data.endTime.split(':').map(Number)
+        const startMins = startH * 60 + startM
+        const endMins = endH * 60 + endM
+        return endMins > startMins
+      }
+      return true
+    },
+    {
+      message: 'Fim deve ser maior que Início',
+      path: ['endTime'],
+    },
+  )
 
 export function CookingTimeForm() {
-  const {
-    addCookingTimeRecord,
-    cookingTimeRecords,
-    deleteCookingTimeRecord,
-    updateCookingTimeRecord,
-  } = useData()
+  const { addCookingTimeRecord, cookingTimeRecords, deleteCookingTimeRecord } =
+    useData()
   const { toast } = useToast()
 
   // Security Gate
@@ -71,7 +88,8 @@ export function CookingTimeForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: format(new Date(), 'yyyy-MM-dd'),
-      totalHours: 0,
+      startTime: '',
+      endTime: '',
     },
   })
 
@@ -79,23 +97,30 @@ export function CookingTimeForm() {
     // Append T12:00:00 to prevent timezone issues with date
     const dateObj = new Date(`${values.date}T12:00:00`)
 
-    // Check if record exists for this date to avoid duplicates if preferred,
-    // but schema allows multiple. For simplicity, we just add.
+    const [startH, startM] = values.startTime.split(':').map(Number)
+    const [endH, endM] = values.endTime.split(':').map(Number)
+    const startMins = startH * 60 + startM
+    const endMins = endH * 60 + endM
+    const totalHours = (endMins - startMins) / 60
+
     addCookingTimeRecord({
       date: dateObj,
-      totalHours: values.totalHours,
+      startTime: values.startTime,
+      endTime: values.endTime,
+      totalHours: totalHours,
       userId: '', // handled by context/auth
       factoryId: '', // handled by context
     })
 
     toast({
       title: 'Registro salvo',
-      description: 'Horas de produção registradas com sucesso.',
+      description: 'Tempo de processo registrado com sucesso.',
     })
 
     form.reset({
       date: values.date, // keep date
-      totalHours: 0,
+      startTime: '',
+      endTime: '',
     })
   }
 
@@ -110,27 +135,27 @@ export function CookingTimeForm() {
   })
 
   return (
-    <Card className="shadow-sm border">
+    <Card className="shadow-sm border h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
           Tempo de Processo
         </CardTitle>
         <CardDescription>
-          Registre as horas totais de produção diária.
+          Registre os horários de início e fim da produção.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col sm:flex-row gap-4 items-end"
+            className="flex flex-col gap-4"
           >
             <FormField
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="flex-1">
+                <FormItem>
                   <FormLabel>Dia</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
@@ -139,35 +164,55 @@ export function CookingTimeForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="totalHours"
-              render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel>Horas de Produção</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      placeholder="Ex: 10.5"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit">Salvar</Button>
+            <div className="flex gap-4">
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Início</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Fim</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Registrar Tempo
+            </Button>
           </form>
         </Form>
 
         <div className="rounded-md border">
           <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Início</TableHead>
+                <TableHead>Fim</TableHead>
+                <TableHead>Duração</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {displayedRecords.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="text-center text-muted-foreground"
                   >
                     Nenhum registro para este dia.
@@ -178,18 +223,15 @@ export function CookingTimeForm() {
                   const isLocked = shouldRequireAuth(record.createdAt)
                   return (
                     <TableRow key={record.id}>
+                      <TableCell>{record.startTime || '-'}</TableCell>
+                      <TableCell>{record.endTime || '-'}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-green-500" />
                           <span className="font-medium">
-                            {record.totalHours ? (
-                              <>{record.totalHours} horas</>
-                            ) : (
-                              // Fallback for legacy records
-                              <>
-                                {record.startTime} - {record.endTime || '...'}
-                              </>
-                            )}
+                            {record.totalHours
+                              ? `${record.totalHours.toFixed(2)}h`
+                              : '-'}
                           </span>
                           {isLocked && (
                             <Lock className="h-3 w-3 text-muted-foreground/50 ml-1" />

@@ -79624,7 +79624,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$8 = object({
+var formSchema$9 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -79652,7 +79652,7 @@ function ProductionForm({ initialData, onSuccess }) {
 		return factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("mar reciclagem");
 	}, [factories, currentFactoryId]);
 	const form = useForm({
-		resolver: a(formSchema$8),
+		resolver: a(formSchema$9),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -80584,7 +80584,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -80603,7 +80603,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -81641,7 +81641,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -81654,7 +81654,7 @@ var formSchema$6 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -82232,7 +82232,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$5 = object({
+var formSchema$6 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -82244,7 +82244,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -83479,7 +83479,7 @@ function Inventory() {
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AutoOverview, {})]
 	});
 }
-var formSchema$4 = object({
+var formSchema$5 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -83502,7 +83502,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -84903,7 +84903,7 @@ function CsvExport() {
 		]
 	});
 }
-var formSchema$3 = object({
+var formSchema$4 = object({
 	baseUrl: string().optional(),
 	apiToken: string().optional(),
 	apiDocumentationUrl: string().optional()
@@ -84912,7 +84912,7 @@ function SkipAiConfig() {
 	const { protheusConfig, updateProtheusConfig } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			baseUrl: protheusConfig.baseUrl,
 			apiToken: protheusConfig.apiToken,
@@ -85818,7 +85818,7 @@ function Settings() {
 		})]
 	});
 }
-var formSchema$2 = object({
+var formSchema$3 = object({
 	name: string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 	location: string().min(2, "Localização é obrigatória"),
 	manager: string().min(2, "Nome do responsável é obrigatório"),
@@ -85828,7 +85828,7 @@ function FactoryForm({ initialData, onSuccess }) {
 	const { addFactory, updateFactory } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$2),
+		resolver: a(formSchema$3),
 		defaultValues: {
 			name: initialData?.name || "",
 			location: initialData?.location || "",
@@ -88641,6 +88641,193 @@ function ProcessExportMenu() {
 		]
 	})] });
 }
+var formSchema$2 = object({
+	date: string().min(1, "Data é obrigatória"),
+	startTime: string().min(1, "Hora de início é obrigatória"),
+	endTime: string().min(1, "Hora de fim é obrigatória")
+}).refine((data) => {
+	if (data.startTime && data.endTime) {
+		const [startH, startM] = data.startTime.split(":").map(Number);
+		const [endH, endM] = data.endTime.split(":").map(Number);
+		const startMins = startH * 60 + startM;
+		return endH * 60 + endM > startMins;
+	}
+	return true;
+}, {
+	message: "Fim deve ser maior que Início",
+	path: ["endTime"]
+});
+function CookingTimeForm() {
+	const { addCookingTimeRecord, cookingTimeRecords, deleteCookingTimeRecord } = useData();
+	const { toast: toast$2 } = useToast();
+	const [securityOpen, setSecurityOpen] = (0, import_react.useState)(false);
+	const [pendingAction, setPendingAction] = (0, import_react.useState)(null);
+	const handleProtectedAction = (createdAt, action) => {
+		if (shouldRequireAuth(createdAt)) {
+			setPendingAction(() => action);
+			setSecurityOpen(true);
+		} else action();
+	};
+	const handleSecuritySuccess = () => {
+		setSecurityOpen(false);
+		if (pendingAction) pendingAction();
+		setPendingAction(null);
+	};
+	const form = useForm({
+		resolver: a(formSchema$2),
+		defaultValues: {
+			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
+			startTime: "",
+			endTime: ""
+		}
+	});
+	function onSubmit(values) {
+		const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
+		const [startH, startM] = values.startTime.split(":").map(Number);
+		const [endH, endM] = values.endTime.split(":").map(Number);
+		const startMins = startH * 60 + startM;
+		const totalHours = (endH * 60 + endM - startMins) / 60;
+		addCookingTimeRecord({
+			date: dateObj,
+			startTime: values.startTime,
+			endTime: values.endTime,
+			totalHours,
+			userId: "",
+			factoryId: ""
+		});
+		toast$2({
+			title: "Registro salvo",
+			description: "Tempo de processo registrado com sucesso."
+		});
+		form.reset({
+			date: values.date,
+			startTime: "",
+			endTime: ""
+		});
+	}
+	const todayStr = form.watch("date");
+	const displayedRecords = cookingTimeRecords.filter((r$2) => {
+		try {
+			return format(r$2.date, "yyyy-MM-dd") === todayStr;
+		} catch {
+			return false;
+		}
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: "shadow-sm border h-full",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+			className: "flex items-center gap-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-5 w-5 text-primary" }), "Tempo de Processo"]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Registre os horários de início e fim da produção." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
+			className: "space-y-6",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+					...form,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+						onSubmit: form.handleSubmit(onSubmit),
+						className: "flex flex-col gap-4",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+								control: form.control,
+								name: "date",
+								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Dia" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "date",
+										...field
+									}) }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+								] })
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex gap-4",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "startTime",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+										className: "flex-1",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Início" }),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+												type: "time",
+												...field
+											}) }),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+										]
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "endTime",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+										className: "flex-1",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fim" }),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+												type: "time",
+												...field
+											}) }),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+										]
+									})
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								type: "submit",
+								className: "w-full",
+								children: "Registrar Tempo"
+							})
+						]
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "rounded-md border",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Início" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fim" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Duração" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
+					] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+						colSpan: 4,
+						className: "text-center text-muted-foreground",
+						children: "Nenhum registro para este dia."
+					}) }) : displayedRecords.map((record) => {
+						const isLocked = shouldRequireAuth(record.createdAt);
+						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.startTime || "-" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.endTime || "-" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-center gap-2",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, { className: "h-4 w-4 text-green-500" }),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+										className: "font-medium",
+										children: record.totalHours ? `${record.totalHours.toFixed(2)}h` : "-"
+									}),
+									isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50 ml-1" })
+								]
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									size: "icon",
+									onClick: () => handleProtectedAction(record.createdAt, () => deleteCookingTimeRecord(record.id)),
+									className: "h-8 w-8 text-destructive hover:text-destructive/90",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-4 w-4" })
+								})
+							})
+						] }, record.id);
+					}) })] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SecurityGate, {
+					isOpen: securityOpen,
+					onOpenChange: setSecurityOpen,
+					onSuccess: handleSecuritySuccess
+				})
+			]
+		})]
+	});
+}
 function ProcessManagement() {
 	const [analysisDate, setAnalysisDate] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -88653,15 +88840,18 @@ function ProcessManagement() {
 					children: "Gestão de Processo"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "text-muted-foreground",
-					children: "Gerencie as paradas e visualize indicadores de produtividade."
+					children: "Gerencie o tempo de processo e paradas para análise de produtividade."
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProcessExportMenu, {})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "grid gap-6 md:grid-cols-2",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "md:col-span-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "md:col-span-1",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CookingTimeForm, {})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "md:col-span-1",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DowntimeManager, {})
-				})
+				})]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "space-y-4 pt-6 border-t",
@@ -92006,4 +92196,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BuE5pT-x.js.map
+//# sourceMappingURL=index-Dkwa9j7T.js.map
