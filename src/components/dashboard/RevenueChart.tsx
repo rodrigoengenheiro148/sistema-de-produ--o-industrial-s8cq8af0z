@@ -70,7 +70,6 @@ interface RevenueChartProps {
   allProductionData?: ProductionEntry[]
   allRawMaterials?: RawMaterialEntry[]
   timeScale?: 'daily' | 'monthly'
-  isMobile?: boolean
   className?: string
   forecastMetrics?: {
     total: number
@@ -104,7 +103,6 @@ export function RevenueChart({
   allProductionData = [],
   allRawMaterials = [],
   timeScale = 'daily',
-  isMobile = false,
   className,
   forecastMetrics,
   activeFilter,
@@ -569,7 +567,7 @@ export function RevenueChart({
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={isMobile ? 35 : 60}
+          width={60}
           tickFormatter={(value) =>
             new Intl.NumberFormat('pt-BR', {
               notation: 'compact',

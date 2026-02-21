@@ -30,8 +30,6 @@ import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialC
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
-import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
-import { SteamCostChart } from '@/components/dashboard/SteamCostChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -47,7 +45,6 @@ export default function Dashboard() {
     qualityRecords,
     acidityRecords,
     returns,
-    steamControlRecords,
     dateRange,
     setDateRange,
     factories,
@@ -105,7 +102,6 @@ export default function Dashboard() {
     filteredQuality,
     filteredAcidity,
     filteredReturns,
-    filteredSteamControl,
     uniqueClients,
   } = useMemo(() => {
     const clients = new Set<string>()
@@ -133,9 +129,6 @@ export default function Dashboard() {
       filteredReturns: returns
         .filter((r) => filterByDate(r.date))
         .sort((a, b) => a.date.getTime() - b.date.getTime()),
-      filteredSteamControl: steamControlRecords
-        .filter((s) => filterByDate(s.date))
-        .sort((a, b) => a.date.getTime() - b.date.getTime()),
       uniqueClients: uniqueClientsList,
     }
   }, [
@@ -147,7 +140,6 @@ export default function Dashboard() {
     qualityRecords,
     acidityRecords,
     returns,
-    steamControlRecords,
     dateRange,
   ])
 
@@ -384,7 +376,6 @@ export default function Dashboard() {
               allData={shipping}
               allProductionData={production}
               allRawMaterials={rawMaterials}
-              isMobile={isMobile}
               timeScale="daily"
               allClients={uniqueClients}
             />
@@ -392,7 +383,7 @@ export default function Dashboard() {
 
           <div className="space-y-4">
             <h3 className="text-xl font-bold tracking-tight mt-8">
-              Análise de Produção
+              Análise de Eficiência
             </h3>
 
             {!isMarReciclagem && !isFarinorte && (
@@ -421,31 +412,18 @@ export default function Dashboard() {
                   target={yieldTarget}
                   className="h-full"
                 />
-                <div className="md:col-span-2 flex flex-col gap-4">
+                <div className="md:col-span-2">
                   <ProductionPerformanceChart
                     data={filteredProduction}
                     isMobile={isMobile}
                     timeScale="daily"
-                    className="flex-1"
                   />
-                  <SteamCostChart data={filteredSteamControl} />
                 </div>
               </div>
             )}
 
             {isMarReciclagem && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <ProductionPerformanceChart
-                  data={filteredProduction}
-                  isMobile={isMobile}
-                  timeScale="daily"
-                />
-                <SteamCostChart data={filteredSteamControl} />
-              </div>
-            )}
-
-            {isMarReciclagem && (
-              <LossAnalysisChart
+              <ProductionPerformanceChart
                 data={filteredProduction}
                 isMobile={isMobile}
                 timeScale="daily"

@@ -19542,10 +19542,6 @@ var Fish = createLucideIcon("fish", [
 		key: "1zlm23"
 	}]
 ]);
-var Flame = createLucideIcon("flame", [["path", {
-	d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4",
-	key: "1slcih"
-}]]);
 var FlaskConical = createLucideIcon("flask-conical", [
 	["path", {
 		d: "M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2",
@@ -64743,7 +64739,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			return quantity;
 		};
 		const targetDate = referenceDate || /* @__PURE__ */ new Date();
-		const rawMaterialInputKg = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const rawMaterialInputKg = rawMaterials.filter((r$2) => r$2.date && isValid(r$2.date) && isSameDay(r$2.date, targetDate) && r$2.type?.toLowerCase() !== "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const seboProduced = production.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
@@ -66406,7 +66402,7 @@ var DEFAULT_FILTERS = [
 	"Farinheta",
 	"Farinha Especial"
 ];
-function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", isMobile = false, className, forecastMetrics, activeFilter, onFilterChange, clientFilter, onClientFilterChange, allClients = [] }) {
+function RevenueChart({ data, productionData = [], rawMaterials = [], allData = [], allProductionData = [], allRawMaterials = [], timeScale = "daily", className, forecastMetrics, activeFilter, onFilterChange, clientFilter, onClientFilterChange, allClients = [] }) {
 	const { factories, currentFactoryId } = useData();
 	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
 	const effectiveDefaultFilters = (0, import_react.useMemo)(() => {
@@ -66709,7 +66705,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
 					tickLine: false,
 					axisLine: false,
-					width: isMobile ? 35 : 60,
+					width: 60,
 					tickFormatter: (value) => new Intl.NumberFormat("pt-BR", {
 						notation: "compact",
 						compactDisplay: "short",
@@ -72352,250 +72348,6 @@ function MarReciclagemInventoryChart({ production, shipping, inventoryRecords = 
 		})]
 	});
 }
-function LossAnalysisChart({ data, timeScale = "daily", isMobile = false, className }) {
-	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const filteredData = data.filter((p$1) => !isBloodRecord(p$1));
-		let processedData = [];
-		if (timeScale === "monthly") {
-			const monthlyData = /* @__PURE__ */ new Map();
-			filteredData.forEach((p$1) => {
-				const dateKey = format(p$1.date, "yyyy-MM");
-				const displayDate = format(p$1.date, "MMM/yy", { locale: ptBR });
-				if (!monthlyData.has(dateKey)) monthlyData.set(dateKey, {
-					dateKey,
-					date: displayDate,
-					originalDate: p$1.date,
-					perdas: 0,
-					mp: 0
-				});
-				const entry = monthlyData.get(dateKey);
-				entry.perdas += p$1.losses;
-				entry.mp += p$1.mpUsed;
-			});
-			processedData = Array.from(monthlyData.values()).filter((d) => d.perdas > 0).map((d) => ({
-				...d,
-				percentage: d.mp > 0 ? d.perdas / d.mp * 100 : 0
-			})).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
-		} else processedData = filteredData.filter((p$1) => p$1.losses > 0).map((p$1) => ({
-			date: format(p$1.date, "dd/MM"),
-			originalDate: p$1.date,
-			perdas: p$1.losses,
-			percentage: p$1.mpUsed > 0 ? p$1.losses / p$1.mpUsed * 100 : 0
-		})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime());
-		return {
-			chartData: processedData,
-			chartConfig: { perdas: {
-				label: "Perdas (kg)",
-				color: "hsl(var(--destructive))"
-			} }
-		};
-	}, [data, timeScale]);
-	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
-			"Volume de quebra técnica e perdas",
-			" ",
-			timeScale === "monthly" ? "mensais" : "diárias"
-		] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "h-[300px] flex items-center justify-center text-muted-foreground",
-			children: "Nenhum dado disponível."
-		})]
-	});
-	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-		config: chartConfig$1,
-		className: `${height} w-full`,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-			data: chartData,
-			margin: {
-				top: 20,
-				right: 10,
-				left: 0,
-				bottom: 0
-			},
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
-					vertical: false,
-					strokeDasharray: "3 3"
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-					dataKey: "date",
-					tickLine: false,
-					axisLine: false,
-					tickMargin: 8,
-					minTickGap: 32,
-					fontSize: isMobile ? 10 : 12
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-					tickLine: false,
-					axisLine: false,
-					width: isMobile ? 30 : 50,
-					fontSize: isMobile ? 10 : 12,
-					tickFormatter: (value) => value >= 1e3 ? `${formatNumber(value / 1e3, { maximumFractionDigits: 1 })}k` : formatNumber(value, { maximumFractionDigits: 0 })
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value, name) => [`${formatNumber(Number(value), {
-					minimumFractionDigits: 0,
-					maximumFractionDigits: 2
-				})} kg`, name] }) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-					dataKey: "perdas",
-					fill: "var(--color-perdas)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
-					name: "Perdas (kg)",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "percentage",
-						position: "top",
-						offset: 8,
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 9 : 11,
-						formatter: (value) => value > 0 ? `${formatNumber(value, { maximumFractionDigits: 1 })}%` : ""
-					})
-				})
-			]
-		})
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-center justify-between space-y-0 pb-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardDescription, { children: [
-				"Volume de quebra técnica e perdas",
-				" ",
-				timeScale === "monthly" ? "mensais" : "diárias",
-				" ( > 0kg )"
-			] })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-					variant: "ghost",
-					size: "icon",
-					className: "h-8 w-8",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "sr-only",
-						children: "Expandir"
-					})]
-				})
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-				className: "max-w-[90vw] h-[80vh] flex flex-col",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogTitle, { children: [
-					"Análise de Perdas (",
-					timeScale === "monthly" ? "Mensal" : "Diário",
-					")"
-				] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada das perdas em kg com percentual de quebra." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "flex-1 w-full min-h-0 py-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
-				})]
-			})] })]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "pt-4",
-			children: chartData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10",
-				children: "Nenhuma perda registrada no período."
-			})
-		})]
-	});
-}
-function SteamCostChart({ data, className }) {
-	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const dailyMap = /* @__PURE__ */ new Map();
-		data.forEach((item) => {
-			const dateKey = format(item.date, "yyyy-MM-dd");
-			const cost = (item.weightKg || 0) * (item.value || 0);
-			dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + cost);
-		});
-		return {
-			chartData: Array.from(dailyMap.entries()).map(([dateKey, value]) => ({
-				date: format(new Date(dateKey), "dd/MM"),
-				fullDate: format(new Date(dateKey), "dd 'de' MMMM", { locale: ptBR }),
-				originalDate: new Date(dateKey),
-				value
-			})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime()),
-			chartConfig: { value: {
-				label: "Custo Vapor",
-				color: "hsl(var(--primary))"
-			} }
-		};
-	}, [data]);
-	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-			className: "flex items-center gap-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flame, { className: "h-5 w-5 text-orange-500" }), "Controle de Vapor (Custos)"]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Custo diário de vapor (Peso x Valor unitário)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "h-[300px] flex items-center justify-center text-muted-foreground",
-			children: "Nenhum dado disponível."
-		})]
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10 flex flex-col", className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-			className: "flex items-center gap-2",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flame, { className: "h-5 w-5 text-orange-500" }), "Controle de Vapor (Custos)"]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Custo diário de vapor (Peso x Valor unitário)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "flex-1",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-				config: chartConfig$1,
-				className: "aspect-auto h-[300px] w-full",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-					data: chartData,
-					margin: {
-						top: 20,
-						right: 0,
-						left: 0,
-						bottom: 0
-					},
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
-							vertical: false,
-							strokeDasharray: "3 3"
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-							dataKey: "date",
-							tickLine: false,
-							axisLine: false,
-							tickMargin: 8
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-							tickLine: false,
-							axisLine: false,
-							width: 65,
-							tickFormatter: (value) => new Intl.NumberFormat("pt-BR", {
-								notation: "compact",
-								compactDisplay: "short",
-								style: "currency",
-								currency: "BRL"
-							}).format(value)
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
-							formatter: (value) => formatCurrency(Number(value)),
-							labelFormatter: (label, payload) => payload[0]?.payload?.fullDate || label
-						}) }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
-							dataKey: "value",
-							fill: "var(--color-value)",
-							radius: [
-								4,
-								4,
-								0,
-								0
-							],
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-								dataKey: "value",
-								position: "top",
-								formatter: (val) => val > 0 ? formatCurrency(val) : "",
-								className: "fill-foreground font-bold",
-								fontSize: 10
-							})
-						})
-					]
-				})
-			})
-		})]
-	});
-}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -72623,7 +72375,7 @@ var AlertDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 }));
 AlertDescription.displayName = "AlertDescription";
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, steamControlRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus, latestInventory } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus, latestInventory } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
@@ -72654,7 +72406,7 @@ function Dashboard() {
 			end: dateRange.to
 		});
 	};
-	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, filteredReturns, filteredSteamControl, uniqueClients } = (0, import_react.useMemo)(() => {
+	const { filteredProduction, filteredRawMaterials, filteredShipping, filteredCookingTime, filteredDowntime, filteredQuality, filteredAcidity, filteredReturns, uniqueClients } = (0, import_react.useMemo)(() => {
 		const clients = /* @__PURE__ */ new Set();
 		shipping.forEach((s$3) => {
 			if (s$3.client) clients.add(s$3.client);
@@ -72669,7 +72421,6 @@ function Dashboard() {
 			filteredQuality: qualityRecords.filter((q) => filterByDate(q.date)),
 			filteredAcidity: acidityRecords.filter((a$2) => filterByDate(a$2.date)),
 			filteredReturns: returns.filter((r$2) => filterByDate(r$2.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
-			filteredSteamControl: steamControlRecords.filter((s$3) => filterByDate(s$3.date)).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()),
 			uniqueClients: uniqueClientsList
 		};
 	}, [
@@ -72681,7 +72432,6 @@ function Dashboard() {
 		qualityRecords,
 		acidityRecords,
 		returns,
-		steamControlRecords,
 		dateRange
 	]);
 	const farinhaQuality = filteredQuality.filter((q) => q.product === "Farinha");
@@ -72847,7 +72597,6 @@ function Dashboard() {
 									allData: shipping,
 									allProductionData: production,
 									allRawMaterials: rawMaterials,
-									isMobile,
 									timeScale: "daily",
 									allClients: uniqueClients
 								})
@@ -72857,7 +72606,7 @@ function Dashboard() {
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
 										className: "text-xl font-bold tracking-tight mt-8",
-										children: "Análise de Produção"
+										children: "Análise de Eficiência"
 									}),
 									!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -72878,25 +72627,16 @@ function Dashboard() {
 											value: currentYield,
 											target: yieldTarget,
 											className: "h-full"
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "md:col-span-2 flex flex-col gap-4",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "md:col-span-2",
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
 												data: filteredProduction,
 												isMobile,
-												timeScale: "daily",
-												className: "flex-1"
-											}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCostChart, { data: filteredSteamControl })]
+												timeScale: "daily"
+											})
 										})]
 									}),
-									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "grid gap-4 md:grid-cols-2",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
-											data: filteredProduction,
-											isMobile,
-											timeScale: "daily"
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamCostChart, { data: filteredSteamControl })]
-									}),
-									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossAnalysisChart, {
+									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
 										data: filteredProduction,
 										isMobile,
 										timeScale: "daily"
@@ -92433,4 +92173,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BHdrgNjw.js.map
+//# sourceMappingURL=index-CVFkbToY.js.map
