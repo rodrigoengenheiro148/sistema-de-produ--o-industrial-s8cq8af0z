@@ -64739,7 +64739,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			return quantity;
 		};
 		const targetDate = referenceDate || /* @__PURE__ */ new Date();
-		const rawMaterialInputKg = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const rawMaterialInputKg = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProduced = production.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
@@ -92219,4 +92219,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Bp-sK7v5.js.map
+//# sourceMappingURL=index-kJl_dsu7.js.map
