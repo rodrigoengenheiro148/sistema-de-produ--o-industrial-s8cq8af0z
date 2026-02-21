@@ -64767,17 +64767,17 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const oleoYield = mpUsedMainLine > 0 ? viscerasOilProducedInd / mpUsedMainLine * 100 : 0;
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
-		const previousDate = subDays(targetDate, 1);
-		const totalProductionOutputD1 = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, previousDate)).reduce((acc, p$1) => acc + p$1.seboProduced + p$1.fcoProduced + p$1.farinhetaProduced + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0), 0);
-		const prevDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, previousDate));
-		let totalHoursD1 = 0;
-		let totalMinutesD1 = 0;
-		const recordsWithTotalHours = prevDayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
+		const targetDayProduction = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate));
+		const targetDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, targetDate));
+		const estimatedQuantityKg = targetDayProduction.reduce((acc, p$1) => acc + (p$1.mpUsed || 0), 0);
+		let totalHoursTarget = 0;
+		let totalMinutesTarget = 0;
+		const recordsWithTotalHours = targetDayCooking.filter((r$2) => r$2.totalHours !== void 0 && r$2.totalHours !== null);
 		if (recordsWithTotalHours.length > 0) {
-			totalHoursD1 = recordsWithTotalHours.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
-			totalMinutesD1 = totalHoursD1 * 60;
+			totalHoursTarget = recordsWithTotalHours.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
+			totalMinutesTarget = totalHoursTarget * 60;
 		} else {
-			totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
+			totalMinutesTarget = targetDayCooking.reduce((acc, curr) => {
 				if (!curr.startTime || !curr.endTime) return acc;
 				const toMinutes = (timeStr) => {
 					const parts = timeStr.split(":");
@@ -64792,13 +64792,9 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				}
 				return acc;
 			}, 0);
-			totalHoursD1 = totalMinutesD1 / 60;
+			totalHoursTarget = totalMinutesTarget / 60;
 		}
-		const tonPerHourD1 = totalHoursD1 > 0 ? totalProductionOutputD1 / 1e3 / totalHoursD1 : 0;
-		const previousDateFormatted = isValid(previousDate) ? format(previousDate, "dd/MM", { locale: ptBR }) : "--/--";
-		const totalCookingMinutesCurrent = cookingTimeRecords.reduce((acc, curr) => {
-			return acc + (typeof curr.totalHours === "number" ? curr.totalHours : 0);
-		}, 0) * 60;
+		const efficiencyTonPerHour = totalHoursTarget > 0 ? estimatedQuantityKg / 1e3 / totalHoursTarget : 0;
 		return {
 			rawMaterialInputKg,
 			totalProduction,
@@ -64814,10 +64810,10 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			bloodInputKg,
 			bloodMealProduced,
 			bloodYield,
-			tonPerHourD1,
-			previousDateFormatted,
-			estimatedWeightByTime: totalCookingMinutesCurrent * .55,
-			processTimeCurrentDisplay: `${Math.floor(totalCookingMinutesCurrent / 60)}h ${Math.round(totalCookingMinutesCurrent % 60).toString().padStart(2, "0")}m`,
+			estimatedQuantityKg,
+			targetDateFormatted: isValid(targetDate) ? format(targetDate, "dd/MM", { locale: ptBR }) : "--/--",
+			efficiencyTonPerHour,
+			processTimeCurrentDisplay: `${Math.floor(totalMinutesTarget / 60)}h ${Math.round(totalMinutesTarget % 60).toString().padStart(2, "0")}m`,
 			saturatedOilInputKg: rawMaterials.filter((r$2) => {
 				const type = r$2.type?.toLowerCase() || "";
 				return type === "óleo saturado" || type === "oleo saturado";
@@ -64827,7 +64823,6 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		rawMaterials,
 		production,
 		shipping,
-		cookingTimeRecords,
 		returns,
 		fullProductionHistory,
 		fullCookingTimeRecords,
@@ -64911,7 +64906,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 						className: "text-lg font-bold text-foreground",
 						children: [
-							formatNumber(metrics.estimatedWeightByTime, {
+							formatNumber(metrics.estimatedQuantityKg, {
 								minimumFractionDigits: 2,
 								maximumFractionDigits: 2
 							}),
@@ -64933,14 +64928,14 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CalendarDays, { className: "h-3 w-3" }),
 									"Ref: ",
-									metrics.previousDateFormatted
+									metrics.targetDateFormatted
 								]
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex items-center gap-1.5 mt-0.5",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-3.5 w-3.5 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 									className: "text-lg font-bold",
 									children: [
-										formatNumber(metrics.tonPerHourD1, {
+										formatNumber(metrics.efficiencyTonPerHour, {
 											minimumFractionDigits: 2,
 											maximumFractionDigits: 2
 										}),
@@ -64962,7 +64957,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: "text-xs text-muted-foreground",
 									children: formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })
-								}), metrics.tonPerHourD1 >= TARGET_RATE ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, { className: "h-4 w-4 text-emerald-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, { className: "h-4 w-4 text-red-500" })]
+								}), metrics.efficiencyTonPerHour >= TARGET_RATE ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, { className: "h-4 w-4 text-emerald-500" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, { className: "h-4 w-4 text-red-500" })]
 							})]
 						})]
 					})
@@ -92219,4 +92214,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BOjurw-c.js.map
+//# sourceMappingURL=index-UVXCCo3M.js.map

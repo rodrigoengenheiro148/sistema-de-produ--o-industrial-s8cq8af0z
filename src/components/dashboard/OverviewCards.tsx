@@ -38,7 +38,7 @@ import {
   formatPercent,
 } from '@/lib/utils'
 import { useMemo } from 'react'
-import { subDays, isSameDay, format, isValid } from 'date-fns'
+import { isSameDay, format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useData } from '@/context/DataContext'
 
@@ -200,43 +200,35 @@ export function OverviewCards({
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
-    // 12. Tempo de Processos & Efficiency (D-1 Logic)
-    const previousDate = subDays(targetDate, 1)
-
-    const prevDayProduction = fullProductionHistory.filter(
-      (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDate),
+    // 12. Tempo de Processos & Estimativa (Strict Single-Day Logic)
+    const targetDayProduction = fullProductionHistory.filter(
+      (p) => p.date && isValid(p.date) && isSameDay(p.date, targetDate),
     )
-    const totalProductionOutputD1 = prevDayProduction.reduce(
-      (acc, p) =>
-        acc +
-        p.seboProduced +
-        p.fcoProduced +
-        p.farinhetaProduced +
-        (p.viscerasMealProduced || 0) +
-        (p.featherMealProduced || 0) +
-        (p.viscerasOilProduced || 0),
+
+    const targetDayCooking = fullCookingTimeRecords.filter(
+      (c) => c.date && isValid(c.date) && isSameDay(c.date, targetDate),
+    )
+
+    const estimatedQuantityKg = targetDayProduction.reduce(
+      (acc, p) => acc + (p.mpUsed || 0),
       0,
     )
 
-    const prevDayCooking = fullCookingTimeRecords.filter(
-      (c) => c.date && isValid(c.date) && isSameDay(c.date, previousDate),
-    )
+    let totalHoursTarget = 0
+    let totalMinutesTarget = 0
 
-    let totalHoursD1 = 0
-    let totalMinutesD1 = 0
-
-    const recordsWithTotalHours = prevDayCooking.filter(
+    const recordsWithTotalHours = targetDayCooking.filter(
       (r) => r.totalHours !== undefined && r.totalHours !== null,
     )
 
     if (recordsWithTotalHours.length > 0) {
-      totalHoursD1 = recordsWithTotalHours.reduce(
+      totalHoursTarget = recordsWithTotalHours.reduce(
         (acc, curr) => acc + (curr.totalHours || 0),
         0,
       )
-      totalMinutesD1 = totalHoursD1 * 60
+      totalMinutesTarget = totalHoursTarget * 60
     } else {
-      totalMinutesD1 = prevDayCooking.reduce((acc, curr) => {
+      totalMinutesTarget = targetDayCooking.reduce((acc, curr) => {
         if (!curr.startTime || !curr.endTime) return acc
         const toMinutes = (timeStr: string) => {
           const parts = timeStr.split(':')
@@ -256,27 +248,18 @@ export function OverviewCards({
         }
         return acc
       }, 0)
-      totalHoursD1 = totalMinutesD1 / 60
+      totalHoursTarget = totalMinutesTarget / 60
     }
 
-    const tonPerHourD1 =
-      totalHoursD1 > 0 ? totalProductionOutputD1 / 1000 / totalHoursD1 : 0
+    const efficiencyTonPerHour =
+      totalHoursTarget > 0 ? estimatedQuantityKg / 1000 / totalHoursTarget : 0
 
-    const previousDateFormatted = isValid(previousDate)
-      ? format(previousDate, 'dd/MM', { locale: ptBR })
+    const targetDateFormatted = isValid(targetDate)
+      ? format(targetDate, 'dd/MM', { locale: ptBR })
       : '--/--'
 
-    // 13. Estimated Weight based on Time
-    const totalCookingHoursCurrent = cookingTimeRecords.reduce((acc, curr) => {
-      const hours = typeof curr.totalHours === 'number' ? curr.totalHours : 0
-      return acc + hours
-    }, 0)
-
-    const totalCookingMinutesCurrent = totalCookingHoursCurrent * 60
-    const estimatedWeightByTime = totalCookingMinutesCurrent * 0.55
-
-    const currentHours = Math.floor(totalCookingMinutesCurrent / 60)
-    const currentMinutes = Math.round(totalCookingMinutesCurrent % 60)
+    const currentHours = Math.floor(totalMinutesTarget / 60)
+    const currentMinutes = Math.round(totalMinutesTarget % 60)
     const processTimeCurrentDisplay = `${currentHours}h ${currentMinutes.toString().padStart(2, '0')}m`
 
     // 14. Saturated Oil Input
@@ -302,9 +285,9 @@ export function OverviewCards({
       bloodInputKg,
       bloodMealProduced,
       bloodYield,
-      tonPerHourD1,
-      previousDateFormatted,
-      estimatedWeightByTime,
+      estimatedQuantityKg,
+      targetDateFormatted,
+      efficiencyTonPerHour,
       processTimeCurrentDisplay,
       saturatedOilInputKg,
     }
@@ -312,7 +295,6 @@ export function OverviewCards({
     rawMaterials,
     production,
     shipping,
-    cookingTimeRecords,
     returns,
     fullProductionHistory,
     fullCookingTimeRecords,
@@ -440,7 +422,7 @@ export function OverviewCards({
             </span>
           </div>
           <span className="text-lg font-bold text-foreground">
-            {formatNumber(metrics.estimatedWeightByTime, {
+            {formatNumber(metrics.estimatedQuantityKg, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}{' '}
@@ -455,12 +437,12 @@ export function OverviewCards({
             <div className="flex flex-col">
               <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
-                Ref: {metrics.previousDateFormatted}
+                Ref: {metrics.targetDateFormatted}
               </span>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-lg font-bold">
-                  {formatNumber(metrics.tonPerHourD1, {
+                  {formatNumber(metrics.efficiencyTonPerHour, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{' '}
@@ -478,7 +460,7 @@ export function OverviewCards({
                 <span className="text-xs text-muted-foreground">
                   {formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })}
                 </span>
-                {metrics.tonPerHourD1 >= TARGET_RATE ? (
+                {metrics.efficiencyTonPerHour >= TARGET_RATE ? (
                   <ArrowUpRight className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <ArrowDownRight className="h-4 w-4 text-red-500" />
