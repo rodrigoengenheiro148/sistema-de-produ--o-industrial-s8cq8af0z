@@ -72204,6 +72204,207 @@ function MarReciclagemInventoryChart({ production, shipping, inventoryRecords = 
 		})]
 	});
 }
+function ProductionAnalysisChart({ data, isMobile = false, className }) {
+	const { factories, currentFactoryId } = useData();
+	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
+	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const dailyMap = /* @__PURE__ */ new Map();
+		data.forEach((item) => {
+			if (!item.date) return;
+			const dateKey = format(item.date, "yyyy-MM-dd");
+			if (!dailyMap.has(dateKey)) dailyMap.set(dateKey, {
+				date: item.date,
+				mp: 0,
+				prod: 0
+			});
+			const entry = dailyMap.get(dateKey);
+			entry.mp += item.mpUsed || 0;
+			let prod = (item.seboProduced || 0) + (item.fcoProduced || 0);
+			if (!isFarinorte) prod += item.farinhetaProduced || 0;
+			prod += item.featherMealProduced || 0;
+			prod += item.fishMealProduced || 0;
+			prod += item.viscerasMealProduced || 0;
+			prod += item.viscerasOilProduced || 0;
+			entry.prod += prod;
+		});
+		return {
+			chartData: Array.from(dailyMap.values()).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((entry) => ({
+				date: format(entry.date, "dd/MM"),
+				fullDate: format(entry.date, "dd 'de' MMMM", { locale: ptBR }),
+				mp: entry.mp,
+				prod: entry.prod
+			})),
+			chartConfig: {
+				prod: {
+					label: "Produção Total (Industrial)",
+					color: "#15803d"
+				},
+				mp: {
+					label: "MP Processada",
+					color: "#f97316"
+				}
+			}
+		};
+	}, [data, isFarinorte]);
+	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+			className: "flex items-center gap-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-primary" }), "Análise de Produção"]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "h-[300px] flex items-center justify-center text-muted-foreground",
+			children: "Nenhum dado disponível."
+		})]
+	});
+	const formatK = (val) => {
+		if (val >= 1e3) return `${(val / 1e3).toFixed(0)}k`;
+		return val.toString();
+	};
+	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		config: chartConfig$1,
+		className: cn("w-full", height),
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+			data: chartData,
+			margin: {
+				top: 30,
+				right: 20,
+				left: 0,
+				bottom: 0
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+					vertical: false,
+					strokeDasharray: "3 3",
+					stroke: "#e5e7eb"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+					dataKey: "date",
+					tickLine: false,
+					axisLine: false,
+					tickMargin: 12,
+					minTickGap: 30,
+					fontSize: 12,
+					tick: { fill: "#6b7280" }
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+					tickLine: false,
+					axisLine: false,
+					tickFormatter: formatK,
+					width: 45,
+					fontSize: 12,
+					tick: { fill: "#6b7280" },
+					domain: [0, "auto"]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+					cursor: {
+						stroke: "hsl(var(--muted-foreground)/0.2)",
+						strokeWidth: 1,
+						strokeDasharray: "4 4"
+					},
+					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value,
+						formatter: (value, name, item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2 w-full text-xs",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "h-2 w-2 rounded-full",
+									style: { backgroundColor: item.color }
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-muted-foreground flex-1",
+									children: name
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "font-mono font-medium",
+									children: [Number(value).toLocaleString("pt-BR"), " kg"]
+								})
+							]
+						})
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, {
+					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}),
+					className: "pt-6"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
+					dataKey: "mp",
+					name: "MP Processada",
+					stroke: "var(--color-mp)",
+					strokeWidth: 3,
+					dot: false,
+					activeDot: {
+						r: 6,
+						fill: "var(--color-mp)",
+						stroke: "#fff",
+						strokeWidth: 2
+					},
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "mp",
+						position: "top",
+						offset: 10,
+						className: "fill-foreground font-bold text-[10px] md:text-xs",
+						formatter: formatK
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
+					dataKey: "prod",
+					name: "Produção Total (Industrial)",
+					stroke: "var(--color-prod)",
+					strokeWidth: 3,
+					dot: false,
+					activeDot: {
+						r: 6,
+						fill: "var(--color-prod)",
+						stroke: "#fff",
+						strokeWidth: 2
+					},
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "prod",
+						position: "top",
+						offset: 10,
+						className: "fill-foreground font-bold text-[10px] md:text-xs",
+						formatter: formatK
+					})
+				})
+			]
+		})
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10 flex flex-col", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2 gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+					className: "flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-[#15803d]" }), "Análise de Produção"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "flex items-center gap-2 self-end sm:self-auto",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+					asChild: true,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						size: "icon",
+						className: "h-8 w-8",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" })
+					})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+					className: "max-w-[90vw] h-[80vh] flex flex-col",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Análise de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Comparativo detalhado de processamento industrial." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "flex-1 w-full min-h-0 py-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
+					})]
+				})] })
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "pt-4 flex-1 min-h-[300px]",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {})
+		})]
+	});
+}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -72443,15 +72644,23 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "flex justify-center w-full",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "w-full max-w-3xl",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 md:grid-cols-1 lg:grid-cols-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "lg:col-span-1",
 									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
 										value: currentYield,
-										target: yieldTarget
+										target: yieldTarget,
+										className: "h-full"
 									})
-								})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "lg:col-span-2",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionAnalysisChart, {
+										data: filteredProduction,
+										isMobile,
+										className: "h-full"
+									})
+								})]
 							}),
 							!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -92010,4 +92219,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-YdiZfI-o.js.map
+//# sourceMappingURL=index-Bp-sK7v5.js.map

@@ -30,6 +30,7 @@ import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialC
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
+import { ProductionAnalysisChart } from '@/components/dashboard/ProductionAnalysisChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -368,10 +369,21 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {/* 2. Middle Row: Gauge Chart */}
-          <div className="flex justify-center w-full">
-            <div className="w-full max-w-3xl">
-              <YieldGaugeChart value={currentYield} target={yieldTarget} />
+          {/* 2. Middle Row: Gauge Chart & Production Analysis */}
+          <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <YieldGaugeChart
+                value={currentYield}
+                target={yieldTarget}
+                className="h-full"
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <ProductionAnalysisChart
+                data={filteredProduction}
+                isMobile={isMobile}
+                className="h-full"
+              />
             </div>
           </div>
 
