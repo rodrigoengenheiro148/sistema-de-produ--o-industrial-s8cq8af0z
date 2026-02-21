@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.1'
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -63,11 +63,67 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'acidity_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "acidity_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boiler_control_records: {
+        Row: {
+          cald_01_m3: number | null
+          cald_01_pct: number | null
+          cald_02_m3: number | null
+          cald_02_pct: number | null
+          created_at: string | null
+          date: string
+          factory_id: string
+          id: string
+          initial_stock_m3: number | null
+          initial_stock_pct: number | null
+          user_id: string | null
+          wood_entry_m3: number | null
+          wood_entry_pct: number | null
+        }
+        Insert: {
+          cald_01_m3?: number | null
+          cald_01_pct?: number | null
+          cald_02_m3?: number | null
+          cald_02_pct?: number | null
+          created_at?: string | null
+          date: string
+          factory_id: string
+          id?: string
+          initial_stock_m3?: number | null
+          initial_stock_pct?: number | null
+          user_id?: string | null
+          wood_entry_m3?: number | null
+          wood_entry_pct?: number | null
+        }
+        Update: {
+          cald_01_m3?: number | null
+          cald_01_pct?: number | null
+          cald_02_m3?: number | null
+          cald_02_pct?: number | null
+          created_at?: string | null
+          date?: string
+          factory_id?: string
+          id?: string
+          initial_stock_m3?: number | null
+          initial_stock_pct?: number | null
+          user_id?: string | null
+          wood_entry_m3?: number | null
+          wood_entry_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boiler_control_records_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -104,11 +160,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'cooking_time_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "cooking_time_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -142,11 +198,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'daily_production_forecasts_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "daily_production_forecasts_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -186,11 +242,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'downtime_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "downtime_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -398,11 +454,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'production_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "production_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -445,11 +501,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'quality_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "quality_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -492,11 +548,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'raw_materials_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "raw_materials_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -536,11 +592,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'returns_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "returns_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -604,11 +660,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'sebo_inventory_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "sebo_inventory_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -651,11 +707,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'shipping_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "shipping_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -719,11 +775,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'steam_control_records_factory_id_fkey'
-            columns: ['factory_id']
+            foreignKeyName: "steam_control_records_factory_id_fkey"
+            columns: ["factory_id"]
             isOneToOne: false
-            referencedRelation: 'factories'
-            referencedColumns: ['id']
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -743,33 +799,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] &
-        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -778,23 +834,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -803,23 +859,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -828,36 +884,36 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
@@ -865,6 +921,7 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains constraints, RLS policies, functions, triggers,
@@ -874,6 +931,11 @@ export const Constants = {
 // Table: acidity_records
 //   FOREIGN KEY acidity_records_factory_id_fkey: FOREIGN KEY (factory_id) REFERENCES factories(id)
 //   PRIMARY KEY acidity_records_pkey: PRIMARY KEY (id)
+// Table: boiler_control_records
+//   UNIQUE boiler_control_records_date_factory_id_key: UNIQUE (date, factory_id)
+//   FOREIGN KEY boiler_control_records_factory_id_fkey: FOREIGN KEY (factory_id) REFERENCES factories(id) ON DELETE CASCADE
+//   PRIMARY KEY boiler_control_records_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY boiler_control_records_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id)
 // Table: cooking_time_records
 //   FOREIGN KEY cooking_time_records_factory_id_fkey: FOREIGN KEY (factory_id) REFERENCES factories(id)
 //   PRIMARY KEY cooking_time_records_pkey: PRIMARY KEY (id)
@@ -936,6 +998,10 @@ export const Constants = {
 //   Policy "Users can manage their own acidity records" (ALL, PERMISSIVE) roles={public}
 //     USING: (auth.uid() = user_id)
 //     WITH CHECK: (auth.uid() = user_id)
+// Table: boiler_control_records
+//   Policy "Enable all for authenticated users on boiler control" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: cooking_time_records
 //   Policy "Enable all for authenticated users based on factory access" (ALL, PERMISSIVE) roles={public}
 //     USING: (auth.role() = 'authenticated'::text)
@@ -1110,21 +1176,21 @@ export const Constants = {
 //       IF mp <= 0 THEN
 //           RETURN NEW;
 //       END IF;
-//
+//   
 //       -- Calculate Yields
 //       sebo_yield := (COALESCE(NEW.sebo_produced, 0) / mp) * 100;
 //       fco_yield := (COALESCE(NEW.fco_produced, 0) / mp) * 100;
 //       farinheta_yield := (COALESCE(NEW.farinheta_produced, 0) / mp) * 100;
 //       total_yield := ((COALESCE(NEW.sebo_produced, 0) + COALESCE(NEW.fco_produced, 0) + COALESCE(NEW.farinheta_produced, 0)) / mp) * 100;
-//
+//   
 //       -- Get Notification Settings for the User
 //       SELECT * INTO settings FROM notification_settings WHERE user_id = NEW.user_id LIMIT 1;
-//
+//   
 //       -- If no settings or everything disabled, exit
 //       IF NOT FOUND THEN
 //           RETURN NEW;
 //       END IF;
-//
+//   
 //       -- Check Thresholds (Only if threshold is set > 0)
 //       IF (settings.sebo_threshold > 0 AND sebo_yield < settings.sebo_threshold) OR
 //          (settings.fco_threshold > 0 AND fco_yield < settings.fco_threshold) OR
@@ -1132,7 +1198,7 @@ export const Constants = {
 //          (settings.yield_threshold > 0 AND total_yield < settings.yield_threshold) THEN
 //           violation_found := TRUE;
 //       END IF;
-//
+//   
 //       -- If violation found, trigger Edge Function via pg_net
 //       IF violation_found THEN
 //           payload := jsonb_build_object(
@@ -1140,7 +1206,7 @@ export const Constants = {
 //               'user_id', NEW.user_id,
 //               'source', 'database_trigger'
 //           );
-//
+//   
 //           -- Perform HTTP POST to the Edge Function
 //           -- Note: The URL is specific to this project context
 //           PERFORM net.http_post(
@@ -1149,11 +1215,11 @@ export const Constants = {
 //               headers := '{"Content-Type": "application/json"}'::jsonb
 //           );
 //       END IF;
-//
+//   
 //       RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 
 // --- TRIGGERS ---
 // Table: production
@@ -1162,6 +1228,8 @@ export const Constants = {
 // --- INDEXES ---
 // Table: acidity_records
 //   CREATE INDEX idx_acidity_records_factory_id ON public.acidity_records USING btree (factory_id)
+// Table: boiler_control_records
+//   CREATE UNIQUE INDEX boiler_control_records_date_factory_id_key ON public.boiler_control_records USING btree (date, factory_id)
 // Table: cooking_time_records
 //   CREATE INDEX idx_cooking_time_date_factory ON public.cooking_time_records USING btree (date, factory_id)
 // Table: daily_production_forecasts
@@ -1184,3 +1252,4 @@ export const Constants = {
 //   CREATE INDEX idx_shipping_factory_id ON public.shipping USING btree (factory_id)
 // Table: steam_control_records
 //   CREATE UNIQUE INDEX steam_control_records_date_factory_id_key ON public.steam_control_records USING btree (date, factory_id)
+
