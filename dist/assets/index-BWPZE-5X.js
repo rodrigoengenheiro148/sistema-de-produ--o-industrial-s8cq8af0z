@@ -64997,7 +64997,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 				iconColor: "text-emerald-600",
 				borderColor: "border-l-emerald-600"
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(MetricCard, {
+			!isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(MetricCard, {
 				title: `Tempo de Processos`,
 				value: metrics.processTimeCurrentDisplay,
 				icon: Clock,
@@ -93056,8 +93056,9 @@ function AppSidebar() {
 	const { factories, currentFactoryId } = useData();
 	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("farinorte");
 	const dynamicManagementItems = (0, import_react.useMemo)(() => {
-		const items = [...managementItems];
+		let items = [...managementItems];
 		if (isFarinorte) {
+			items = items.filter((item) => item.title !== "Tempos de Processo");
 			items.push({
 				title: "Controle Caldeira",
 				url: "/gestao/controle-caldeira",
@@ -93488,4 +93489,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-C-slXODs.js.map
+//# sourceMappingURL=index-BWPZE-5X.js.map

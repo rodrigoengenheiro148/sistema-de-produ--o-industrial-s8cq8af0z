@@ -407,69 +407,71 @@ export function OverviewCards({
       />
 
       {/* 12. Tempo de Processos & Estimativa */}
-      <MetricCard
-        title={`Tempo de Processos`}
-        value={metrics.processTimeCurrentDisplay}
-        icon={Clock}
-        iconColor="text-blue-500"
-        borderColor="border-l-blue-500"
-      >
-        <div className="flex flex-col gap-1 mt-2 mb-3">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Scale className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Quantidade Estimada
+      {!isFarinorte && (
+        <MetricCard
+          title={`Tempo de Processos`}
+          value={metrics.processTimeCurrentDisplay}
+          icon={Clock}
+          iconColor="text-blue-500"
+          borderColor="border-l-blue-500"
+        >
+          <div className="flex flex-col gap-1 mt-2 mb-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Scale className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Quantidade Estimada
+              </span>
+            </div>
+            <span className="text-lg font-bold text-foreground">
+              {formatNumber(metrics.estimatedQuantityKg, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                kg
+              </span>
             </span>
           </div>
-          <span className="text-lg font-bold text-foreground">
-            {formatNumber(metrics.estimatedQuantityKg, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{' '}
-            <span className="text-sm font-normal text-muted-foreground">
-              kg
-            </span>
-          </span>
-        </div>
 
-        <div className="pt-3 border-t border-border/50">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" />
-                Ref: {metrics.targetDateFormatted}
-              </span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-lg font-bold">
-                  {formatNumber(metrics.efficiencyTonPerHour, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{' '}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    t/h
+          <div className="pt-3 border-t border-border/50">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-muted-foreground font-semibold flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" />
+                  Ref: {metrics.targetDateFormatted}
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Gauge className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-lg font-bold">
+                    {formatNumber(metrics.efficiencyTonPerHour, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      t/h
+                    </span>
                   </span>
-                </span>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-                Meta
-              </span>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">
-                  {formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })}
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] uppercase text-muted-foreground font-semibold">
+                  Meta
                 </span>
-                {metrics.efficiencyTonPerHour >= TARGET_RATE ? (
-                  <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4 text-red-500" />
-                )}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    {formatNumber(TARGET_RATE, { minimumFractionDigits: 3 })}
+                  </span>
+                  {metrics.efficiencyTonPerHour >= TARGET_RATE ? (
+                    <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <ArrowDownRight className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </MetricCard>
+        </MetricCard>
+      )}
 
       {/* 4. Faturamento */}
       <MetricCard

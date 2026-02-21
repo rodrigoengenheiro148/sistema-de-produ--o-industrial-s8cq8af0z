@@ -132,8 +132,9 @@ export function AppSidebar() {
   const isFarinorte = currentFactory?.name.toLowerCase().includes('farinorte')
 
   const dynamicManagementItems = useMemo(() => {
-    const items = [...managementItems]
+    let items = [...managementItems]
     if (isFarinorte) {
+      items = items.filter((item) => item.title !== 'Tempos de Processo')
       items.push({
         title: 'Controle Caldeira',
         url: '/gestao/controle-caldeira',
