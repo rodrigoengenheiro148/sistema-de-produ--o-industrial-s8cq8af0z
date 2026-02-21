@@ -53,14 +53,11 @@ export function ProductionPerformanceChart({
 }: ProductionPerformanceChartProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
-  // Check for 'Farinorte' factory
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const { chartData, chartConfig } = useMemo(() => {
-    // Filter out blood records for strict industrial performance view
     const industrialData = data.filter((p) => !isBloodRecord(p))
 
     const calculateProd = (p: ProductionEntry) => {
@@ -106,7 +103,6 @@ export function ProductionPerformanceChart({
         a.dateKey.localeCompare(b.dateKey),
       )
     } else {
-      // Daily
       processedData = industrialData
         .map((p) => ({
           date: format(p.date, 'dd/MM'),
@@ -123,11 +119,11 @@ export function ProductionPerformanceChart({
         label: isFarinorte
           ? 'Produção (Sebo + FCO)'
           : 'Produção Total (Industrial)',
-        color: '#166534', // Dark Green (emerald-800)
+        color: '#166534',
       },
       mp: {
         label: 'MP Processada',
-        color: '#f59e0b', // Amber/Yellow (amber-500)
+        color: '#f59e0b',
       },
     }
 
@@ -145,7 +141,7 @@ export function ProductionPerformanceChart({
     return (
       <Card className={`shadow-sm border-primary/10 ${className}`}>
         <CardHeader>
-          <CardTitle>Desempenho de Produção</CardTitle>
+          <CardTitle>Análise de Produção</CardTitle>
           <CardDescription>
             Comparativo diário de processamento industrial
           </CardDescription>
@@ -256,7 +252,7 @@ export function ProductionPerformanceChart({
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Desempenho de Produção
+            Análise de Produção
           </CardTitle>
           <CardDescription>
             Comparativo diário de processamento industrial (exclui sangue)
@@ -271,7 +267,7 @@ export function ProductionPerformanceChart({
           </DialogTrigger>
           <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>Desempenho de Produção Industrial</DialogTitle>
+              <DialogTitle>Análise de Produção Industrial</DialogTitle>
               <DialogDescription>
                 Visualização detalhada do processamento de MP e produção total
                 (excluindo linha de sangue).

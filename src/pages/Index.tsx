@@ -31,6 +31,7 @@ import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
 import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
+import { SteamCostChart } from '@/components/dashboard/SteamCostChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -46,6 +47,7 @@ export default function Dashboard() {
     qualityRecords,
     acidityRecords,
     returns,
+    steamControlRecords,
     dateRange,
     setDateRange,
     factories,
@@ -57,14 +59,11 @@ export default function Dashboard() {
   const isMobile = useIsMobile()
 
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
 
-  // Check for 'Farinorte' factory
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
-  // Track current day to auto-update context when day changes
   const [today, setToday] = useState(new Date())
   useEffect(() => {
     const timer = setInterval(() => {
@@ -72,11 +71,10 @@ export default function Dashboard() {
       if (now.getDate() !== today.getDate()) {
         setToday(now)
       }
-    }, 60000) // Check every minute
+    }, 60000)
     return () => clearInterval(timer)
   }, [today])
 
-  // Determine effective date for forecast (and now for D-1 efficiency context)
   const effectiveForecastDate = useMemo(() => {
     if (dateRange.from && dateRange.to) {
       if (
@@ -89,7 +87,6 @@ export default function Dashboard() {
     return dateRange.to || today
   }, [dateRange, today])
 
-  // Filter data based on date range (Inclusive)
   const filterByDate = (date: Date) => {
     if (!isValid(date)) return false
     if (!dateRange.from || !dateRange.to) return true
@@ -99,7 +96,6 @@ export default function Dashboard() {
     })
   }
 
-  // Memoize filtered data to prevent unnecessary re-renders
   const {
     filteredProduction,
     filteredRawMaterials,
@@ -109,9 +105,9 @@ export default function Dashboard() {
     filteredQuality,
     filteredAcidity,
     filteredReturns,
+    filteredSteamControl,
     uniqueClients,
   } = useMemo(() => {
-    // Extract unique clients from ALL shipping data
     const clients = new Set<string>()
     shipping.forEach((s) => {
       if (s.client) clients.add(s.client)
@@ -137,6 +133,9 @@ export default function Dashboard() {
       filteredReturns: returns
         .filter((r) => filterByDate(r.date))
         .sort((a, b) => a.date.getTime() - b.date.getTime()),
+      filteredSteamControl: steamControlRecords
+        .filter((s) => filterByDate(s.date))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
       uniqueClients: uniqueClientsList,
     }
   }, [
@@ -148,10 +147,10 @@ export default function Dashboard() {
     qualityRecords,
     acidityRecords,
     returns,
+    steamControlRecords,
     dateRange,
   ])
 
-  // Quality KPIs (Averages)
   const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
   const avgFarinhaAcidity =
     farinhaQuality.length > 0
@@ -178,9 +177,7 @@ export default function Dashboard() {
         farinhetaQuality.length
       : 0
 
-  // Calculate Yield for Gauge (Industrial Only)
   const { currentYield, yieldTarget } = useMemo(() => {
-    // Filter out blood records
     const industrialRecords = filteredProduction.filter(
       (p) => !isBloodRecord(p),
     )
@@ -190,13 +187,12 @@ export default function Dashboard() {
       0,
     )
 
-    // Sum all industrial production components
     const totalProduced = industrialRecords.reduce(
       (acc, curr) =>
         acc +
         curr.seboProduced +
         curr.fcoProduced +
-        (isFarinorte ? 0 : curr.farinhetaProduced) + // Exclude Farinheta for Farinorte
+        (isFarinorte ? 0 : curr.farinhetaProduced) +
         (curr.viscerasMealProduced || 0) +
         (curr.featherMealProduced || 0) +
         (curr.viscerasOilProduced || 0),
@@ -209,11 +205,9 @@ export default function Dashboard() {
     return { currentYield: yieldVal, yieldTarget: target }
   }, [filteredProduction, notificationSettings, isFarinorte])
 
-  // Input state for manual date entry
   const [dateInput, setDateInput] = useState('')
   const [inputError, setInputError] = useState(false)
 
-  // Sync input with dateRange.from on mount or when context updates
   useEffect(() => {
     if (dateRange?.from && dateRange?.to) {
       if (isSameDay(dateRange.from, dateRange.to)) {
@@ -230,9 +224,7 @@ export default function Dashboard() {
     const val = e.target.value
     setDateInput(val)
 
-    // Regex for "DD/MM/YYYY"
     const singleDateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/
-    // Regex for "DD/MM/YYYY até DD/MM/YYYY"
     const rangeDateRegex =
       /^(\d{2})\/(\d{2})\/(\d{4})\s+(até|ate|ATE|ATÉ)\s+(\d{2})\/(\d{2})\/(\d{4})$/i
 
@@ -289,7 +281,6 @@ export default function Dashboard() {
 
   return (
     <div id="dashboard-content" className="space-y-6">
-      {/* Network Error Banner */}
       {connectionStatus === 'error' && (
         <Alert
           variant="destructive"
@@ -385,63 +376,7 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {!isMarReciclagem && !isFarinorte && (
-            <LoadForecast referenceDate={effectiveForecastDate} />
-          )}
-
-          {isMarReciclagem && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <MarReciclagemInventoryChart
-                production={filteredProduction}
-                shipping={filteredShipping}
-                inventoryRecords={latestInventory}
-              />
-              <YieldGaugeChart
-                value={currentYield}
-                target={yieldTarget}
-                className="h-full"
-              />
-            </div>
-          )}
-
-          {!isMarReciclagem && (
-            <div className="grid gap-4 md:grid-cols-3">
-              <YieldGaugeChart
-                value={currentYield}
-                target={yieldTarget}
-                className="h-full"
-              />
-              <div className="md:col-span-2">
-                <ProductionPerformanceChart
-                  data={filteredProduction}
-                  isMobile={isMobile}
-                  timeScale="daily"
-                  className="h-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {isMarReciclagem && (
-            <ProductionPerformanceChart
-              data={filteredProduction}
-              isMobile={isMobile}
-              timeScale="daily"
-            />
-          )}
-
-          <RawMaterialCompositionChart
-            data={filteredRawMaterials}
-            isMobile={isMobile}
-          />
-
-          <LossAnalysisChart
-            data={filteredProduction}
-            isMobile={isMobile}
-            timeScale="daily"
-          />
-
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             <RevenueChart
               data={filteredShipping}
               productionData={filteredProduction}
@@ -453,7 +388,76 @@ export default function Dashboard() {
               timeScale="daily"
               allClients={uniqueClients}
             />
-            <div className="grid gap-4 content-start">
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold tracking-tight mt-8">
+              Análise de Produção
+            </h3>
+
+            {!isMarReciclagem && !isFarinorte && (
+              <LoadForecast referenceDate={effectiveForecastDate} />
+            )}
+
+            {isMarReciclagem && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <MarReciclagemInventoryChart
+                  production={filteredProduction}
+                  shipping={filteredShipping}
+                  inventoryRecords={latestInventory}
+                />
+                <YieldGaugeChart
+                  value={currentYield}
+                  target={yieldTarget}
+                  className="h-full"
+                />
+              </div>
+            )}
+
+            {!isMarReciclagem && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <YieldGaugeChart
+                  value={currentYield}
+                  target={yieldTarget}
+                  className="h-full"
+                />
+                <div className="md:col-span-2 flex flex-col gap-4">
+                  <ProductionPerformanceChart
+                    data={filteredProduction}
+                    isMobile={isMobile}
+                    timeScale="daily"
+                    className="flex-1"
+                  />
+                  <SteamCostChart data={filteredSteamControl} />
+                </div>
+              </div>
+            )}
+
+            {isMarReciclagem && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <ProductionPerformanceChart
+                  data={filteredProduction}
+                  isMobile={isMobile}
+                  timeScale="daily"
+                />
+                <SteamCostChart data={filteredSteamControl} />
+              </div>
+            )}
+
+            {isMarReciclagem && (
+              <LossAnalysisChart
+                data={filteredProduction}
+                isMobile={isMobile}
+                timeScale="daily"
+              />
+            )}
+
+            <RawMaterialCompositionChart
+              data={filteredRawMaterials}
+              isMobile={isMobile}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
               <ReturnsImpactChart data={filteredReturns} />
             </div>
           </div>

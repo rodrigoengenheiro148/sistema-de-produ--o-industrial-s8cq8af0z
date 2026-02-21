@@ -69,25 +69,27 @@ export function OverviewCards({
 }: OverviewCardsProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  // Check for 'Mar Reciclagem' or 'Mar' as per requirements
   const isMarReciclagem =
     currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
-  // Check for 'Farinorte' as per requirements
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const metrics = useMemo(() => {
-    // Helper to normalize quantity to kg
     const normalizeToKg = (quantity: number, unit?: string) => {
       const u = unit?.toLowerCase() || ''
       if (u.includes('bag')) return quantity * 1400
       if (u.includes('ton')) return quantity * 1000
-      return quantity // assuming kg if not specified
+      return quantity
     }
 
-    // 1. Entrada MP (Excluding Sangue)
-    const rawMaterialInputKg = rawMaterials
-      .filter((r) => r.type?.toLowerCase() !== 'sangue')
-      .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+    // 1. Entrada MP (Excluding Sangue) -> Now based on Production table (mp_used) for current day
+    const targetDate = referenceDate || new Date()
+    const todayProduction = fullProductionHistory.filter(
+      (p) => p.date && isValid(p.date) && isSameDay(p.date, targetDate),
+    )
+    const rawMaterialInputKg = todayProduction.reduce(
+      (acc, curr) => acc + curr.mpUsed,
+      0,
+    )
 
     // 2. Produção (Total including Blood Meal)
     const seboProduced = production.reduce(
@@ -102,7 +104,6 @@ export function OverviewCards({
       (acc, curr) => acc + curr.farinhetaProduced,
       0,
     )
-    // Prioritize calculation from bags if available (1400kg constant)
     const bloodMealProduced = production.reduce(
       (acc, curr) =>
         acc +
@@ -112,7 +113,6 @@ export function OverviewCards({
       0,
     )
 
-    // Additional products for Mar Reciclagem
     const viscerasMealProduced = production.reduce(
       (acc, curr) => acc + (curr.viscerasMealProduced || 0),
       0,
@@ -145,14 +145,12 @@ export function OverviewCards({
     const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0)
 
     // 6, 7, 8. Specific Yields (Industrial Only)
-    // Filter out blood records for MP denominator calculation to ensure accurate industrial yield
     const industrialRecords = production.filter((p) => !isBloodRecord(p))
     const mpUsedMainLine = industrialRecords.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
-    // Numerators must come from industrial records
     const seboProducedIndustrial = industrialRecords.reduce(
       (acc, curr) => acc + curr.seboProduced,
       0,
@@ -166,7 +164,6 @@ export function OverviewCards({
       0,
     )
 
-    // Mar Reciclagem Specific Numerators
     const viscerasMealProducedInd = industrialRecords.reduce(
       (acc, curr) => acc + (curr.viscerasMealProduced || 0),
       0,
@@ -180,7 +177,6 @@ export function OverviewCards({
       0,
     )
 
-    // Yield Calculations
     const seboYield =
       mpUsedMainLine > 0 ? (seboProducedIndustrial / mpUsedMainLine) * 100 : 0
     const fcoYield =
@@ -190,8 +186,7 @@ export function OverviewCards({
         ? (farinhetaProducedIndustrial / mpUsedMainLine) * 100
         : 0
 
-    // Specific Yields for Mar Reciclagem
-    const farinhaCarneYield = fcoYield // Using FCO logic
+    const farinhaCarneYield = fcoYield
     const farinhaViscerasYield =
       mpUsedMainLine > 0 ? (viscerasMealProducedInd / mpUsedMainLine) * 100 : 0
     const farinhaPenasYield =
@@ -208,12 +203,8 @@ export function OverviewCards({
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
     // 12. Tempo de Processos & Efficiency (D-1 Logic)
-    // Target Date (D)
-    const targetDate = referenceDate || new Date()
-    // Previous Date (D-1)
     const previousDate = subDays(targetDate, 1)
 
-    // Filter Production for D-1
     const prevDayProduction = fullProductionHistory.filter(
       (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDate),
     )
@@ -229,12 +220,10 @@ export function OverviewCards({
       0,
     )
 
-    // Filter Cooking Time for D-1
     const prevDayCooking = fullCookingTimeRecords.filter(
       (c) => c.date && isValid(c.date) && isSameDay(c.date, previousDate),
     )
 
-    // Calculate total hours for D-1
     let totalHoursD1 = 0
     let totalMinutesD1 = 0
 
@@ -332,7 +321,6 @@ export function OverviewCards({
     referenceDate,
   ])
 
-  // Logic for Conditional Styling
   const getYieldStyle = (current: number, threshold: number = 0) => {
     const isBelow = current < threshold
 
@@ -353,7 +341,6 @@ export function OverviewCards({
     }
   }
 
-  // Calculate styles for each product
   const seboStyle = getYieldStyle(
     metrics.seboYield,
     notificationSettings?.seboThreshold || 0,
@@ -423,7 +410,7 @@ export function OverviewCards({
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {/* 1. Entrada MP */}
       <MetricCard
-        title="Entrada MP"
+        title="Entrada MP (Produção)"
         value={formatNumberDisplay(metrics.rawMaterialInputKg, 'kg')}
         icon={Package}
         iconColor="text-orange-500"
@@ -589,7 +576,6 @@ export function OverviewCards({
         </>
       ) : (
         <>
-          {/* 6. Rendimento Sebo - Styled dynamically */}
           <MetricCard
             title="Rendimento Sebo"
             value={formatPercent(metrics.seboYield)}
@@ -600,7 +586,6 @@ export function OverviewCards({
             className={seboStyle.bgClass}
           />
 
-          {/* 7. Rendimento FCO - Styled dynamically */}
           <MetricCard
             title="Rendimento FCO"
             value={formatPercent(metrics.fcoYield)}
@@ -611,8 +596,6 @@ export function OverviewCards({
             className={fcoStyle.bgClass}
           />
 
-          {/* 8. Rendimento Farinheta - Styled dynamically */}
-          {/* Hidden for Farinorte */}
           {!isFarinorte && (
             <MetricCard
               title="Rendimento Farinheta"
@@ -627,10 +610,8 @@ export function OverviewCards({
         </>
       )}
 
-      {/* Blood metrics - Hidden for Mar Reciclagem AND Farinorte */}
       {!isMarReciclagem && !isFarinorte && (
         <>
-          {/* 9. Total de entrada de sangue */}
           <MetricCard
             title="Total de entrada de sangue"
             value={formatNumberDisplay(metrics.bloodInputKg, 'kg')}
@@ -639,7 +620,6 @@ export function OverviewCards({
             borderColor="border-l-red-600"
           />
 
-          {/* 10. Total farinha de sangue */}
           <MetricCard
             title="Total farinha de sangue"
             value={formatNumberDisplay(metrics.bloodMealProduced, 'kg')}
@@ -648,7 +628,6 @@ export function OverviewCards({
             borderColor="border-l-red-600"
           />
 
-          {/* 11. Rendimento sangue */}
           <MetricCard
             title="Rendimento sangue"
             value={formatPercent(metrics.bloodYield)}

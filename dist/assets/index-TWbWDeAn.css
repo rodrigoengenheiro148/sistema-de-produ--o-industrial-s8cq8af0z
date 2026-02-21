@@ -823,6 +823,9 @@ section[aria-label='Notifications alt+T'] {
 .mt-6{
   margin-top: 1.5rem;
 }
+.mt-8{
+  margin-top: 2rem;
+}
 .mt-auto{
   margin-top: auto;
 }
@@ -1405,9 +1408,6 @@ section[aria-label='Notifications alt+T'] {
 }
 .flex-wrap{
   flex-wrap: wrap;
-}
-.content-start{
-  align-content: flex-start;
 }
 .items-start{
   align-items: flex-start;
@@ -2119,9 +2119,6 @@ section[aria-label='Notifications alt+T'] {
 }
 .fill-foreground{
   fill: hsl(var(--foreground));
-}
-.fill-white{
-  fill: #fff;
 }
 .object-contain{
   -o-object-fit: contain;

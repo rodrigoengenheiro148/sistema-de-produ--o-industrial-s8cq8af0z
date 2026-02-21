@@ -17,14 +17,13 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import {
-  Bar,
+  Area,
   Line,
   ComposedChart,
   CartesianGrid,
   XAxis,
   YAxis,
   ReferenceLine,
-  LabelList,
 } from 'recharts'
 import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -118,7 +117,6 @@ export function RevenueChart({
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
-  // Calculate default filters based on factory
   const effectiveDefaultFilters = useMemo(() => {
     if (isFarinorte) {
       return ['Sebo', 'FCO', 'Farinha Especial']
@@ -129,19 +127,16 @@ export function RevenueChart({
   const [groupBy, setGroupBy] = useState<'product' | 'client'>('product')
   const [clientSearchTerm, setClientSearchTerm] = useState('')
 
-  // Local state for material filter if not controlled
   const [localFilter, setLocalFilter] = useState<string[]>(
     effectiveDefaultFilters,
   )
 
-  // Reset local filters if factory changes
   useEffect(() => {
     setLocalFilter(effectiveDefaultFilters)
   }, [effectiveDefaultFilters])
 
   const currentFilter = onFilterChange ? activeFilter || [] : localFilter
 
-  // Local state for client filter if not controlled
   const [localClientFilter, setLocalClientFilter] = useState<string[]>([])
   const currentClientFilter = onClientFilterChange
     ? clientFilter || []
@@ -204,10 +199,6 @@ export function RevenueChart({
     totalForecast,
     calculatedForecastTotal,
   } = useMemo(() => {
-    // 0. Calculate Global Historical Averages (for Future Projection)
-    // -------------------------------------------------------------
-
-    // Avg MP (Last 30 days)
     const today = new Date()
     const thirtyDaysAgo = subDays(today, 30)
     const recentRawMaterials = allRawMaterials.filter(
@@ -219,13 +210,11 @@ export function RevenueChart({
     )
     const globalAvgMp = recentRawMaterials.length > 0 ? totalRecentMp / 30 : 0
 
-    // Avg Yields (Historical - All Time)
     let globalTotalMp = 0
     let globalSebo = 0
     let globalFco = 0
     let globalFarinheta = 0
 
-    // Filter global production data to exclude blood records for yield accuracy
     allProductionData.forEach((p) => {
       if (!isBloodRecord(p)) {
         globalTotalMp += p.mpUsed
@@ -245,7 +234,6 @@ export function RevenueChart({
       'Farinha Especial': 0.1,
     }
 
-    // Avg Prices (Last 10 records per product)
     const productsToCheck = ['Sebo', 'FCO', 'Farinha Especial']
     if (!isFarinorte) {
       productsToCheck.push('Farinheta')
@@ -267,13 +255,10 @@ export function RevenueChart({
       }
     })
 
-    // 1. Calculate Local Averages
-    // --------------------------------------------------------------------
     const prices: Record<string, number> = {}
     const counts: Record<string, number> = {}
 
     data.forEach((s) => {
-      // Exclude excluded products for Farinorte
       if (
         isFarinorte &&
         (s.product === 'Farinheta' || s.product === 'Farinha de Sangue')
@@ -294,7 +279,6 @@ export function RevenueChart({
       avgPrices[p] = counts[p] > 0 ? prices[p] / counts[p] : 0
     })
 
-    // Local Yields - Filter out blood records
     let totalMp = 0
     let totalSebo = 0
     let totalFco = 0
@@ -324,17 +308,14 @@ export function RevenueChart({
     let globalTotal = 0
     let globalForecast = 0
 
-    // 3. Process Shipping Data (Realized Revenue)
     data.forEach((s) => {
       if (!s.date) return
-      // Exclude excluded products for Farinorte
       if (
         isFarinorte &&
         (s.product === 'Farinheta' || s.product === 'Farinha de Sangue')
       )
         return
       if (!currentFilter.includes(s.product)) return
-      // Apply Client Filter
       if (
         currentClientFilter.length > 0 &&
         !currentClientFilter.includes(s.client)
@@ -378,8 +359,6 @@ export function RevenueChart({
       entry.totalRevenue += revenue
     })
 
-    // 4. Process Raw Materials for Forecast
-    // Forecast is generally NOT filtered by client because it represents production potential
     const rawMaterialDates = new Set<string>()
     rawMaterials.forEach((r) => {
       if (!r.date) return
@@ -444,7 +423,6 @@ export function RevenueChart({
       globalForecast += dailyForecast
     })
 
-    // 5. EXTENSION: 7-Day Forecast based on Global Averages
     if (timeScale === 'daily') {
       const forecastStart = new Date()
 
@@ -501,7 +479,6 @@ export function RevenueChart({
       a.dateKey.localeCompare(b.dateKey),
     )
 
-    // Calculate Average on Realized Revenue Days (excluding projections if 0 revenue)
     const revenueDays = processedData.filter((d) => d.totalRevenue > 0)
     const avg =
       revenueDays.length > 0 ? globalTotal / revenueDays.length : globalTotal
@@ -566,19 +543,13 @@ export function RevenueChart({
     isFarinorte,
   ])
 
-  const formatCompact = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      notation: 'compact',
-      compactDisplay: 'short',
-      style: 'currency',
-      currency: 'BRL',
-      maximumFractionDigits: 1,
-    }).format(value)
-
   const displayTotalForecast = forecastMetrics?.total ?? calculatedForecastTotal
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
-    <ChartContainer config={chartConfig} className={cn('w-full', height)}>
+    <ChartContainer
+      config={chartConfig}
+      className={cn('w-full aspect-auto', height)}
+    >
       <ComposedChart
         data={chartData}
         margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
@@ -640,29 +611,16 @@ export function RevenueChart({
         <ChartLegend content={<ChartLegendContent />} />
 
         {keys.map((key) => (
-          <Bar
+          <Area
             key={key}
+            type="monotone"
             dataKey={key}
             stackId="a"
             fill={`var(--color-${key})`}
-            radius={[0, 0, 0, 0]}
-            maxBarSize={60}
-          >
-            <LabelList
-              dataKey={key}
-              position="inside"
-              className="fill-white font-bold"
-              style={{
-                textShadow: '0px 1px 2px rgba(0,0,0,0.6)',
-                pointerEvents: 'none',
-              }}
-              fontSize={isMobile ? 9 : 10}
-              formatter={(value: number) => {
-                if (value === 0) return ''
-                return formatCompact(value)
-              }}
-            />
-          </Bar>
+            stroke={`var(--color-${key})`}
+            fillOpacity={0.6}
+            strokeWidth={2}
+          />
         ))}
 
         <Line
@@ -699,7 +657,7 @@ export function RevenueChart({
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              Receita {timeScale === 'monthly' ? 'Mensal' : 'Diária'}
+              Receita Diária
             </CardTitle>
             <CardDescription>
               Realizado (Expedição) vs Projetado (Produção + Médias)
@@ -854,10 +812,7 @@ export function RevenueChart({
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] h-[85vh] flex flex-col">
                 <DialogHeader>
-                  <DialogTitle>
-                    Detalhamento de Receita{' '}
-                    {timeScale === 'monthly' ? 'Mensal' : 'Diária'}
-                  </DialogTitle>
+                  <DialogTitle>Detalhamento de Receita Diária</DialogTitle>
                   <DialogDescription>
                     Visualização expandida do faturamento com projeção de 7
                     dias.
