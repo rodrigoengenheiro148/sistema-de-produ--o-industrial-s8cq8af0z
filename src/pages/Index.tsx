@@ -30,6 +30,7 @@ import { RawMaterialCompositionChart } from '@/components/dashboard/RawMaterialC
 import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
+import { LossAnalysisChart } from '@/components/dashboard/LossAnalysisChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -432,6 +433,12 @@ export default function Dashboard() {
           <RawMaterialCompositionChart
             data={filteredRawMaterials}
             isMobile={isMobile}
+          />
+
+          <LossAnalysisChart
+            data={filteredProduction}
+            isMobile={isMobile}
+            timeScale="daily"
           />
 
           <div className="grid gap-4 md:grid-cols-2">

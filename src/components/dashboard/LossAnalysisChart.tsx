@@ -88,7 +88,7 @@ export function LossAnalysisChart({
     }
 
     const config: ChartConfig = {
-      perdas: { label: 'Perdas', color: 'hsl(var(--destructive))' },
+      perdas: { label: 'Perdas (kg)', color: 'hsl(var(--destructive))' },
     }
 
     return { chartData: processedData, chartConfig: config }
@@ -140,16 +140,22 @@ export function LossAnalysisChart({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={(value) =>
-                formatNumber(Number(value), {
+              formatter={(value, name) => [
+                `${formatNumber(Number(value), {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 2,
-                })
-              }
+                })} kg`,
+                name,
+              ]}
             />
           }
         />
-        <Bar dataKey="perdas" fill="var(--color-perdas)" radius={[4, 4, 0, 0]}>
+        <Bar
+          dataKey="perdas"
+          fill="var(--color-perdas)"
+          radius={[4, 4, 0, 0]}
+          name="Perdas (kg)"
+        >
           <LabelList
             dataKey="percentage"
             position="top"
@@ -191,7 +197,8 @@ export function LossAnalysisChart({
                 {timeScale === 'monthly' ? 'Mensal' : 'Diário'})
               </DialogTitle>
               <DialogDescription>
-                Visualização detalhada das perdas com percentual.
+                Visualização detalhada das perdas em kg com percentual de
+                quebra.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
@@ -204,7 +211,7 @@ export function LossAnalysisChart({
         {chartData.length > 0 ? (
           <ChartContent />
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md bg-muted/10">
             Nenhuma perda registrada no período.
           </div>
         )}
