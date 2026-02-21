@@ -19542,6 +19542,10 @@ var Fish = createLucideIcon("fish", [
 		key: "1zlm23"
 	}]
 ]);
+var Flame = createLucideIcon("flame", [["path", {
+	d: "M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4",
+	key: "1slcih"
+}]]);
 var FlaskConical = createLucideIcon("flask-conical", [
 	["path", {
 		d: "M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2",
@@ -36331,6 +36335,7 @@ const DataProvider = ({ children }) => {
 	const [cookingTimeRecords, setCookingTimeRecords] = (0, import_react.useState)([]);
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
 	const [steamControlRecords, setSteamControlRecords] = (0, import_react.useState)([]);
+	const [boilerControlRecords, setBoilerControlRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [returns, setReturns] = (0, import_react.useState)([]);
 	const [latestInventory, setLatestInventory] = (0, import_react.useState)([]);
@@ -36429,6 +36434,7 @@ const DataProvider = ({ children }) => {
 			setCookingTimeRecords([]);
 			setDowntimeRecords([]);
 			setSteamControlRecords([]);
+			setBoilerControlRecords([]);
 			setDailyForecasts([]);
 			setReturns([]);
 			setLatestInventory([]);
@@ -36444,7 +36450,7 @@ const DataProvider = ({ children }) => {
 					if (toDateStr) q = q.lte("date", toDateStr);
 					return q.order("date", { ascending: false });
 				};
-				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, inventoryData] = await Promise.all([
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, { data: boiler }, inventoryData] = await Promise.all([
 					applyFilters(supabase.from("raw_materials").select("*")),
 					applyFilters(supabase.from("production").select("*")),
 					applyFilters(supabase.from("shipping").select("*")),
@@ -36455,6 +36461,7 @@ const DataProvider = ({ children }) => {
 					applyFilters(supabase.from("steam_control_records").select("*")),
 					applyFilters(supabase.from("daily_production_forecasts").select("*")),
 					applyFilters(supabase.from("returns").select("*")),
+					applyFilters(supabase.from("boiler_control_records").select("*")),
 					fetchLatestManualEntries(currentFactoryId, 50)
 				]);
 				if (raw) setRawMaterials(mapData(raw));
@@ -36465,6 +36472,21 @@ const DataProvider = ({ children }) => {
 				if (cooking) setCookingTimeRecords(mapData(cooking));
 				if (downtime) setDowntimeRecords(mapData(downtime));
 				if (steam) setSteamControlRecords(mapData(steam));
+				if (boiler) setBoilerControlRecords(boiler.map((b$1) => ({
+					id: b$1.id,
+					factoryId: b$1.factory_id,
+					userId: b$1.user_id,
+					date: parseAsLocalNoon(b$1.date),
+					cald01Pct: Number(b$1.cald_01_pct || 0),
+					cald01M3: Number(b$1.cald_01_m3 || 0),
+					cald02Pct: Number(b$1.cald_02_pct || 0),
+					cald02M3: Number(b$1.cald_02_m3 || 0),
+					woodEntryPct: Number(b$1.wood_entry_pct || 0),
+					woodEntryM3: Number(b$1.wood_entry_m3 || 0),
+					initialStockPct: Number(b$1.initial_stock_pct || 0),
+					initialStockM3: Number(b$1.initial_stock_m3 || 0),
+					createdAt: b$1.created_at ? new Date(b$1.created_at) : void 0
+				})));
 				if (forecasts) setDailyForecasts(forecasts.map((f) => ({
 					id: f.id,
 					factoryId: f.factory_id,
@@ -36536,6 +36558,7 @@ const DataProvider = ({ children }) => {
 			"cooking_time_records",
 			"downtime_records",
 			"steam_control_records",
+			"boiler_control_records",
 			"daily_production_forecasts",
 			"returns",
 			"sebo_inventory_records"
@@ -36849,6 +36872,41 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("steam_control_records").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
+	const addBoilerControlRecord = async (entry) => {
+		if (!currentFactoryId) return;
+		const { error } = await supabase.from("boiler_control_records").insert({
+			date: entry.date.toISOString(),
+			cald_01_pct: entry.cald01Pct,
+			cald_01_m3: entry.cald01M3,
+			cald_02_pct: entry.cald02Pct,
+			cald_02_m3: entry.cald02M3,
+			wood_entry_pct: entry.woodEntryPct,
+			wood_entry_m3: entry.woodEntryM3,
+			initial_stock_pct: entry.initialStockPct,
+			initial_stock_m3: entry.initialStockM3,
+			user_id: user?.id,
+			factory_id: currentFactoryId
+		});
+		if (!error) fetchOperationalData();
+	};
+	const updateBoilerControlRecord = async (entry) => {
+		const { error } = await supabase.from("boiler_control_records").update({
+			date: entry.date.toISOString(),
+			cald_01_pct: entry.cald01Pct,
+			cald_01_m3: entry.cald01M3,
+			cald_02_pct: entry.cald02Pct,
+			cald_02_m3: entry.cald02M3,
+			wood_entry_pct: entry.woodEntryPct,
+			wood_entry_m3: entry.woodEntryM3,
+			initial_stock_pct: entry.initialStockPct,
+			initial_stock_m3: entry.initialStockM3
+		}).eq("id", entry.id);
+		if (!error) fetchOperationalData();
+	};
+	const deleteBoilerControlRecord = async (id) => {
+		const { error } = await supabase.from("boiler_control_records").delete().eq("id", id);
+		if (!error) fetchOperationalData();
+	};
 	const saveDailyForecast = async (date$4, mpForecast, materialType = "Geral") => {
 		if (!currentFactoryId || !user?.id) return;
 		try {
@@ -37041,6 +37099,7 @@ const DataProvider = ({ children }) => {
 			supabase.from("cooking_time_records").delete().eq("user_id", user.id),
 			supabase.from("downtime_records").delete().eq("user_id", user.id),
 			supabase.from("steam_control_records").delete().eq("user_id", user.id),
+			supabase.from("boiler_control_records").delete().eq("user_id", user.id),
 			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id),
 			supabase.from("returns").delete().eq("user_id", user.id)
 		]);
@@ -37081,6 +37140,10 @@ const DataProvider = ({ children }) => {
 			addSteamControlRecord,
 			updateSteamControlRecord,
 			deleteSteamControlRecord,
+			boilerControlRecords,
+			addBoilerControlRecord,
+			updateBoilerControlRecord,
+			deleteBoilerControlRecord,
 			dailyForecasts,
 			saveDailyForecast,
 			deleteDailyForecast,
@@ -79642,7 +79705,7 @@ var SheetDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 	...props
 }));
 SheetDescription.displayName = Description.displayName;
-var formSchema$9 = object({
+var formSchema$10 = object({
 	date: string().min(1, "Data é obrigatória"),
 	shift: _enum([
 		"Manhã",
@@ -79670,7 +79733,7 @@ function ProductionForm({ initialData, onSuccess }) {
 		return factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("mar reciclagem");
 	}, [factories, currentFactoryId]);
 	const form = useForm({
-		resolver: a(formSchema$9),
+		resolver: a(formSchema$10),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			shift: initialData?.shift || "Manhã",
@@ -80602,7 +80665,7 @@ function Production() {
 		]
 	});
 }
-var formSchema$8 = object({
+var formSchema$9 = object({
 	date: date({ required_error: "A data é obrigatória" }),
 	shift: _enum([
 		"Manhã",
@@ -80621,7 +80684,7 @@ function BloodProductionForm({ initialData, onSuccess, onCancel }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$8),
+		resolver: a(formSchema$9),
 		defaultValues: {
 			date: initialData?.date || /* @__PURE__ */ new Date(),
 			shift: initialData?.shift || "Manhã",
@@ -81659,7 +81722,7 @@ function AcidityChart({ data }) {
 		})]
 	});
 }
-var formSchema$7 = object({
+var formSchema$8 = object({
 	date: string().min(1, "Data é obrigatória"),
 	time: string().min(1, "Hora é obrigatória"),
 	responsible: string().min(2, "Responsável deve ter pelo menos 2 caracteres"),
@@ -81672,7 +81735,7 @@ var formSchema$7 = object({
 });
 function AcidityForm({ initialData, onSubmit, onCancel }) {
 	const form = useForm({
-		resolver: a(formSchema$7),
+		resolver: a(formSchema$8),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			time: initialData?.time || format(/* @__PURE__ */ new Date(), "HH:mm"),
@@ -82250,7 +82313,7 @@ function DailyAcidity() {
 		]
 	});
 }
-var formSchema$6 = object({
+var formSchema$7 = object({
 	date: string().min(1, "Data é obrigatória"),
 	product: _enum(["Farinha", "Farinheta"]),
 	acidity: number().min(0, "Valor deve ser positivo").max(100, "Percentual inválido"),
@@ -82262,7 +82325,7 @@ function QualityForm({ initialData, onSuccess }) {
 	const { addQualityRecord, updateQualityRecord } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$6),
+		resolver: a(formSchema$7),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			product: initialData?.product || "Farinha",
@@ -83497,7 +83560,7 @@ function Inventory() {
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AutoOverview, {})]
 	});
 }
-var formSchema$5 = object({
+var formSchema$6 = object({
 	date: string().min(1, "Data é obrigatória"),
 	client: string().min(2, "Cliente é obrigatório"),
 	product: _enum([
@@ -83520,7 +83583,7 @@ function ShippingForm({ initialData, onSuccess }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const form = useForm({
-		resolver: a(formSchema$5),
+		resolver: a(formSchema$6),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			client: initialData?.client || "",
@@ -84921,7 +84984,7 @@ function CsvExport() {
 		]
 	});
 }
-var formSchema$4 = object({
+var formSchema$5 = object({
 	baseUrl: string().optional(),
 	apiToken: string().optional(),
 	apiDocumentationUrl: string().optional()
@@ -84930,7 +84993,7 @@ function SkipAiConfig() {
 	const { protheusConfig, updateProtheusConfig } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$4),
+		resolver: a(formSchema$5),
 		defaultValues: {
 			baseUrl: protheusConfig.baseUrl,
 			apiToken: protheusConfig.apiToken,
@@ -85836,7 +85899,7 @@ function Settings() {
 		})]
 	});
 }
-var formSchema$3 = object({
+var formSchema$4 = object({
 	name: string().min(2, "Nome deve ter pelo menos 2 caracteres"),
 	location: string().min(2, "Localização é obrigatória"),
 	manager: string().min(2, "Nome do responsável é obrigatório"),
@@ -85846,7 +85909,7 @@ function FactoryForm({ initialData, onSuccess }) {
 	const { addFactory, updateFactory } = useData();
 	const { toast: toast$2 } = useToast();
 	const form = useForm({
-		resolver: a(formSchema$3),
+		resolver: a(formSchema$4),
 		defaultValues: {
 			name: initialData?.name || "",
 			location: initialData?.location || "",
@@ -88659,7 +88722,7 @@ function ProcessExportMenu() {
 		]
 	})] });
 }
-var formSchema$2 = object({
+var formSchema$3 = object({
 	date: string().min(1, "Data é obrigatória"),
 	startTime: string().min(1, "Hora de início é obrigatória"),
 	endTime: string().min(1, "Hora de fim é obrigatória")
@@ -88692,7 +88755,7 @@ function CookingTimeForm() {
 		setPendingAction(null);
 	};
 	const form = useForm({
-		resolver: a(formSchema$2),
+		resolver: a(formSchema$3),
 		defaultValues: {
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			startTime: "",
@@ -89108,7 +89171,7 @@ function ForecastManagement() {
 		})]
 	});
 }
-var formSchema$1 = object({
+var formSchema$2 = object({
 	date: string().min(1, "Data é obrigatória"),
 	soyWaste: number().min(0).optional(),
 	firewood: number().min(0).optional(),
@@ -89131,7 +89194,7 @@ function SteamControlForm({ initialData, onSuccess, onCancel }) {
 	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
 	const isFarinorte = (0, import_react.useMemo)(() => factories.find((f) => f.id === currentFactoryId), [factories, currentFactoryId])?.name.toLowerCase().includes("farinorte") ?? false;
 	const form = useForm({
-		resolver: a(formSchema$1),
+		resolver: a(formSchema$2),
 		defaultValues: {
 			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			soyWaste: initialData?.soyWaste || 0,
@@ -90326,6 +90389,823 @@ function SteamControl() {
 						value: "charts",
 						className: "space-y-4",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControlCharts, {})
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+				isOpen: isPcpGateOpen,
+				onOpenChange: setIsPcpGateOpen,
+				onSuccess: () => {
+					if (pcpPendingAction) pcpPendingAction();
+					setPcpPendingAction(null);
+				}
+			})
+		]
+	});
+}
+var formSchema$1 = object({
+	date: string().min(1, "Data é obrigatória"),
+	cald01Pct: number().min(0).optional(),
+	cald01M3: number().min(0).optional(),
+	cald02Pct: number().min(0).optional(),
+	cald02M3: number().min(0).optional(),
+	woodEntryPct: number().min(0).optional(),
+	woodEntryM3: number().min(0).optional(),
+	initialStockPct: number().min(0).optional(),
+	initialStockM3: number().min(0).optional()
+});
+function BoilerControlForm({ initialData, onSuccess, onCancel }) {
+	const { addBoilerControlRecord, updateBoilerControlRecord, boilerControlRecords } = useData();
+	const { toast: toast$2 } = useToast();
+	const { checkPcpAuth } = usePcp();
+	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
+	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
+	const [isSubmitting, setIsSubmitting] = (0, import_react.useState)(false);
+	const form = useForm({
+		resolver: a(formSchema$1),
+		defaultValues: {
+			date: initialData ? format(initialData.date, "yyyy-MM-dd") : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
+			cald01Pct: initialData?.cald01Pct || 0,
+			cald01M3: initialData?.cald01M3 || 0,
+			cald02Pct: initialData?.cald02Pct || 0,
+			cald02M3: initialData?.cald02M3 || 0,
+			woodEntryPct: initialData?.woodEntryPct || 0,
+			woodEntryM3: initialData?.woodEntryM3 || 0,
+			initialStockPct: initialData?.initialStockPct || 0,
+			initialStockM3: initialData?.initialStockM3 || 0
+		}
+	});
+	(0, import_react.useEffect)(() => {
+		if (!initialData) {
+			const selectedDateStr = form.watch("date");
+			if (selectedDateStr) {
+				const selectedDate = parseAsLocalNoon(selectedDateStr);
+				const pastRecords = boilerControlRecords.filter((r$2) => r$2.date < selectedDate).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime());
+				if (pastRecords.length > 0) {
+					let currentPct = 0;
+					let currentM3 = 0;
+					pastRecords.forEach((r$2) => {
+						const startPct = r$2.initialStockPct > 0 ? r$2.initialStockPct : currentPct;
+						const startM3 = r$2.initialStockM3 > 0 ? r$2.initialStockM3 : currentM3;
+						currentPct = startPct + r$2.woodEntryPct - r$2.cald01Pct - r$2.cald02Pct;
+						currentM3 = startM3 + r$2.woodEntryM3 - r$2.cald01M3 - r$2.cald02M3;
+					});
+					form.setValue("initialStockPct", Number(currentPct.toFixed(2)));
+					form.setValue("initialStockM3", Number(currentM3.toFixed(2)));
+				} else {
+					form.setValue("initialStockPct", 0);
+					form.setValue("initialStockM3", 0);
+				}
+			}
+		}
+	}, [
+		form.watch("date"),
+		boilerControlRecords,
+		initialData,
+		form
+	]);
+	function onSubmit(values) {
+		const submitAction = () => {
+			setIsSubmitting(true);
+			try {
+				const entry = {
+					date: parseAsLocalNoon(values.date),
+					cald01Pct: values.cald01Pct || 0,
+					cald01M3: values.cald01M3 || 0,
+					cald02Pct: values.cald02Pct || 0,
+					cald02M3: values.cald02M3 || 0,
+					woodEntryPct: values.woodEntryPct || 0,
+					woodEntryM3: values.woodEntryM3 || 0,
+					initialStockPct: values.initialStockPct || 0,
+					initialStockM3: values.initialStockM3 || 0,
+					factoryId: ""
+				};
+				if (initialData) {
+					updateBoilerControlRecord({
+						...entry,
+						id: initialData.id
+					});
+					toast$2({ title: "Registro atualizado com sucesso." });
+				} else {
+					addBoilerControlRecord(entry);
+					toast$2({ title: "Registro salvo com sucesso." });
+				}
+				if (onSuccess) onSuccess();
+			} catch (error) {
+				toast$2({
+					variant: "destructive",
+					title: "Erro ao salvar",
+					description: "Ocorreu um erro ao salvar o registro."
+				});
+			} finally {
+				setIsSubmitting(false);
+			}
+		};
+		checkPcpAuth(submitAction, () => {
+			setPendingSubmit(() => submitAction);
+			setShowPcpGate(true);
+		});
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Form, {
+		...form,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			onSubmit: form.handleSubmit(onSubmit),
+			className: "space-y-6",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "date",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Data do Registro" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "date",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-6",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-4 border p-4 rounded-md bg-muted/20",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+									className: "font-semibold text-sm text-primary",
+									children: "CALDEIRA PCT"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "cald01Pct",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cald 01" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "cald02Pct",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cald 02" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-4 border p-4 rounded-md bg-muted/20",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+									className: "font-semibold text-sm text-primary",
+									children: "CALDEIRA M³"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "cald01M3",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cald 01" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "cald02M3",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Cald 02" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-4 border p-4 rounded-md bg-muted/20",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+									className: "font-semibold text-sm text-primary",
+									children: "ENTRADA DE LENHA"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "woodEntryPct",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "PCT" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "woodEntryM3",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "M³" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								})
+							]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "space-y-4 border p-4 rounded-md bg-primary/5 border-primary/20",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+									className: "font-semibold text-sm text-primary",
+									children: "ESTOQUE INICIAL"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "text-xs text-muted-foreground -mt-3",
+									children: "Ajuste apenas se necessário. O saldo é calculado automaticamente."
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "initialStockPct",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "PCT" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+									control: form.control,
+									name: "initialStockM3",
+									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "M³" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "number",
+										step: "0.01",
+										...field
+									}) })] })
+								})
+							]
+						})
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex justify-end gap-2 pt-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "button",
+						variant: "outline",
+						onClick: onCancel,
+						disabled: isSubmitting,
+						children: "Cancelar"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "submit",
+						disabled: isSubmitting,
+						children: isSubmitting ? "Salvando..." : "Salvar"
+					})]
+				})
+			]
+		})
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PcpGate, {
+		isOpen: showPcpGate,
+		onOpenChange: setShowPcpGate,
+		onSuccess: () => {
+			if (pendingSubmit) pendingSubmit();
+			setPendingSubmit(null);
+		}
+	})] });
+}
+function BoilerControlTable() {
+	const { boilerControlRecords, deleteBoilerControlRecord } = useData();
+	const { toast: toast$2 } = useToast();
+	const [editingItem, setEditingItem] = (0, import_react.useState)(void 0);
+	const [isEditDialogOpen, setIsEditDialogOpen] = (0, import_react.useState)(false);
+	const [deleteId, setDeleteId] = (0, import_react.useState)(null);
+	const currentDate = /* @__PURE__ */ new Date();
+	const [selectedMonth, setSelectedMonth] = (0, import_react.useState)(getMonth(currentDate));
+	const [selectedYear, setSelectedYear] = (0, import_react.useState)(getYear(currentDate));
+	const handleDelete = () => {
+		if (deleteId) {
+			deleteBoilerControlRecord(deleteId);
+			toast$2({
+				title: "Registro excluído",
+				description: "O registro foi removido com sucesso."
+			});
+			setDeleteId(null);
+		}
+	};
+	const handleEdit = (item) => {
+		setEditingItem(item);
+		setIsEditDialogOpen(true);
+	};
+	const tableData = (0, import_react.useMemo)(() => {
+		const sortedRecords = [...boilerControlRecords].filter((r$2) => {
+			return getMonth(r$2.date) === selectedMonth && getYear(r$2.date) === selectedYear;
+		}).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime());
+		let runningPct = 0;
+		let runningM3 = 0;
+		return sortedRecords.map((record, index$1) => {
+			const startPct = index$1 === 0 || record.initialStockPct > 0 ? record.initialStockPct : runningPct;
+			const startM3 = index$1 === 0 || record.initialStockM3 > 0 ? record.initialStockM3 : runningM3;
+			const currentStockPct = startPct + record.woodEntryPct - (record.cald01Pct + record.cald02Pct);
+			const currentStockM3 = startM3 + record.woodEntryM3 - (record.cald01M3 + record.cald02M3);
+			const consumoDiarioM3 = record.cald01M3 + record.cald02M3;
+			runningPct = currentStockPct;
+			runningM3 = currentStockM3;
+			return {
+				...record,
+				day: format(record.date, "d"),
+				monthName: format(record.date, "MMMM", { locale: ptBR }).toUpperCase(),
+				startPct,
+				startM3,
+				currentStockPct,
+				currentStockM3,
+				consumoDiarioM3
+			};
+		});
+	}, [
+		boilerControlRecords,
+		selectedMonth,
+		selectedYear
+	]);
+	const initialMonthStock = tableData.length > 0 ? tableData[0].startPct : 0;
+	const initialMonthStockM3 = tableData.length > 0 ? tableData[0].startM3 : 0;
+	const months = [
+		"Janeiro",
+		"Fevereiro",
+		"Março",
+		"Abril",
+		"Maio",
+		"Junho",
+		"Julho",
+		"Agosto",
+		"Setembro",
+		"Outubro",
+		"Novembro",
+		"Dezembro"
+	];
+	const years = Array.from({ length: 5 }, (_$1, i$2) => getYear(/* @__PURE__ */ new Date()) - 2 + i$2);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex justify-end gap-2 mb-4",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+					value: selectedMonth.toString(),
+					onValueChange: (val) => setSelectedMonth(Number(val)),
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+						className: "w-[140px]",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Mês" })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: months.map((m$1, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+						value: idx.toString(),
+						children: m$1
+					}, idx)) })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+					value: selectedYear.toString(),
+					onValueChange: (val) => setSelectedYear(Number(val)),
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+						className: "w-[100px]",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Ano" })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: years.map((y$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+						value: y$1.toString(),
+						children: y$1
+					}, y$1)) })]
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "rounded-md border overflow-x-auto bg-white dark:bg-slate-950",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableHeader, { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "bg-primary/5 hover:bg-primary/5",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								colSpan: 8,
+								className: "text-center font-bold text-lg border-r border-b text-primary",
+								children: "RESÍDUO MADEIRA CONSUMO X ENTRADA"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableHead, {
+								colSpan: 3,
+								className: "text-center border-b",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "text-xs font-semibold uppercase text-muted-foreground mb-1",
+									children: "ESTOQUE INICIAL PCT/M³"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "grid grid-cols-2 gap-2 text-primary font-bold",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: formatNumber(initialMonthStock) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: formatNumber(initialMonthStockM3) })]
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px] border-b" })
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "bg-muted/30 hover:bg-muted/30",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								colSpan: 2,
+								className: "text-center font-bold border-r",
+								children: "DATA"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								colSpan: 2,
+								className: "text-center font-bold border-r",
+								children: "CALDEIRA PCT"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								colSpan: 2,
+								className: "text-center font-bold border-r",
+								children: "CALDEIRA M³"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								colSpan: 2,
+								className: "text-center font-bold border-r",
+								children: "ENTRADA DE LENHA"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								rowSpan: 2,
+								className: "text-center font-bold align-bottom pb-4 border-r",
+								children: "ESTOQUE PCT"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								rowSpan: 2,
+								className: "text-center font-bold align-bottom pb-4 border-r",
+								children: "ESTOQUE M³"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								rowSpan: 2,
+								className: "text-center font-bold align-bottom pb-4",
+								children: "Consumo Diario M³ CALDEIRA"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								rowSpan: 2,
+								className: "w-[50px]"
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "bg-muted/30 hover:bg-muted/30",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "DATA"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "MÊS"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "Cald 01"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "Cald 02"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "Cald 01"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "Cald 02"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "PCT"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-center font-semibold text-xs border-r",
+								children: "M³"
+							})
+						]
+					})
+				] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: tableData.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+					colSpan: 12,
+					className: "text-center h-24 text-muted-foreground",
+					children: "Nenhum registro encontrado para este mês."
+				}) }) : tableData.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+					className: "hover:bg-muted/50",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center font-medium border-r",
+							children: row.day
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center text-xs font-medium border-r",
+							children: row.monthName
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r",
+							children: row.cald01Pct > 0 ? formatNumber(row.cald01Pct) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r",
+							children: row.cald02Pct > 0 ? formatNumber(row.cald02Pct) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r text-primary font-medium",
+							children: row.cald01M3 > 0 ? formatNumber(row.cald01M3) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r font-medium",
+							children: row.cald02M3 > 0 ? formatNumber(row.cald02M3) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r",
+							children: row.woodEntryPct > 0 ? formatNumber(row.woodEntryPct) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r",
+							children: row.woodEntryM3 > 0 ? formatNumber(row.woodEntryM3) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r font-semibold",
+							children: formatNumber(row.currentStockPct)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center border-r font-semibold",
+							children: formatNumber(row.currentStockM3)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-center font-bold text-primary",
+							children: row.consumoDiarioM3 > 0 ? formatNumber(row.consumoDiarioM3) : ""
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
+							asChild: true,
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								size: "icon",
+								className: "h-8 w-8",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EllipsisVertical, { className: "h-4 w-4" })
+							})
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuContent, {
+							align: "end",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+								onClick: () => handleEdit(row),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pencil, { className: "mr-2 h-4 w-4" }), " Editar"]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenuItem, {
+								onClick: () => setDeleteId(row.id),
+								className: "text-red-600",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), " Excluir"]
+							})]
+						})] }) })
+					]
+				}, row.id)) })] })
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+				open: isEditDialogOpen,
+				onOpenChange: setIsEditDialogOpen,
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+					className: "sm:max-w-[650px] max-h-[90vh] overflow-y-auto",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Editar Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Atualize os dados de controle da caldeira." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControlForm, {
+						initialData: editingItem,
+						onSuccess: () => setIsEditDialogOpen(false),
+						onCancel: () => setIsEditDialogOpen(false)
+					})]
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialog, {
+				open: !!deleteId,
+				onOpenChange: () => setDeleteId(null),
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogContent, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogTitle, { children: "Excluir Registro" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogDescription, { children: "Tem certeza que deseja remover este registro? Isso pode afetar o cálculo de estoque dos dias seguintes." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(AlertDialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogCancel, { children: "Cancelar" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AlertDialogAction, {
+					onClick: handleDelete,
+					className: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+					children: "Excluir"
+				})] })] })
+			})
+		]
+	});
+}
+function BoilerControlCharts() {
+	const { boilerControlRecords } = useData();
+	const currentDate = /* @__PURE__ */ new Date();
+	const [selectedMonth, setSelectedMonth] = (0, import_react.useState)(getMonth(currentDate));
+	const [selectedYear, setSelectedYear] = (0, import_react.useState)(getYear(currentDate));
+	const months = [
+		"Janeiro",
+		"Fevereiro",
+		"Março",
+		"Abril",
+		"Maio",
+		"Junho",
+		"Julho",
+		"Agosto",
+		"Setembro",
+		"Outubro",
+		"Novembro",
+		"Dezembro"
+	];
+	const years = Array.from({ length: 5 }, (_$1, i$2) => getYear(/* @__PURE__ */ new Date()) - 2 + i$2);
+	const chartData = (0, import_react.useMemo)(() => {
+		return boilerControlRecords.filter((r$2) => getMonth(r$2.date) === selectedMonth && getYear(r$2.date) === selectedYear).sort((a$2, b$1) => a$2.date.getTime() - b$1.date.getTime()).map((record) => {
+			const consumoTotal = record.cald01M3 + record.cald02M3;
+			return {
+				date: format(record.date, "dd/MM"),
+				fullDate: format(record.date, "dd 'de' MMMM", { locale: ptBR }),
+				consumoTotal,
+				entradaTotal: record.woodEntryM3
+			};
+		});
+	}, [
+		boilerControlRecords,
+		selectedMonth,
+		selectedYear
+	]);
+	const chartConfig$1 = {
+		consumoTotal: {
+			label: "Consumo (m³)",
+			color: "hsl(var(--chart-1))"
+		},
+		entradaTotal: {
+			label: "Entrada (m³)",
+			color: "hsl(var(--chart-2))"
+		}
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex justify-end gap-2",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+				value: selectedMonth.toString(),
+				onValueChange: (val) => setSelectedMonth(Number(val)),
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+					className: "w-[140px]",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Mês" })
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: months.map((m$1, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+					value: idx.toString(),
+					children: m$1
+				}, idx)) })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+				value: selectedYear.toString(),
+				onValueChange: (val) => setSelectedYear(Number(val)),
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, {
+					className: "w-[100px]",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, { placeholder: "Ano" })
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: years.map((y$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+					value: y$1.toString(),
+					children: y$1
+				}, y$1)) })]
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Resíduo Madeira Consumo x Entrada" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de consumo das caldeiras e entrada de lenha em m³" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: chartData.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: chartConfig$1,
+			className: "aspect-auto h-[450px] w-full",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				data: chartData,
+				margin: {
+					top: 20,
+					right: 0,
+					left: 0,
+					bottom: 0
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						vertical: false,
+						strokeDasharray: "3 3"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "date",
+						tickLine: false,
+						axisLine: false,
+						tickMargin: 8
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+						tickLine: false,
+						axisLine: false
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
+						labelKey: "fullDate",
+						formatter: (value, name, item, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "h-2 w-2 rounded-full",
+									style: { backgroundColor: name === "Consumo (m³)" ? chartConfig$1.consumoTotal.color : chartConfig$1.entradaTotal.color }
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "font-medium text-muted-foreground",
+									children: [name, ":"]
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "font-bold",
+									children: [formatNumber(Number(value)), " m³"]
+								})
+							]
+						})
+					}) }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+						dataKey: "consumoTotal",
+						fill: "var(--color-consumoTotal)",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						name: "Consumo (m³)",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							dataKey: "consumoTotal",
+							position: "top",
+							offset: 10,
+							className: "fill-foreground font-bold",
+							fontSize: 11,
+							formatter: (val) => val > 0 ? formatNumber(val, { maximumFractionDigits: 1 }) : ""
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+						dataKey: "entradaTotal",
+						fill: "var(--color-entradaTotal)",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						name: "Entrada (m³)",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							dataKey: "entradaTotal",
+							position: "top",
+							offset: 10,
+							className: "fill-foreground font-bold",
+							fontSize: 11,
+							formatter: (val) => val > 0 ? formatNumber(val, { maximumFractionDigits: 1 }) : ""
+						})
+					})
+				]
+			})
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "flex h-[400px] items-center justify-center border border-dashed rounded-md",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-muted-foreground",
+				children: "Nenhum dado registrado para o período selecionado."
+			})
+		}) })] })]
+	});
+}
+function BoilerControl() {
+	const [isOpen, setIsOpen] = (0, import_react.useState)(false);
+	const { checkPcpAuth } = usePcp();
+	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
+	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
+	const handleNewRecord = () => {
+		checkPcpAuth(() => {
+			setIsOpen(true);
+		}, () => {
+			setPcpPendingAction(() => () => {
+				setIsOpen(true);
+			});
+			setIsPcpGateOpen(true);
+		});
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", {
+						className: "text-3xl font-bold tracking-tight flex items-center gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Flame, { className: "h-8 w-8 text-primary" }), "Controle Caldeira"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-muted-foreground",
+						children: "Resíduo Madeira Consumo x Entrada"
+					})] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "flex items-center gap-2",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							className: "gap-2",
+							onClick: handleNewRecord,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Novo Registro"]
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
+						open: isOpen,
+						onOpenChange: setIsOpen,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+							className: "sm:max-w-[650px] max-h-[90vh] overflow-y-auto",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Registrar Controle Caldeira" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Insira os dados de consumo de lenha, entrada e estoque inicial." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControlForm, {
+								onSuccess: () => setIsOpen(false),
+								onCancel: () => setIsOpen(false)
+							})]
+						})
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "records",
+				className: "space-y-4",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+						className: "grid w-full grid-cols-2 max-w-[400px]",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+							value: "records",
+							className: "gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Table$1, { className: "h-4 w-4" }), " Registros"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+							value: "charts",
+							className: "gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartBar, { className: "h-4 w-4" }), " Gráficos"]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "records",
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControlTable, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "charts",
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControlCharts, {})
 					})
 				]
 			}),
@@ -91806,6 +92686,17 @@ var managementItems = [
 ];
 function AppSidebar() {
 	const location = useLocation();
+	const { factories, currentFactoryId } = useData();
+	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("farinorte");
+	const dynamicManagementItems = (0, import_react.useMemo)(() => {
+		const items = [...managementItems];
+		if (isFarinorte) items.push({
+			title: "Controle Caldeira",
+			url: "/gestao/controle-caldeira",
+			icon: Flame
+		});
+		return items;
+	}, [isFarinorte]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Sidebar, {
 		className: "border-r border-border bg-sidebar",
 		children: [
@@ -91832,7 +92723,7 @@ function AppSidebar() {
 						children: item.title
 					})]
 				})
-			}) }, item.title)) }) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SidebarGroup, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarGroupLabel, { children: "Gestão" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarGroupContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenu, { children: managementItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenuItem, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenuButton, {
+			}) }, item.title)) }) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SidebarGroup, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarGroupLabel, { children: "Gestão" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarGroupContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenu, { children: dynamicManagementItems.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenuItem, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SidebarMenuButton, {
 				asChild: true,
 				isActive: location.pathname === item.url,
 				className: "w-full",
@@ -92025,6 +92916,7 @@ function DashboardLayout() {
 			case "/gestao/processo": return "Gestão de Processos";
 			case "/gestao/previsao-mp": return "Previsão de Matéria-Prima";
 			case "/gestao/controle-vapor": return "Controle de Vapor";
+			case "/gestao/controle-caldeira": return "Controle de Caldeira";
 			default: return "Grupo BR Render";
 		}
 	};
@@ -92199,6 +93091,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SteamControl, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/gestao/controle-caldeira",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControl, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/access-denied",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccessDenied, {})
 					})
@@ -92214,4 +93110,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-UVXCCo3M.js.map
+//# sourceMappingURL=index-CF3FYlWB.js.map

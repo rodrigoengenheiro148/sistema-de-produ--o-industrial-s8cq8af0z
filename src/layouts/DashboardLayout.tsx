@@ -52,6 +52,8 @@ export default function DashboardLayout() {
         return 'Previsão de Matéria-Prima'
       case '/gestao/controle-vapor':
         return 'Controle de Vapor'
+      case '/gestao/controle-caldeira':
+        return 'Controle de Caldeira'
       default:
         return 'Grupo BR Render'
     }

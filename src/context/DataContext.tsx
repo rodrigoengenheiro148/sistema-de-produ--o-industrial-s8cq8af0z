@@ -27,6 +27,7 @@ import {
   SteamControlEntry,
   ReturnEntry,
   SeboInventoryRecord,
+  BoilerControlRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -165,6 +166,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [downtimeRecords, setDowntimeRecords] = useState<DowntimeRecord[]>([])
   const [steamControlRecords, setSteamControlRecords] = useState<
     SteamControlEntry[]
+  >([])
+  const [boilerControlRecords, setBoilerControlRecords] = useState<
+    BoilerControlRecord[]
   >([])
   const [dailyForecasts, setDailyForecasts] = useState<
     DailyProductionForecast[]
@@ -306,6 +310,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setCookingTimeRecords([])
       setDowntimeRecords([])
       setSteamControlRecords([])
+      setBoilerControlRecords([])
       setDailyForecasts([])
       setReturns([])
       setLatestInventory([])
@@ -339,6 +344,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           { data: steam },
           { data: forecasts },
           { data: rets },
+          { data: boiler },
           inventoryData,
         ] = await Promise.all([
           applyFilters(supabase.from('raw_materials').select('*')),
@@ -351,6 +357,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('steam_control_records').select('*')),
           applyFilters(supabase.from('daily_production_forecasts').select('*')),
           applyFilters(supabase.from('returns').select('*')),
+          applyFilters(supabase.from('boiler_control_records').select('*')),
           fetchLatestManualEntries(currentFactoryId, 50),
         ])
 
@@ -362,6 +369,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (cooking) setCookingTimeRecords(mapData(cooking))
         if (downtime) setDowntimeRecords(mapData(downtime))
         if (steam) setSteamControlRecords(mapData(steam))
+        if (boiler) {
+          setBoilerControlRecords(
+            boiler.map((b: any) => ({
+              id: b.id,
+              factoryId: b.factory_id,
+              userId: b.user_id,
+              date: parseAsLocalNoon(b.date),
+              cald01Pct: Number(b.cald_01_pct || 0),
+              cald01M3: Number(b.cald_01_m3 || 0),
+              cald02Pct: Number(b.cald_02_pct || 0),
+              cald02M3: Number(b.cald_02_m3 || 0),
+              woodEntryPct: Number(b.wood_entry_pct || 0),
+              woodEntryM3: Number(b.wood_entry_m3 || 0),
+              initialStockPct: Number(b.initial_stock_pct || 0),
+              initialStockM3: Number(b.initial_stock_m3 || 0),
+              createdAt: b.created_at ? new Date(b.created_at) : undefined,
+            })),
+          )
+        }
         if (forecasts) {
           setDailyForecasts(
             forecasts.map((f: any) => ({
@@ -458,6 +484,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'cooking_time_records',
       'downtime_records',
       'steam_control_records',
+      'boiler_control_records',
       'daily_production_forecasts',
       'returns',
       'sebo_inventory_records',
@@ -852,6 +879,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const addBoilerControlRecord = async (
+    entry: Omit<BoilerControlRecord, 'id'>,
+  ) => {
+    if (!currentFactoryId) return
+    const { error } = await supabase.from('boiler_control_records').insert({
+      date: entry.date.toISOString(),
+      cald_01_pct: entry.cald01Pct,
+      cald_01_m3: entry.cald01M3,
+      cald_02_pct: entry.cald02Pct,
+      cald_02_m3: entry.cald02M3,
+      wood_entry_pct: entry.woodEntryPct,
+      wood_entry_m3: entry.woodEntryM3,
+      initial_stock_pct: entry.initialStockPct,
+      initial_stock_m3: entry.initialStockM3,
+      user_id: user?.id,
+      factory_id: currentFactoryId,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const updateBoilerControlRecord = async (entry: BoilerControlRecord) => {
+    const { error } = await supabase
+      .from('boiler_control_records')
+      .update({
+        date: entry.date.toISOString(),
+        cald_01_pct: entry.cald01Pct,
+        cald_01_m3: entry.cald01M3,
+        cald_02_pct: entry.cald02Pct,
+        cald_02_m3: entry.cald02M3,
+        wood_entry_pct: entry.woodEntryPct,
+        wood_entry_m3: entry.woodEntryM3,
+        initial_stock_pct: entry.initialStockPct,
+        initial_stock_m3: entry.initialStockM3,
+      })
+      .eq('id', entry.id)
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteBoilerControlRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('boiler_control_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const saveDailyForecast = async (
     date: Date,
     mpForecast: number,
@@ -1106,6 +1179,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('cooking_time_records').delete().eq('user_id', user.id),
       supabase.from('downtime_records').delete().eq('user_id', user.id),
       supabase.from('steam_control_records').delete().eq('user_id', user.id),
+      supabase.from('boiler_control_records').delete().eq('user_id', user.id),
       supabase
         .from('daily_production_forecasts')
         .delete()
@@ -1151,6 +1225,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addSteamControlRecord,
         updateSteamControlRecord,
         deleteSteamControlRecord,
+        boilerControlRecords,
+        addBoilerControlRecord,
+        updateBoilerControlRecord,
+        deleteBoilerControlRecord,
         dailyForecasts,
         saveDailyForecast,
         deleteDailyForecast,

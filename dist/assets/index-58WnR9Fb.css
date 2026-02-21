@@ -779,6 +779,9 @@ section[aria-label='Notifications alt+T'] {
 .-ml-4{
   margin-left: -1rem;
 }
+.-mt-3{
+  margin-top: -0.75rem;
+}
 .-mt-4{
   margin-top: -1rem;
 }
@@ -960,6 +963,9 @@ section[aria-label='Notifications alt+T'] {
 }
 .h-\[400px\]{
   height: 400px;
+}
+.h-\[450px\]{
+  height: 450px;
 }
 .h-\[500px\]{
   height: 500px;
@@ -2325,6 +2331,9 @@ section[aria-label='Notifications alt+T'] {
 .align-middle{
   vertical-align: middle;
 }
+.align-bottom{
+  vertical-align: bottom;
+}
 .font-mono{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -3179,6 +3188,9 @@ img[src*='skip.svg'] {
 }
 .hover\:bg-muted:hover{
   background-color: hsl(var(--muted));
+}
+.hover\:bg-muted\/30:hover{
+  background-color: hsl(var(--muted) / 0.3);
 }
 .hover\:bg-muted\/50:hover{
   background-color: hsl(var(--muted) / 0.5);
@@ -4076,6 +4088,10 @@ img[src*='skip.svg'] {
   --tw-bg-opacity: 1;
   background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
 }
+.dark\:bg-slate-950:is(.dark *){
+  --tw-bg-opacity: 1;
+  background-color: rgb(2 6 23 / var(--tw-bg-opacity, 1));
+}
 .dark\:bg-violet-900\/10:is(.dark *){
   background-color: rgb(76 29 149 / 0.1);
 }
@@ -4240,6 +4256,9 @@ img[src*='skip.svg'] {
   }
   .sm\:max-w-\[550px\]{
     max-width: 550px;
+  }
+  .sm\:max-w-\[650px\]{
+    max-width: 650px;
   }
   .sm\:max-w-md{
     max-width: 28rem;

@@ -162,6 +162,22 @@ export interface SteamControlEntry {
   createdAt?: Date
 }
 
+export interface BoilerControlRecord {
+  id: string
+  factoryId: string
+  userId?: string
+  date: Date
+  cald01Pct: number
+  cald01M3: number
+  cald02Pct: number
+  cald02M3: number
+  woodEntryPct: number
+  woodEntryM3: number
+  initialStockPct: number
+  initialStockM3: number
+  createdAt?: Date
+}
+
 export interface DailyProductionForecast {
   id: string
   factoryId: string
@@ -267,6 +283,7 @@ export interface DataContextType {
   cookingTimeRecords: CookingTimeRecord[]
   downtimeRecords: DowntimeRecord[]
   steamControlRecords: SteamControlEntry[]
+  boilerControlRecords: BoilerControlRecord[]
   dailyForecasts: DailyProductionForecast[]
   returns: ReturnEntry[]
   latestInventory: SeboInventoryRecord[]
@@ -305,6 +322,10 @@ export interface DataContextType {
   addSteamControlRecord: (entry: Omit<SteamControlEntry, 'id'>) => void
   updateSteamControlRecord: (entry: SteamControlEntry) => void
   deleteSteamControlRecord: (id: string) => void
+
+  addBoilerControlRecord: (entry: Omit<BoilerControlRecord, 'id'>) => void
+  updateBoilerControlRecord: (entry: BoilerControlRecord) => void
+  deleteBoilerControlRecord: (id: string) => void
 
   saveDailyForecast: (
     date: Date,

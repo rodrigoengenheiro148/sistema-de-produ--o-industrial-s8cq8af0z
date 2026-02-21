@@ -18,6 +18,7 @@ import SeboInventory from './pages/gestao/SeboInventory'
 import ProcessManagement from './pages/gestao/ProcessManagement'
 import ForecastManagement from './pages/gestao/ForecastManagement'
 import SteamControl from './pages/gestao/SteamControl'
+import BoilerControl from './pages/gestao/BoilerControl'
 import Returns from './pages/Returns'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
@@ -85,6 +86,10 @@ const App = () => (
                 <Route
                   path="/gestao/controle-vapor"
                   element={<SteamControl />}
+                />
+                <Route
+                  path="/gestao/controle-caldeira"
+                  element={<BoilerControl />}
                 />
 
                 <Route path="/access-denied" element={<AccessDenied />} />

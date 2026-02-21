@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   LayoutDashboard,
   Truck,
@@ -16,6 +17,7 @@ import {
   TrendingUp,
   Gauge,
   Undo2,
+  Flame,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -34,6 +36,7 @@ import { cn } from '@/lib/utils'
 import logoBrRender from '@/assets/logotipo-br-render.png'
 import { UserSwitcher } from '@/components/UserSwitcher'
 import { FactorySwitcher } from '@/components/FactorySwitcher'
+import { useData } from '@/context/DataContext'
 
 const operationalItems = [
   {
@@ -123,6 +126,21 @@ const managementItems = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { factories, currentFactoryId } = useData()
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isFarinorte = currentFactory?.name.toLowerCase().includes('farinorte')
+
+  const dynamicManagementItems = useMemo(() => {
+    const items = [...managementItems]
+    if (isFarinorte) {
+      items.push({
+        title: 'Controle Caldeira',
+        url: '/gestao/controle-caldeira',
+        icon: Flame,
+      })
+    }
+    return items
+  }, [isFarinorte])
 
   return (
     <Sidebar className="border-r border-border bg-sidebar">
@@ -177,7 +195,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Gestão</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {managementItems.map((item) => (
+              {dynamicManagementItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
