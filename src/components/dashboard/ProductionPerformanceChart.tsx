@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
-import { isBloodRecord, formatNumber, cn } from '@/lib/utils'
+import { formatNumber, cn } from '@/lib/utils'
 import { useData } from '@/context/DataContext'
 
 interface ProductionPerformanceChartProps {
@@ -51,20 +51,35 @@ export function ProductionPerformanceChart({
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const { chartData, chartConfig } = useMemo(() => {
-    const industrialData = data.filter((p) => !isBloodRecord(p))
+    // We use all data without filtering blood records to accurately calculate total production sum
+    const sourceData = data
 
     const calculateProd = (p: ProductionEntry) => {
       if (isMarReciclagem) {
         return (
-          p.seboProduced +
-          p.fcoProduced +
+          (p.seboProduced || 0) +
+          (p.fcoProduced || 0) +
           (p.viscerasMealProduced || 0) +
           (p.featherMealProduced || 0) +
           (p.viscerasOilProduced || 0)
         )
       }
+      if (isFarinorte) {
+        return (p.seboProduced || 0) + (p.fcoProduced || 0)
+      }
+      const bloodKg =
+        p.bloodMealBags && p.bloodMealBags > 0
+          ? p.bloodMealBags * 1400
+          : p.bloodMealProduced || 0
       return (
-        p.seboProduced + p.fcoProduced + (isFarinorte ? 0 : p.farinhetaProduced)
+        (p.seboProduced || 0) +
+        (p.fcoProduced || 0) +
+        (p.farinhetaProduced || 0) +
+        (p.viscerasMealProduced || 0) +
+        (p.viscerasOilProduced || 0) +
+        (p.featherMealProduced || 0) +
+        bloodKg +
+        (p.fishMealProduced || 0)
       )
     }
 
@@ -73,7 +88,8 @@ export function ProductionPerformanceChart({
     if (timeScale === 'monthly') {
       const monthlyData = new Map<string, any>()
 
-      industrialData.forEach((p) => {
+      sourceData.forEach((p) => {
+        if (!p.date) return
         const dateKey = format(p.date, 'yyyy-MM')
         const displayDate = format(p.date, 'MMM/yy', { locale: ptBR })
 
@@ -89,34 +105,48 @@ export function ProductionPerformanceChart({
 
         const entry = monthlyData.get(dateKey)
         entry.producao += calculateProd(p)
-        entry.mp += p.mpUsed
+        entry.mp += p.mpUsed || 0
       })
 
       processedData = Array.from(monthlyData.values()).sort((a, b) =>
         a.dateKey.localeCompare(b.dateKey),
       )
     } else {
-      processedData = industrialData
-        .map((p) => ({
-          date: format(p.date, 'dd/MM'),
-          fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
-          originalDate: p.date,
-          producao: calculateProd(p),
-          mp: p.mpUsed,
-        }))
-        .sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime())
+      const dailyData = new Map<string, any>()
+
+      sourceData.forEach((p) => {
+        if (!p.date) return
+        const dateKey = format(p.date, 'yyyy-MM-dd')
+
+        if (!dailyData.has(dateKey)) {
+          dailyData.set(dateKey, {
+            dateKey,
+            date: format(p.date, 'dd/MM'),
+            fullDate: format(p.date, "dd 'de' MMMM", { locale: ptBR }),
+            originalDate: p.date,
+            producao: 0,
+            mp: 0,
+          })
+        }
+
+        const entry = dailyData.get(dateKey)
+        entry.producao += calculateProd(p)
+        entry.mp += p.mpUsed || 0
+      })
+
+      processedData = Array.from(dailyData.values()).sort(
+        (a, b) => a.originalDate.getTime() - b.originalDate.getTime(),
+      )
     }
 
     const config: ChartConfig = {
       producao: {
-        label: isFarinorte
-          ? 'Produção (Sebo + FCO)'
-          : 'Produção Total (Industrial)',
-        color: '#166534', // dark green matching screenshot
+        label: isFarinorte ? 'Produção (Sebo + FCO)' : 'Produção Total',
+        color: '#166534', // Dark green
       },
       mp: {
         label: 'MP Processada',
-        color: '#f97316', // orange
+        color: '#f97316', // Orange
       },
     }
 
@@ -125,7 +155,7 @@ export function ProductionPerformanceChart({
 
   const formatValue = (value: number) => {
     if (value >= 1000) {
-      return formatNumber(value / 1000, { maximumFractionDigits: 0 }) + 'k'
+      return formatNumber(value / 1000, { maximumFractionDigits: 1 }) + 'k'
     }
     return formatNumber(value)
   }
@@ -136,7 +166,7 @@ export function ProductionPerformanceChart({
         <CardHeader>
           <CardTitle>Análise de Produção</CardTitle>
           <CardDescription>
-            Comparativo diário de processamento industrial
+            Comparativo diário de processamento e produção total
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -149,7 +179,7 @@ export function ProductionPerformanceChart({
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
     <ChartContainer
       config={chartConfig}
-      className={cn(`${height} w-full mt-4`)}
+      className={cn(`${height} w-full mt-4 aspect-auto`)}
     >
       <BarChart
         data={chartData}
@@ -200,7 +230,7 @@ export function ProductionPerformanceChart({
                   />
                   <span className="text-muted-foreground text-xs">{name}</span>
                   <span className="font-mono font-bold">
-                    {formatNumber(Number(value))}
+                    {formatNumber(Number(value))} kg
                   </span>
                 </div>
               )}
@@ -247,7 +277,7 @@ export function ProductionPerformanceChart({
             Análise de Produção
           </CardTitle>
           <CardDescription>
-            Comparativo diário de processamento industrial (exclui sangue)
+            Comparativo diário de processamento e produção total
           </CardDescription>
         </div>
         <Dialog>
@@ -265,8 +295,7 @@ export function ProductionPerformanceChart({
             <DialogHeader>
               <DialogTitle>Análise de Produção Industrial</DialogTitle>
               <DialogDescription>
-                Visualização detalhada do processamento de MP e produção total
-                (excluindo linha de sangue).
+                Visualização detalhada do processamento de MP e produção total.
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
@@ -276,7 +305,7 @@ export function ProductionPerformanceChart({
         </Dialog>
       </CardHeader>
       <CardContent className="pt-2 pb-6 pl-0 sm:pl-2 flex-1 min-h-[300px]">
-        <ChartContent height="h-full min-h-[300px]" />
+        <ChartContent height="h-full" />
       </CardContent>
     </Card>
   )
