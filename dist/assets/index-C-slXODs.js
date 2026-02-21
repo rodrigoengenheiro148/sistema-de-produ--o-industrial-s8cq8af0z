@@ -21752,6 +21752,18 @@ function formatPercent(value, decimals = 2) {
 		maximumFractionDigits: decimals
 	}).format(value) + "%";
 }
+function formatSecondsAsTime(totalSeconds) {
+	if (isNaN(totalSeconds) || totalSeconds <= 0) return "00:00:00";
+	return `${Math.floor(totalSeconds / 3600).toString().padStart(2, "0")}:${Math.floor(totalSeconds % 3600 / 60).toString().padStart(2, "0")}:${Math.floor(totalSeconds % 60).toString().padStart(2, "0")}`;
+}
+function parseTimeAsSeconds(timeStr) {
+	if (!timeStr) return 0;
+	const parts = timeStr.split(":");
+	let seconds$1 = 0;
+	if (parts.length === 3) seconds$1 = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+	else if (parts.length === 2) seconds$1 = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60;
+	return isNaN(seconds$1) ? 0 : seconds$1;
+}
 var ToastProvider = Provider$1;
 var ToastViewport = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Viewport$2, {
 	ref,
@@ -36336,6 +36348,7 @@ const DataProvider = ({ children }) => {
 	const [downtimeRecords, setDowntimeRecords] = (0, import_react.useState)([]);
 	const [steamControlRecords, setSteamControlRecords] = (0, import_react.useState)([]);
 	const [boilerControlRecords, setBoilerControlRecords] = (0, import_react.useState)([]);
+	const [digesterRecords, setDigesterRecords] = (0, import_react.useState)([]);
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [returns, setReturns] = (0, import_react.useState)([]);
 	const [latestInventory, setLatestInventory] = (0, import_react.useState)([]);
@@ -36435,6 +36448,7 @@ const DataProvider = ({ children }) => {
 			setDowntimeRecords([]);
 			setSteamControlRecords([]);
 			setBoilerControlRecords([]);
+			setDigesterRecords([]);
 			setDailyForecasts([]);
 			setReturns([]);
 			setLatestInventory([]);
@@ -36450,7 +36464,7 @@ const DataProvider = ({ children }) => {
 					if (toDateStr) q = q.lte("date", toDateStr);
 					return q.order("date", { ascending: false });
 				};
-				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, { data: boiler }, inventoryData] = await Promise.all([
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, { data: boiler }, { data: digester }, inventoryData] = await Promise.all([
 					applyFilters(supabase.from("raw_materials").select("*")),
 					applyFilters(supabase.from("production").select("*")),
 					applyFilters(supabase.from("shipping").select("*")),
@@ -36462,6 +36476,7 @@ const DataProvider = ({ children }) => {
 					applyFilters(supabase.from("daily_production_forecasts").select("*")),
 					applyFilters(supabase.from("returns").select("*")),
 					applyFilters(supabase.from("boiler_control_records").select("*")),
+					applyFilters(supabase.from("digester_records").select("*")),
 					fetchLatestManualEntries(currentFactoryId, 50)
 				]);
 				if (raw) setRawMaterials(mapData(raw));
@@ -36486,6 +36501,15 @@ const DataProvider = ({ children }) => {
 					initialStockPct: Number(b$1.initial_stock_pct || 0),
 					initialStockM3: Number(b$1.initial_stock_m3 || 0),
 					createdAt: b$1.created_at ? new Date(b$1.created_at) : void 0
+				})));
+				if (digester) setDigesterRecords(digester.map((d) => ({
+					id: d.id,
+					factoryId: d.factory_id,
+					userId: d.user_id,
+					date: parseAsLocalNoon(d.date),
+					digesterName: d.digester_name,
+					durationSeconds: Number(d.duration_seconds || 0),
+					createdAt: d.created_at ? new Date(d.created_at) : void 0
 				})));
 				if (forecasts) setDailyForecasts(forecasts.map((f) => ({
 					id: f.id,
@@ -36559,6 +36583,7 @@ const DataProvider = ({ children }) => {
 			"downtime_records",
 			"steam_control_records",
 			"boiler_control_records",
+			"digester_records",
 			"daily_production_forecasts",
 			"returns",
 			"sebo_inventory_records"
@@ -36907,6 +36932,22 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("boiler_control_records").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
+	const addDigesterRecord = async (entry) => {
+		const targetFactoryId = entry.factoryId || currentFactoryId;
+		if (!targetFactoryId) return;
+		const { error } = await supabase.from("digester_records").insert({
+			factory_id: targetFactoryId,
+			user_id: user?.id,
+			date: entry.date.toISOString(),
+			digester_name: entry.digesterName,
+			duration_seconds: entry.durationSeconds
+		});
+		if (!error) fetchOperationalData();
+	};
+	const deleteDigesterRecord = async (id) => {
+		const { error } = await supabase.from("digester_records").delete().eq("id", id);
+		if (!error) fetchOperationalData();
+	};
 	const saveDailyForecast = async (date$4, mpForecast, materialType = "Geral") => {
 		if (!currentFactoryId || !user?.id) return;
 		try {
@@ -37100,6 +37141,7 @@ const DataProvider = ({ children }) => {
 			supabase.from("downtime_records").delete().eq("user_id", user.id),
 			supabase.from("steam_control_records").delete().eq("user_id", user.id),
 			supabase.from("boiler_control_records").delete().eq("user_id", user.id),
+			supabase.from("digester_records").delete().eq("user_id", user.id),
 			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id),
 			supabase.from("returns").delete().eq("user_id", user.id)
 		]);
@@ -37144,6 +37186,9 @@ const DataProvider = ({ children }) => {
 			addBoilerControlRecord,
 			updateBoilerControlRecord,
 			deleteBoilerControlRecord,
+			digesterRecords,
+			addDigesterRecord,
+			deleteDigesterRecord,
 			dailyForecasts,
 			saveDailyForecast,
 			deleteDailyForecast,
@@ -72463,6 +72508,76 @@ function ProductionAnalysisChart({ data, isMobile = false, className }) {
 		})]
 	});
 }
+function DigesterBatchesChart({ data, className }) {
+	const chartData = (0, import_react.useMemo)(() => {
+		return [
+			"Dig 1",
+			"Dig 2",
+			"Dig 3",
+			"Dig 4",
+			"Dig 5"
+		].map((d) => {
+			return {
+				digester: d,
+				batches: data.filter((r$2) => r$2.digesterName === d).length
+			};
+		});
+	}, [data]);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className,
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+			className: "flex items-center gap-2 text-base",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-5 w-5 text-indigo-500" }), "Bateladas por Digestor"]
+		}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: { batches: {
+				label: "Bateladas",
+				color: "#6366f1"
+			} },
+			className: "h-[250px] w-full",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				data: chartData,
+				margin: {
+					top: 20,
+					right: 0,
+					left: 0,
+					bottom: 0
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						vertical: false,
+						strokeDasharray: "3 3"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "digester",
+						tickLine: false,
+						axisLine: false
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, { hide: true }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+						cursor: { fill: "hsl(var(--muted)/0.3)" },
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { hideLabel: true })
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+						dataKey: "batches",
+						fill: "var(--color-batches)",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						maxBarSize: 60,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							dataKey: "batches",
+							position: "top",
+							className: "fill-foreground font-bold"
+						})
+					})
+				]
+			})
+		}) })]
+	});
+}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -72490,7 +72605,7 @@ var AlertDescription = import_react.forwardRef(({ className, ...props }, ref) =>
 }));
 AlertDescription.displayName = "AlertDescription";
 function Dashboard() {
-	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus, latestInventory } = useData();
+	const { production, rawMaterials, shipping, cookingTimeRecords, downtimeRecords, qualityRecords, acidityRecords, returns, digesterRecords, dateRange, setDateRange, factories, currentFactoryId, notificationSettings, connectionStatus, latestInventory } = useData();
 	const isMobile = useIsMobile();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
@@ -72549,6 +72664,12 @@ function Dashboard() {
 		returns,
 		dateRange
 	]);
+	const filteredDigester = (0, import_react.useMemo)(() => {
+		return digesterRecords.filter((d) => filterByDate(d.date));
+	}, [digesterRecords, dateRange]);
+	const totalBatches = filteredDigester.length;
+	const totalSeconds = filteredDigester.reduce((acc, curr) => acc + curr.durationSeconds, 0);
+	const avgSeconds = totalBatches > 0 ? totalSeconds / totalBatches : 0;
 	const farinhaQuality = filteredQuality.filter((q) => q.product === "Farinha");
 	const avgFarinhaAcidity = farinhaQuality.length > 0 ? farinhaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhaQuality.length : 0;
 	const avgFarinhaProtein = farinhaQuality.length > 0 ? farinhaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhaQuality.length : 0;
@@ -72702,6 +72823,43 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
+							isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-6",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+									className: "border-l-4 border-l-blue-500",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+										className: "flex flex-row items-center justify-between space-y-0 pb-2 p-4",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+											className: "text-xs font-bold text-muted-foreground uppercase tracking-wider",
+											children: "Tempo Médio de Processo"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-4 w-4 text-blue-500" })]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+										className: "p-4 pt-0",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-2xl font-bold text-blue-600 font-mono",
+											children: formatSecondsAsTime(avgSeconds)
+										})
+									})]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+									className: "border-l-4 border-l-indigo-500",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+										className: "flex flex-row items-center justify-between space-y-0 pb-2 p-4",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+											className: "text-xs font-bold text-muted-foreground uppercase tracking-wider",
+											children: "Quantidade de Bateladas"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-4 w-4 text-indigo-500" })]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+										className: "p-4 pt-0",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+											className: "text-2xl font-bold text-indigo-600",
+											children: totalBatches
+										})
+									})]
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "mt-4",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DigesterBatchesChart, { data: filteredDigester })
+							})] }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-1 lg:grid-cols-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -91220,6 +91378,215 @@ function BoilerControl() {
 		]
 	});
 }
+function DigesterControl() {
+	const { digesterRecords, addDigesterRecord, deleteDigesterRecord } = useData();
+	const [selectedDate, setSelectedDate] = (0, import_react.useState)(format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"));
+	const [selectedDigester, setSelectedDigester] = (0, import_react.useState)("Dig 1");
+	const [duration$2, setDuration] = (0, import_react.useState)("01:00:00");
+	const handleAdd = () => {
+		const seconds$1 = parseTimeAsSeconds(duration$2);
+		if (seconds$1 <= 0) return;
+		addDigesterRecord({
+			date: parseAsLocalNoon(selectedDate),
+			digesterName: selectedDigester,
+			durationSeconds: seconds$1,
+			factoryId: "",
+			userId: ""
+		});
+		setDuration("01:00:00");
+	};
+	const filteredRecords = (0, import_react.useMemo)(() => {
+		return digesterRecords.filter((r$2) => isSameDay(r$2.date, parseAsLocalNoon(selectedDate)));
+	}, [digesterRecords, selectedDate]);
+	const digesters = [
+		"Dig 1",
+		"Dig 2",
+		"Dig 3",
+		"Dig 4",
+		"Dig 5"
+	];
+	const groupedData = (0, import_react.useMemo)(() => {
+		return digesters.map((name) => {
+			const records = filteredRecords.filter((r$2) => r$2.digesterName === name).sort((a$2, b$1) => (a$2.createdAt?.getTime() || 0) - (b$1.createdAt?.getTime() || 0));
+			const count$3 = records.length;
+			const sum = records.reduce((acc, curr) => acc + curr.durationSeconds, 0);
+			return {
+				name,
+				records,
+				count: count$3,
+				sum,
+				avg: count$3 > 0 ? sum / count$3 : 0
+			};
+		});
+	}, [filteredRecords]);
+	const totalBatches = groupedData.reduce((acc, curr) => acc + curr.count, 0);
+	const totalSeconds = groupedData.reduce((acc, curr) => acc + curr.sum, 0);
+	const grandAvg = totalBatches > 0 ? totalSeconds / totalBatches : 0;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "text-3xl font-bold tracking-tight",
+				children: "Controle de Digestores"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-muted-foreground",
+				children: "Registre e monitore o tempo de cada batelada por digestor."
+			})] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Lançamento de Batelada" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col sm:flex-row gap-4 items-end",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2 flex-1",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Data" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "date",
+							value: selectedDate,
+							onChange: (e) => setSelectedDate(e.target.value)
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2 flex-1",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Digestor" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Select, {
+							value: selectedDigester,
+							onValueChange: setSelectedDigester,
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectTrigger, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectValue, {}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectContent, { children: digesters.map((d) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SelectItem, {
+								value: d,
+								children: d
+							}, d)) })]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-2 flex-1",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Tempo (HH:MM:SS)" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "time",
+							step: "1",
+							placeholder: "01:30:00",
+							value: duration$2,
+							onChange: (e) => setDuration(e.target.value)
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						onClick: handleAdd,
+						className: "gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Plus, { className: "h-4 w-4" }), " Adicionar"]
+					})
+				]
+			}) })] }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+				className: "flex items-center gap-2",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-5 w-5 text-indigo-500" }),
+					"Painel de Controle:",
+					" ",
+					format(parseAsLocalNoon(selectedDate), "dd/MM/yyyy")
+				]
+			}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "overflow-x-auto pb-4",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "min-w-[800px] border rounded-lg overflow-hidden flex flex-col text-sm bg-white dark:bg-card",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "grid grid-cols-5 bg-muted font-bold border-b text-center",
+							children: groupedData.map((g) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "p-3 border-r last:border-r-0",
+								children: g.name
+							}, g.name))
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "grid grid-cols-5 flex-1",
+							children: groupedData.map((g) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-col border-r last:border-r-0",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "flex-1 min-h-[200px] p-2 space-y-1",
+									children: g.records.map((r$2) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "flex items-center justify-between px-2 py-1 bg-muted/20 hover:bg-muted/40 rounded-md border text-xs group transition-colors",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "font-mono",
+											children: formatSecondsAsTime(r$2.durationSeconds)
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+											variant: "ghost",
+											size: "icon",
+											className: "h-5 w-5 opacity-0 group-hover:opacity-100 text-destructive transition-opacity",
+											onClick: () => deleteDigesterRecord(r$2.id),
+											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "h-3 w-3" })
+										})]
+									}, r$2.id))
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "border-t bg-muted/10 divide-y mt-auto",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between p-2 text-xs",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-semibold text-muted-foreground",
+													children: "Bateladas"
+												}),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-bold",
+													children: g.count
+												})
+											]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between p-2 text-xs",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-semibold text-muted-foreground",
+													children: "Soma"
+												}),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-mono font-bold",
+													children: formatSecondsAsTime(g.sum)
+												})
+											]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "flex justify-between p-2 text-xs",
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-semibold text-muted-foreground",
+													children: "Média"
+												}),
+												" ",
+												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "font-mono font-bold",
+													children: formatSecondsAsTime(g.avg)
+												})
+											]
+										})
+									]
+								})]
+							}, g.name))
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-5 bg-muted border-t",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "col-span-3 flex items-center justify-between p-4 font-bold border-r",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "uppercase tracking-wider text-xs text-muted-foreground",
+									children: "Tempo médio efetivo de Processo"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-lg font-mono underline decoration-2 underline-offset-4",
+									children: formatSecondsAsTime(grandAvg)
+								})]
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "col-span-2 flex items-center justify-between p-4 font-bold",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "uppercase tracking-wider text-xs text-muted-foreground",
+									children: "Total Bateladas"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "text-lg underline decoration-2 underline-offset-4",
+									children: totalBatches
+								})]
+							})]
+						})
+					]
+				})
+			}) })] })
+		]
+	});
+}
 var formSchema = object({
 	date: string().min(1, "Data é obrigatória"),
 	supplier: string().min(1, "Fornecedor é obrigatório"),
@@ -92690,11 +93057,18 @@ function AppSidebar() {
 	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name.toLowerCase().includes("farinorte");
 	const dynamicManagementItems = (0, import_react.useMemo)(() => {
 		const items = [...managementItems];
-		if (isFarinorte) items.push({
-			title: "Controle Caldeira",
-			url: "/gestao/controle-caldeira",
-			icon: Flame
-		});
+		if (isFarinorte) {
+			items.push({
+				title: "Controle Caldeira",
+				url: "/gestao/controle-caldeira",
+				icon: Flame
+			});
+			items.push({
+				title: "Controle Digestores",
+				url: "/gestao/controle-digestores",
+				icon: Layers
+			});
+		}
 		return items;
 	}, [isFarinorte]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Sidebar, {
@@ -93095,6 +93469,10 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(BoilerControl, {})
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
+						path: "/gestao/controle-digestores",
+						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DigesterControl, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Route, {
 						path: "/access-denied",
 						element: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccessDenied, {})
 					})
@@ -93110,4 +93488,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CF3FYlWB.js.map
+//# sourceMappingURL=index-C-slXODs.js.map

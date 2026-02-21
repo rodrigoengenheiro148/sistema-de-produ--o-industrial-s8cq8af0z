@@ -13,8 +13,10 @@ import {
   ClipboardCheck,
   AlertCircle,
   WifiOff,
+  Clock,
+  Layers,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatSecondsAsTime } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
@@ -31,6 +33,7 @@ import { BloodYieldBarChart } from '@/components/dashboard/BloodYieldBarChart'
 import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
 import { ProductionAnalysisChart } from '@/components/dashboard/ProductionAnalysisChart'
+import { DigesterBatchesChart } from '@/components/dashboard/DigesterBatchesChart'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -46,6 +49,7 @@ export default function Dashboard() {
     qualityRecords,
     acidityRecords,
     returns,
+    digesterRecords,
     dateRange,
     setDateRange,
     factories,
@@ -143,6 +147,17 @@ export default function Dashboard() {
     returns,
     dateRange,
   ])
+
+  const filteredDigester = useMemo(() => {
+    return digesterRecords.filter((d) => filterByDate(d.date))
+  }, [digesterRecords, dateRange])
+
+  const totalBatches = filteredDigester.length
+  const totalSeconds = filteredDigester.reduce(
+    (acc, curr) => acc + curr.durationSeconds,
+    0,
+  )
+  const avgSeconds = totalBatches > 0 ? totalSeconds / totalBatches : 0
 
   const farinhaQuality = filteredQuality.filter((q) => q.product === 'Farinha')
   const avgFarinhaAcidity =
@@ -368,6 +383,43 @@ export default function Dashboard() {
             fullCookingTimeRecords={cookingTimeRecords}
             referenceDate={effectiveForecastDate}
           />
+
+          {isFarinorte && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-6">
+                <Card className="border-l-4 border-l-blue-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+                    <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Tempo Médio de Processo
+                    </CardTitle>
+                    <Clock className="h-4 w-4 text-blue-500" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-bold text-blue-600 font-mono">
+                      {formatSecondsAsTime(avgSeconds)}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-l-4 border-l-indigo-500">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
+                    <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Quantidade de Bateladas
+                    </CardTitle>
+                    <Layers className="h-4 w-4 text-indigo-500" />
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-2xl font-bold text-indigo-600">
+                      {totalBatches}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="mt-4">
+                <DigesterBatchesChart data={filteredDigester} />
+              </div>
+            </>
+          )}
 
           {/* 2. Middle Row: Gauge Chart & Production Analysis */}
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">

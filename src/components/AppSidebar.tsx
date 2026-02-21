@@ -18,6 +18,7 @@ import {
   Gauge,
   Undo2,
   Flame,
+  Layers,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -137,6 +138,11 @@ export function AppSidebar() {
         title: 'Controle Caldeira',
         url: '/gestao/controle-caldeira',
         icon: Flame,
+      })
+      items.push({
+        title: 'Controle Digestores',
+        url: '/gestao/controle-digestores',
+        icon: Layers,
       })
     }
     return items

@@ -28,6 +28,7 @@ import {
   ReturnEntry,
   SeboInventoryRecord,
   BoilerControlRecord,
+  DigesterRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -170,6 +171,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [boilerControlRecords, setBoilerControlRecords] = useState<
     BoilerControlRecord[]
   >([])
+  const [digesterRecords, setDigesterRecords] = useState<DigesterRecord[]>([])
   const [dailyForecasts, setDailyForecasts] = useState<
     DailyProductionForecast[]
   >([])
@@ -311,6 +313,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setDowntimeRecords([])
       setSteamControlRecords([])
       setBoilerControlRecords([])
+      setDigesterRecords([])
       setDailyForecasts([])
       setReturns([])
       setLatestInventory([])
@@ -345,6 +348,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           { data: forecasts },
           { data: rets },
           { data: boiler },
+          { data: digester },
           inventoryData,
         ] = await Promise.all([
           applyFilters(supabase.from('raw_materials').select('*')),
@@ -358,6 +362,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('daily_production_forecasts').select('*')),
           applyFilters(supabase.from('returns').select('*')),
           applyFilters(supabase.from('boiler_control_records').select('*')),
+          applyFilters(supabase.from('digester_records').select('*')),
           fetchLatestManualEntries(currentFactoryId, 50),
         ])
 
@@ -385,6 +390,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
               initialStockPct: Number(b.initial_stock_pct || 0),
               initialStockM3: Number(b.initial_stock_m3 || 0),
               createdAt: b.created_at ? new Date(b.created_at) : undefined,
+            })),
+          )
+        }
+        if (digester) {
+          setDigesterRecords(
+            digester.map((d: any) => ({
+              id: d.id,
+              factoryId: d.factory_id,
+              userId: d.user_id,
+              date: parseAsLocalNoon(d.date),
+              digesterName: d.digester_name,
+              durationSeconds: Number(d.duration_seconds || 0),
+              createdAt: d.created_at ? new Date(d.created_at) : undefined,
             })),
           )
         }
@@ -485,6 +503,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'downtime_records',
       'steam_control_records',
       'boiler_control_records',
+      'digester_records',
       'daily_production_forecasts',
       'returns',
       'sebo_inventory_records',
@@ -925,6 +944,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const addDigesterRecord = async (
+    entry: Omit<DigesterRecord, 'id' | 'createdAt'>,
+  ) => {
+    const targetFactoryId = entry.factoryId || currentFactoryId
+    if (!targetFactoryId) return
+    const { error } = await supabase.from('digester_records').insert({
+      factory_id: targetFactoryId,
+      user_id: user?.id,
+      date: entry.date.toISOString(),
+      digester_name: entry.digesterName,
+      duration_seconds: entry.durationSeconds,
+    })
+    if (!error) fetchOperationalData()
+  }
+
+  const deleteDigesterRecord = async (id: string) => {
+    const { error } = await supabase
+      .from('digester_records')
+      .delete()
+      .eq('id', id)
+    if (!error) fetchOperationalData()
+  }
+
   const saveDailyForecast = async (
     date: Date,
     mpForecast: number,
@@ -1180,6 +1222,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       supabase.from('downtime_records').delete().eq('user_id', user.id),
       supabase.from('steam_control_records').delete().eq('user_id', user.id),
       supabase.from('boiler_control_records').delete().eq('user_id', user.id),
+      supabase.from('digester_records').delete().eq('user_id', user.id),
       supabase
         .from('daily_production_forecasts')
         .delete()
@@ -1229,6 +1272,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         addBoilerControlRecord,
         updateBoilerControlRecord,
         deleteBoilerControlRecord,
+        digesterRecords,
+        addDigesterRecord,
+        deleteDigesterRecord,
         dailyForecasts,
         saveDailyForecast,
         deleteDailyForecast,

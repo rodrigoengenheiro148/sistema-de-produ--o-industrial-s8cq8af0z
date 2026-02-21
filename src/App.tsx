@@ -19,6 +19,7 @@ import ProcessManagement from './pages/gestao/ProcessManagement'
 import ForecastManagement from './pages/gestao/ForecastManagement'
 import SteamControl from './pages/gestao/SteamControl'
 import BoilerControl from './pages/gestao/BoilerControl'
+import DigesterControl from './pages/gestao/DigesterControl'
 import Returns from './pages/Returns'
 import NotFound from './pages/NotFound'
 import AccessDenied from './pages/AccessDenied'
@@ -90,6 +91,10 @@ const App = () => (
                 <Route
                   path="/gestao/controle-caldeira"
                   element={<BoilerControl />}
+                />
+                <Route
+                  path="/gestao/controle-digestores"
+                  element={<DigesterControl />}
                 />
 
                 <Route path="/access-denied" element={<AccessDenied />} />

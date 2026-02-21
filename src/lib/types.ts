@@ -178,6 +178,16 @@ export interface BoilerControlRecord {
   createdAt?: Date
 }
 
+export interface DigesterRecord {
+  id: string
+  factoryId: string
+  userId: string
+  date: Date
+  digesterName: string
+  durationSeconds: number
+  createdAt?: Date
+}
+
 export interface DailyProductionForecast {
   id: string
   factoryId: string
@@ -284,6 +294,7 @@ export interface DataContextType {
   downtimeRecords: DowntimeRecord[]
   steamControlRecords: SteamControlEntry[]
   boilerControlRecords: BoilerControlRecord[]
+  digesterRecords: DigesterRecord[]
   dailyForecasts: DailyProductionForecast[]
   returns: ReturnEntry[]
   latestInventory: SeboInventoryRecord[]
@@ -326,6 +337,9 @@ export interface DataContextType {
   addBoilerControlRecord: (entry: Omit<BoilerControlRecord, 'id'>) => void
   updateBoilerControlRecord: (entry: BoilerControlRecord) => void
   deleteBoilerControlRecord: (id: string) => void
+
+  addDigesterRecord: (entry: Omit<DigesterRecord, 'id' | 'createdAt'>) => void
+  deleteDigesterRecord: (id: string) => void
 
   saveDailyForecast: (
     date: Date,

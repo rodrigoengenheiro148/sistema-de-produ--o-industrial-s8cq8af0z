@@ -83,3 +83,36 @@ export function formatPercent(value: number, decimals = 2): string {
     }).format(value) + '%'
   )
 }
+
+/**
+ * Formats a duration in seconds to HH:MM:SS string
+ */
+export function formatSecondsAsTime(totalSeconds: number): string {
+  if (isNaN(totalSeconds) || totalSeconds <= 0) return '00:00:00'
+  const h = Math.floor(totalSeconds / 3600)
+    .toString()
+    .padStart(2, '0')
+  const m = Math.floor((totalSeconds % 3600) / 60)
+    .toString()
+    .padStart(2, '0')
+  const s = Math.floor(totalSeconds % 60)
+    .toString()
+    .padStart(2, '0')
+  return `${h}:${m}:${s}`
+}
+
+/**
+ * Parses a HH:MM or HH:MM:SS string to total seconds
+ */
+export function parseTimeAsSeconds(timeStr: string): number {
+  if (!timeStr) return 0
+  const parts = timeStr.split(':')
+  let seconds = 0
+  if (parts.length === 3) {
+    seconds =
+      parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2])
+  } else if (parts.length === 2) {
+    seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60
+  }
+  return isNaN(seconds) ? 0 : seconds
+}
