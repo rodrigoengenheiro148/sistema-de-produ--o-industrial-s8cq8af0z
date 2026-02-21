@@ -64739,7 +64739,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			return quantity;
 		};
 		const targetDate = referenceDate || /* @__PURE__ */ new Date();
-		const rawMaterialInputKg = rawMaterials.filter((r$2) => r$2.date && isValid(r$2.date) && isSameDay(r$2.date, targetDate) && r$2.type?.toLowerCase() !== "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
+		const rawMaterialInputKg = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate) && !isBloodRecord(p$1)).reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProduced = production.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
@@ -65142,7 +65142,6 @@ function LoadForecast({ referenceDate, className }) {
 	]);
 	const activeMpValue = forecastData.main;
 	const activeBloodValue = forecastData.blood;
-	const HOURS_IN_DAY = 24;
 	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const FIXED_FLOW_1450 = 5.8;
 	const FIXED_FLOW_1500 = 6;
@@ -65167,42 +65166,37 @@ function LoadForecast({ referenceDate, className }) {
 		farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
 		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
 	};
-	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data, isLiquid = false }) => {
+	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, isLiquid = false }) => {
 		const flow1450L = isLiquid ? FIXED_FLOW_1450 * 1e3 / SEBO_DENSITY$1 : 0;
 		const flow1500L = isLiquid ? FIXED_FLOW_1500 * 1e3 / SEBO_DENSITY$1 : 0;
 		const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY$1 : 0;
 		const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY$1 : 0;
 		const totalVolL = isLiquid ? data.estProdTons * 1e3 / SEBO_DENSITY$1 : 0;
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
+			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full"),
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: cn("p-4 flex items-center gap-3 border-b", bgClass),
+				className: cn("p-4 flex items-center gap-3", headerBgClass),
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: cn("p-2 rounded-full bg-white/90 shadow-sm", colorClass),
+					className: cn("p-2 rounded-full bg-white shadow-sm", colorClass),
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon$2, { className: "h-5 w-5" })
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "font-bold text-base",
+					className: "font-bold text-base text-[#111827]",
 					children: title
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "p-5 space-y-6 flex-1 flex flex-col justify-between",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "space-y-3",
+						className: "space-y-4",
 						children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3.5 w-3.5" }),
-									"Cadência (",
-									HOURS_IN_DAY,
-									"H)"
-								]
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3.5 w-3.5" }), "Cadência (24H)"]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid grid-cols-2 gap-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center",
+									className: "bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm",
 									children: [
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 											className: "text-[11px] text-muted-foreground font-medium mb-1",
@@ -65229,7 +65223,7 @@ function LoadForecast({ referenceDate, className }) {
 										})
 									]
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center",
+									className: "bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm",
 									children: [
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 											className: "text-[11px] text-muted-foreground font-medium mb-1",
@@ -65258,19 +65252,22 @@ function LoadForecast({ referenceDate, className }) {
 								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 bg-muted/20 py-1.5 rounded-md",
+								className: "text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 pt-1",
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-3.5 w-3.5" }),
 									" Cap. Teórica:",
 									" ",
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [MACHINE_CAPACITY_BAGS_DAY, " bags/dia"] })
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
+										className: "text-foreground",
+										children: [MACHINE_CAPACITY_BAGS_DAY, " bags/dia"]
+									})
 								]
 							})
 						]
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator, { className: "opacity-50" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator, { className: "opacity-50 my-2" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "space-y-3",
+						className: "space-y-4",
 						children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
@@ -65279,7 +65276,7 @@ function LoadForecast({ referenceDate, className }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid grid-cols-2 gap-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
+									className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
 									children: [
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
@@ -65299,7 +65296,7 @@ function LoadForecast({ referenceDate, className }) {
 										})
 									]
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: cn("flex flex-col items-center justify-center p-4 rounded-md border", bgClass.replace("border-", "border-opacity-50 ")),
+									className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
 									children: [
 										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
@@ -65321,7 +65318,7 @@ function LoadForecast({ referenceDate, className }) {
 								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-right text-muted-foreground font-medium mt-1",
+								className: "text-xs text-right text-muted-foreground font-medium pt-1",
 								children: [
 									"Est. Prod: ",
 									data.estProdTons.toFixed(1),
@@ -65343,69 +65340,69 @@ function LoadForecast({ referenceDate, className }) {
 			})]
 		});
 	};
-	const BloodForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, data, inputValue }) => {
+	const BloodForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, inputValue }) => {
 		const calculatedFlow = data.estProdTons > 0 ? data.estProdTons / 24 : 0;
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md"),
+			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full"),
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: cn("p-4 flex items-center gap-3 border-b", bgClass),
+				className: cn("p-4 flex items-center gap-3", headerBgClass),
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: cn("p-2 rounded-full bg-white/90 shadow-sm", colorClass),
+					className: cn("p-2 rounded-full bg-white shadow-sm", colorClass),
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon$2, { className: "h-5 w-5" })
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "font-bold text-base",
+					className: "font-bold text-base text-[#111827]",
 					children: title
 				})]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "p-5 space-y-6 flex-1 flex flex-col justify-between",
+				className: "p-5 flex-1 flex flex-col gap-6",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "space-y-4",
+					className: "space-y-6 flex-1 flex flex-col",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "bg-muted/30 p-3 rounded-md border border-border/40 flex justify-between items-center",
+							className: "bg-background p-3 rounded-md border flex justify-between items-center shadow-sm",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 								className: "text-xs font-medium text-muted-foreground uppercase",
 								children: "Previsão MP"
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-								className: "text-sm font-bold font-mono",
+								className: "text-sm font-bold font-mono text-foreground",
 								children: [(inputValue / 1e3).toFixed(1), "t"]
 							})]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "grid grid-cols-2 gap-3",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30",
+								className: "flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground font-bold uppercase mb-1",
-									children: "Fluxo (t/h)"
+									className: "text-[10px] text-muted-foreground font-bold uppercase mb-2",
+									children: "Fluxo (T/H)"
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-xl font-bold",
+									className: "text-2xl font-bold text-foreground",
 									children: calculatedFlow.toFixed(2)
 								})]
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30",
+								className: "flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground font-bold uppercase mb-1",
-									children: "Est. Prod (t)"
+									className: "text-[10px] text-muted-foreground font-bold uppercase mb-2",
+									children: "Est. Prod (T)"
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-xl font-bold",
+									className: "text-2xl font-bold text-foreground",
 									children: data.estProdTons.toFixed(1)
 								})]
 							})]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: cn("p-4 rounded-md border text-center", bgClass.replace("border-", "border-opacity-50 ")),
+							className: cn("p-6 rounded-md border text-center flex-1 flex flex-col justify-center items-center shadow-sm", bgClass),
 							children: [
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground font-bold uppercase block mb-1",
+									className: "text-xs text-muted-foreground font-bold uppercase block mb-2",
 									children: "Bags Estimados"
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: cn("text-3xl font-bold", colorClass),
+									className: cn("text-5xl font-bold my-2", colorClass),
 									children: data.bags1450
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground block mt-1",
+									className: "text-[11px] text-muted-foreground block mt-2",
 									children: "(Base 1400kg)"
 								})
 							]
@@ -65416,28 +65413,31 @@ function LoadForecast({ referenceDate, className }) {
 		});
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("shadow-sm border-primary/10", className),
+		className: cn("shadow-sm border-border", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
-			className: "pb-4",
+			className: "pb-6 border-b border-border/40 mb-6",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-5 w-5 text-primary" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Planejamento de Produção & Logística" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Package, { className: "h-6 w-6 text-[#166534]" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
+						className: "text-xl",
+						children: "Planejamento de Produção & Logística"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Previsão de bags baseada na entrada de matéria-prima do dia" })] })]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50",
+					className: "flex items-center gap-3 bg-muted/30 p-2 rounded-lg border border-border/50",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex flex-col px-2",
+						className: "flex flex-col px-3",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "text-[10px] uppercase font-bold text-muted-foreground tracking-wider",
 							children: "Previsão Total (Ind.)"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex items-baseline gap-1",
+							className: "flex items-baseline gap-1 mt-0.5",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-lg font-bold font-mono",
+								className: "text-xl font-bold font-mono text-foreground",
 								children: activeMpValue.toLocaleString("pt-BR")
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-xs text-muted-foreground",
+								className: "text-xs text-muted-foreground font-medium",
 								children: "kg"
 							})]
 						})]
@@ -65445,44 +65445,48 @@ function LoadForecast({ referenceDate, className }) {
 						asChild: true,
 						variant: "ghost",
 						size: "sm",
-						className: "h-8 gap-1 text-xs text-muted-foreground hover:text-primary",
+						className: "h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-transparent hover:border-border bg-white shadow-sm",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
 							to: "/gestao/previsao-mp",
-							children: ["Gerenciar", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-3 w-3" })]
+							children: ["Gerenciar", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowRight, { className: "h-3.5 w-3.5" })]
 						})
 					})]
 				})]
 			})
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "grid gap-6 md:grid-cols-2 lg:grid-cols-4",
+			className: "grid gap-6 md:grid-cols-2 lg:grid-cols-4 items-stretch",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Sebo",
 					icon: Droplets,
-					colorClass: "text-emerald-600 dark:text-emerald-400",
-					bgClass: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30",
+					colorClass: "text-emerald-600",
+					bgClass: "bg-[#eefcf2]/50 border-[#d1fadf]",
+					headerBgClass: "bg-[#eefcf2] border-b border-[#d1fadf]",
 					data: forecasts.sebo,
 					isLiquid: true
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Farinha (FCO)",
 					icon: Bone,
-					colorClass: "text-amber-600 dark:text-amber-400",
-					bgClass: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30",
+					colorClass: "text-amber-600",
+					bgClass: "bg-[#fffbeb]/50 border-[#fef3c7]",
+					headerBgClass: "bg-[#fffbeb] border-b border-[#fef3c7]",
 					data: forecasts.fco
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Farinheta",
 					icon: Wheat,
-					colorClass: "text-orange-600 dark:text-orange-400",
-					bgClass: "bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30",
+					colorClass: "text-orange-600",
+					bgClass: "bg-[#fff7ed]/50 border-[#ffedd5]",
+					headerBgClass: "bg-[#fff7ed] border-b border-[#ffedd5]",
 					data: forecasts.farinheta
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
 					title: "Farinha de Sangue",
 					icon: Droplet,
-					colorClass: "text-red-600 dark:text-red-400",
-					bgClass: "bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30",
+					colorClass: "text-red-600",
+					bgClass: "bg-[#fff1f2]/80 border-[#ffe4e6]",
+					headerBgClass: "bg-[#fff1f2] border-b border-[#ffe4e6]",
 					data: forecasts.sangue,
 					inputValue: activeBloodValue
 				})
@@ -65550,7 +65554,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 		return formatNumber(value);
 	};
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: `shadow-sm border-primary/10 ${className}`,
+		className: cn(`shadow-sm border-border`, className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado disponível."
@@ -65558,34 +65562,37 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	});
 	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
-		className: `${height} w-full`,
+		className: cn(`${height} w-full mt-4`),
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
 			data: chartData,
 			margin: {
-				top: 20,
-				right: 20,
+				top: 30,
+				right: 30,
 				left: 10,
-				bottom: 0
+				bottom: 20
 			},
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
 					vertical: false,
-					strokeDasharray: "3 3"
+					strokeDasharray: "3 3",
+					stroke: "#e5e7eb"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
 					dataKey: "date",
 					tickLine: false,
 					axisLine: false,
-					tickMargin: 8,
+					tickMargin: 12,
 					minTickGap: 32,
-					fontSize: isMobile ? 10 : 12
+					fontSize: isMobile ? 10 : 12,
+					tick: { fill: "#6b7280" }
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
 					tickLine: false,
 					axisLine: false,
 					width: isMobile ? 35 : 50,
 					tickFormatter: (value) => `${formatNumber(value / 1e3, { maximumFractionDigits: 0 })}k`,
-					fontSize: isMobile ? 10 : 12
+					fontSize: isMobile ? 10 : 12,
+					tick: { fill: "#6b7280" }
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
 					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
@@ -65610,31 +65617,12 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 						})
 					}),
 					cursor: {
-						stroke: "var(--muted-foreground)",
-						strokeWidth: 1
+						stroke: "#9ca3af",
+						strokeWidth: 1,
+						strokeDasharray: "3 3"
 					}
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
-					dataKey: "producao",
-					stroke: "var(--color-producao)",
-					strokeWidth: 3,
-					dot: false,
-					activeDot: {
-						r: 6,
-						fill: "var(--color-producao)"
-					},
-					animationDuration: 1e3,
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "producao",
-						position: "top",
-						offset: 12,
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 8 : 10,
-						formatter: formatValue$2
-					})
-				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 					type: "monotone",
 					dataKey: "mp",
@@ -65651,7 +65639,27 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 						position: "top",
 						offset: 12,
 						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 8 : 10,
+						fontSize: isMobile ? 8 : 11,
+						formatter: formatValue$2
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
+					dataKey: "producao",
+					stroke: "var(--color-producao)",
+					strokeWidth: 3,
+					dot: false,
+					activeDot: {
+						r: 6,
+						fill: "var(--color-producao)"
+					},
+					animationDuration: 1e3,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "producao",
+						position: "top",
+						offset: 12,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 8 : 11,
 						formatter: formatValue$2
 					})
 				})
@@ -65659,22 +65667,22 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 		})
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: `shadow-sm border-primary/10 ${className}`,
+		className: cn(`shadow-sm border-border flex flex-col`, className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-center justify-between space-y-0 pb-2",
+			className: "flex flex-row items-start justify-between space-y-0 pb-0",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "space-y-1",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-					className: "flex items-center gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-primary" }), "Análise de Produção"]
+					className: "flex items-center gap-2 text-xl",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-[#166534]" }), "Análise de Produção"]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 					variant: "ghost",
 					size: "icon",
-					className: "h-8 w-8",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "h-8 w-8 text-muted-foreground",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 						className: "sr-only",
 						children: "Expandir"
 					})]
@@ -65687,8 +65695,8 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				})]
 			})] })]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "pt-4 pl-0 sm:pl-2",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {})
+			className: "pt-2 pb-6 pl-0 sm:pl-2 flex-1 min-h-[300px]",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full min-h-[300px]" })
 		})]
 	});
 }
@@ -67175,15 +67183,15 @@ function YieldGaugeChart({ value, target, className }) {
 			color: "#10b981",
 			label: "SUPEROU A META",
 			gradient: "url(#gradient-success)",
-			textClass: "text-emerald-600",
-			bgClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+			textClass: "text-[#16a34a]",
+			bgClass: "bg-[#eefcf2] text-[#16a34a] border border-[#d1fadf]"
 		};
 		return {
 			color: "#ef4444",
 			label: "ABAIXO DA META",
 			gradient: "url(#gradient-danger)",
-			textClass: "text-red-500",
-			bgClass: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+			textClass: "text-red-600",
+			bgClass: "bg-red-50 text-red-600 border border-red-100"
 		};
 	};
 	const status = getStatus(value, target);
@@ -67206,9 +67214,9 @@ function YieldGaugeChart({ value, target, className }) {
 		color: status.color
 	} };
 	const ChartContent = () => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "relative flex flex-col items-center justify-center pt-2 w-full",
+		className: "relative flex flex-col items-center justify-center pt-6 w-full",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "relative w-full max-w-[280px] aspect-[2/1]",
+			className: "relative w-full max-w-[240px] aspect-[2/1]",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 					config: chartConfig$1,
@@ -67225,7 +67233,7 @@ function YieldGaugeChart({ value, target, className }) {
 								stopColor: "#34d399"
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 								offset: "100%",
-								stopColor: "#059669"
+								stopColor: "#10b981"
 							})]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
 							id: "gradient-danger",
@@ -67238,7 +67246,7 @@ function YieldGaugeChart({ value, target, className }) {
 								stopColor: "#f87171"
 							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
 								offset: "100%",
-								stopColor: "#dc2626"
+								stopColor: "#ef4444"
 							})]
 						})] }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pie, {
@@ -67247,12 +67255,12 @@ function YieldGaugeChart({ value, target, className }) {
 							cy: "100%",
 							startAngle: 180,
 							endAngle: 0,
-							innerRadius: "72%",
+							innerRadius: "75%",
 							outerRadius: "100%",
 							dataKey: "value",
 							stroke: "none",
 							isAnimationActive: false,
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: "hsl(var(--muted)/0.4)" })
+							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: "#f3f4f6" })
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Pie, {
 							data,
@@ -67260,13 +67268,13 @@ function YieldGaugeChart({ value, target, className }) {
 							cy: "100%",
 							startAngle: 180,
 							endAngle: 0,
-							innerRadius: "72%",
+							innerRadius: "75%",
 							outerRadius: "100%",
 							dataKey: "value",
 							stroke: "none",
-							cornerRadius: 6,
+							cornerRadius: 0,
 							paddingAngle: 0,
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: status.gradient }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: "transparent" })]
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: status.color }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: "transparent" })]
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip$1, { content: ({ active, payload }) => {
 							if (active && payload && payload.length) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -67305,61 +67313,69 @@ function YieldGaugeChart({ value, target, className }) {
 						} })
 					] })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "absolute bottom-0 left-1/2 w-0.5 h-[105%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out",
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "absolute bottom-0 left-1/2 w-[2px] h-[115%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out z-20",
 					style: { transform: `rotate(${targetAngle}deg)` },
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-foreground/80 translate-y-[-2px]" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-0.5 h-3 bg-foreground/30 mt-0.5" })]
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#6b7280]" })
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "absolute bottom-0 left-1/2 h-full w-[2px] pointer-events-none origin-bottom flex items-end justify-center transition-transform duration-1000 ease-out",
+					className: "absolute bottom-0 left-1/2 w-[1px] h-[100%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out z-10",
+					style: { transform: `rotate(${targetAngle}deg)` },
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-[1px] h-full bg-[#9ca3af]/40 border-r border-dashed" })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "absolute bottom-0 left-1/2 h-[98%] w-[2px] pointer-events-none origin-bottom flex items-end justify-center transition-transform duration-1000 ease-out z-30",
 					style: { transform: `rotate(${needleAngle}deg)` },
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "h-[95%] w-1.5 bg-foreground rounded-t-full shadow-lg relative",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-b from-foreground to-transparent opacity-50" })
-					})
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-full w-[3px] bg-[#111827] rounded-full shadow-sm" })
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "absolute bottom-0 left-1/2 w-4 h-4 -translate-x-1/2 translate-y-1/2 bg-foreground rounded-full border-[3px] border-background shadow-md z-10" }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "absolute bottom-1 left-1 text-[10px] font-medium text-muted-foreground/60 select-none",
+					className: "absolute bottom-0 left-1/2 w-4 h-4 -translate-x-1/2 translate-y-1/2 bg-[#111827] rounded-full shadow-sm z-40 flex items-center justify-center",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "w-1.5 h-1.5 bg-[#4b5563] rounded-full" })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "absolute bottom-[-10px] left-[-20px] text-xs font-medium text-muted-foreground/60 select-none",
 					children: "0%"
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "absolute bottom-1 right-1 text-[10px] font-medium text-muted-foreground/60 select-none",
+					className: "absolute bottom-[-10px] right-[-30px] text-xs font-medium text-muted-foreground/60 select-none",
 					children: "100%"
 				})
 			]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "mt-6 flex flex-col items-center z-10 text-center animate-fade-in-up",
+			className: "mt-12 flex flex-col items-center z-10 text-center animate-fade-in-up",
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 					className: cn("text-5xl font-bold tracking-tight transition-colors duration-500", status.textClass),
-					style: { textShadow: "0 4px 12px rgba(0,0,0,0.05)" },
 					children: [value.toFixed(2), "%"]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 mt-2 bg-muted/30 px-3 py-1 rounded-full border border-border/50",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Target, { className: "h-3.5 w-3.5 text-muted-foreground" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-						className: "text-sm font-medium text-muted-foreground",
-						children: ["Meta: ", /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-							className: "text-foreground",
-							children: [target.toFixed(1), "%"]
-						})]
+					className: "flex items-center gap-1.5 mt-3 bg-transparent px-3 py-1 rounded-full border border-border text-muted-foreground shadow-sm",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Target, { className: "h-3.5 w-3.5" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-sm font-medium",
+						children: [
+							"Meta:",
+							" ",
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-foreground font-bold",
+								children: [target.toFixed(1), "%"]
+							})
+						]
 					})]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: cn("mt-2 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded", status.bgClass),
+					className: cn("mt-3 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md shadow-sm", status.bgClass),
 					children: status.label
 				})
 			]
 		})]
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn("flex flex-col shadow-subtle hover:shadow-elevation transition-shadow duration-300 border-primary/5", className),
+		className: cn("flex flex-col shadow-sm border-border", className),
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border/40 bg-muted/10",
+			className: "flex flex-row items-center justify-between space-y-0 pb-2",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 				className: "flex items-center gap-2 text-base font-semibold",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4 text-primary" }), "Acelerômetro de Rendimento"]
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Gauge, { className: "h-4 w-4 text-[#166534]" }), "Acelerômetro de Rendimento"]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, {
 				className: "text-xs mt-1",
 				children: "Performance em tempo real (Máx 100%)"
@@ -67399,7 +67415,7 @@ function YieldGaugeChart({ value, target, className }) {
 				]
 			})] })]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "flex-1 flex items-center justify-center pt-6 pb-6",
+			className: "flex-1 flex items-center justify-center pt-2 pb-6",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {})
 		})]
 	});
@@ -72713,60 +72729,45 @@ function Dashboard() {
 								referenceDate: effectiveForecastDate
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid gap-4",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossesAnalysisChart, {
-									data: filteredProduction,
-									isMobile
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
-									data: filteredShipping,
-									productionData: filteredProduction,
-									rawMaterials: filteredRawMaterials,
-									allData: shipping,
-									allProductionData: production,
-									allRawMaterials: rawMaterials,
-									timeScale: "daily",
-									allClients: uniqueClients
+								className: "grid gap-4 md:grid-cols-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
+									value: currentYield,
+									target: yieldTarget,
+									className: "h-full"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "md:col-span-2 h-full",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
+										data: filteredProduction,
+										isMobile,
+										timeScale: "daily",
+										className: "h-full"
+									})
 								})]
 							}),
+							!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "space-y-4",
 								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-										className: "text-xl font-bold tracking-tight mt-8",
-										children: "Análise de Eficiência"
+									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarReciclagemInventoryChart, {
+										production: filteredProduction,
+										shipping: filteredShipping,
+										inventoryRecords: latestInventory
 									}),
-									!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
-									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "grid gap-4 md:grid-cols-2",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarReciclagemInventoryChart, {
-											production: filteredProduction,
-											shipping: filteredShipping,
-											inventoryRecords: latestInventory
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
-											value: currentYield,
-											target: yieldTarget,
-											className: "h-full"
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "grid gap-4",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossesAnalysisChart, {
+											data: filteredProduction,
+											isMobile
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
+											data: filteredShipping,
+											productionData: filteredProduction,
+											rawMaterials: filteredRawMaterials,
+											allData: shipping,
+											allProductionData: production,
+											allRawMaterials: rawMaterials,
+											timeScale: "daily",
+											allClients: uniqueClients
 										})]
-									}),
-									!isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-										className: "grid gap-4 md:grid-cols-3",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
-											value: currentYield,
-											target: yieldTarget,
-											className: "h-full"
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "md:col-span-2",
-											children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
-												data: filteredProduction,
-												isMobile,
-												timeScale: "daily"
-											})
-										})]
-									}),
-									isMarReciclagem && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
-										data: filteredProduction,
-										isMobile,
-										timeScale: "daily"
 									}),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialCompositionChart, {
 										data: filteredRawMaterials,
@@ -92300,4 +92301,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DcdacdA2.js.map
+//# sourceMappingURL=index-rwPysThC.js.map

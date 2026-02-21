@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
-import { isBloodRecord, formatNumber } from '@/lib/utils'
+import { isBloodRecord, formatNumber, cn } from '@/lib/utils'
 import { useData } from '@/context/DataContext'
 
 interface ProductionPerformanceChartProps {
@@ -119,11 +119,11 @@ export function ProductionPerformanceChart({
         label: isFarinorte
           ? 'Produção (Sebo + FCO)'
           : 'Produção Total (Industrial)',
-        color: '#166534',
+        color: '#166534', // dark green matching screenshot
       },
       mp: {
         label: 'MP Processada',
-        color: '#f59e0b',
+        color: '#f59e0b', // orange matching screenshot
       },
     }
 
@@ -139,7 +139,7 @@ export function ProductionPerformanceChart({
 
   if (!data || data.length === 0) {
     return (
-      <Card className={`shadow-sm border-primary/10 ${className}`}>
+      <Card className={cn(`shadow-sm border-border`, className)}>
         <CardHeader>
           <CardTitle>Análise de Produção</CardTitle>
           <CardDescription>
@@ -154,19 +154,27 @@ export function ProductionPerformanceChart({
   }
 
   const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
-    <ChartContainer config={chartConfig} className={`${height} w-full`}>
+    <ChartContainer
+      config={chartConfig}
+      className={cn(`${height} w-full mt-4`)}
+    >
       <LineChart
         data={chartData}
-        margin={{ top: 20, right: 20, left: 10, bottom: 0 }}
+        margin={{ top: 30, right: 30, left: 10, bottom: 20 }}
       >
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <CartesianGrid
+          vertical={false}
+          strokeDasharray="3 3"
+          stroke="#e5e7eb"
+        />
         <XAxis
           dataKey="date"
           tickLine={false}
           axisLine={false}
-          tickMargin={8}
+          tickMargin={12}
           minTickGap={32}
           fontSize={isMobile ? 10 : 12}
+          tick={{ fill: '#6b7280' }}
         />
         <YAxis
           tickLine={false}
@@ -176,6 +184,7 @@ export function ProductionPerformanceChart({
             `${formatNumber(value / 1000, { maximumFractionDigits: 0 })}k`
           }
           fontSize={isMobile ? 10 : 12}
+          tick={{ fill: '#6b7280' }}
         />
         <ChartTooltip
           content={
@@ -203,27 +212,11 @@ export function ProductionPerformanceChart({
               )}
             />
           }
-          cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
+          cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '3 3' }}
         />
         <ChartLegend content={<ChartLegendContent />} />
-        <Line
-          type="monotone"
-          dataKey="producao"
-          stroke="var(--color-producao)"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ r: 6, fill: 'var(--color-producao)' }}
-          animationDuration={1000}
-        >
-          <LabelList
-            dataKey="producao"
-            position="top"
-            offset={12}
-            className="fill-foreground font-bold"
-            fontSize={isMobile ? 8 : 10}
-            formatter={formatValue}
-          />
-        </Line>
+
+        {/* Render MP Processada (Orange) FIRST so it's beneath Produção Total */}
         <Line
           type="monotone"
           dataKey="mp"
@@ -238,7 +231,27 @@ export function ProductionPerformanceChart({
             position="top"
             offset={12}
             className="fill-foreground font-bold"
-            fontSize={isMobile ? 8 : 10}
+            fontSize={isMobile ? 8 : 11}
+            formatter={formatValue}
+          />
+        </Line>
+
+        {/* Render Produção Total (Green) on top */}
+        <Line
+          type="monotone"
+          dataKey="producao"
+          stroke="var(--color-producao)"
+          strokeWidth={3}
+          dot={false}
+          activeDot={{ r: 6, fill: 'var(--color-producao)' }}
+          animationDuration={1000}
+        >
+          <LabelList
+            dataKey="producao"
+            position="top"
+            offset={12}
+            className="fill-foreground font-bold"
+            fontSize={isMobile ? 8 : 11}
             formatter={formatValue}
           />
         </Line>
@@ -247,11 +260,11 @@ export function ProductionPerformanceChart({
   )
 
   return (
-    <Card className={`shadow-sm border-primary/10 ${className}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className={cn(`shadow-sm border-border flex flex-col`, className)}>
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-0">
         <div className="space-y-1">
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <TrendingUp className="h-5 w-5 text-[#166534]" />
             Análise de Produção
           </CardTitle>
           <CardDescription>
@@ -260,8 +273,12 @@ export function ProductionPerformanceChart({
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Maximize2 className="h-4 w-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+            >
+              <Maximize2 className="h-4 w-4" />
               <span className="sr-only">Expandir</span>
             </Button>
           </DialogTrigger>
@@ -279,8 +296,8 @@ export function ProductionPerformanceChart({
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent className="pt-4 pl-0 sm:pl-2">
-        <ChartContent />
+      <CardContent className="pt-2 pb-6 pl-0 sm:pl-2 flex-1 min-h-[300px]">
+        <ChartContent height="h-full min-h-[300px]" />
       </CardContent>
     </Card>
   )

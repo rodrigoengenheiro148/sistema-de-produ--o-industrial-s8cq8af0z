@@ -44,16 +44,15 @@ export function YieldGaugeChart({
         color: '#10b981', // emerald-500
         label: 'SUPEROU A META',
         gradient: 'url(#gradient-success)',
-        textClass: 'text-emerald-600',
-        bgClass:
-          'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+        textClass: 'text-[#16a34a]', // dark green text for center
+        bgClass: 'bg-[#eefcf2] text-[#16a34a] border border-[#d1fadf]', // matching screenshot styling for badge
       }
     return {
       color: '#ef4444', // red-500
       label: 'ABAIXO DA META',
       gradient: 'url(#gradient-danger)',
-      textClass: 'text-red-500',
-      bgClass: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      textClass: 'text-red-600',
+      bgClass: 'bg-red-50 text-red-600 border border-red-100',
     }
   }
 
@@ -86,9 +85,9 @@ export function YieldGaugeChart({
   } satisfies ChartConfig
 
   const ChartContent = () => (
-    <div className="relative flex flex-col items-center justify-center pt-2 w-full">
+    <div className="relative flex flex-col items-center justify-center pt-6 w-full">
       {/* Gauge Visual */}
-      <div className="relative w-full max-w-[280px] aspect-[2/1]">
+      <div className="relative w-full max-w-[240px] aspect-[2/1]">
         <ChartContainer
           config={chartConfig}
           className="h-full w-full absolute inset-0"
@@ -97,11 +96,11 @@ export function YieldGaugeChart({
             <defs>
               <linearGradient id="gradient-success" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#34d399" />
-                <stop offset="100%" stopColor="#059669" />
+                <stop offset="100%" stopColor="#10b981" />
               </linearGradient>
               <linearGradient id="gradient-danger" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#f87171" />
-                <stop offset="100%" stopColor="#dc2626" />
+                <stop offset="100%" stopColor="#ef4444" />
               </linearGradient>
             </defs>
             {/* Track Layer */}
@@ -111,13 +110,13 @@ export function YieldGaugeChart({
               cy="100%"
               startAngle={180}
               endAngle={0}
-              innerRadius="72%"
+              innerRadius="75%"
               outerRadius="100%"
               dataKey="value"
               stroke="none"
               isAnimationActive={false}
             >
-              <Cell fill="hsl(var(--muted)/0.4)" />
+              <Cell fill="#f3f4f6" />
             </Pie>
             {/* Value Layer */}
             <Pie
@@ -126,14 +125,14 @@ export function YieldGaugeChart({
               cy="100%"
               startAngle={180}
               endAngle={0}
-              innerRadius="72%"
+              innerRadius="75%"
               outerRadius="100%"
               dataKey="value"
               stroke="none"
-              cornerRadius={6}
+              cornerRadius={0}
               paddingAngle={0}
             >
-              <Cell fill={status.gradient} />
+              <Cell fill={status.color} />
               <Cell fill="transparent" />
             </Pie>
             <Tooltip
@@ -172,58 +171,67 @@ export function YieldGaugeChart({
           </PieChart>
         </ChartContainer>
 
-        {/* Target Indicator */}
+        {/* Target Indicator Triangle */}
         <div
-          className="absolute bottom-0 left-1/2 w-0.5 h-[105%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out"
+          className="absolute bottom-0 left-1/2 w-[2px] h-[115%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out z-20"
           style={{ transform: `rotate(${targetAngle}deg)` }}
         >
-          <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-foreground/80 translate-y-[-2px]" />
-          <div className="w-0.5 h-3 bg-foreground/30 mt-0.5" />
+          <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#6b7280]" />
         </div>
 
-        {/* Needle */}
+        {/* Target Line */}
         <div
-          className="absolute bottom-0 left-1/2 h-full w-[2px] pointer-events-none origin-bottom flex items-end justify-center transition-transform duration-1000 ease-out"
+          className="absolute bottom-0 left-1/2 w-[1px] h-[100%] bg-transparent pointer-events-none origin-bottom flex flex-col items-center justify-start transition-transform duration-700 ease-out z-10"
+          style={{ transform: `rotate(${targetAngle}deg)` }}
+        >
+          <div className="w-[1px] h-full bg-[#9ca3af]/40 border-r border-dashed" />
+        </div>
+
+        {/* Black Needle Line */}
+        <div
+          className="absolute bottom-0 left-1/2 h-[98%] w-[2px] pointer-events-none origin-bottom flex items-end justify-center transition-transform duration-1000 ease-out z-30"
           style={{ transform: `rotate(${needleAngle}deg)` }}
         >
-          <div className="h-[95%] w-1.5 bg-foreground rounded-t-full shadow-lg relative">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-gradient-to-b from-foreground to-transparent opacity-50" />
-          </div>
+          <div className="h-full w-[3px] bg-[#111827] rounded-full shadow-sm" />
         </div>
 
-        {/* Needle Pivot */}
-        <div className="absolute bottom-0 left-1/2 w-4 h-4 -translate-x-1/2 translate-y-1/2 bg-foreground rounded-full border-[3px] border-background shadow-md z-10" />
+        {/* Needle Center Pivot */}
+        <div className="absolute bottom-0 left-1/2 w-4 h-4 -translate-x-1/2 translate-y-1/2 bg-[#111827] rounded-full shadow-sm z-40 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 bg-[#4b5563] rounded-full" />
+        </div>
 
-        <div className="absolute bottom-1 left-1 text-[10px] font-medium text-muted-foreground/60 select-none">
+        <div className="absolute bottom-[-10px] left-[-20px] text-xs font-medium text-muted-foreground/60 select-none">
           0%
         </div>
-        <div className="absolute bottom-1 right-1 text-[10px] font-medium text-muted-foreground/60 select-none">
+        <div className="absolute bottom-[-10px] right-[-30px] text-xs font-medium text-muted-foreground/60 select-none">
           100%
         </div>
       </div>
 
       {/* Center Text Stats */}
-      <div className="mt-6 flex flex-col items-center z-10 text-center animate-fade-in-up">
+      <div className="mt-12 flex flex-col items-center z-10 text-center animate-fade-in-up">
         <span
           className={cn(
             'text-5xl font-bold tracking-tight transition-colors duration-500',
             status.textClass,
           )}
-          style={{ textShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
         >
           {value.toFixed(2)}%
         </span>
 
-        <div className="flex items-center gap-2 mt-2 bg-muted/30 px-3 py-1 rounded-full border border-border/50">
-          <Target className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Meta: <span className="text-foreground">{target.toFixed(1)}%</span>
+        <div className="flex items-center gap-1.5 mt-3 bg-transparent px-3 py-1 rounded-full border border-border text-muted-foreground shadow-sm">
+          <Target className="h-3.5 w-3.5" />
+          <span className="text-sm font-medium">
+            Meta:{' '}
+            <span className="text-foreground font-bold">
+              {target.toFixed(1)}%
+            </span>
           </span>
         </div>
 
         <div
           className={cn(
-            'mt-2 text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded',
+            'mt-3 text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md shadow-sm',
             status.bgClass,
           )}
         >
@@ -234,16 +242,11 @@ export function YieldGaugeChart({
   )
 
   return (
-    <Card
-      className={cn(
-        'flex flex-col shadow-subtle hover:shadow-elevation transition-shadow duration-300 border-primary/5',
-        className,
-      )}
-    >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b border-border/40 bg-muted/10">
+    <Card className={cn('flex flex-col shadow-sm border-border', className)}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Gauge className="h-4 w-4 text-primary" />
+            <Gauge className="h-4 w-4 text-[#166534]" />
             Acelerômetro de Rendimento
           </CardTitle>
           <CardDescription className="text-xs mt-1">
@@ -286,7 +289,7 @@ export function YieldGaugeChart({
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent className="flex-1 flex items-center justify-center pt-6 pb-6">
+      <CardContent className="flex-1 flex items-center justify-center pt-2 pb-6">
         <ChartContent />
       </CardContent>
     </Card>

@@ -355,6 +355,7 @@ export default function Dashboard() {
         </div>
 
         <TabsContent value="overview" className="space-y-6">
+          {/* 1. Top KPI Cards */}
           <OverviewCards
             rawMaterials={filteredRawMaterials}
             production={filteredProduction}
@@ -369,71 +370,54 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          <div className="grid gap-4">
-            <LossesAnalysisChart
-              data={filteredProduction}
-              isMobile={isMobile}
+          {/* 2. Middle Row: Gauge and Line Chart */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <YieldGaugeChart
+              value={currentYield}
+              target={yieldTarget}
+              className="h-full"
             />
-            <RevenueChart
-              data={filteredShipping}
-              productionData={filteredProduction}
-              rawMaterials={filteredRawMaterials}
-              allData={shipping}
-              allProductionData={production}
-              allRawMaterials={rawMaterials}
-              timeScale="daily"
-              allClients={uniqueClients}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold tracking-tight mt-8">
-              Análise de Eficiência
-            </h3>
-
-            {!isMarReciclagem && !isFarinorte && (
-              <LoadForecast referenceDate={effectiveForecastDate} />
-            )}
-
-            {isMarReciclagem && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <MarReciclagemInventoryChart
-                  production={filteredProduction}
-                  shipping={filteredShipping}
-                  inventoryRecords={latestInventory}
-                />
-                <YieldGaugeChart
-                  value={currentYield}
-                  target={yieldTarget}
-                  className="h-full"
-                />
-              </div>
-            )}
-
-            {!isMarReciclagem && (
-              <div className="grid gap-4 md:grid-cols-3">
-                <YieldGaugeChart
-                  value={currentYield}
-                  target={yieldTarget}
-                  className="h-full"
-                />
-                <div className="md:col-span-2">
-                  <ProductionPerformanceChart
-                    data={filteredProduction}
-                    isMobile={isMobile}
-                    timeScale="daily"
-                  />
-                </div>
-              </div>
-            )}
-
-            {isMarReciclagem && (
+            <div className="md:col-span-2 h-full">
               <ProductionPerformanceChart
                 data={filteredProduction}
                 isMobile={isMobile}
                 timeScale="daily"
+                className="h-full"
+              />
+            </div>
+          </div>
+
+          {/* 3. Planning Section */}
+          {!isMarReciclagem && !isFarinorte && (
+            <LoadForecast referenceDate={effectiveForecastDate} />
+          )}
+
+          {/* Rest of the charts */}
+          <div className="space-y-4">
+            {isMarReciclagem && (
+              <MarReciclagemInventoryChart
+                production={filteredProduction}
+                shipping={filteredShipping}
+                inventoryRecords={latestInventory}
               />
             )}
+
+            <div className="grid gap-4">
+              <LossesAnalysisChart
+                data={filteredProduction}
+                isMobile={isMobile}
+              />
+              <RevenueChart
+                data={filteredShipping}
+                productionData={filteredProduction}
+                rawMaterials={filteredRawMaterials}
+                allData={shipping}
+                allProductionData={production}
+                allRawMaterials={rawMaterials}
+                timeScale="daily"
+                allClients={uniqueClients}
+              />
+            </div>
 
             <RawMaterialCompositionChart
               data={filteredRawMaterials}

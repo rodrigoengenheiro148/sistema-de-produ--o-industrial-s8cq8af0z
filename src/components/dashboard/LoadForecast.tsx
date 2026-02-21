@@ -116,6 +116,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     icon: Icon,
     colorClass,
     bgClass,
+    headerBgClass,
     data,
     isLiquid = false,
   }: {
@@ -123,6 +124,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     icon: any
     colorClass: string
     bgClass: string
+    headerBgClass: string
     data: {
       estProdTons: number
       bags1450: number
@@ -142,28 +144,28 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     return (
       <div
         className={cn(
-          'rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md',
+          'rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full',
         )}
       >
         {/* Header */}
-        <div className={cn('p-4 flex items-center gap-3 border-b', bgClass)}>
+        <div className={cn('p-4 flex items-center gap-3', headerBgClass)}>
           <div
-            className={cn('p-2 rounded-full bg-white/90 shadow-sm', colorClass)}
+            className={cn('p-2 rounded-full bg-white shadow-sm', colorClass)}
           >
             <Icon className="h-5 w-5" />
           </div>
-          <span className="font-bold text-base">{title}</span>
+          <span className="font-bold text-base text-[#111827]">{title}</span>
         </div>
 
         <div className="p-5 space-y-6 flex-1 flex flex-col justify-between">
           {/* Cadence Section - using FIXED FLOW rates */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               <Clock className="h-3.5 w-3.5" />
-              Cadência ({HOURS_IN_DAY}H)
+              Cadência (24H)
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center">
+              <div className="bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm">
                 <div className="text-[11px] text-muted-foreground font-medium mb-1">
                   Vazão 1450kg
                 </div>
@@ -182,7 +184,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                   </div>
                 )}
               </div>
-              <div className="bg-muted/30 p-3 rounded-md border border-border/40 text-center flex flex-col justify-center">
+              <div className="bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm">
                 <div className="text-[11px] text-muted-foreground font-medium mb-1">
                   Vazão 1500kg
                 </div>
@@ -202,16 +204,18 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                 )}
               </div>
             </div>
-            <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 bg-muted/20 py-1.5 rounded-md">
+            <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
               <Info className="h-3.5 w-3.5" /> Cap. Teórica:{' '}
-              <strong>{MACHINE_CAPACITY_BAGS_DAY} bags/dia</strong>
+              <strong className="text-foreground">
+                {MACHINE_CAPACITY_BAGS_DAY} bags/dia
+              </strong>
             </div>
           </div>
 
-          <Separator className="opacity-50" />
+          <Separator className="opacity-50 my-2" />
 
           {/* Daily Forecast Section */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
               <Scale className="h-3.5 w-3.5" />
               Previsão Hoje (Bags)
@@ -219,8 +223,8 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             <div className="grid grid-cols-2 gap-3">
               <div
                 className={cn(
-                  'flex flex-col items-center justify-center p-4 rounded-md border',
-                  bgClass.replace('border-', 'border-opacity-50 '),
+                  'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
+                  bgClass,
                 )}
               >
                 <span
@@ -245,8 +249,8 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
               </div>
               <div
                 className={cn(
-                  'flex flex-col items-center justify-center p-4 rounded-md border',
-                  bgClass.replace('border-', 'border-opacity-50 '),
+                  'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
+                  bgClass,
                 )}
               >
                 <span
@@ -270,7 +274,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                 )}
               </div>
             </div>
-            <div className="text-xs text-right text-muted-foreground font-medium mt-1">
+            <div className="text-xs text-right text-muted-foreground font-medium pt-1">
               Est. Prod: {data.estProdTons.toFixed(1)}t
               {isLiquid && (
                 <span className="ml-1 text-emerald-600">
@@ -288,12 +292,13 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     )
   }
 
-  // Specialized Card for Blood Meal with simplified metrics
+  // Specialized Card for Blood Meal with simplified metrics matching screenshot
   const BloodForecastCard = ({
     title,
     icon: Icon,
     colorClass,
     bgClass,
+    headerBgClass,
     data,
     inputValue,
   }: {
@@ -301,6 +306,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     icon: any
     colorClass: string
     bgClass: string
+    headerBgClass: string
     data: { estProdTons: number; bags1450: number }
     inputValue: number
   }) => {
@@ -310,43 +316,43 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     return (
       <div
         className={cn(
-          'rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md',
+          'rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full',
         )}
       >
-        <div className={cn('p-4 flex items-center gap-3 border-b', bgClass)}>
+        <div className={cn('p-4 flex items-center gap-3', headerBgClass)}>
           <div
-            className={cn('p-2 rounded-full bg-white/90 shadow-sm', colorClass)}
+            className={cn('p-2 rounded-full bg-white shadow-sm', colorClass)}
           >
             <Icon className="h-5 w-5" />
           </div>
-          <span className="font-bold text-base">{title}</span>
+          <span className="font-bold text-base text-[#111827]">{title}</span>
         </div>
 
-        <div className="p-5 space-y-6 flex-1 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="bg-muted/30 p-3 rounded-md border border-border/40 flex justify-between items-center">
+        <div className="p-5 flex-1 flex flex-col gap-6">
+          <div className="space-y-6 flex-1 flex flex-col">
+            <div className="bg-background p-3 rounded-md border flex justify-between items-center shadow-sm">
               <span className="text-xs font-medium text-muted-foreground uppercase">
                 Previsão MP
               </span>
-              <span className="text-sm font-bold font-mono">
+              <span className="text-sm font-bold font-mono text-foreground">
                 {(inputValue / 1000).toFixed(1)}t
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-1">
-                  Fluxo (t/h)
+              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-2">
+                  Fluxo (T/H)
                 </span>
-                <span className="text-xl font-bold">
+                <span className="text-2xl font-bold text-foreground">
                   {calculatedFlow.toFixed(2)}
                 </span>
               </div>
-              <div className="flex flex-col items-center p-3 rounded-md bg-muted/20 border border-border/30">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-1">
-                  Est. Prod (t)
+              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-2">
+                  Est. Prod (T)
                 </span>
-                <span className="text-xl font-bold">
+                <span className="text-2xl font-bold text-foreground">
                   {data.estProdTons.toFixed(1)}
                 </span>
               </div>
@@ -354,17 +360,17 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
 
             <div
               className={cn(
-                'p-4 rounded-md border text-center',
-                bgClass.replace('border-', 'border-opacity-50 '),
+                'p-6 rounded-md border text-center flex-1 flex flex-col justify-center items-center shadow-sm',
+                bgClass,
               )}
             >
-              <span className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">
+              <span className="text-xs text-muted-foreground font-bold uppercase block mb-2">
                 Bags Estimados
               </span>
-              <span className={cn('text-3xl font-bold', colorClass)}>
+              <span className={cn('text-5xl font-bold my-2', colorClass)}>
                 {data.bags1450}
               </span>
-              <span className="text-[10px] text-muted-foreground block mt-1">
+              <span className="text-[11px] text-muted-foreground block mt-2">
                 (Base 1400kg)
               </span>
             </div>
@@ -375,29 +381,33 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
   }
 
   return (
-    <Card className={cn('shadow-sm border-primary/10', className)}>
-      <CardHeader className="pb-4">
+    <Card className={cn('shadow-sm border-border', className)}>
+      <CardHeader className="pb-6 border-b border-border/40 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
+            <Package className="h-6 w-6 text-[#166534]" />
             <div>
-              <CardTitle>Planejamento de Produção & Logística</CardTitle>
+              <CardTitle className="text-xl">
+                Planejamento de Produção & Logística
+              </CardTitle>
               <CardDescription>
                 Previsão de bags baseada na entrada de matéria-prima do dia
               </CardDescription>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-muted/30 p-2 rounded-lg border border-border/50">
-            <div className="flex flex-col px-2">
+          <div className="flex items-center gap-3 bg-muted/30 p-2 rounded-lg border border-border/50">
+            <div className="flex flex-col px-3">
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                 Previsão Total (Ind.)
               </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold font-mono">
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-xl font-bold font-mono text-foreground">
                   {activeMpValue.toLocaleString('pt-BR')}
                 </span>
-                <span className="text-xs text-muted-foreground">kg</span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  kg
+                </span>
               </div>
             </div>
 
@@ -405,45 +415,49 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
               asChild
               variant="ghost"
               size="sm"
-              className="h-8 gap-1 text-xs text-muted-foreground hover:text-primary"
+              className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-transparent hover:border-border bg-white shadow-sm"
             >
               <Link to="/gestao/previsao-mp">
                 Gerenciar
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 items-stretch">
           <ForecastCard
             title="Sebo"
             icon={Droplets}
-            colorClass="text-emerald-600 dark:text-emerald-400"
-            bgClass="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30"
+            colorClass="text-emerald-600"
+            bgClass="bg-[#eefcf2]/50 border-[#d1fadf]"
+            headerBgClass="bg-[#eefcf2] border-b border-[#d1fadf]"
             data={forecasts.sebo}
             isLiquid={true}
           />
           <ForecastCard
             title="Farinha (FCO)"
             icon={Bone}
-            colorClass="text-amber-600 dark:text-amber-400"
-            bgClass="bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30"
+            colorClass="text-amber-600"
+            bgClass="bg-[#fffbeb]/50 border-[#fef3c7]"
+            headerBgClass="bg-[#fffbeb] border-b border-[#fef3c7]"
             data={forecasts.fco}
           />
           <ForecastCard
             title="Farinheta"
             icon={Wheat}
-            colorClass="text-orange-600 dark:text-orange-400"
-            bgClass="bg-orange-50 dark:bg-orange-900/20 border-orange-100 dark:border-orange-800/30"
+            colorClass="text-orange-600"
+            bgClass="bg-[#fff7ed]/50 border-[#ffedd5]"
+            headerBgClass="bg-[#fff7ed] border-b border-[#ffedd5]"
             data={forecasts.farinheta}
           />
           <BloodForecastCard
             title="Farinha de Sangue"
             icon={Droplet}
-            colorClass="text-red-600 dark:text-red-400"
-            bgClass="bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-800/30"
+            colorClass="text-red-600"
+            bgClass="bg-[#fff1f2]/80 border-[#ffe4e6]"
+            headerBgClass="bg-[#fff1f2] border-b border-[#ffe4e6]"
             data={forecasts.sangue}
             inputValue={activeBloodValue}
           />
