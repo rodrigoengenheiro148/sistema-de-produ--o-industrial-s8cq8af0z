@@ -64739,7 +64739,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			return quantity;
 		};
 		const targetDate = referenceDate || /* @__PURE__ */ new Date();
-		const rawMaterialInputKg = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate) && !isBloodRecord(p$1)).reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const rawMaterialInputKg = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate)).reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProduced = production.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
 		const farinhetaProduced = production.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
@@ -65142,7 +65142,6 @@ function LoadForecast({ referenceDate, className }) {
 	]);
 	const activeMpValue = forecastData.main;
 	const activeBloodValue = forecastData.blood;
-	const MACHINE_CAPACITY_BAGS_DAY = 96;
 	const FIXED_FLOW_1450 = 5.8;
 	const FIXED_FLOW_1500 = 6;
 	const SEBO_DENSITY$1 = .9;
@@ -65156,6 +65155,7 @@ function LoadForecast({ referenceDate, className }) {
 		const estProdKg = inputVal * yieldFactor;
 		return {
 			estProdTons: estProdKg / 1e3,
+			bags1400: Math.floor(estProdKg / 1400),
 			bags1450: Math.floor(estProdKg / 1450),
 			bags1500: Math.floor(estProdKg / 1500)
 		};
@@ -65166,11 +65166,10 @@ function LoadForecast({ referenceDate, className }) {
 		farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
 		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
 	};
-	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, isLiquid = false }) => {
-		const flow1450L = isLiquid ? FIXED_FLOW_1450 * 1e3 / SEBO_DENSITY$1 : 0;
-		const flow1500L = isLiquid ? FIXED_FLOW_1500 * 1e3 / SEBO_DENSITY$1 : 0;
-		const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY$1 : 0;
-		const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY$1 : 0;
+	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, bagSizes, flowRates, isLiquid = false }) => {
+		const isSingleBagSize = bagSizes[0] === bagSizes[1];
+		const flow1L = isLiquid ? flowRates[0] * 1e3 / SEBO_DENSITY$1 : 0;
+		const flow2L = isLiquid ? flowRates[1] * 1e3 / SEBO_DENSITY$1 : 0;
 		const totalVolL = isLiquid ? data.estProdTons * 1e3 / SEBO_DENSITY$1 : 0;
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full"),
@@ -65187,228 +65186,128 @@ function LoadForecast({ referenceDate, className }) {
 				className: "p-5 space-y-6 flex-1 flex flex-col justify-between",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "space-y-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3.5 w-3.5" }), "Cadência (24H)"]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid grid-cols-2 gap-3",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm",
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "text-[11px] text-muted-foreground font-medium mb-1",
-											children: "Vazão 1450kg"
-										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "text-base font-bold text-foreground",
-											children: [
-												FIXED_FLOW_1450.toFixed(2),
-												" ",
-												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-xs font-normal text-muted-foreground",
-													children: "t/h"
-												})
-											]
-										}),
-										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "text-xs font-semibold text-emerald-600 mt-1",
-											children: [
-												flow1450L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-												" ",
-												"L/h"
-											]
-										})
-									]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: "bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm",
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "text-[11px] text-muted-foreground font-medium mb-1",
-											children: "Vazão 1500kg"
-										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "text-base font-bold text-foreground",
-											children: [
-												FIXED_FLOW_1500.toFixed(2),
-												" ",
-												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-xs font-normal text-muted-foreground",
-													children: "t/h"
-												})
-											]
-										}),
-										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-											className: "text-xs font-semibold text-emerald-600 mt-1",
-											children: [
-												flow1500L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-												" ",
-												"L/h"
-											]
-										})
-									]
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 pt-1",
+						className: "flex justify-between items-center bg-background p-3 rounded-md border shadow-sm",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "text-xs font-medium text-muted-foreground uppercase",
+							children: "Est. Prod (Hoje)"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-sm font-bold text-foreground",
+								children: [data.estProdTons.toFixed(1), "t"]
+							}), isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-xs font-semibold text-emerald-600",
 								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Info, { className: "h-3.5 w-3.5" }),
-									" Cap. Teórica:",
+									"(",
+									totalVolL.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
 									" ",
-									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", {
-										className: "text-foreground",
-										children: [MACHINE_CAPACITY_BAGS_DAY, " bags/dia"]
+									"L)"
+								]
+							})]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "space-y-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-3.5 w-3.5" }), "Cadência (kg/h)"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "grid grid-cols-2 gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: cn("bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm", isSingleBagSize && "col-span-2"),
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-[11px] text-muted-foreground font-medium mb-1",
+										children: [
+											"Vazão ",
+											bagSizes[0],
+											"kg"
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-base font-bold text-foreground",
+										children: [
+											(flowRates[0] * 1e3).toFixed(0),
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-xs font-normal text-muted-foreground",
+												children: "kg/h"
+											})
+										]
+									}),
+									isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs font-semibold text-emerald-600 mt-1",
+										children: [
+											flow1L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+											" ",
+											"L/h"
+										]
 									})
 								]
-							})
-						]
+							}), !isSingleBagSize && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-[11px] text-muted-foreground font-medium mb-1",
+										children: [
+											"Vazão ",
+											bagSizes[1],
+											"kg"
+										]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-base font-bold text-foreground",
+										children: [
+											(flowRates[1] * 1e3).toFixed(0),
+											" ",
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "text-xs font-normal text-muted-foreground",
+												children: "kg/h"
+											})
+										]
+									}),
+									isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+										className: "text-xs font-semibold text-emerald-600 mt-1",
+										children: [
+											flow2L.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
+											" ",
+											"L/h"
+										]
+									})
+								]
+							})]
+						})]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Separator, { className: "opacity-50 my-2" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "space-y-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-3.5 w-3.5" }), "Previsão Hoje (Bags)"]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid grid-cols-2 gap-3",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-											children: data.bags1450
-										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
-											children: "1450KG"
-										}),
-										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-											className: "text-[10px] text-emerald-600 font-bold mt-1",
-											children: [
-												unitVol1450.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-												" ",
-												"L"
-											]
-										})
-									]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-									className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
-									children: [
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-											children: data.bags1500
-										}),
-										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-											className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
-											children: "1500KG"
-										}),
-										isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-											className: "text-[10px] text-emerald-600 font-bold mt-1",
-											children: [
-												unitVol1500.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-												" ",
-												"L"
-											]
-										})
-									]
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "text-xs text-right text-muted-foreground font-medium pt-1",
-								children: [
-									"Est. Prod: ",
-									data.estProdTons.toFixed(1),
-									"t",
-									isLiquid && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-										className: "ml-1 text-emerald-600",
-										children: [
-											"(",
-											totalVolL.toLocaleString("pt-BR", { maximumFractionDigits: 0 }),
-											" ",
-											"L)"
-										]
-									})
-								]
-							})
-						]
-					})
-				]
-			})]
-		});
-	};
-	const BloodForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, inputValue }) => {
-		const calculatedFlow = data.estProdTons > 0 ? data.estProdTons / 24 : 0;
-		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: cn("rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full"),
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: cn("p-4 flex items-center gap-3", headerBgClass),
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: cn("p-2 rounded-full bg-white shadow-sm", colorClass),
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon$2, { className: "h-5 w-5" })
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-					className: "font-bold text-base text-[#111827]",
-					children: title
-				})]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "p-5 flex-1 flex flex-col gap-6",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "space-y-6 flex-1 flex flex-col",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "bg-background p-3 rounded-md border flex justify-between items-center shadow-sm",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-xs font-medium text-muted-foreground uppercase",
-								children: "Previsão MP"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-								className: "text-sm font-bold font-mono text-foreground",
-								children: [(inputValue / 1e3).toFixed(1), "t"]
-							})]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scale, { className: "h-3.5 w-3.5" }), "Previsão 7 Dias (Bags)"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "grid grid-cols-2 gap-3",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm",
+								className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass, isSingleBagSize && "col-span-2"),
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground font-bold uppercase mb-2",
-									children: "Fluxo (T/H)"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-2xl font-bold text-foreground",
-									children: calculatedFlow.toFixed(2)
+									className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
+									children: data.bags1 * 7
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
+									children: [bagSizes[0], "KG"]
 								})]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm",
+							}), !isSingleBagSize && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[10px] text-muted-foreground font-bold uppercase mb-2",
-									children: "Est. Prod (T)"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-2xl font-bold text-foreground",
-									children: data.estProdTons.toFixed(1)
+									className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
+									children: data.bags2 * 7
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
+									children: [bagSizes[1], "KG"]
 								})]
 							})]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: cn("p-6 rounded-md border text-center flex-1 flex flex-col justify-center items-center shadow-sm", bgClass),
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-xs text-muted-foreground font-bold uppercase block mb-2",
-									children: "Bags Estimados"
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: cn("text-5xl font-bold my-2", colorClass),
-									children: data.bags1450
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-[11px] text-muted-foreground block mt-2",
-									children: "(Base 1400kg)"
-								})
-							]
-						})
-					]
-				})
+						})]
+					})
+				]
 			})]
 		});
 	};
@@ -65462,7 +65361,13 @@ function LoadForecast({ referenceDate, className }) {
 					colorClass: "text-emerald-600",
 					bgClass: "bg-[#eefcf2]/50 border-[#d1fadf]",
 					headerBgClass: "bg-[#eefcf2] border-b border-[#d1fadf]",
-					data: forecasts.sebo,
+					data: {
+						estProdTons: forecasts.sebo.estProdTons,
+						bags1: forecasts.sebo.bags1450,
+						bags2: forecasts.sebo.bags1500
+					},
+					bagSizes: [1450, 1500],
+					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500],
 					isLiquid: true
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
@@ -65471,7 +65376,13 @@ function LoadForecast({ referenceDate, className }) {
 					colorClass: "text-amber-600",
 					bgClass: "bg-[#fffbeb]/50 border-[#fef3c7]",
 					headerBgClass: "bg-[#fffbeb] border-b border-[#fef3c7]",
-					data: forecasts.fco
+					data: {
+						estProdTons: forecasts.fco.estProdTons,
+						bags1: forecasts.fco.bags1450,
+						bags2: forecasts.fco.bags1500
+					},
+					bagSizes: [1450, 1500],
+					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Farinheta",
@@ -65479,16 +65390,27 @@ function LoadForecast({ referenceDate, className }) {
 					colorClass: "text-orange-600",
 					bgClass: "bg-[#fff7ed]/50 border-[#ffedd5]",
 					headerBgClass: "bg-[#fff7ed] border-b border-[#ffedd5]",
-					data: forecasts.farinheta
+					data: {
+						estProdTons: forecasts.farinheta.estProdTons,
+						bags1: forecasts.farinheta.bags1450,
+						bags2: forecasts.farinheta.bags1500
+					},
+					bagSizes: [1450, 1500],
+					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500]
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(BloodForecastCard, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
 					title: "Farinha de Sangue",
 					icon: Droplet,
 					colorClass: "text-red-600",
-					bgClass: "bg-[#fff1f2]/80 border-[#ffe4e6]",
+					bgClass: "bg-[#fff1f2] border-[#ffe4e6]",
 					headerBgClass: "bg-[#fff1f2] border-b border-[#ffe4e6]",
-					data: forecasts.sangue,
-					inputValue: activeBloodValue
+					data: {
+						estProdTons: forecasts.sangue.estProdTons,
+						bags1: forecasts.sangue.bags1400,
+						bags2: forecasts.sangue.bags1400
+					},
+					bagSizes: [1400, 1400],
+					flowRates: [5.8, 5.8]
 				})
 			]
 		}) })]
@@ -65539,7 +65461,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				},
 				mp: {
 					label: "MP Processada",
-					color: "#f59e0b"
+					color: "#f97316"
 				}
 			}
 		};
@@ -65563,7 +65485,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: cn(`${height} w-full mt-4`),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
 			data: chartData,
 			margin: {
 				top: 30,
@@ -65595,6 +65517,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 					tick: { fill: "#6b7280" }
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+					cursor: { fill: "hsl(var(--muted)/0.4)" },
 					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
 						indicator: "line",
 						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value,
@@ -65615,25 +65538,18 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 								})
 							]
 						})
-					}),
-					cursor: {
-						stroke: "#9ca3af",
-						strokeWidth: 1,
-						strokeDasharray: "3 3"
-					}
+					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: "mp",
-					stroke: "var(--color-mp)",
-					strokeWidth: 3,
-					dot: false,
-					activeDot: {
-						r: 6,
-						fill: "var(--color-mp)"
-					},
-					animationDuration: 1e3,
+					fill: "var(--color-mp)",
+					radius: [
+						4,
+						4,
+						0,
+						0
+					],
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "mp",
 						position: "top",
@@ -65643,17 +65559,15 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 						formatter: formatValue$2
 					})
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: "producao",
-					stroke: "var(--color-producao)",
-					strokeWidth: 3,
-					dot: false,
-					activeDot: {
-						r: 6,
-						fill: "var(--color-producao)"
-					},
-					animationDuration: 1e3,
+					fill: "var(--color-producao)",
+					radius: [
+						4,
+						4,
+						0,
+						0
+					],
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "producao",
 						position: "top",
@@ -72581,9 +72495,8 @@ function Dashboard() {
 	const avgFarinhetaAcidity = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhetaQuality.length : 0;
 	const avgFarinhetaProtein = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhetaQuality.length : 0;
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
-		const industrialRecords = filteredProduction.filter((p$1) => !isBloodRecord(p$1));
-		const totalMp = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const totalProduced = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0), 0);
+		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
+		const totalProduced = filteredProduction.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
 			yieldTarget: notificationSettings?.yieldThreshold || 58
@@ -92301,4 +92214,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-rwPysThC.js.map
+//# sourceMappingURL=index-BNp30huZ.js.map

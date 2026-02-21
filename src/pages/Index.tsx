@@ -171,16 +171,12 @@ export default function Dashboard() {
       : 0
 
   const { currentYield, yieldTarget } = useMemo(() => {
-    const industrialRecords = filteredProduction.filter(
-      (p) => !isBloodRecord(p),
-    )
-
-    const totalMp = industrialRecords.reduce(
+    const totalMp = filteredProduction.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
-    const totalProduced = industrialRecords.reduce(
+    const totalProduced = filteredProduction.reduce(
       (acc, curr) =>
         acc +
         curr.seboProduced +
@@ -188,7 +184,10 @@ export default function Dashboard() {
         (isFarinorte ? 0 : curr.farinhetaProduced) +
         (curr.viscerasMealProduced || 0) +
         (curr.featherMealProduced || 0) +
-        (curr.viscerasOilProduced || 0),
+        (curr.viscerasOilProduced || 0) +
+        (curr.bloodMealBags && curr.bloodMealBags > 0
+          ? curr.bloodMealBags * 1400
+          : curr.bloodMealProduced || 0),
       0,
     )
 
@@ -370,7 +369,7 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {/* 2. Middle Row: Gauge and Line Chart */}
+          {/* 2. Middle Row: Gauge and Bar Chart */}
           <div className="grid gap-4 md:grid-cols-3">
             <YieldGaugeChart
               value={currentYield}

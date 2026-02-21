@@ -15,7 +15,6 @@ import {
   Bone,
   Wheat,
   Scale,
-  Info,
   ArrowRight,
   Droplet,
 } from 'lucide-react'
@@ -68,14 +67,9 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
   const activeMpValue = forecastData.main
   const activeBloodValue = forecastData.blood
 
-  // Constants
-  const HOURS_IN_DAY = 24
-  // Fixed Machine Limit / Cycle
-  const MACHINE_CAPACITY_BAGS_DAY = 96 // 4 bags/h * 24h
-
-  // Fixed Flow Rates (Vazão) per bag type
-  const FIXED_FLOW_1450 = 5.8 // t/h
-  const FIXED_FLOW_1500 = 6.0 // t/h
+  // Fixed Flow Rates (Vazão) per bag type (Ton/h)
+  const FIXED_FLOW_1450 = 5.8
+  const FIXED_FLOW_1500 = 6.0
 
   // Density for Sebo (kg/L)
   const SEBO_DENSITY = 0.9
@@ -94,11 +88,13 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     const estProdTons = estProdKg / 1000
 
     // Bags calculation based on ESTIMATED PRODUCTION
+    const bags1400 = Math.floor(estProdKg / 1400) // For blood
     const bags1450 = Math.floor(estProdKg / 1450)
     const bags1500 = Math.floor(estProdKg / 1500)
 
     return {
       estProdTons,
+      bags1400,
       bags1450,
       bags1500,
     }
@@ -118,6 +114,8 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     bgClass,
     headerBgClass,
     data,
+    bagSizes,
+    flowRates,
     isLiquid = false,
   }: {
     title: string
@@ -127,17 +125,18 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     headerBgClass: string
     data: {
       estProdTons: number
-      bags1450: number
-      bags1500: number
+      bags1: number
+      bags2: number
     }
+    bagSizes: [number, number]
+    flowRates: [number, number]
     isLiquid?: boolean
   }) => {
-    // Calculate liquid metrics if applicable
-    const flow1450L = isLiquid ? (FIXED_FLOW_1450 * 1000) / SEBO_DENSITY : 0
-    const flow1500L = isLiquid ? (FIXED_FLOW_1500 * 1000) / SEBO_DENSITY : 0
+    const isSingleBagSize = bagSizes[0] === bagSizes[1]
 
-    const unitVol1450 = isLiquid ? 1450 / SEBO_DENSITY : 0
-    const unitVol1500 = isLiquid ? 1500 / SEBO_DENSITY : 0
+    // Calculate liquid metrics if applicable
+    const flow1L = isLiquid ? (flowRates[0] * 1000) / SEBO_DENSITY : 0
+    const flow2L = isLiquid ? (flowRates[1] * 1000) / SEBO_DENSITY : 0
 
     const totalVolL = isLiquid ? (data.estProdTons * 1000) / SEBO_DENSITY : 0
 
@@ -158,126 +157,16 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
         </div>
 
         <div className="p-5 space-y-6 flex-1 flex flex-col justify-between">
-          {/* Cadence Section - using FIXED FLOW rates */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              <Clock className="h-3.5 w-3.5" />
-              Cadência (24H)
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm">
-                <div className="text-[11px] text-muted-foreground font-medium mb-1">
-                  Vazão 1450kg
-                </div>
-                <div className="text-base font-bold text-foreground">
-                  {FIXED_FLOW_1450.toFixed(2)}{' '}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    t/h
-                  </span>
-                </div>
-                {isLiquid && (
-                  <div className="text-xs font-semibold text-emerald-600 mt-1">
-                    {flow1450L.toLocaleString('pt-BR', {
-                      maximumFractionDigits: 0,
-                    })}{' '}
-                    L/h
-                  </div>
-                )}
-              </div>
-              <div className="bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm">
-                <div className="text-[11px] text-muted-foreground font-medium mb-1">
-                  Vazão 1500kg
-                </div>
-                <div className="text-base font-bold text-foreground">
-                  {FIXED_FLOW_1500.toFixed(2)}{' '}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    t/h
-                  </span>
-                </div>
-                {isLiquid && (
-                  <div className="text-xs font-semibold text-emerald-600 mt-1">
-                    {flow1500L.toLocaleString('pt-BR', {
-                      maximumFractionDigits: 0,
-                    })}{' '}
-                    L/h
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5 pt-1">
-              <Info className="h-3.5 w-3.5" /> Cap. Teórica:{' '}
-              <strong className="text-foreground">
-                {MACHINE_CAPACITY_BAGS_DAY} bags/dia
-              </strong>
-            </div>
-          </div>
-
-          <Separator className="opacity-50 my-2" />
-
-          {/* Daily Forecast Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              <Scale className="h-3.5 w-3.5" />
-              Previsão Hoje (Bags)
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div
-                className={cn(
-                  'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
-                  bgClass,
-                )}
-              >
-                <span
-                  className={cn(
-                    'text-2xl font-bold leading-none mb-1.5',
-                    colorClass,
-                  )}
-                >
-                  {data.bags1450}
-                </span>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
-                  1450KG
-                </span>
-                {isLiquid && (
-                  <span className="text-[10px] text-emerald-600 font-bold mt-1">
-                    {unitVol1450.toLocaleString('pt-BR', {
-                      maximumFractionDigits: 0,
-                    })}{' '}
-                    L
-                  </span>
-                )}
-              </div>
-              <div
-                className={cn(
-                  'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
-                  bgClass,
-                )}
-              >
-                <span
-                  className={cn(
-                    'text-2xl font-bold leading-none mb-1.5',
-                    colorClass,
-                  )}
-                >
-                  {data.bags1500}
-                </span>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
-                  1500KG
-                </span>
-                {isLiquid && (
-                  <span className="text-[10px] text-emerald-600 font-bold mt-1">
-                    {unitVol1500.toLocaleString('pt-BR', {
-                      maximumFractionDigits: 0,
-                    })}{' '}
-                    L
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="text-xs text-right text-muted-foreground font-medium pt-1">
-              Est. Prod: {data.estProdTons.toFixed(1)}t
+          <div className="flex justify-between items-center bg-background p-3 rounded-md border shadow-sm">
+            <span className="text-xs font-medium text-muted-foreground uppercase">
+              Est. Prod (Hoje)
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">
+                {data.estProdTons.toFixed(1)}t
+              </span>
               {isLiquid && (
-                <span className="ml-1 text-emerald-600">
+                <span className="text-xs font-semibold text-emerald-600">
                   (
                   {totalVolL.toLocaleString('pt-BR', {
                     maximumFractionDigits: 0,
@@ -287,92 +176,108 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
               )}
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
 
-  // Specialized Card for Blood Meal with simplified metrics matching screenshot
-  const BloodForecastCard = ({
-    title,
-    icon: Icon,
-    colorClass,
-    bgClass,
-    headerBgClass,
-    data,
-    inputValue,
-  }: {
-    title: string
-    icon: any
-    colorClass: string
-    bgClass: string
-    headerBgClass: string
-    data: { estProdTons: number; bags1450: number }
-    inputValue: number
-  }) => {
-    // Flow Rate for Blood (Based on Forecast Production / 24h)
-    const calculatedFlow = data.estProdTons > 0 ? data.estProdTons / 24 : 0
-
-    return (
-      <div
-        className={cn(
-          'rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col overflow-hidden transition-all hover:shadow-md h-full',
-        )}
-      >
-        <div className={cn('p-4 flex items-center gap-3', headerBgClass)}>
-          <div
-            className={cn('p-2 rounded-full bg-white shadow-sm', colorClass)}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-          <span className="font-bold text-base text-[#111827]">{title}</span>
-        </div>
-
-        <div className="p-5 flex-1 flex flex-col gap-6">
-          <div className="space-y-6 flex-1 flex flex-col">
-            <div className="bg-background p-3 rounded-md border flex justify-between items-center shadow-sm">
-              <span className="text-xs font-medium text-muted-foreground uppercase">
-                Previsão MP
-              </span>
-              <span className="text-sm font-bold font-mono text-foreground">
-                {(inputValue / 1000).toFixed(1)}t
-              </span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <Clock className="h-3.5 w-3.5" />
+              Cadência (kg/h)
             </div>
-
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-2">
-                  Fluxo (T/H)
-                </span>
-                <span className="text-2xl font-bold text-foreground">
-                  {calculatedFlow.toFixed(2)}
-                </span>
+              <div
+                className={cn(
+                  'bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm',
+                  isSingleBagSize && 'col-span-2',
+                )}
+              >
+                <div className="text-[11px] text-muted-foreground font-medium mb-1">
+                  Vazão {bagSizes[0]}kg
+                </div>
+                <div className="text-base font-bold text-foreground">
+                  {(flowRates[0] * 1000).toFixed(0)}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">
+                    kg/h
+                  </span>
+                </div>
+                {isLiquid && (
+                  <div className="text-xs font-semibold text-emerald-600 mt-1">
+                    {flow1L.toLocaleString('pt-BR', {
+                      maximumFractionDigits: 0,
+                    })}{' '}
+                    L/h
+                  </div>
+                )}
               </div>
-              <div className="flex flex-col items-center justify-center p-4 rounded-md bg-background border shadow-sm">
-                <span className="text-[10px] text-muted-foreground font-bold uppercase mb-2">
-                  Est. Prod (T)
-                </span>
-                <span className="text-2xl font-bold text-foreground">
-                  {data.estProdTons.toFixed(1)}
-                </span>
-              </div>
-            </div>
-
-            <div
-              className={cn(
-                'p-6 rounded-md border text-center flex-1 flex flex-col justify-center items-center shadow-sm',
-                bgClass,
+              {!isSingleBagSize && (
+                <div className="bg-background p-3 rounded-md border text-center flex flex-col justify-center shadow-sm">
+                  <div className="text-[11px] text-muted-foreground font-medium mb-1">
+                    Vazão {bagSizes[1]}kg
+                  </div>
+                  <div className="text-base font-bold text-foreground">
+                    {(flowRates[1] * 1000).toFixed(0)}{' '}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      kg/h
+                    </span>
+                  </div>
+                  {isLiquid && (
+                    <div className="text-xs font-semibold text-emerald-600 mt-1">
+                      {flow2L.toLocaleString('pt-BR', {
+                        maximumFractionDigits: 0,
+                      })}{' '}
+                      L/h
+                    </div>
+                  )}
+                </div>
               )}
-            >
-              <span className="text-xs text-muted-foreground font-bold uppercase block mb-2">
-                Bags Estimados
-              </span>
-              <span className={cn('text-5xl font-bold my-2', colorClass)}>
-                {data.bags1450}
-              </span>
-              <span className="text-[11px] text-muted-foreground block mt-2">
-                (Base 1400kg)
-              </span>
+            </div>
+          </div>
+
+          <Separator className="opacity-50 my-2" />
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              <Scale className="h-3.5 w-3.5" />
+              Previsão 7 Dias (Bags)
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div
+                className={cn(
+                  'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
+                  bgClass,
+                  isSingleBagSize && 'col-span-2',
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-2xl font-bold leading-none mb-1.5',
+                    colorClass,
+                  )}
+                >
+                  {data.bags1 * 7}
+                </span>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
+                  {bagSizes[0]}KG
+                </span>
+              </div>
+              {!isSingleBagSize && (
+                <div
+                  className={cn(
+                    'flex flex-col items-center justify-center p-4 rounded-md border shadow-sm',
+                    bgClass,
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'text-2xl font-bold leading-none mb-1.5',
+                      colorClass,
+                    )}
+                  >
+                    {data.bags2 * 7}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
+                    {bagSizes[1]}KG
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -433,7 +338,13 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             colorClass="text-emerald-600"
             bgClass="bg-[#eefcf2]/50 border-[#d1fadf]"
             headerBgClass="bg-[#eefcf2] border-b border-[#d1fadf]"
-            data={forecasts.sebo}
+            data={{
+              estProdTons: forecasts.sebo.estProdTons,
+              bags1: forecasts.sebo.bags1450,
+              bags2: forecasts.sebo.bags1500,
+            }}
+            bagSizes={[1450, 1500]}
+            flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
             isLiquid={true}
           />
           <ForecastCard
@@ -442,7 +353,13 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             colorClass="text-amber-600"
             bgClass="bg-[#fffbeb]/50 border-[#fef3c7]"
             headerBgClass="bg-[#fffbeb] border-b border-[#fef3c7]"
-            data={forecasts.fco}
+            data={{
+              estProdTons: forecasts.fco.estProdTons,
+              bags1: forecasts.fco.bags1450,
+              bags2: forecasts.fco.bags1500,
+            }}
+            bagSizes={[1450, 1500]}
+            flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
           />
           <ForecastCard
             title="Farinheta"
@@ -450,16 +367,27 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             colorClass="text-orange-600"
             bgClass="bg-[#fff7ed]/50 border-[#ffedd5]"
             headerBgClass="bg-[#fff7ed] border-b border-[#ffedd5]"
-            data={forecasts.farinheta}
+            data={{
+              estProdTons: forecasts.farinheta.estProdTons,
+              bags1: forecasts.farinheta.bags1450,
+              bags2: forecasts.farinheta.bags1500,
+            }}
+            bagSizes={[1450, 1500]}
+            flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
           />
-          <BloodForecastCard
+          <ForecastCard
             title="Farinha de Sangue"
             icon={Droplet}
             colorClass="text-red-600"
-            bgClass="bg-[#fff1f2]/80 border-[#ffe4e6]"
+            bgClass="bg-[#fff1f2] border-[#ffe4e6]"
             headerBgClass="bg-[#fff1f2] border-b border-[#ffe4e6]"
-            data={forecasts.sangue}
-            inputValue={activeBloodValue}
+            data={{
+              estProdTons: forecasts.sangue.estProdTons,
+              bags1: forecasts.sangue.bags1400,
+              bags2: forecasts.sangue.bags1400,
+            }}
+            bagSizes={[1400, 1400]}
+            flowRates={[5.8, 5.8]}
           />
         </div>
       </CardContent>

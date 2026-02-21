@@ -81,14 +81,10 @@ export function OverviewCards({
       return quantity
     }
 
-    // 1. Entrada MP (Excluding Sangue) -> Based on Production mp_used for the specific day
+    // 1. Entrada MP (Includes Sangue according to requirements) -> Based on Production mp_used for the specific day
     const targetDate = referenceDate || new Date()
     const todayProduction = fullProductionHistory.filter(
-      (p) =>
-        p.date &&
-        isValid(p.date) &&
-        isSameDay(p.date, targetDate) &&
-        !isBloodRecord(p),
+      (p) => p.date && isValid(p.date) && isSameDay(p.date, targetDate),
     )
     const rawMaterialInputKg = todayProduction.reduce(
       (acc, curr) => acc + curr.mpUsed,

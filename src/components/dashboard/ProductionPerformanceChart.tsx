@@ -15,14 +15,7 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  LabelList,
-} from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -123,7 +116,7 @@ export function ProductionPerformanceChart({
       },
       mp: {
         label: 'MP Processada',
-        color: '#f59e0b', // orange matching screenshot
+        color: '#f97316', // orange
       },
     }
 
@@ -158,7 +151,7 @@ export function ProductionPerformanceChart({
       config={chartConfig}
       className={cn(`${height} w-full mt-4`)}
     >
-      <LineChart
+      <BarChart
         data={chartData}
         margin={{ top: 30, right: 30, left: 10, bottom: 20 }}
       >
@@ -187,6 +180,7 @@ export function ProductionPerformanceChart({
           tick={{ fill: '#6b7280' }}
         />
         <ChartTooltip
+          cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
           content={
             <ChartTooltipContent
               indicator="line"
@@ -212,20 +206,10 @@ export function ProductionPerformanceChart({
               )}
             />
           }
-          cursor={{ stroke: '#9ca3af', strokeWidth: 1, strokeDasharray: '3 3' }}
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        {/* Render MP Processada (Orange) FIRST so it's beneath Produção Total */}
-        <Line
-          type="monotone"
-          dataKey="mp"
-          stroke="var(--color-mp)"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ r: 6, fill: 'var(--color-mp)' }}
-          animationDuration={1000}
-        >
+        <Bar dataKey="mp" fill="var(--color-mp)" radius={[4, 4, 0, 0]}>
           <LabelList
             dataKey="mp"
             position="top"
@@ -234,17 +218,12 @@ export function ProductionPerformanceChart({
             fontSize={isMobile ? 8 : 11}
             formatter={formatValue}
           />
-        </Line>
+        </Bar>
 
-        {/* Render Produção Total (Green) on top */}
-        <Line
-          type="monotone"
+        <Bar
           dataKey="producao"
-          stroke="var(--color-producao)"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ r: 6, fill: 'var(--color-producao)' }}
-          animationDuration={1000}
+          fill="var(--color-producao)"
+          radius={[4, 4, 0, 0]}
         >
           <LabelList
             dataKey="producao"
@@ -254,8 +233,8 @@ export function ProductionPerformanceChart({
             fontSize={isMobile ? 8 : 11}
             formatter={formatValue}
           />
-        </Line>
-      </LineChart>
+        </Bar>
+      </BarChart>
     </ChartContainer>
   )
 
