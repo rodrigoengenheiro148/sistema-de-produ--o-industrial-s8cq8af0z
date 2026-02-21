@@ -65416,221 +65416,6 @@ function LoadForecast({ referenceDate, className }) {
 		}) })]
 	});
 }
-function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = false, className }) {
-	const { factories, currentFactoryId } = useData();
-	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
-	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const sourceData = data.filter((p$1) => !isBloodRecord(p$1));
-		const calculateProd = (p$1) => {
-			return (p$1.seboProduced || 0) + (p$1.fcoProduced || 0) + (isFarinorte ? 0 : p$1.farinhetaProduced || 0) + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0) + (p$1.fishMealProduced || 0);
-		};
-		let processedData = [];
-		if (timeScale === "monthly") {
-			const monthlyData = /* @__PURE__ */ new Map();
-			sourceData.forEach((p$1) => {
-				if (!p$1.date) return;
-				const dateKey = format(p$1.date, "yyyy-MM");
-				const displayDate = format(p$1.date, "MMM/yy", { locale: ptBR });
-				if (!monthlyData.has(dateKey)) monthlyData.set(dateKey, {
-					dateKey,
-					date: displayDate,
-					originalDate: p$1.date,
-					producao: 0,
-					mp: 0
-				});
-				const entry = monthlyData.get(dateKey);
-				entry.producao += calculateProd(p$1);
-				entry.mp += p$1.mpUsed || 0;
-			});
-			processedData = Array.from(monthlyData.values()).sort((a$2, b$1) => a$2.dateKey.localeCompare(b$1.dateKey));
-		} else {
-			const dailyData = /* @__PURE__ */ new Map();
-			sourceData.forEach((p$1) => {
-				if (!p$1.date) return;
-				const dateKey = format(p$1.date, "yyyy-MM-dd");
-				if (!dailyData.has(dateKey)) dailyData.set(dateKey, {
-					dateKey,
-					date: format(p$1.date, "dd/MM"),
-					fullDate: format(p$1.date, "dd 'de' MMMM", { locale: ptBR }),
-					originalDate: p$1.date,
-					producao: 0,
-					mp: 0
-				});
-				const entry = dailyData.get(dateKey);
-				entry.producao += calculateProd(p$1);
-				entry.mp += p$1.mpUsed || 0;
-			});
-			processedData = Array.from(dailyData.values()).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime());
-		}
-		return {
-			chartData: processedData,
-			chartConfig: {
-				producao: {
-					label: "Produção Total (Industrial)",
-					color: "#166534"
-				},
-				mp: {
-					label: "MP Processada",
-					color: "#f97316"
-				}
-			}
-		};
-	}, [
-		data,
-		timeScale,
-		isFarinorte
-	]);
-	const formatValue$2 = (value) => {
-		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 0 }) + "k";
-		return formatNumber(value);
-	};
-	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn(`shadow-sm border-border`, className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "h-[300px] flex items-center justify-center text-muted-foreground",
-			children: "Nenhum dado disponível."
-		})]
-	});
-	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
-		config: chartConfig$1,
-		className: cn(`${height} w-full mt-4 aspect-auto`),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
-			data: chartData,
-			margin: {
-				top: 30,
-				right: 30,
-				left: 10,
-				bottom: 20
-			},
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
-					vertical: false,
-					strokeDasharray: "3 3",
-					stroke: "#e5e7eb"
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
-					dataKey: "date",
-					tickLine: false,
-					axisLine: false,
-					tickMargin: 12,
-					minTickGap: 32,
-					fontSize: isMobile ? 10 : 12,
-					tick: { fill: "#6b7280" }
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
-					tickLine: false,
-					axisLine: false,
-					width: isMobile ? 35 : 50,
-					tickFormatter: (value) => `${formatNumber(value / 1e3, { maximumFractionDigits: 0 })}k`,
-					fontSize: isMobile ? 10 : 12,
-					tick: { fill: "#6b7280" }
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
-					cursor: {
-						fill: "hsl(var(--muted)/0.4)",
-						strokeWidth: 1,
-						strokeDasharray: "3 3"
-					},
-					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
-						indicator: "line",
-						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value,
-						formatter: (value, name) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex items-center gap-2",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "h-2 w-2 rounded-full",
-									style: { backgroundColor: name === "producao" || name === "Produção Total (Industrial)" ? "var(--color-producao)" : "var(--color-mp)" }
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-muted-foreground text-xs",
-									children: name
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-									className: "font-mono font-bold",
-									children: [formatNumber(Number(value)), " kg"]
-								})
-							]
-						})
-					})
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
-					dataKey: "mp",
-					name: "MP Processada",
-					stroke: "var(--color-mp)",
-					strokeWidth: 3,
-					dot: {
-						r: 4,
-						strokeWidth: 2
-					},
-					activeDot: { r: 6 },
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "mp",
-						position: "top",
-						offset: 12,
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 10 : 12,
-						formatter: formatValue$2
-					})
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-					type: "monotone",
-					dataKey: "producao",
-					name: "Produção Total (Industrial)",
-					stroke: "var(--color-producao)",
-					strokeWidth: 3,
-					dot: {
-						r: 4,
-						strokeWidth: 2
-					},
-					activeDot: { r: 6 },
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
-						dataKey: "producao",
-						position: "top",
-						offset: 12,
-						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 10 : 12,
-						formatter: formatValue$2
-					})
-				})
-			]
-		})
-	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-		className: cn(`shadow-sm border-border flex flex-col`, className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-			className: "flex flex-row items-start justify-between space-y-0 pb-0",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "space-y-1",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
-					className: "flex items-center gap-2 text-xl",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-[#166534]" }), "Análise de Produção"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
-				asChild: true,
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-					variant: "ghost",
-					size: "icon",
-					className: "h-8 w-8 text-muted-foreground",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "sr-only",
-						children: "Expandir"
-					})]
-				})
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
-				className: "max-w-[90vw] h-[80vh] flex flex-col",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Análise de Produção Industrial" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "flex-1 w-full min-h-0 py-4",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
-				})]
-			})] })]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-			className: "pt-2 pb-6 pl-0 sm:pl-2 flex-1 min-h-[300px]",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
-		})]
-	});
-}
 var badgeVariants = cva("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", {
 	variants: { variant: {
 		default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
@@ -72658,21 +72443,15 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid gap-4 md:grid-cols-3",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
-									value: currentYield,
-									target: yieldTarget,
-									className: "h-full"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "md:col-span-2 h-full",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductionPerformanceChart, {
-										data: filteredProduction,
-										isMobile,
-										timeScale: "daily",
-										className: "h-full"
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "flex justify-center w-full",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+									className: "w-full max-w-3xl",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(YieldGaugeChart, {
+										value: currentYield,
+										target: yieldTarget
 									})
-								})]
+								})
 							}),
 							!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LoadForecast, { referenceDate: effectiveForecastDate }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -92231,4 +92010,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-8tWIPeRW.js.map
+//# sourceMappingURL=index-YdiZfI-o.js.map

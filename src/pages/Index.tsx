@@ -14,7 +14,7 @@ import {
   AlertCircle,
   WifiOff,
 } from 'lucide-react'
-import { cn, isBloodRecord } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
@@ -23,7 +23,6 @@ import { ExportOptions } from '@/components/dashboard/ExportOptions'
 import { SyncDeviceDialog } from '@/components/dashboard/SyncDeviceDialog'
 import { OverviewCards } from '@/components/dashboard/OverviewCards'
 import { LoadForecast } from '@/components/dashboard/LoadForecast'
-import { ProductionPerformanceChart } from '@/components/dashboard/ProductionPerformanceChart'
 import { RevenueChart } from '@/components/dashboard/RevenueChart'
 import { LossesAnalysisChart } from '@/components/dashboard/LossesAnalysisChart'
 import { YieldGaugeChart } from '@/components/dashboard/YieldGaugeChart'
@@ -369,20 +368,10 @@ export default function Dashboard() {
             referenceDate={effectiveForecastDate}
           />
 
-          {/* 2. Middle Row: Gauge and Bar Chart */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <YieldGaugeChart
-              value={currentYield}
-              target={yieldTarget}
-              className="h-full"
-            />
-            <div className="md:col-span-2 h-full">
-              <ProductionPerformanceChart
-                data={filteredProduction}
-                isMobile={isMobile}
-                timeScale="daily"
-                className="h-full"
-              />
+          {/* 2. Middle Row: Gauge Chart */}
+          <div className="flex justify-center w-full">
+            <div className="w-full max-w-3xl">
+              <YieldGaugeChart value={currentYield} target={yieldTarget} />
             </div>
           </div>
 
