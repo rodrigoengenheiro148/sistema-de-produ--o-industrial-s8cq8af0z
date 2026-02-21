@@ -65418,16 +65418,11 @@ function LoadForecast({ referenceDate, className }) {
 }
 function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = false, className }) {
 	const { factories, currentFactoryId } = useData();
-	const currentFactory = factories.find((f) => f.id === currentFactoryId);
-	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
-	const isFarinorte = currentFactory?.name === "Farinorte";
+	const isFarinorte = factories.find((f) => f.id === currentFactoryId)?.name === "Farinorte";
 	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
-		const sourceData = data;
+		const sourceData = data.filter((p$1) => !isBloodRecord(p$1));
 		const calculateProd = (p$1) => {
-			if (isMarReciclagem) return (p$1.seboProduced || 0) + (p$1.fcoProduced || 0) + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0);
-			if (isFarinorte) return (p$1.seboProduced || 0) + (p$1.fcoProduced || 0);
-			const bloodKg = p$1.bloodMealBags && p$1.bloodMealBags > 0 ? p$1.bloodMealBags * 1400 : p$1.bloodMealProduced || 0;
-			return (p$1.seboProduced || 0) + (p$1.fcoProduced || 0) + (p$1.farinhetaProduced || 0) + (p$1.viscerasMealProduced || 0) + (p$1.viscerasOilProduced || 0) + (p$1.featherMealProduced || 0) + bloodKg + (p$1.fishMealProduced || 0);
+			return (p$1.seboProduced || 0) + (p$1.fcoProduced || 0) + (isFarinorte ? 0 : p$1.farinhetaProduced || 0) + (p$1.viscerasMealProduced || 0) + (p$1.featherMealProduced || 0) + (p$1.viscerasOilProduced || 0) + (p$1.fishMealProduced || 0);
 		};
 		let processedData = [];
 		if (timeScale === "monthly") {
@@ -65471,7 +65466,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 			chartData: processedData,
 			chartConfig: {
 				producao: {
-					label: isFarinorte ? "Produção (Sebo + FCO)" : "Produção Total",
+					label: "Produção Total (Industrial)",
 					color: "#166534"
 				},
 				mp: {
@@ -65483,16 +65478,15 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	}, [
 		data,
 		timeScale,
-		isMarReciclagem,
 		isFarinorte
 	]);
 	const formatValue$2 = (value) => {
-		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 1 }) + "k";
+		if (value >= 1e3) return formatNumber(value / 1e3, { maximumFractionDigits: 0 }) + "k";
 		return formatNumber(value);
 	};
 	if (!data || data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn(`shadow-sm border-border`, className),
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento e produção total" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Produção" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 			className: "h-[300px] flex items-center justify-center text-muted-foreground",
 			children: "Nenhum dado disponível."
 		})]
@@ -65500,7 +65494,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: cn(`${height} w-full mt-4 aspect-auto`),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
 			data: chartData,
 			margin: {
 				top: 30,
@@ -65532,7 +65526,11 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 					tick: { fill: "#6b7280" }
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
-					cursor: { fill: "hsl(var(--muted)/0.4)" },
+					cursor: {
+						fill: "hsl(var(--muted)/0.4)",
+						strokeWidth: 1,
+						strokeDasharray: "3 3"
+					},
 					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {
 						indicator: "line",
 						labelFormatter: (value, payload) => payload[0]?.payload?.fullDate || value,
@@ -65541,7 +65539,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 							children: [
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 									className: "h-2 w-2 rounded-full",
-									style: { backgroundColor: name === "producao" ? "var(--color-producao)" : "var(--color-mp)" }
+									style: { backgroundColor: name === "producao" || name === "Produção Total (Industrial)" ? "var(--color-producao)" : "var(--color-mp)" }
 								}),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: "text-muted-foreground text-xs",
@@ -65556,39 +65554,43 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
 					dataKey: "mp",
-					fill: "var(--color-mp)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
+					name: "MP Processada",
+					stroke: "var(--color-mp)",
+					strokeWidth: 3,
+					dot: {
+						r: 4,
+						strokeWidth: 2
+					},
+					activeDot: { r: 6 },
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "mp",
 						position: "top",
 						offset: 12,
 						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 8 : 11,
+						fontSize: isMobile ? 10 : 12,
 						formatter: formatValue$2
 					})
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+					type: "monotone",
 					dataKey: "producao",
-					fill: "var(--color-producao)",
-					radius: [
-						4,
-						4,
-						0,
-						0
-					],
+					name: "Produção Total (Industrial)",
+					stroke: "var(--color-producao)",
+					strokeWidth: 3,
+					dot: {
+						r: 4,
+						strokeWidth: 2
+					},
+					activeDot: { r: 6 },
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 						dataKey: "producao",
 						position: "top",
 						offset: 12,
 						className: "fill-foreground font-bold",
-						fontSize: isMobile ? 8 : 11,
+						fontSize: isMobile ? 10 : 12,
 						formatter: formatValue$2
 					})
 				})
@@ -65604,7 +65606,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 					className: "flex items-center gap-2 text-xl",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-5 w-5 text-[#166534]" }), "Análise de Produção"]
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento e produção total" })]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)" })]
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
 				asChild: true,
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
@@ -65618,7 +65620,7 @@ function ProductionPerformanceChart({ data, timeScale = "daily", isMobile = fals
 				})
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 				className: "max-w-[90vw] h-[80vh] flex flex-col",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Análise de Produção Industrial" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Visualização detalhada do processamento de MP e produção total." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Análise de Produção Industrial" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Comparativo diário de processamento industrial (exclui sangue)." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 					className: "flex-1 w-full min-h-0 py-4",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
 				})]
@@ -92229,4 +92231,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BDA7ri1v.js.map
+//# sourceMappingURL=index-8tWIPeRW.js.map

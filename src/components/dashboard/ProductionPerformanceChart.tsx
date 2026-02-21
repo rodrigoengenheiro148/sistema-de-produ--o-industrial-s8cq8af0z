@@ -15,7 +15,14 @@ import {
   ChartLegendContent,
   ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
+} from 'recharts'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -28,7 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Maximize2, TrendingUp } from 'lucide-react'
-import { formatNumber, cn } from '@/lib/utils'
+import { formatNumber, cn, isBloodRecord } from '@/lib/utils'
 import { useData } from '@/context/DataContext'
 
 interface ProductionPerformanceChartProps {
@@ -46,39 +53,20 @@ export function ProductionPerformanceChart({
 }: ProductionPerformanceChartProps) {
   const { factories, currentFactoryId } = useData()
   const currentFactory = factories.find((f) => f.id === currentFactoryId)
-  const isMarReciclagem =
-    currentFactory?.name === 'Mar Reciclagem' || currentFactory?.name === 'Mar'
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const { chartData, chartConfig } = useMemo(() => {
-    // We use all data without filtering blood records to accurately calculate total production sum
-    const sourceData = data
+    // Filter out blood records to ensure industrial processing accuracy
+    const sourceData = data.filter((p) => !isBloodRecord(p))
 
     const calculateProd = (p: ProductionEntry) => {
-      if (isMarReciclagem) {
-        return (
-          (p.seboProduced || 0) +
-          (p.fcoProduced || 0) +
-          (p.viscerasMealProduced || 0) +
-          (p.featherMealProduced || 0) +
-          (p.viscerasOilProduced || 0)
-        )
-      }
-      if (isFarinorte) {
-        return (p.seboProduced || 0) + (p.fcoProduced || 0)
-      }
-      const bloodKg =
-        p.bloodMealBags && p.bloodMealBags > 0
-          ? p.bloodMealBags * 1400
-          : p.bloodMealProduced || 0
       return (
         (p.seboProduced || 0) +
         (p.fcoProduced || 0) +
-        (p.farinhetaProduced || 0) +
+        (isFarinorte ? 0 : p.farinhetaProduced || 0) +
         (p.viscerasMealProduced || 0) +
-        (p.viscerasOilProduced || 0) +
         (p.featherMealProduced || 0) +
-        bloodKg +
+        (p.viscerasOilProduced || 0) +
         (p.fishMealProduced || 0)
       )
     }
@@ -141,7 +129,7 @@ export function ProductionPerformanceChart({
 
     const config: ChartConfig = {
       producao: {
-        label: isFarinorte ? 'Produção (Sebo + FCO)' : 'Produção Total',
+        label: 'Produção Total (Industrial)',
         color: '#166534', // Dark green
       },
       mp: {
@@ -151,11 +139,11 @@ export function ProductionPerformanceChart({
     }
 
     return { chartData: processedData, chartConfig: config }
-  }, [data, timeScale, isMarReciclagem, isFarinorte])
+  }, [data, timeScale, isFarinorte])
 
   const formatValue = (value: number) => {
     if (value >= 1000) {
-      return formatNumber(value / 1000, { maximumFractionDigits: 1 }) + 'k'
+      return formatNumber(value / 1000, { maximumFractionDigits: 0 }) + 'k'
     }
     return formatNumber(value)
   }
@@ -166,7 +154,7 @@ export function ProductionPerformanceChart({
         <CardHeader>
           <CardTitle>Análise de Produção</CardTitle>
           <CardDescription>
-            Comparativo diário de processamento e produção total
+            Comparativo diário de processamento industrial (exclui sangue)
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
@@ -181,7 +169,7 @@ export function ProductionPerformanceChart({
       config={chartConfig}
       className={cn(`${height} w-full mt-4 aspect-auto`)}
     >
-      <BarChart
+      <LineChart
         data={chartData}
         margin={{ top: 30, right: 30, left: 10, bottom: 20 }}
       >
@@ -210,7 +198,11 @@ export function ProductionPerformanceChart({
           tick={{ fill: '#6b7280' }}
         />
         <ChartTooltip
-          cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+          cursor={{
+            fill: 'hsl(var(--muted)/0.4)',
+            strokeWidth: 1,
+            strokeDasharray: '3 3',
+          }}
           content={
             <ChartTooltipContent
               indicator="line"
@@ -223,7 +215,8 @@ export function ProductionPerformanceChart({
                     className="h-2 w-2 rounded-full"
                     style={{
                       backgroundColor:
-                        name === 'producao'
+                        name === 'producao' ||
+                        name === 'Produção Total (Industrial)'
                           ? 'var(--color-producao)'
                           : 'var(--color-mp)',
                     }}
@@ -239,32 +232,44 @@ export function ProductionPerformanceChart({
         />
         <ChartLegend content={<ChartLegendContent />} />
 
-        <Bar dataKey="mp" fill="var(--color-mp)" radius={[4, 4, 0, 0]}>
+        <Line
+          type="monotone"
+          dataKey="mp"
+          name="MP Processada"
+          stroke="var(--color-mp)"
+          strokeWidth={3}
+          dot={{ r: 4, strokeWidth: 2 }}
+          activeDot={{ r: 6 }}
+        >
           <LabelList
             dataKey="mp"
             position="top"
             offset={12}
             className="fill-foreground font-bold"
-            fontSize={isMobile ? 8 : 11}
+            fontSize={isMobile ? 10 : 12}
             formatter={formatValue}
           />
-        </Bar>
+        </Line>
 
-        <Bar
+        <Line
+          type="monotone"
           dataKey="producao"
-          fill="var(--color-producao)"
-          radius={[4, 4, 0, 0]}
+          name="Produção Total (Industrial)"
+          stroke="var(--color-producao)"
+          strokeWidth={3}
+          dot={{ r: 4, strokeWidth: 2 }}
+          activeDot={{ r: 6 }}
         >
           <LabelList
             dataKey="producao"
             position="top"
             offset={12}
             className="fill-foreground font-bold"
-            fontSize={isMobile ? 8 : 11}
+            fontSize={isMobile ? 10 : 12}
             formatter={formatValue}
           />
-        </Bar>
-      </BarChart>
+        </Line>
+      </LineChart>
     </ChartContainer>
   )
 
@@ -277,7 +282,7 @@ export function ProductionPerformanceChart({
             Análise de Produção
           </CardTitle>
           <CardDescription>
-            Comparativo diário de processamento e produção total
+            Comparativo diário de processamento industrial (exclui sangue)
           </CardDescription>
         </div>
         <Dialog>
@@ -295,7 +300,7 @@ export function ProductionPerformanceChart({
             <DialogHeader>
               <DialogTitle>Análise de Produção Industrial</DialogTitle>
               <DialogDescription>
-                Visualização detalhada do processamento de MP e produção total.
+                Comparativo diário de processamento industrial (exclui sangue).
               </DialogDescription>
             </DialogHeader>
             <div className="flex-1 w-full min-h-0 py-4">
