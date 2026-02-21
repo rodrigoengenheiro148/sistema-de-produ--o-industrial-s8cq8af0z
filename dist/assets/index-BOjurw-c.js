@@ -88182,7 +88182,7 @@ function ProcessMetricsCard({ date: date$4 }) {
 	const metrics = calculateDailyMetrics(date$4, cookingTimeRecords || [], downtimeRecords || [], production || []);
 	const isBelowTarget = metrics.rateTon - 33 < 0;
 	const formatTime = (minutes) => {
-		if (!minutes && minutes !== 0) return "0h 00m";
+		if (!minutes && minutes !== 0) return "0h 0m";
 		return `${Math.floor(minutes / 60)}h ${Math.floor(minutes % 60)}m`;
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -92219,4 +92219,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-kJl_dsu7.js.map
+//# sourceMappingURL=index-BOjurw-c.js.map

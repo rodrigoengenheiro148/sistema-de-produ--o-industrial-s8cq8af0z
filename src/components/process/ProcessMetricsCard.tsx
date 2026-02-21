@@ -36,7 +36,7 @@ export function ProcessMetricsCard({ date }: ProcessMetricsCardProps) {
 
   // Formatters
   const formatTime = (minutes: number) => {
-    if (!minutes && minutes !== 0) return '0h 00m'
+    if (!minutes && minutes !== 0) return '0h 0m'
     const h = Math.floor(minutes / 60)
     const m = Math.floor(minutes % 60)
     return `${h}h ${m}m`
