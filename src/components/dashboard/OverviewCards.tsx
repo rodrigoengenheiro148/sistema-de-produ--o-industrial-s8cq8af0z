@@ -19,6 +19,7 @@ import {
   FlaskConical,
   Feather,
   Fish,
+  Layers,
 } from 'lucide-react'
 import {
   RawMaterialEntry,
@@ -29,6 +30,7 @@ import {
   NotificationSettings,
   AcidityEntry,
   ReturnEntry,
+  DigesterRecord,
 } from '@/lib/types'
 import {
   cn,
@@ -36,6 +38,7 @@ import {
   formatNumber,
   formatCurrency,
   formatPercent,
+  formatSecondsAsTime,
 } from '@/lib/utils'
 import { useMemo } from 'react'
 import { isSameDay, format, isValid } from 'date-fns'
@@ -50,6 +53,7 @@ interface OverviewCardsProps {
   downtimeRecords: DowntimeRecord[]
   acidityRecords: AcidityEntry[]
   returns?: ReturnEntry[]
+  digesterRecords?: DigesterRecord[]
   notificationSettings: NotificationSettings
   fullProductionHistory?: ProductionEntry[]
   fullCookingTimeRecords?: CookingTimeRecord[]
@@ -62,6 +66,7 @@ export function OverviewCards({
   shipping = [],
   cookingTimeRecords = [],
   returns = [],
+  digesterRecords = [],
   notificationSettings,
   fullProductionHistory = [],
   fullCookingTimeRecords = [],
@@ -139,8 +144,8 @@ export function OverviewCards({
       0,
     )
 
-    // 5. Total de Devoluções
-    const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0)
+    // 5. Total de Devoluções (Value based)
+    const totalReturnsValue = returns.reduce((acc, curr) => acc + curr.value, 0)
 
     // 6, 7, 8. Specific Yields (Industrial Only)
     const industrialRecords = production.filter((p) => !isBloodRecord(p))
@@ -270,11 +275,19 @@ export function OverviewCards({
       })
       .reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
 
+    // Digester Metrics
+    const totalBatches = digesterRecords.length
+    const totalSeconds = digesterRecords.reduce(
+      (acc, curr) => acc + curr.durationSeconds,
+      0,
+    )
+    const avgSeconds = totalBatches > 0 ? totalSeconds / totalBatches : 0
+
     return {
       rawMaterialInputKg,
       totalProduction,
       totalRevenue,
-      totalReturnsKg,
+      totalReturnsValue,
       seboYield,
       fcoYield,
       farinhetaYield,
@@ -290,12 +303,15 @@ export function OverviewCards({
       efficiencyTonPerHour,
       processTimeCurrentDisplay,
       saturatedOilInputKg,
+      totalBatches,
+      avgSeconds,
     }
   }, [
     rawMaterials,
     production,
     shipping,
     returns,
+    digesterRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
     referenceDate,
@@ -485,12 +501,35 @@ export function OverviewCards({
       {/* Total de Devoluções */}
       <MetricCard
         title="Total de Devoluções"
-        value={formatNumberDisplay(metrics.totalReturnsKg, 'kg')}
+        value={formatCurrencyDisplay(metrics.totalReturnsValue)}
         icon={Undo2}
         iconColor="text-red-600"
         borderColor="border-l-red-600"
         textColor="text-red-600"
       />
+
+      {/* Farinorte Specific Digester Metrics */}
+      {isFarinorte && (
+        <>
+          <MetricCard
+            title="Tempo Médio de Processo"
+            value={formatSecondsAsTime(metrics.avgSeconds)}
+            icon={Clock}
+            iconColor="text-blue-500"
+            borderColor="border-l-blue-500"
+            textColor="text-blue-600 font-mono"
+          />
+
+          <MetricCard
+            title="Quantidade de Bateladas"
+            value={metrics.totalBatches.toString()}
+            icon={Layers}
+            iconColor="text-indigo-500"
+            borderColor="border-l-indigo-500"
+            textColor="text-indigo-600"
+          />
+        </>
+      )}
 
       {/* Saturated Oil Input - Hidden for Mar Reciclagem AND Farinorte */}
       {!isMarReciclagem && !isFarinorte && (

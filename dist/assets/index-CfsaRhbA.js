@@ -64834,7 +64834,7 @@ function SyncDeviceDialog({ className }) {
 		})]
 	});
 }
-function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], returns = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
+function OverviewCards({ rawMaterials = [], production = [], shipping = [], cookingTimeRecords = [], returns = [], digesterRecords = [], notificationSettings, fullProductionHistory = [], fullCookingTimeRecords = [], referenceDate }) {
 	const { factories, currentFactoryId } = useData();
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
@@ -64857,7 +64857,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const viscerasOilProduced = production.reduce((acc, curr) => acc + (curr.viscerasOilProduced || 0), 0);
 		const totalProduction = seboProduced + fcoProduced + farinhetaProduced + bloodMealProduced + viscerasMealProduced + featherMealProduced + viscerasOilProduced;
 		const totalRevenue = shipping.reduce((acc, curr) => acc + curr.quantity * curr.unitPrice, 0);
-		const totalReturnsKg = returns.reduce((acc, curr) => acc + curr.quantity, 0);
+		const totalReturnsValue = returns.reduce((acc, curr) => acc + curr.value, 0);
 		const industrialRecords = production.filter((p$1) => !isBloodRecord(p$1));
 		const mpUsedMainLine = industrialRecords.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProducedIndustrial = industrialRecords.reduce((acc, curr) => acc + curr.seboProduced, 0);
@@ -64903,11 +64903,19 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			totalHoursTarget = totalMinutesTarget / 60;
 		}
 		const efficiencyTonPerHour = totalHoursTarget > 0 ? estimatedQuantityKg / 1e3 / totalHoursTarget : 0;
+		const targetDateFormatted = isValid(targetDate) ? format(targetDate, "dd/MM", { locale: ptBR }) : "--/--";
+		const processTimeCurrentDisplay = `${Math.floor(totalMinutesTarget / 60)}h ${Math.round(totalMinutesTarget % 60).toString().padStart(2, "0")}m`;
+		const saturatedOilInputKg = rawMaterials.filter((r$2) => {
+			const type = r$2.type?.toLowerCase() || "";
+			return type === "óleo saturado" || type === "oleo saturado";
+		}).reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
+		const totalBatches = digesterRecords.length;
+		const totalSeconds = digesterRecords.reduce((acc, curr) => acc + curr.durationSeconds, 0);
 		return {
 			rawMaterialInputKg,
 			totalProduction,
 			totalRevenue,
-			totalReturnsKg,
+			totalReturnsValue,
 			seboYield,
 			fcoYield,
 			farinhetaYield,
@@ -64919,19 +64927,19 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			bloodMealProduced,
 			bloodYield,
 			estimatedQuantityKg,
-			targetDateFormatted: isValid(targetDate) ? format(targetDate, "dd/MM", { locale: ptBR }) : "--/--",
+			targetDateFormatted,
 			efficiencyTonPerHour,
-			processTimeCurrentDisplay: `${Math.floor(totalMinutesTarget / 60)}h ${Math.round(totalMinutesTarget % 60).toString().padStart(2, "0")}m`,
-			saturatedOilInputKg: rawMaterials.filter((r$2) => {
-				const type = r$2.type?.toLowerCase() || "";
-				return type === "óleo saturado" || type === "oleo saturado";
-			}).reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0)
+			processTimeCurrentDisplay,
+			saturatedOilInputKg,
+			totalBatches,
+			avgSeconds: totalBatches > 0 ? totalSeconds / totalBatches : 0
 		};
 	}, [
 		rawMaterials,
 		production,
 		shipping,
 		returns,
+		digesterRecords,
 		fullProductionHistory,
 		fullCookingTimeRecords,
 		referenceDate
@@ -65080,12 +65088,27 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de Devoluções",
-				value: formatNumberDisplay(metrics.totalReturnsKg, "kg"),
+				value: formatCurrencyDisplay(metrics.totalReturnsValue),
 				icon: Undo2,
 				iconColor: "text-red-600",
 				borderColor: "border-l-red-600",
 				textColor: "text-red-600"
 			}),
+			isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				title: "Tempo Médio de Processo",
+				value: formatSecondsAsTime(metrics.avgSeconds),
+				icon: Clock,
+				iconColor: "text-blue-500",
+				borderColor: "border-l-blue-500",
+				textColor: "text-blue-600 font-mono"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
+				title: "Quantidade de Bateladas",
+				value: metrics.totalBatches.toString(),
+				icon: Layers,
+				iconColor: "text-indigo-500",
+				borderColor: "border-l-indigo-500",
+				textColor: "text-indigo-600"
+			})] }),
 			!isMarReciclagem && !isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MetricCard, {
 				title: "Total de Óleo Saturado Recebido",
 				value: formatNumberDisplay(metrics.saturatedOilInputKg, "kg"),
@@ -72667,9 +72690,6 @@ function Dashboard() {
 	const filteredDigester = (0, import_react.useMemo)(() => {
 		return digesterRecords.filter((d) => filterByDate(d.date));
 	}, [digesterRecords, dateRange]);
-	const totalBatches = filteredDigester.length;
-	const totalSeconds = filteredDigester.reduce((acc, curr) => acc + curr.durationSeconds, 0);
-	const avgSeconds = totalBatches > 0 ? totalSeconds / totalBatches : 0;
 	const farinhaQuality = filteredQuality.filter((q) => q.product === "Farinha");
 	const avgFarinhaAcidity = farinhaQuality.length > 0 ? farinhaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhaQuality.length : 0;
 	const avgFarinhaProtein = farinhaQuality.length > 0 ? farinhaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhaQuality.length : 0;
@@ -72818,48 +72838,16 @@ function Dashboard() {
 								downtimeRecords: filteredDowntime,
 								acidityRecords: filteredAcidity,
 								returns: filteredReturns,
+								digesterRecords: filteredDigester,
 								notificationSettings,
 								fullProductionHistory: production,
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-6",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-									className: "border-l-4 border-l-blue-500",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-										className: "flex flex-row items-center justify-between space-y-0 pb-2 p-4",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-											className: "text-xs font-bold text-muted-foreground uppercase tracking-wider",
-											children: "Tempo Médio de Processo"
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Clock, { className: "h-4 w-4 text-blue-500" })]
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-										className: "p-4 pt-0",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "text-2xl font-bold text-blue-600 font-mono",
-											children: formatSecondsAsTime(avgSeconds)
-										})
-									})]
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
-									className: "border-l-4 border-l-indigo-500",
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
-										className: "flex flex-row items-center justify-between space-y-0 pb-2 p-4",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
-											className: "text-xs font-bold text-muted-foreground uppercase tracking-wider",
-											children: "Quantidade de Bateladas"
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Layers, { className: "h-4 w-4 text-indigo-500" })]
-									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
-										className: "p-4 pt-0",
-										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-											className: "text-2xl font-bold text-indigo-600",
-											children: totalBatches
-										})
-									})]
-								})]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							isFarinorte && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 								className: "mt-4",
 								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DigesterBatchesChart, { data: filteredDigester })
-							})] }),
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4 md:grid-cols-1 lg:grid-cols-3",
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -93489,4 +93477,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BWPZE-5X.js.map
+//# sourceMappingURL=index-CfsaRhbA.js.map
