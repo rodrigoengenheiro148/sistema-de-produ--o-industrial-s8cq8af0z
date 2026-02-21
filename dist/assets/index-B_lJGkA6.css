@@ -2450,9 +2450,6 @@ section[aria-label='Notifications alt+T'] {
 .text-card-foreground{
   color: hsl(var(--card-foreground));
 }
-.text-chart-2{
-  color: hsl(var(--chart-2));
-}
 .text-current{
   color: currentColor;
 }
@@ -3145,10 +3142,6 @@ img[src*='skip.svg'] {
 }
 .hover\:bg-destructive\/90:hover{
   background-color: hsl(var(--destructive) / 0.9);
-}
-.hover\:bg-emerald-200:hover{
-  --tw-bg-opacity: 1;
-  background-color: rgb(167 243 208 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-emerald-800:hover{
   --tw-bg-opacity: 1;

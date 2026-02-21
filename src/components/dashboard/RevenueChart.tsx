@@ -17,13 +17,14 @@ import {
   ChartLegendContent,
 } from '@/components/ui/chart'
 import {
-  Area,
+  Bar,
   Line,
   ComposedChart,
   CartesianGrid,
   XAxis,
   YAxis,
   ReferenceLine,
+  LabelList,
 } from 'recharts'
 import { format, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -84,13 +85,13 @@ interface RevenueChartProps {
 }
 
 const PRODUCT_COLORS: Record<string, string> = {
-  Sebo: 'hsl(var(--chart-1))',
-  FCO: 'hsl(var(--chart-2))',
-  'Farinha Especial': 'hsl(var(--chart-5))',
-  Farinha: 'hsl(var(--chart-2))',
-  Farinheta: 'hsl(var(--chart-3))',
-  'Matéria-Prima': 'hsl(var(--chart-4))',
-  'Farinha de Sangue': '#b91c1c', // red-700
+  Sebo: '#166534', // dark green
+  FCO: '#eab308', // yellow
+  'Farinha Especial': '#fde047', // light yellow
+  Farinha: '#eab308',
+  Farinheta: '#f97316',
+  'Matéria-Prima': '#8b5cf6',
+  'Farinha de Sangue': '#b91c1c',
 }
 
 const DEFAULT_FILTERS = ['Sebo', 'FCO', 'Farinheta', 'Farinha Especial']
@@ -543,14 +544,41 @@ export function RevenueChart({
 
   const displayTotalForecast = forecastMetrics?.total ?? calculatedForecastTotal
 
-  const ChartContent = ({ height = 'h-[300px]' }: { height?: string }) => (
+  const formatYAxis = (value: number) => {
+    if (value >= 1000000) {
+      return `R$ ${(value / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+    } else if (value >= 1000) {
+      return `R$ ${(value / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+    }
+    return `R$ ${value}`
+  }
+
+  const renderCustomBarLabel = (props: any) => {
+    const { x, y, width, height, value } = props
+    if (height < 20 || !value) return null
+    return (
+      <text
+        x={x + width / 2}
+        y={y + height / 2}
+        fill="#fff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={10}
+        fontWeight="bold"
+      >
+        {formatYAxis(value)}
+      </text>
+    )
+  }
+
+  const ChartContent = ({ height = 'h-[350px]' }: { height?: string }) => (
     <ChartContainer
       config={chartConfig}
       className={cn('w-full aspect-auto', height)}
     >
       <ComposedChart
         data={chartData}
-        margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
+        margin={{ top: 20, right: 10, left: 20, bottom: 0 }}
       >
         <CartesianGrid
           vertical={false}
@@ -567,15 +595,8 @@ export function RevenueChart({
         <YAxis
           tickLine={false}
           axisLine={false}
-          width={60}
-          tickFormatter={(value) =>
-            new Intl.NumberFormat('pt-BR', {
-              notation: 'compact',
-              compactDisplay: 'short',
-              style: 'currency',
-              currency: 'BRL',
-            }).format(value)
-          }
+          width={80}
+          tickFormatter={formatYAxis}
           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
         />
         <ChartTooltip
@@ -609,16 +630,16 @@ export function RevenueChart({
         <ChartLegend content={<ChartLegendContent />} />
 
         {keys.map((key) => (
-          <Area
+          <Bar
             key={key}
-            type="monotone"
             dataKey={key}
             stackId="a"
             fill={`var(--color-${key})`}
-            stroke={`var(--color-${key})`}
-            fillOpacity={0.6}
-            strokeWidth={2}
-          />
+            maxBarSize={50}
+            radius={[0, 0, 0, 0]}
+          >
+            <LabelList dataKey={key} content={renderCustomBarLabel} />
+          </Bar>
         ))}
 
         <Line
@@ -628,7 +649,7 @@ export function RevenueChart({
           stroke="hsl(var(--muted-foreground))"
           strokeWidth={2}
           strokeDasharray="4 4"
-          dot={{ r: 3, fill: 'hsl(var(--muted-foreground))' }}
+          dot={{ r: 4, fill: 'hsl(var(--muted-foreground))' }}
         />
 
         <ReferenceLine
@@ -640,6 +661,7 @@ export function RevenueChart({
             value: 'Média',
             fill: 'hsl(var(--muted-foreground))',
             fontSize: 10,
+            offset: 10,
           }}
         />
       </ComposedChart>
@@ -655,10 +677,10 @@ export function RevenueChart({
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
-              Receita Diária
+              Detalhamento de Receita Diária
             </CardTitle>
             <CardDescription>
-              Realizado (Expedição) vs Projetado (Produção + Médias)
+              Visualização expandida do faturamento com projeção de 7 dias.
             </CardDescription>
           </div>
 
@@ -822,13 +844,13 @@ export function RevenueChart({
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm text-muted-foreground border-t pt-4">
                   <div>
                     Média Real:{' '}
-                    <span className="font-medium text-foreground">
+                    <span className="font-bold text-foreground">
                       {formatCurrency(averageRevenue)}
                     </span>
                   </div>
                   <div>
                     Projeção Total (Período):{' '}
-                    <span className="font-medium text-foreground">
+                    <span className="font-bold text-foreground">
                       {formatCurrency(displayTotalForecast)}
                     </span>
                   </div>
@@ -837,69 +859,12 @@ export function RevenueChart({
             </Dialog>
           </div>
         </div>
-
-        {forecastMetrics && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-muted/20 rounded-lg p-3 border border-border/50 gap-2">
-            <div className="flex flex-col">
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                Previsão de Faturamento
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-bold font-mono text-foreground">
-                  {formatCurrency(displayTotalForecast)}
-                </span>
-                {forecastMetrics.previous > 0 && (
-                  <Badge
-                    variant={
-                      forecastMetrics.percentage >= 0
-                        ? 'default'
-                        : 'destructive'
-                    }
-                    className={cn(
-                      'px-1.5 py-0.5 h-auto text-[10px] font-bold',
-                      forecastMetrics.percentage >= 0
-                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400',
-                    )}
-                  >
-                    {forecastMetrics.percentage >= 0 ? (
-                      <ArrowUpRight className="h-3 w-3 mr-1" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 mr-1" />
-                    )}
-                    {formatNumber(Math.abs(forecastMetrics.percentage), {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })}
-                    %
-                  </Badge>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground mt-1">
-                Baseado em MP + Rendimentos (Filtro:{' '}
-                {currentFilter.join(', ') || 'Nenhum'}
-                {currentClientFilter.length > 0
-                  ? ` | Clientes: ${currentClientFilter.length}`
-                  : ''}
-                )
-              </span>
-            </div>
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-xs text-muted-foreground">
-                Período Anterior
-              </span>
-              <span className="font-mono text-sm">
-                {formatCurrency(forecastMetrics.previous)}
-              </span>
-            </div>
-          </div>
-        )}
       </CardHeader>
       <CardContent className="pt-2 flex-1 min-h-0">
         {chartData.length > 0 || totalForecast > 0 ? (
           <ChartContent />
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
+          <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md">
             {currentClientFilter.length > 0
               ? 'Nenhum dado encontrado para os clientes selecionados neste período.'
               : 'Selecione ao menos um material para visualizar os dados.'}
@@ -907,23 +872,20 @@ export function RevenueChart({
         )}
       </CardContent>
       <CardFooter className="flex-col items-start gap-2 text-sm border-t bg-muted/5 pt-4">
-        {maxRevenue > 0 ? (
-          <div className="flex w-full items-start gap-2 leading-none">
-            <TrendingUp className="h-4 w-4 text-chart-2" />
-            <div className="grid gap-1">
-              <span className="font-medium text-foreground">
-                Pico de Faturamento: {formatCurrency(maxRevenue)}
-              </span>
-              <span className="text-muted-foreground text-xs">
-                Registrado em {maxDate}
-              </span>
-            </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-muted-foreground w-full">
+          <div>
+            Média Real:{' '}
+            <span className="font-bold text-foreground">
+              {formatCurrency(averageRevenue)}
+            </span>
           </div>
-        ) : (
-          <div className="text-xs text-muted-foreground">
-            Sem faturamento registrado para os filtros selecionados.
+          <div>
+            Projeção Total (Período):{' '}
+            <span className="font-bold text-foreground">
+              {formatCurrency(displayTotalForecast)}
+            </span>
           </div>
-        )}
+        </div>
       </CardFooter>
     </Card>
   )

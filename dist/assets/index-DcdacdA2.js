@@ -66388,12 +66388,12 @@ var ScrollBar = import_react.forwardRef(({ className, orientation = "vertical", 
 }));
 ScrollBar.displayName = ScrollAreaScrollbar.displayName;
 var PRODUCT_COLORS = {
-	Sebo: "hsl(var(--chart-1))",
-	FCO: "hsl(var(--chart-2))",
-	"Farinha Especial": "hsl(var(--chart-5))",
-	Farinha: "hsl(var(--chart-2))",
-	Farinheta: "hsl(var(--chart-3))",
-	"Matéria-Prima": "hsl(var(--chart-4))",
+	Sebo: "#166534",
+	FCO: "#eab308",
+	"Farinha Especial": "#fde047",
+	Farinha: "#eab308",
+	Farinheta: "#f97316",
+	"Matéria-Prima": "#8b5cf6",
 	"Farinha de Sangue": "#b91c1c"
 };
 var DEFAULT_FILTERS = [
@@ -66675,7 +66675,26 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 		isFarinorte
 	]);
 	const displayTotalForecast = forecastMetrics?.total ?? calculatedForecastTotal;
-	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+	const formatYAxis = (value) => {
+		if (value >= 1e6) return `R$ ${(value / 1e6).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi`;
+		else if (value >= 1e3) return `R$ ${(value / 1e3).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil`;
+		return `R$ ${value}`;
+	};
+	const renderCustomBarLabel = (props) => {
+		const { x: x$2, y: y$1, width, height, value } = props;
+		if (height < 20 || !value) return null;
+		return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("text", {
+			x: x$2 + width / 2,
+			y: y$1 + height / 2,
+			fill: "#fff",
+			textAnchor: "middle",
+			dominantBaseline: "central",
+			fontSize: 10,
+			fontWeight: "bold",
+			children: formatYAxis(value)
+		});
+	};
+	const ChartContent = ({ height = "h-[350px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 		config: chartConfig$1,
 		className: cn("w-full aspect-auto", height),
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
@@ -66683,7 +66702,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 			margin: {
 				top: 20,
 				right: 10,
-				left: 0,
+				left: 20,
 				bottom: 0
 			},
 			children: [
@@ -66705,13 +66724,8 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
 					tickLine: false,
 					axisLine: false,
-					width: 60,
-					tickFormatter: (value) => new Intl.NumberFormat("pt-BR", {
-						notation: "compact",
-						compactDisplay: "short",
-						style: "currency",
-						currency: "BRL"
-					}).format(value),
+					width: 80,
+					tickFormatter: formatYAxis,
 					tick: {
 						fill: "hsl(var(--muted-foreground))",
 						fontSize: 12
@@ -66744,14 +66758,21 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegend, { content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartLegendContent, {}) }),
-				keys$6.map((key) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Area, {
-					type: "monotone",
+				keys$6.map((key) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
 					dataKey: key,
 					stackId: "a",
 					fill: `var(--color-${key})`,
-					stroke: `var(--color-${key})`,
-					fillOpacity: .6,
-					strokeWidth: 2
+					maxBarSize: 50,
+					radius: [
+						0,
+						0,
+						0,
+						0
+					],
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: key,
+						content: renderCustomBarLabel
+					})
 				}, key)),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 					type: "monotone",
@@ -66761,7 +66782,7 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 					strokeWidth: 2,
 					strokeDasharray: "4 4",
 					dot: {
-						r: 3,
+						r: 4,
 						fill: "hsl(var(--muted-foreground))"
 					}
 				}),
@@ -66773,7 +66794,8 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 						position: "insideBottomRight",
 						value: "Média",
 						fill: "hsl(var(--muted-foreground))",
-						fontSize: 10
+						fontSize: 10,
+						offset: 10
 					}
 				})
 			]
@@ -66782,16 +66804,16 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: cn("shadow-sm border-primary/10 flex flex-col", className),
 		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, {
 				className: "pb-2 space-y-4",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "flex flex-col sm:flex-row sm:items-center justify-between gap-4",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "space-y-1",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 							className: "flex items-center gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DollarSign, { className: "h-5 w-5 text-primary" }), "Receita Diária"]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Realizado (Expedição) vs Projetado (Produção + Médias)" })]
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DollarSign, { className: "h-5 w-5 text-primary" }), "Detalhamento de Receita Diária"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Visualização expandida do faturamento com projeção de 7 dias." })]
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "flex flex-wrap items-center gap-2 self-start sm:self-center",
 						children: [
@@ -66947,14 +66969,14 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 											"Média Real:",
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "font-medium text-foreground",
+												className: "font-bold text-foreground",
 												children: formatCurrency(averageRevenue)
 											})
 										] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
 											"Projeção Total (Período):",
 											" ",
 											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-												className: "font-medium text-foreground",
+												className: "font-bold text-foreground",
 												children: formatCurrency(displayTotalForecast)
 											})
 										] })]
@@ -66963,83 +66985,185 @@ function RevenueChart({ data, productionData = [], rawMaterials = [], allData = 
 							})] })
 						]
 					})]
-				}), forecastMetrics && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex flex-col sm:flex-row items-start sm:items-center justify-between bg-muted/20 rounded-lg p-3 border border-border/50 gap-2",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex flex-col",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "text-xs text-muted-foreground font-medium uppercase tracking-wider",
-								children: "Previsão de Faturamento"
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-baseline gap-2 mt-1",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "text-2xl font-bold font-mono text-foreground",
-									children: formatCurrency(displayTotalForecast)
-								}), forecastMetrics.previous > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Badge, {
-									variant: forecastMetrics.percentage >= 0 ? "default" : "destructive",
-									className: cn("px-1.5 py-0.5 h-auto text-[10px] font-bold", forecastMetrics.percentage >= 0 ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"),
-									children: [
-										forecastMetrics.percentage >= 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowUpRight, { className: "h-3 w-3 mr-1" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ArrowDownRight, { className: "h-3 w-3 mr-1" }),
-										formatNumber(Math.abs(forecastMetrics.percentage), {
-											minimumFractionDigits: 1,
-											maximumFractionDigits: 1
-										}),
-										"%"
-									]
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-								className: "text-[10px] text-muted-foreground mt-1",
-								children: [
-									"Baseado em MP + Rendimentos (Filtro:",
-									" ",
-									currentFilter.join(", ") || "Nenhum",
-									currentClientFilter.length > 0 ? ` | Clientes: ${currentClientFilter.length}` : "",
-									")"
-								]
-							})
-						]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "hidden sm:flex flex-col items-end",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "text-xs text-muted-foreground",
-							children: "Período Anterior"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-mono text-sm",
-							children: formatCurrency(forecastMetrics.previous)
-						})]
-					})]
-				})]
+				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
 				className: "pt-2 flex-1 min-h-0",
 				children: chartData.length > 0 || totalForecast > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "h-[300px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md",
+					className: "h-[350px] flex items-center justify-center text-muted-foreground text-sm border border-dashed rounded-md",
 					children: currentClientFilter.length > 0 ? "Nenhum dado encontrado para os clientes selecionados neste período." : "Selecione ao menos um material para visualizar os dados."
 				})
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardFooter, {
 				className: "flex-col items-start gap-2 text-sm border-t bg-muted/5 pt-4",
-				children: maxRevenue > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex w-full items-start gap-2 leading-none",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TrendingUp, { className: "h-4 w-4 text-chart-2" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "grid gap-1",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-							className: "font-medium text-foreground",
-							children: ["Pico de Faturamento: ", formatCurrency(maxRevenue)]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-							className: "text-muted-foreground text-xs",
-							children: ["Registrado em ", maxDate]
-						})]
-					})]
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "text-xs text-muted-foreground",
-					children: "Sem faturamento registrado para os filtros selecionados."
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-col sm:flex-row items-start sm:items-center gap-4 text-muted-foreground w-full",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+						"Média Real:",
+						" ",
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-bold text-foreground",
+							children: formatCurrency(averageRevenue)
+						})
+					] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+						"Projeção Total (Período):",
+						" ",
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "font-bold text-foreground",
+							children: formatCurrency(displayTotalForecast)
+						})
+					] })]
 				})
 			})
 		]
+	});
+}
+function LossesAnalysisChart({ data, isMobile = false, className }) {
+	const { chartData, chartConfig: chartConfig$1 } = (0, import_react.useMemo)(() => {
+		const dailyMap = /* @__PURE__ */ new Map();
+		data.forEach((p$1) => {
+			if (!p$1.date) return;
+			const dateKey = format(p$1.date, "yyyy-MM-dd");
+			if (!dailyMap.has(dateKey)) dailyMap.set(dateKey, {
+				losses: 0,
+				mpUsed: 0,
+				date: p$1.date
+			});
+			const entry = dailyMap.get(dateKey);
+			entry.losses += p$1.losses || 0;
+			entry.mpUsed += p$1.mpUsed || 0;
+		});
+		return {
+			chartData: Array.from(dailyMap.values()).filter((d) => d.losses > 0).map((d) => ({
+				date: format(d.date, "dd/MM"),
+				fullDate: format(d.date, "dd 'de' MMMM", { locale: ptBR }),
+				originalDate: d.date,
+				losses: d.losses,
+				percentage: d.mpUsed > 0 ? d.losses / d.mpUsed * 100 : 0
+			})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime()),
+			chartConfig: { losses: {
+				label: "Perdas (kg)",
+				color: "#ef4444"
+			} }
+		};
+	}, [data]);
+	if (!chartData || chartData.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Volume de quebra técnica e perdas diárias ( > 0kg )" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "h-[300px] flex items-center justify-center text-muted-foreground",
+			children: "Nenhum dado de perda registrado."
+		})]
+	});
+	const formatYAxis = (value) => {
+		if (value >= 1e3) return `${(value / 1e3).toFixed(0)}k`;
+		return value.toString();
+	};
+	const ChartContent = ({ height = "h-[300px]" }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		config: chartConfig$1,
+		className: `${height} w-full`,
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+			data: chartData,
+			margin: {
+				top: 25,
+				right: 10,
+				left: 0,
+				bottom: 0
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+					vertical: false,
+					strokeDasharray: "3 3",
+					stroke: "#e5e7eb"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+					dataKey: "date",
+					tickLine: false,
+					axisLine: false,
+					tickMargin: 10,
+					minTickGap: 30,
+					fontSize: 12,
+					tick: { fill: "#6b7280" }
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+					tickLine: false,
+					axisLine: false,
+					tickFormatter: formatYAxis,
+					width: 45,
+					fontSize: 12,
+					tick: { fill: "#6b7280" }
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+					cursor: { fill: "hsl(var(--muted)/0.4)" },
+					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, { formatter: (value, name, props) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-col gap-1",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "font-bold text-red-600",
+							children: [formatNumber(Number(value)), " kg"]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "text-xs text-muted-foreground",
+							children: [
+								"(",
+								props.payload.percentage.toFixed(1),
+								"% da MP)"
+							]
+						})]
+					}) })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+					dataKey: "losses",
+					fill: "var(--color-losses)",
+					radius: [
+						4,
+						4,
+						0,
+						0
+					],
+					maxBarSize: 60,
+					name: "Perdas",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						dataKey: "percentage",
+						position: "top",
+						formatter: (val) => `${val.toFixed(1)}%`,
+						className: "fill-foreground font-bold",
+						fontSize: isMobile ? 10 : 12,
+						offset: 8
+					})
+				})
+			]
+		})
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
+		className: cn("shadow-sm border-primary/10 flex flex-col", className),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2 gap-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "space-y-1",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
+					className: "flex items-center gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, { className: "h-5 w-5 text-red-500" }), "Análise de Perdas"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Volume de quebra técnica e perdas diárias ( > 0kg )" })]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "flex items-center gap-2 self-end sm:self-auto",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
+					asChild: true,
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						size: "icon",
+						className: "h-8 w-8",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Maximize2, { className: "h-4 w-4 text-muted-foreground" })
+					})
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+					className: "max-w-[90vw] h-[80vh] flex flex-col",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Análise de Perdas" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Volume de quebra técnica e perdas diárias expandido." })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "flex-1 w-full min-h-0 py-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, { height: "h-full" })
+					})]
+				})] })
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, {
+			className: "pt-4 flex-1 min-h-[300px]",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContent, {})
+		})]
 	});
 }
 function YieldGaugeChart({ value, target, className }) {
@@ -72588,9 +72712,12 @@ function Dashboard() {
 								fullCookingTimeRecords: cookingTimeRecords,
 								referenceDate: effectiveForecastDate
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "grid gap-4",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LossesAnalysisChart, {
+									data: filteredProduction,
+									isMobile
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RevenueChart, {
 									data: filteredShipping,
 									productionData: filteredProduction,
 									rawMaterials: filteredRawMaterials,
@@ -72599,7 +72726,7 @@ function Dashboard() {
 									allRawMaterials: rawMaterials,
 									timeScale: "daily",
 									allClients: uniqueClients
-								})
+								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "space-y-4",
@@ -92173,4 +92300,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CVFkbToY.js.map
+//# sourceMappingURL=index-DcdacdA2.js.map
