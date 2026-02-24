@@ -64846,7 +64846,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			if (u$1.includes("ton")) return quantity * 1e3;
 			return quantity;
 		};
-		const targetDate = referenceDate || /* @__PURE__ */ new Date();
+		const previousDay = subDays(/* @__PURE__ */ new Date(), 1);
 		const rawMaterialInputKg = production.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const seboProduced = production.reduce((acc, curr) => acc + curr.seboProduced, 0);
 		const fcoProduced = production.reduce((acc, curr) => acc + curr.fcoProduced, 0);
@@ -64875,8 +64875,8 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		const oleoYield = mpUsedMainLine > 0 ? viscerasOilProducedInd / mpUsedMainLine * 100 : 0;
 		const bloodInputKg = rawMaterials.filter((r$2) => r$2.type?.toLowerCase() === "sangue").reduce((acc, curr) => acc + normalizeToKg(curr.quantity, curr.unit), 0);
 		const bloodYield = bloodInputKg > 0 ? bloodMealProduced / bloodInputKg * 100 : 0;
-		const targetDayProduction = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, targetDate));
-		const targetDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, targetDate));
+		const targetDayProduction = fullProductionHistory.filter((p$1) => p$1.date && isValid(p$1.date) && isSameDay(p$1.date, previousDay));
+		const targetDayCooking = fullCookingTimeRecords.filter((c$1) => c$1.date && isValid(c$1.date) && isSameDay(c$1.date, previousDay));
 		const estimatedQuantityKg = targetDayProduction.reduce((acc, p$1) => acc + (p$1.mpUsed || 0), 0);
 		let totalHoursTarget = 0;
 		let totalMinutesTarget = 0;
@@ -64903,7 +64903,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 			totalHoursTarget = totalMinutesTarget / 60;
 		}
 		const efficiencyTonPerHour = totalHoursTarget > 0 ? estimatedQuantityKg / 1e3 / totalHoursTarget : 0;
-		const targetDateFormatted = isValid(targetDate) ? format(targetDate, "dd/MM", { locale: ptBR }) : "--/--";
+		const targetDateFormatted = isValid(previousDay) ? format(previousDay, "dd/MM", { locale: ptBR }) : "--/--";
 		const processTimeCurrentDisplay = `${Math.floor(totalMinutesTarget / 60)}h ${Math.round(totalMinutesTarget % 60).toString().padStart(2, "0")}m`;
 		const saturatedOilInputKg = rawMaterials.filter((r$2) => {
 			const type = r$2.type?.toLowerCase() || "";
@@ -64941,8 +64941,7 @@ function OverviewCards({ rawMaterials = [], production = [], shipping = [], cook
 		returns,
 		digesterRecords,
 		fullProductionHistory,
-		fullCookingTimeRecords,
-		referenceDate
+		fullCookingTimeRecords
 	]);
 	const getYieldStyle = (current, threshold$1 = 0) => {
 		if (current < threshold$1) return {
@@ -93558,4 +93557,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CgU8gm1t.js.map
+//# sourceMappingURL=index-DxJ0-c8_.js.map

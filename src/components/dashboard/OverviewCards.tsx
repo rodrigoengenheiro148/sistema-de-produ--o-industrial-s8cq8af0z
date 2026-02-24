@@ -41,7 +41,7 @@ import {
   formatSecondsAsTime,
 } from '@/lib/utils'
 import { useMemo } from 'react'
-import { isSameDay, format, isValid } from 'date-fns'
+import { isSameDay, format, isValid, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useData } from '@/context/DataContext'
 
@@ -86,7 +86,8 @@ export function OverviewCards({
       return quantity
     }
 
-    const targetDate = referenceDate || new Date()
+    // Always use the previous day for Process Time metrics
+    const previousDay = subDays(new Date(), 1)
 
     // 1. Entrada MP -> Based on Production mp_used for the selected date range
     const rawMaterialInputKg = production.reduce(
@@ -205,13 +206,13 @@ export function OverviewCards({
     const bloodYield =
       bloodInputKg > 0 ? (bloodMealProduced / bloodInputKg) * 100 : 0
 
-    // 12. Tempo de Processos & Estimativa (Strict Single-Day Logic)
+    // 12. Tempo de Processos & Estimativa (Strictly Yesterday Logic)
     const targetDayProduction = fullProductionHistory.filter(
-      (p) => p.date && isValid(p.date) && isSameDay(p.date, targetDate),
+      (p) => p.date && isValid(p.date) && isSameDay(p.date, previousDay),
     )
 
     const targetDayCooking = fullCookingTimeRecords.filter(
-      (c) => c.date && isValid(c.date) && isSameDay(c.date, targetDate),
+      (c) => c.date && isValid(c.date) && isSameDay(c.date, previousDay),
     )
 
     const estimatedQuantityKg = targetDayProduction.reduce(
@@ -259,8 +260,8 @@ export function OverviewCards({
     const efficiencyTonPerHour =
       totalHoursTarget > 0 ? estimatedQuantityKg / 1000 / totalHoursTarget : 0
 
-    const targetDateFormatted = isValid(targetDate)
-      ? format(targetDate, 'dd/MM', { locale: ptBR })
+    const targetDateFormatted = isValid(previousDay)
+      ? format(previousDay, 'dd/MM', { locale: ptBR })
       : '--/--'
 
     const currentHours = Math.floor(totalMinutesTarget / 60)
@@ -314,7 +315,6 @@ export function OverviewCards({
     digesterRecords,
     fullProductionHistory,
     fullCookingTimeRecords,
-    referenceDate,
   ])
 
   const getYieldStyle = (current: number, threshold: number = 0) => {
