@@ -71432,7 +71432,8 @@ const MAR_RECICLAGEM_TYPES = [
 	"Misto",
 	"Couros Bovinos",
 	"Sangue",
-	"Oleo Saturado"
+	"Óleo Saturado",
+	"MUXIBA"
 ];
 const MEASUREMENT_UNITS = [
 	{
@@ -93557,4 +93558,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DXnSne2e.js.map
+//# sourceMappingURL=index-CgU8gm1t.js.map

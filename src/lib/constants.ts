@@ -19,7 +19,8 @@ export const MAR_RECICLAGEM_TYPES = [
   'Misto',
   'Couros Bovinos',
   'Sangue',
-  'Oleo Saturado',
+  'Óleo Saturado',
+  'MUXIBA',
 ] as const
 
 export const MEASUREMENT_UNITS = [
