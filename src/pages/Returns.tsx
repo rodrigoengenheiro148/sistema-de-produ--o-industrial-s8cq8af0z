@@ -140,7 +140,14 @@ export default function Returns() {
     (acc, curr) => acc + curr.quantity,
     0,
   )
-  const totalValue = filteredReturns.reduce((acc, curr) => acc + curr.value, 0)
+  const totalValue = filteredReturns.reduce(
+    (acc, curr) =>
+      acc +
+      curr.value +
+      (curr.outboundFreight || 0) +
+      (curr.returnFreight || 0),
+    0,
+  )
 
   return (
     <div className="space-y-6">
@@ -199,7 +206,7 @@ export default function Returns() {
         <Card className="bg-red-50/50 border-red-100">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-red-800">
-              Valor Total de Devoluções
+              Prejuízo Total
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -232,7 +239,9 @@ export default function Returns() {
                 <TableHead>Data</TableHead>
                 <TableHead>Fornecedor</TableHead>
                 <TableHead className="text-right">Quantidade (kg)</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead className="text-right">Valor Prod. (R$)</TableHead>
+                <TableHead className="text-right">Fretes (R$)</TableHead>
+                <TableHead className="text-right">Prejuízo (R$)</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="w-[80px]">Ações</TableHead>
               </TableRow>
@@ -241,7 +250,7 @@ export default function Returns() {
               {filteredReturns.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={8}
                     className="text-center h-24 text-muted-foreground"
                   >
                     Nenhuma devolução registrada no período.
@@ -250,6 +259,9 @@ export default function Returns() {
               ) : (
                 filteredReturns.map((entry) => {
                   const isEditable = canEditRecord(entry.createdAt)
+                  const fretes =
+                    (entry.outboundFreight || 0) + (entry.returnFreight || 0)
+                  const prejuizo = entry.value + fretes
                   return (
                     <TableRow
                       key={entry.id}
@@ -271,11 +283,17 @@ export default function Returns() {
                         </div>
                       </TableCell>
                       <TableCell>{entry.supplier}</TableCell>
-                      <TableCell className="text-right font-mono text-red-600 font-medium">
+                      <TableCell className="text-right font-mono text-muted-foreground font-medium">
                         -{formatNumber(entry.quantity)}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-red-600">
-                        -{formatCurrency(entry.value)}
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {formatCurrency(entry.value)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-orange-600">
+                        {formatCurrency(fretes)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-red-600 font-bold">
+                        -{formatCurrency(prejuizo)}
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">
                         {entry.description}

@@ -36527,6 +36527,8 @@ const DataProvider = ({ children }) => {
 					quantity: Number(r$2.quantity || 0),
 					description: r$2.description,
 					value: Number(r$2.value || 0),
+					outboundFreight: Number(r$2.outbound_freight || 0),
+					returnFreight: Number(r$2.return_freight || 0),
 					factoryId: r$2.factory_id,
 					userId: r$2.user_id,
 					createdAt: r$2.created_at ? new Date(r$2.created_at) : void 0
@@ -36969,15 +36971,18 @@ const DataProvider = ({ children }) => {
 	};
 	const addReturn = async (entry) => {
 		if (!currentFactoryId) return;
-		const { error } = await supabase.from("returns").insert({
+		const payload = {
 			date: entry.date.toISOString(),
 			supplier: entry.supplier,
 			quantity: entry.quantity,
 			description: entry.description,
 			value: entry.value,
+			outbound_freight: entry.outboundFreight || 0,
+			return_freight: entry.returnFreight || 0,
 			user_id: user?.id,
 			factory_id: currentFactoryId
-		});
+		};
+		const { error } = await supabase.from("returns").insert(payload);
 		if (!error) {
 			if (notificationSettings.emailEnabled || notificationSettings.smsEnabled) supabase.functions.invoke("send-brevo-alert", { body: {
 				returnData: {
@@ -36991,13 +36996,16 @@ const DataProvider = ({ children }) => {
 		}
 	};
 	const updateReturn = async (entry) => {
-		const { error } = await supabase.from("returns").update({
+		const payload = {
 			date: entry.date.toISOString(),
 			supplier: entry.supplier,
 			quantity: entry.quantity,
 			description: entry.description,
-			value: entry.value
-		}).eq("id", entry.id);
+			value: entry.value,
+			outbound_freight: entry.outboundFreight || 0,
+			return_freight: entry.returnFreight || 0
+		};
+		const { error } = await supabase.from("returns").update(payload).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
 	const deleteReturn = async (id) => {
@@ -72089,7 +72097,8 @@ function ReturnsImpactChart({ data, className }) {
 		const dailyMap = /* @__PURE__ */ new Map();
 		data.forEach((item) => {
 			const dateKey = format(item.date, "yyyy-MM-dd");
-			dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + item.value);
+			const totalLoss = item.value + (item.outboundFreight || 0) + (item.returnFreight || 0);
+			dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + totalLoss);
 		});
 		return {
 			chartData: Array.from(dailyMap.entries()).map(([dateKey, value]) => ({
@@ -72099,7 +72108,7 @@ function ReturnsImpactChart({ data, className }) {
 				value: -value
 			})).sort((a$2, b$1) => a$2.originalDate.getTime() - b$1.originalDate.getTime()),
 			chartConfig: { value: {
-				label: "Valor Devolvido",
+				label: "Prejuízo Total",
 				color: "hsl(var(--destructive))"
 			} }
 		};
@@ -72110,7 +72119,7 @@ function ReturnsImpactChart({ data, className }) {
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
 			className: "flex items-center gap-2",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Undo2, { className: "h-5 w-5 text-destructive" }), "Impacto de Devoluções"]
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Valor financeiro das devoluções ao longo do tempo (Negativo)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardDescription, { children: "Valor financeiro (prejuízo com fretes) das devoluções ao longo do tempo (Negativo)" })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 			config: chartConfig$1,
 			className: "aspect-auto h-[250px] w-full",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
@@ -91661,7 +91670,9 @@ var formSchema = object({
 	supplier: string().min(1, "Fornecedor é obrigatório"),
 	quantity: number().min(.01, "Quantidade deve ser maior que 0"),
 	description: string().min(1, "Descrição é obrigatória"),
-	value: number().min(0, "Valor deve ser positivo")
+	value: number().min(0, "Valor deve ser positivo"),
+	outboundFreight: number().min(0).default(0),
+	returnFreight: number().min(0).default(0)
 });
 function ReturnForm({ initialData, onSuccess, onCancel }) {
 	const { addReturn, updateReturn } = useData();
@@ -91673,7 +91684,9 @@ function ReturnForm({ initialData, onSuccess, onCancel }) {
 			supplier: initialData?.supplier || "",
 			quantity: initialData?.quantity || 0,
 			description: initialData?.description || "",
-			value: initialData?.value || 0
+			value: initialData?.value || 0,
+			outboundFreight: initialData?.outboundFreight || 0,
+			returnFreight: initialData?.returnFreight || 0
 		}
 	});
 	function onSubmit(values) {
@@ -91682,7 +91695,9 @@ function ReturnForm({ initialData, onSuccess, onCancel }) {
 			supplier: values.supplier,
 			quantity: values.quantity,
 			description: values.description,
-			value: values.value
+			value: values.value,
+			outboundFreight: values.outboundFreight,
+			returnFreight: values.returnFreight
 		};
 		if (initialData) {
 			updateReturn({
@@ -91754,6 +91769,34 @@ function ReturnForm({ initialData, onSuccess, onCancel }) {
 						name: "value",
 						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Valor (R$)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "grid grid-cols-2 gap-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "outboundFreight",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Frete de Ida (R$)" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								type: "number",
+								step: "0.01",
+								...field
+							}) }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+						] })
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						control: form.control,
+						name: "returnFreight",
+						render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Frete de Volta (R$)" }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 								type: "number",
 								step: "0.01",
@@ -91859,7 +91902,7 @@ function Returns() {
 		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.toLowerCase());
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
 	const totalQuantity = filteredReturns.reduce((acc, curr) => acc + curr.quantity, 0);
-	const totalValue = filteredReturns.reduce((acc, curr) => acc + curr.value, 0);
+	const totalValue = filteredReturns.reduce((acc, curr) => acc + curr.value + (curr.outboundFreight || 0) + (curr.returnFreight || 0), 0);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6",
 		children: [
@@ -91913,7 +91956,7 @@ function Returns() {
 						className: "pb-2",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, {
 							className: "text-sm font-medium text-red-800",
-							children: "Valor Total de Devoluções"
+							children: "Prejuízo Total"
 						})
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "text-2xl font-bold text-red-600",
@@ -91943,7 +91986,15 @@ function Returns() {
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
-						children: "Valor (R$)"
+						children: "Valor Prod. (R$)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Fretes (R$)"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Prejuízo (R$)"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Descrição" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -91951,11 +92002,13 @@ function Returns() {
 						children: "Ações"
 					})
 				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredReturns.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 6,
+					colSpan: 8,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhuma devolução registrada no período."
 				}) }) : filteredReturns.map((entry) => {
 					const isEditable = canEditRecord(entry.createdAt);
+					const fretes = (entry.outboundFreight || 0) + (entry.returnFreight || 0);
+					const prejuizo = entry.value + fretes;
 					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
 						children: [
@@ -91971,12 +92024,20 @@ function Returns() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.supplier }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "text-right font-mono text-red-600 font-medium",
+								className: "text-right font-mono text-muted-foreground font-medium",
 								children: ["-", formatNumber(entry.quantity)]
 							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-muted-foreground",
+								children: formatCurrency(entry.value)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-orange-600",
+								children: formatCurrency(fretes)
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableCell, {
-								className: "text-right font-mono text-red-600",
-								children: ["-", formatCurrency(entry.value)]
+								className: "text-right font-mono text-red-600 font-bold",
+								children: ["-", formatCurrency(prejuizo)]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "max-w-[200px] truncate text-muted-foreground",
@@ -93558,4 +93619,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CKhI6EEA.js.map
+//# sourceMappingURL=index-DD6UGq2P.js.map

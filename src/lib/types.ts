@@ -86,6 +86,8 @@ export interface ReturnEntry {
   quantity: number
   description: string
   value: number
+  outboundFreight?: number
+  returnFreight?: number
   factoryId: string
   userId: string
   createdAt?: Date

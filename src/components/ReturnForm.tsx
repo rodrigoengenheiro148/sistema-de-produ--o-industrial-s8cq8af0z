@@ -23,6 +23,8 @@ const formSchema = z.object({
   quantity: z.coerce.number().min(0.01, 'Quantidade deve ser maior que 0'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   value: z.coerce.number().min(0, 'Valor deve ser positivo'),
+  outboundFreight: z.coerce.number().min(0).default(0),
+  returnFreight: z.coerce.number().min(0).default(0),
 })
 
 interface ReturnFormProps {
@@ -49,6 +51,8 @@ export function ReturnForm({
       quantity: initialData?.quantity || 0,
       description: initialData?.description || '',
       value: initialData?.value || 0,
+      outboundFreight: initialData?.outboundFreight || 0,
+      returnFreight: initialData?.returnFreight || 0,
     },
   })
 
@@ -59,6 +63,8 @@ export function ReturnForm({
       quantity: values.quantity,
       description: values.description,
       value: values.value,
+      outboundFreight: values.outboundFreight,
+      returnFreight: values.returnFreight,
     }
 
     if (initialData) {
@@ -133,6 +139,34 @@ export function ReturnForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Valor (R$)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="outboundFreight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Frete de Ida (R$)</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="returnFreight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Frete de Volta (R$)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>

@@ -41,7 +41,9 @@ export function ReturnsImpactChart({
 
     data.forEach((item) => {
       const dateKey = format(item.date, 'yyyy-MM-dd')
-      dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + item.value)
+      const totalLoss =
+        item.value + (item.outboundFreight || 0) + (item.returnFreight || 0)
+      dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + totalLoss)
     })
 
     const processedData = Array.from(dailyMap.entries())
@@ -55,7 +57,7 @@ export function ReturnsImpactChart({
 
     const config = {
       value: {
-        label: 'Valor Devolvido',
+        label: 'Prejuízo Total',
         color: 'hsl(var(--destructive))',
       },
     } satisfies ChartConfig
@@ -75,7 +77,8 @@ export function ReturnsImpactChart({
           Impacto de Devoluções
         </CardTitle>
         <CardDescription>
-          Valor financeiro das devoluções ao longo do tempo (Negativo)
+          Valor financeiro (prejuízo com fretes) das devoluções ao longo do
+          tempo (Negativo)
         </CardDescription>
       </CardHeader>
       <CardContent>

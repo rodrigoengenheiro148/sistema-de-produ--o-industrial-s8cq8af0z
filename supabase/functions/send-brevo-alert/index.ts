@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
           },
         },
       )
-      // Only verify user if user_id was not explicitly passed in a trusted context, 
+      // Only verify user if user_id was not explicitly passed in a trusted context,
       // but client-side calls typically pass user_id in body for logic, verified by JWT context if needed.
       // For simplicity in this hybrid function, we trust the caller has permissions if JWT is valid.
       if (!userId) {
@@ -89,8 +89,13 @@ Deno.serve(async (req) => {
     // --- HANDLE RETURN ALERT ---
     if (type === 'return_alert' && returnData) {
       const date = new Date(returnData.date).toLocaleDateString('pt-BR')
+      const fretes =
+        (Number(returnData.outboundFreight) || 0) +
+        (Number(returnData.returnFreight) || 0)
+      const prejuizo = Number(returnData.value) + fretes
+
       alertSubject = `Nova Devolução Registrada - ${date}`
-      alertText = `NOVA DEVOLUÇÃO - ${date}\nFornecedor: ${returnData.supplier}\nQuantidade: ${returnData.quantity} kg\nValor: R$ ${returnData.value}\nMotivo: ${returnData.description}`
+      alertText = `NOVA DEVOLUÇÃO - ${date}\nFornecedor: ${returnData.supplier}\nQuantidade: ${returnData.quantity} kg\nValor Produto: R$ ${returnData.value}\nFretes: R$ ${fretes}\nPrejuízo: R$ ${prejuizo}\nMotivo: ${returnData.description}`
       alertHtml = `
         <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
           <h2 style="color: #b91c1c;">NOVA DEVOLUÇÃO REGISTRADA</h2>
@@ -98,7 +103,9 @@ Deno.serve(async (req) => {
           <div style="background-color: #fff1f2; padding: 15px; border-radius: 6px; border-left: 4px solid #e11d48;">
             <p><b>Fornecedor:</b> ${returnData.supplier}</p>
             <p><b>Quantidade:</b> ${returnData.quantity} kg</p>
-            <p><b>Valor:</b> R$ ${Number(returnData.value).toFixed(2)}</p>
+            <p><b>Valor Produto:</b> R$ ${Number(returnData.value).toFixed(2)}</p>
+            <p><b>Custo Fretes:</b> R$ ${fretes.toFixed(2)}</p>
+            <p><b>Prejuízo Total:</b> R$ ${prejuizo.toFixed(2)}</p>
             <p><b>Motivo:</b> ${returnData.description}</p>
           </div>
           <p style="margin-top: 20px; font-size: 12px; color: #666;">Sistema de Controle Industrial</p>

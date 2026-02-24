@@ -428,6 +428,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
               quantity: Number(r.quantity || 0),
               description: r.description,
               value: Number(r.value || 0),
+              outboundFreight: Number(r.outbound_freight || 0),
+              returnFreight: Number(r.return_freight || 0),
               factoryId: r.factory_id,
               userId: r.user_id,
               createdAt: r.created_at ? new Date(r.created_at) : undefined,
@@ -1001,15 +1003,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addReturn = async (entry: Omit<ReturnEntry, 'id'>) => {
     if (!currentFactoryId) return
-    const { error } = await supabase.from('returns').insert({
+
+    const payload: any = {
       date: entry.date.toISOString(),
       supplier: entry.supplier,
       quantity: entry.quantity,
       description: entry.description,
       value: entry.value,
+      outbound_freight: entry.outboundFreight || 0,
+      return_freight: entry.returnFreight || 0,
       user_id: user?.id,
       factory_id: currentFactoryId,
-    })
+    }
+
+    const { error } = await supabase.from('returns').insert(payload)
 
     if (!error) {
       if (
@@ -1032,16 +1039,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   }
 
   const updateReturn = async (entry: ReturnEntry) => {
+    const payload: any = {
+      date: entry.date.toISOString(),
+      supplier: entry.supplier,
+      quantity: entry.quantity,
+      description: entry.description,
+      value: entry.value,
+      outbound_freight: entry.outboundFreight || 0,
+      return_freight: entry.returnFreight || 0,
+    }
+
     const { error } = await supabase
       .from('returns')
-      .update({
-        date: entry.date.toISOString(),
-        supplier: entry.supplier,
-        quantity: entry.quantity,
-        description: entry.description,
-        value: entry.value,
-      })
+      .update(payload)
       .eq('id', entry.id)
+
     if (!error) fetchOperationalData()
   }
 
