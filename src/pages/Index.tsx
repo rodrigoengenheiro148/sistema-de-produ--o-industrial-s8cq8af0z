@@ -64,6 +64,11 @@ export default function Dashboard() {
 
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
+  const isReciclagem =
+    currentFactory?.name?.toUpperCase() === 'RECICLAGEM' ||
+    currentFactory?.name?.toUpperCase().includes('RECICLAGEM') ||
+    isMarReciclagem
+
   const [today, setToday] = useState(new Date())
   useEffect(() => {
     const timer = setInterval(() => {
@@ -182,26 +187,31 @@ export default function Dashboard() {
       0,
     )
 
-    const totalProduced = filteredProduction.reduce(
-      (acc, curr) =>
-        acc +
+    const totalProduced = filteredProduction.reduce((acc, curr) => {
+      let produced =
         curr.seboProduced +
         curr.fcoProduced +
         (isFarinorte ? 0 : curr.farinhetaProduced) +
         (curr.viscerasMealProduced || 0) +
         (curr.featherMealProduced || 0) +
-        (curr.viscerasOilProduced || 0) +
-        (curr.bloodMealBags && curr.bloodMealBags > 0
-          ? curr.bloodMealBags * 1400
-          : curr.bloodMealProduced || 0),
-      0,
-    )
+        (curr.fishMealProduced || 0)
+
+      if (!isReciclagem) {
+        produced +=
+          (curr.viscerasOilProduced || 0) +
+          (curr.bloodMealBags && curr.bloodMealBags > 0
+            ? curr.bloodMealBags * 1400
+            : curr.bloodMealProduced || 0)
+      }
+
+      return acc + produced
+    }, 0)
 
     const yieldVal = totalMp > 0 ? (totalProduced / totalMp) * 100 : 0
     const target = notificationSettings?.yieldThreshold || 58.0
 
     return { currentYield: yieldVal, yieldTarget: target }
-  }, [filteredProduction, notificationSettings, isFarinorte])
+  }, [filteredProduction, notificationSettings, isFarinorte, isReciclagem])
 
   const [dateInput, setDateInput] = useState('')
   const [inputError, setInputError] = useState(false)

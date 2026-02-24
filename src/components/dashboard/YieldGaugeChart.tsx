@@ -42,7 +42,7 @@ export function YieldGaugeChart({
     if (val >= tgt)
       return {
         color: '#10b981', // emerald-500
-        label: 'SUPEROU A META',
+        label: 'ACIMA DA META',
         gradient: 'url(#gradient-success)',
         textClass: 'text-[#16a34a]', // dark green text for center
         bgClass: 'bg-[#eefcf2] text-[#16a34a] border border-[#d1fadf]', // matching screenshot styling for badge

@@ -67023,7 +67023,7 @@ function YieldGaugeChart({ value, target, className }) {
 	const getStatus = (val, tgt) => {
 		if (val >= tgt) return {
 			color: "#10b981",
-			label: "SUPEROU A META",
+			label: "ACIMA DA META",
 			gradient: "url(#gradient-success)",
 			textClass: "text-[#16a34a]",
 			bgClass: "bg-[#eefcf2] text-[#16a34a] border border-[#d1fadf]"
@@ -72633,6 +72633,7 @@ function Dashboard() {
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const isFarinorte = currentFactory?.name === "Farinorte";
+	const isReciclagem = currentFactory?.name?.toUpperCase() === "RECICLAGEM" || currentFactory?.name?.toUpperCase().includes("RECICLAGEM") || isMarReciclagem;
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -72698,7 +72699,11 @@ function Dashboard() {
 	const avgFarinhetaProtein = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhetaQuality.length : 0;
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
 		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
-		const totalProduced = filteredProduction.reduce((acc, curr) => acc + curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0), 0);
+		const totalProduced = filteredProduction.reduce((acc, curr) => {
+			let produced = curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.fishMealProduced || 0);
+			if (!isReciclagem) produced += (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0);
+			return acc + produced;
+		}, 0);
 		return {
 			currentYield: totalMp > 0 ? totalProduced / totalMp * 100 : 0,
 			yieldTarget: notificationSettings?.yieldThreshold || 58
@@ -72706,7 +72711,8 @@ function Dashboard() {
 	}, [
 		filteredProduction,
 		notificationSettings,
-		isFarinorte
+		isFarinorte,
+		isReciclagem
 	]);
 	const [dateInput, setDateInput] = (0, import_react.useState)("");
 	const [inputError, setInputError] = (0, import_react.useState)(false);
@@ -93477,4 +93483,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-CfsaRhbA.js.map
+//# sourceMappingURL=index-WdOxl5oC.js.map
