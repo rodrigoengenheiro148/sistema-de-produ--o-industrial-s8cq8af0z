@@ -65249,8 +65249,68 @@ var Separator = import_react.forwardRef(({ className, orientation = "horizontal"
 }));
 Separator.displayName = Root$4.displayName;
 function LoadForecast({ referenceDate, className }) {
-	const { rawMaterials, dailyForecasts } = useData();
+	const { rawMaterials, dailyForecasts, factories, currentFactoryId } = useData();
 	const targetDate = referenceDate || /* @__PURE__ */ new Date();
+	const targetDateStr = format(targetDate, "yyyy-MM-dd");
+	const isReciclagemFactory = factories.find((f) => f.id === currentFactoryId)?.name?.toUpperCase().includes("RECICLAGEM") || false;
+	const [reciclagemForecastMain, setReciclagemForecastMain] = (0, import_react.useState)(0);
+	const [reciclagemForecastBlood, setReciclagemForecastBlood] = (0, import_react.useState)(0);
+	const [historicalYields, setHistoricalYields] = (0, import_react.useState)({
+		sebo: .15,
+		fco: .2,
+		farinheta: .05,
+		sangue: .18
+	});
+	(0, import_react.useEffect)(() => {
+		if (!isReciclagemFactory || !currentFactoryId) return;
+		const fetchReciclagemData = async () => {
+			const startDate = targetDateStr;
+			const targetDateObj = /* @__PURE__ */ new Date(startDate + "T12:00:00");
+			const endDate = format(addDays(targetDateObj, 6), "yyyy-MM-dd");
+			const { data: forecasts$1 } = await supabase.from("daily_production_forecasts").select("mp_forecast, material_type").eq("factory_id", currentFactoryId).gte("date", startDate).lte("date", endDate);
+			let mainSum = 0;
+			let bloodSum = 0;
+			if (forecasts$1) forecasts$1.forEach((f) => {
+				if (f.material_type === "Sangue") bloodSum += Number(f.mp_forecast);
+				else mainSum += Number(f.mp_forecast);
+			});
+			setReciclagemForecastMain(mainSum);
+			setReciclagemForecastBlood(bloodSum);
+			const thirtyDaysAgo = format(subDays(targetDateObj, 30), "yyyy-MM-dd");
+			const { data: prodData } = await supabase.from("production").select("mp_used, sebo_produced, fco_produced, farinheta_produced, blood_meal_produced, blood_meal_bags").eq("factory_id", currentFactoryId).gte("date", thirtyDaysAgo).lte("date", startDate);
+			if (prodData && prodData.length > 0) {
+				let totalMp = 0;
+				let totalSebo = 0;
+				let totalFco = 0;
+				let totalFarinheta = 0;
+				let totalBloodMp = 0;
+				let totalBloodProduced = 0;
+				prodData.forEach((p$1) => {
+					if (!(p$1.blood_meal_produced > 0 || p$1.blood_meal_bags && p$1.blood_meal_bags > 0)) {
+						totalMp += Number(p$1.mp_used || 0);
+						totalSebo += Number(p$1.sebo_produced || 0);
+						totalFco += Number(p$1.fco_produced || 0);
+						totalFarinheta += Number(p$1.farinheta_produced || 0);
+					} else {
+						totalBloodMp += Number(p$1.mp_used || 0);
+						const produced = p$1.blood_meal_bags && p$1.blood_meal_bags > 0 ? p$1.blood_meal_bags * 1400 : p$1.blood_meal_produced || 0;
+						totalBloodProduced += produced;
+					}
+				});
+				setHistoricalYields({
+					sebo: totalMp > 0 ? totalSebo / totalMp : .15,
+					fco: totalMp > 0 ? totalFco / totalMp : .2,
+					farinheta: totalMp > 0 ? totalFarinheta / totalMp : .05,
+					sangue: totalBloodMp > 0 ? totalBloodProduced / totalBloodMp : .18
+				});
+			}
+		};
+		fetchReciclagemData();
+	}, [
+		isReciclagemFactory,
+		currentFactoryId,
+		targetDateStr
+	]);
 	const forecastData = (0, import_react.useMemo)(() => {
 		const forecasts$1 = dailyForecasts.filter((f) => isSameDay(f.date, targetDate));
 		const mainLineForecast = forecasts$1.filter((f) => f.materialType !== "Sangue").reduce((acc, curr) => acc + curr.mpForecast, 0);
@@ -65271,26 +65331,29 @@ function LoadForecast({ referenceDate, className }) {
 	const FIXED_FLOW_1450 = 5.8;
 	const FIXED_FLOW_1500 = 6;
 	const SEBO_DENSITY$1 = .9;
-	const YIELD_FACTORS = {
+	const activeYields = isReciclagemFactory ? historicalYields : {
 		sebo: .15,
 		fco: .2,
 		farinheta: .05,
 		sangue: .18
 	};
-	const calculateMetrics = (yieldFactor, inputVal) => {
-		const estProdKg = inputVal * yieldFactor;
+	const inputVal7DaysMain = isReciclagemFactory ? reciclagemForecastMain : activeMpValue * 7;
+	const inputVal7DaysBlood = isReciclagemFactory ? reciclagemForecastBlood : activeBloodValue * 7;
+	const calculateMetrics = (yieldFactor, inputValDaily, inputVal7Days) => {
+		const estProdTons = inputValDaily * yieldFactor / 1e3;
+		const estProdKg7Days = inputVal7Days * yieldFactor;
 		return {
-			estProdTons: estProdKg / 1e3,
-			bags1400: Math.floor(estProdKg / 1400),
-			bags1450: Math.floor(estProdKg / 1450),
-			bags1500: Math.floor(estProdKg / 1500)
+			estProdTons,
+			bags1400: Math.floor(estProdKg7Days / 1400),
+			bags1450: Math.floor(estProdKg7Days / 1450),
+			bags1500: Math.floor(estProdKg7Days / 1500)
 		};
 	};
 	const forecasts = {
-		sebo: calculateMetrics(YIELD_FACTORS.sebo, activeMpValue),
-		fco: calculateMetrics(YIELD_FACTORS.fco, activeMpValue),
-		farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
-		sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue)
+		sebo: calculateMetrics(activeYields.sebo, activeMpValue, inputVal7DaysMain),
+		fco: calculateMetrics(activeYields.fco, activeMpValue, inputVal7DaysMain),
+		farinheta: calculateMetrics(activeYields.farinheta, activeMpValue, inputVal7DaysMain),
+		sangue: calculateMetrics(activeYields.sangue, activeBloodValue, inputVal7DaysBlood)
 	};
 	const ForecastCard = ({ title, icon: Icon$2, colorClass, bgClass, headerBgClass, data, bagSizes, flowRates, isLiquid = false }) => {
 		const isSingleBagSize = bagSizes[0] === bagSizes[1];
@@ -65416,7 +65479,7 @@ function LoadForecast({ referenceDate, className }) {
 								className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass, isSingleBagSize && "col-span-2"),
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-									children: data.bags1 * 7
+									children: data.bags1
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 									className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
 									children: [bagSizes[0], "KG"]
@@ -65425,7 +65488,7 @@ function LoadForecast({ referenceDate, className }) {
 								className: cn("flex flex-col items-center justify-center p-4 rounded-md border shadow-sm", bgClass),
 								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 									className: cn("text-2xl font-bold leading-none mb-1.5", colorClass),
-									children: data.bags2 * 7
+									children: data.bags2
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
 									className: "text-[10px] text-muted-foreground uppercase font-bold tracking-wide",
 									children: [bagSizes[1], "KG"]
@@ -65489,10 +65552,10 @@ function LoadForecast({ referenceDate, className }) {
 					headerBgClass: "bg-[#eefcf2] border-b border-[#d1fadf]",
 					data: {
 						estProdTons: forecasts.sebo.estProdTons,
-						bags1: forecasts.sebo.bags1450,
+						bags1: isReciclagemFactory ? forecasts.sebo.bags1400 : forecasts.sebo.bags1450,
 						bags2: forecasts.sebo.bags1500
 					},
-					bagSizes: [1450, 1500],
+					bagSizes: isReciclagemFactory ? [1400, 1500] : [1450, 1500],
 					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500],
 					isLiquid: true
 				}),
@@ -65504,10 +65567,10 @@ function LoadForecast({ referenceDate, className }) {
 					headerBgClass: "bg-[#fffbeb] border-b border-[#fef3c7]",
 					data: {
 						estProdTons: forecasts.fco.estProdTons,
-						bags1: forecasts.fco.bags1450,
+						bags1: isReciclagemFactory ? forecasts.fco.bags1400 : forecasts.fco.bags1450,
 						bags2: forecasts.fco.bags1500
 					},
-					bagSizes: [1450, 1500],
+					bagSizes: isReciclagemFactory ? [1400, 1500] : [1450, 1500],
 					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
@@ -65518,10 +65581,10 @@ function LoadForecast({ referenceDate, className }) {
 					headerBgClass: "bg-[#fff7ed] border-b border-[#ffedd5]",
 					data: {
 						estProdTons: forecasts.farinheta.estProdTons,
-						bags1: forecasts.farinheta.bags1450,
+						bags1: isReciclagemFactory ? forecasts.farinheta.bags1400 : forecasts.farinheta.bags1450,
 						bags2: forecasts.farinheta.bags1500
 					},
-					bagSizes: [1450, 1500],
+					bagSizes: isReciclagemFactory ? [1400, 1500] : [1450, 1500],
 					flowRates: [FIXED_FLOW_1450, FIXED_FLOW_1500]
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ForecastCard, {
@@ -65533,9 +65596,9 @@ function LoadForecast({ referenceDate, className }) {
 					data: {
 						estProdTons: forecasts.sangue.estProdTons,
 						bags1: forecasts.sangue.bags1400,
-						bags2: forecasts.sangue.bags1400
+						bags2: isReciclagemFactory ? forecasts.sangue.bags1500 : forecasts.sangue.bags1400
 					},
-					bagSizes: [1400, 1400],
+					bagSizes: isReciclagemFactory ? [1400, 1500] : [1400, 1400],
 					flowRates: [5.8, 5.8]
 				})
 			]
@@ -93483,4 +93546,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-WdOxl5oC.js.map
+//# sourceMappingURL=index-C_yJNQiL.js.map

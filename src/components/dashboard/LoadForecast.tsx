@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useData } from '@/context/DataContext'
 import {
   Card,
@@ -18,10 +18,12 @@ import {
   ArrowRight,
   Droplet,
 } from 'lucide-react'
-import { isSameDay } from 'date-fns'
+import { isSameDay, addDays, subDays, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { supabase } from '@/lib/supabase/client'
 
 interface LoadForecastProps {
   referenceDate?: Date
@@ -29,8 +31,101 @@ interface LoadForecastProps {
 }
 
 export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
-  const { rawMaterials, dailyForecasts } = useData()
+  const { rawMaterials, dailyForecasts, factories, currentFactoryId } =
+    useData()
   const targetDate = referenceDate || new Date()
+  const targetDateStr = format(targetDate, 'yyyy-MM-dd')
+
+  const currentFactory = factories.find((f) => f.id === currentFactoryId)
+  const isReciclagemFactory =
+    currentFactory?.name?.toUpperCase().includes('RECICLAGEM') || false
+
+  const [reciclagemForecastMain, setReciclagemForecastMain] = useState(0)
+  const [reciclagemForecastBlood, setReciclagemForecastBlood] = useState(0)
+  const [historicalYields, setHistoricalYields] = useState({
+    sebo: 0.15,
+    fco: 0.2,
+    farinheta: 0.05,
+    sangue: 0.18,
+  })
+
+  useEffect(() => {
+    if (!isReciclagemFactory || !currentFactoryId) return
+
+    const fetchReciclagemData = async () => {
+      const startDate = targetDateStr
+      const targetDateObj = new Date(startDate + 'T12:00:00')
+      const endDate = format(addDays(targetDateObj, 6), 'yyyy-MM-dd')
+
+      // Fetch 7 days forecast
+      const { data: forecasts } = await supabase
+        .from('daily_production_forecasts')
+        .select('mp_forecast, material_type')
+        .eq('factory_id', currentFactoryId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+
+      let mainSum = 0
+      let bloodSum = 0
+      if (forecasts) {
+        forecasts.forEach((f) => {
+          if (f.material_type === 'Sangue') bloodSum += Number(f.mp_forecast)
+          else mainSum += Number(f.mp_forecast)
+        })
+      }
+      setReciclagemForecastMain(mainSum)
+      setReciclagemForecastBlood(bloodSum)
+
+      // Fetch last 30 days production for historical yields
+      const thirtyDaysAgo = format(subDays(targetDateObj, 30), 'yyyy-MM-dd')
+      const { data: prodData } = await supabase
+        .from('production')
+        .select(
+          'mp_used, sebo_produced, fco_produced, farinheta_produced, blood_meal_produced, blood_meal_bags',
+        )
+        .eq('factory_id', currentFactoryId)
+        .gte('date', thirtyDaysAgo)
+        .lte('date', startDate)
+
+      if (prodData && prodData.length > 0) {
+        let totalMp = 0
+        let totalSebo = 0
+        let totalFco = 0
+        let totalFarinheta = 0
+
+        let totalBloodMp = 0
+        let totalBloodProduced = 0
+
+        prodData.forEach((p) => {
+          const isBlood =
+            p.blood_meal_produced > 0 ||
+            (p.blood_meal_bags && p.blood_meal_bags > 0)
+          if (!isBlood) {
+            totalMp += Number(p.mp_used || 0)
+            totalSebo += Number(p.sebo_produced || 0)
+            totalFco += Number(p.fco_produced || 0)
+            totalFarinheta += Number(p.farinheta_produced || 0)
+          } else {
+            totalBloodMp += Number(p.mp_used || 0)
+            const produced =
+              p.blood_meal_bags && p.blood_meal_bags > 0
+                ? p.blood_meal_bags * 1400
+                : p.blood_meal_produced || 0
+            totalBloodProduced += produced
+          }
+        })
+
+        setHistoricalYields({
+          sebo: totalMp > 0 ? totalSebo / totalMp : 0.15,
+          fco: totalMp > 0 ? totalFco / totalMp : 0.2,
+          farinheta: totalMp > 0 ? totalFarinheta / totalMp : 0.05,
+          sangue: totalBloodMp > 0 ? totalBloodProduced / totalBloodMp : 0.18,
+        })
+      }
+    }
+
+    fetchReciclagemData()
+  }, [isReciclagemFactory, currentFactoryId, targetDateStr])
 
   // Calculate sum of forecasts for the day
   // Filter for Main Line vs Blood Line
@@ -82,15 +177,31 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
     sangue: 0.18, // 18% estimated yield for blood
   }
 
-  const calculateMetrics = (yieldFactor: number, inputVal: number) => {
-    // Est. Prod (kg) = MP * Yield Factor
-    const estProdKg = inputVal * yieldFactor
-    const estProdTons = estProdKg / 1000
+  const activeYields = isReciclagemFactory ? historicalYields : YIELD_FACTORS
 
-    // Bags calculation based on ESTIMATED PRODUCTION
-    const bags1400 = Math.floor(estProdKg / 1400) // For blood
-    const bags1450 = Math.floor(estProdKg / 1450)
-    const bags1500 = Math.floor(estProdKg / 1500)
+  const inputVal7DaysMain = isReciclagemFactory
+    ? reciclagemForecastMain
+    : activeMpValue * 7
+  const inputVal7DaysBlood = isReciclagemFactory
+    ? reciclagemForecastBlood
+    : activeBloodValue * 7
+
+  const calculateMetrics = (
+    yieldFactor: number,
+    inputValDaily: number,
+    inputVal7Days: number,
+  ) => {
+    // Daily Est. Prod (kg)
+    const estProdKgDaily = inputValDaily * yieldFactor
+    const estProdTons = estProdKgDaily / 1000
+
+    // 7 Days Est. Prod (kg)
+    const estProdKg7Days = inputVal7Days * yieldFactor
+
+    // Bags calculation based on 7-day ESTIMATED PRODUCTION
+    const bags1400 = Math.floor(estProdKg7Days / 1400)
+    const bags1450 = Math.floor(estProdKg7Days / 1450)
+    const bags1500 = Math.floor(estProdKg7Days / 1500)
 
     return {
       estProdTons,
@@ -101,10 +212,18 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
   }
 
   const forecasts = {
-    sebo: calculateMetrics(YIELD_FACTORS.sebo, activeMpValue),
-    fco: calculateMetrics(YIELD_FACTORS.fco, activeMpValue),
-    farinheta: calculateMetrics(YIELD_FACTORS.farinheta, activeMpValue),
-    sangue: calculateMetrics(YIELD_FACTORS.sangue, activeBloodValue),
+    sebo: calculateMetrics(activeYields.sebo, activeMpValue, inputVal7DaysMain),
+    fco: calculateMetrics(activeYields.fco, activeMpValue, inputVal7DaysMain),
+    farinheta: calculateMetrics(
+      activeYields.farinheta,
+      activeMpValue,
+      inputVal7DaysMain,
+    ),
+    sangue: calculateMetrics(
+      activeYields.sangue,
+      activeBloodValue,
+      inputVal7DaysBlood,
+    ),
   }
 
   const ForecastCard = ({
@@ -252,7 +371,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                     colorClass,
                   )}
                 >
-                  {data.bags1 * 7}
+                  {data.bags1}
                 </span>
                 <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
                   {bagSizes[0]}KG
@@ -271,7 +390,7 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
                       colorClass,
                     )}
                   >
-                    {data.bags2 * 7}
+                    {data.bags2}
                   </span>
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">
                     {bagSizes[1]}KG
@@ -340,10 +459,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             headerBgClass="bg-[#eefcf2] border-b border-[#d1fadf]"
             data={{
               estProdTons: forecasts.sebo.estProdTons,
-              bags1: forecasts.sebo.bags1450,
+              bags1: isReciclagemFactory
+                ? forecasts.sebo.bags1400
+                : forecasts.sebo.bags1450,
               bags2: forecasts.sebo.bags1500,
             }}
-            bagSizes={[1450, 1500]}
+            bagSizes={isReciclagemFactory ? [1400, 1500] : [1450, 1500]}
             flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
             isLiquid={true}
           />
@@ -355,10 +476,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             headerBgClass="bg-[#fffbeb] border-b border-[#fef3c7]"
             data={{
               estProdTons: forecasts.fco.estProdTons,
-              bags1: forecasts.fco.bags1450,
+              bags1: isReciclagemFactory
+                ? forecasts.fco.bags1400
+                : forecasts.fco.bags1450,
               bags2: forecasts.fco.bags1500,
             }}
-            bagSizes={[1450, 1500]}
+            bagSizes={isReciclagemFactory ? [1400, 1500] : [1450, 1500]}
             flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
           />
           <ForecastCard
@@ -369,10 +492,12 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             headerBgClass="bg-[#fff7ed] border-b border-[#ffedd5]"
             data={{
               estProdTons: forecasts.farinheta.estProdTons,
-              bags1: forecasts.farinheta.bags1450,
+              bags1: isReciclagemFactory
+                ? forecasts.farinheta.bags1400
+                : forecasts.farinheta.bags1450,
               bags2: forecasts.farinheta.bags1500,
             }}
-            bagSizes={[1450, 1500]}
+            bagSizes={isReciclagemFactory ? [1400, 1500] : [1450, 1500]}
             flowRates={[FIXED_FLOW_1450, FIXED_FLOW_1500]}
           />
           <ForecastCard
@@ -384,9 +509,11 @@ export function LoadForecast({ referenceDate, className }: LoadForecastProps) {
             data={{
               estProdTons: forecasts.sangue.estProdTons,
               bags1: forecasts.sangue.bags1400,
-              bags2: forecasts.sangue.bags1400,
+              bags2: isReciclagemFactory
+                ? forecasts.sangue.bags1500
+                : forecasts.sangue.bags1400,
             }}
-            bagSizes={[1400, 1400]}
+            bagSizes={isReciclagemFactory ? [1400, 1500] : [1400, 1400]}
             flowRates={[5.8, 5.8]}
           />
         </div>
