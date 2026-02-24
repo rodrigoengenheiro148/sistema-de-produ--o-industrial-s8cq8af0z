@@ -11,7 +11,16 @@ export const RAW_MATERIAL_TYPES = [
   'Óleo Saturado',
 ] as const
 
-export const MAR_RECICLAGEM_TYPES = ['Peixe', 'RESIDUOS INDUSTRIAIS'] as const
+export const MAR_RECICLAGEM_TYPES = [
+  'Resíduos Industriais',
+  'Ossos',
+  'Barrigada',
+  'Despojo',
+  'Misto',
+  'Couros Bovinos',
+  'Sangue',
+  'Oleo Saturado',
+] as const
 
 export const MEASUREMENT_UNITS = [
   { value: 'kg', label: 'kg' },

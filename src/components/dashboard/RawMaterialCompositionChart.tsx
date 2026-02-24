@@ -78,33 +78,35 @@ interface RawMaterialCompositionChartProps {
   className?: string
 }
 
-// Extended colors for dynamic types
 const TYPE_COLORS: Record<string, string> = {
-  Barrigada: '#14532d', // green-900
-  'COURO BOVINO': '#15803d', // green-700
-  Despojo: '#22c55e', // green-500
-  MUXIBA: '#eab308', // yellow-500
-  Misto: '#f97316', // orange-500
-  Ossos: '#0f172a', // slate-900 (Dark Grey)
-  'VISCERAS DE PEIXE': '#3b82f6', // blue-500
-  Sangue: '#dc2626', // red-600
-  'Óleo Saturado': '#8b5cf6', // violet-500
-  Peixe: '#0ea5e9', // sky-500
-  Bovino: '#7f1d1d', // red-900
-  Aves: '#fbbf24', // amber-400
-  Pena: '#71717a', // zinc-500
-  Vísceras: '#f43f5e', // rose-500
-  Visceras: '#f43f5e', // rose-500
-  'RESIDUOS INDUSTRIAIS': '#84cc16', // lime-500
+  Barrigada: '#14532d',
+  'COURO BOVINO': '#15803d',
+  'Couros Bovinos': '#15803d',
+  Despojo: '#22c55e',
+  MUXIBA: '#eab308',
+  Misto: '#f97316',
+  Ossos: '#0f172a',
+  'VISCERAS DE PEIXE': '#3b82f6',
+  Sangue: '#dc2626',
+  'Óleo Saturado': '#8b5cf6',
+  'Oleo Saturado': '#8b5cf6',
+  Peixe: '#0ea5e9',
+  Bovino: '#7f1d1d',
+  Aves: '#fbbf24',
+  Pena: '#71717a',
+  Vísceras: '#f43f5e',
+  Visceras: '#f43f5e',
+  'RESIDUOS INDUSTRIAIS': '#84cc16',
+  'Resíduos Industriais': '#84cc16',
 }
 
 const FALLBACK_COLORS = [
-  '#2563eb', // blue-600
-  '#16a34a', // green-600
-  '#d97706', // amber-600
-  '#9333ea', // purple-600
-  '#db2777', // pink-600
-  '#0891b2', // cyan-600
+  '#2563eb',
+  '#16a34a',
+  '#d97706',
+  '#9333ea',
+  '#db2777',
+  '#0891b2',
 ]
 
 export function RawMaterialCompositionChart({
@@ -112,21 +114,18 @@ export function RawMaterialCompositionChart({
   isMobile = false,
   className,
 }: RawMaterialCompositionChartProps) {
-  const { currentFactoryId } = useData()
-  // Store EXCLUDED materials so new materials appear by default
+  const { currentFactoryId, factories } = useData()
   const [excludedMaterials, setExcludedMaterials] = useState<string[]>([])
   const [selectedSupplier, setSelectedSupplier] = useState<string>('all')
   const [openMaterialFilter, setOpenMaterialFilter] = useState(false)
   const [chartType, setChartType] = useState<'stacked' | 'grouped'>('stacked')
 
-  // State for date range filtering
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [fetchedData, setFetchedData] = useState<RawMaterialEntry[] | null>(
     null,
   )
   const [isLoading, setIsLoading] = useState(false)
 
-  // Determine if a single day is selected to toggle chart layout
   useEffect(() => {
     if (dateRange?.from) {
       const toDate = dateRange.to || dateRange.from
@@ -135,7 +134,6 @@ export function RawMaterialCompositionChart({
     }
   }, [dateRange])
 
-  // Determine active dataset (props or fetched)
   const data = useMemo(() => {
     if (dateRange?.from && fetchedData) {
       return fetchedData
@@ -143,7 +141,6 @@ export function RawMaterialCompositionChart({
     return initialData
   }, [dateRange, fetchedData, initialData])
 
-  // Fetch data when date range changes
   useEffect(() => {
     async function fetchData() {
       if (!dateRange?.from || !currentFactoryId) {
@@ -200,14 +197,20 @@ export function RawMaterialCompositionChart({
     }
   }, [dateRange, currentFactoryId])
 
-  // Extract unique options from data dynamically
+  const baseTypes = useMemo(() => {
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const isMarReciclagem = currentFactory?.name
+      ?.trim()
+      .toLowerCase()
+      .includes('reciclagem')
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [factories, currentFactoryId])
+
   const { materialOptions, supplierOptions, categoryColors } = useMemo(() => {
     const suppliers = new Set<string>()
     const materials = new Set<string>()
 
-    // Add constants as base options
-    RAW_MATERIAL_TYPES.forEach((t) => materials.add(t))
-    MAR_RECICLAGEM_TYPES.forEach((t) => materials.add(t))
+    baseTypes.forEach((t) => materials.add(t))
 
     if (data) {
       data.forEach((item) => {
@@ -219,7 +222,6 @@ export function RawMaterialCompositionChart({
     const sortedMaterials = Array.from(materials).sort()
     const computedColors: Record<string, string> = { ...TYPE_COLORS }
 
-    // Assign fallback colors to unknown types
     sortedMaterials.forEach((mat, idx) => {
       if (!computedColors[mat]) {
         computedColors[mat] = FALLBACK_COLORS[idx % FALLBACK_COLORS.length]
@@ -231,15 +233,13 @@ export function RawMaterialCompositionChart({
       supplierOptions: Array.from(suppliers).sort(),
       categoryColors: computedColors,
     }
-  }, [data])
+  }, [data, baseTypes])
 
-  // Calculate selected materials based on exclusion
   const selectedMaterials = useMemo(
     () => materialOptions.filter((m) => !excludedMaterials.includes(m)),
     [materialOptions, excludedMaterials],
   )
 
-  // Filter the data based on selection
   const filteredData = useMemo(() => {
     if (!data) return []
     return data.filter((item) => {
@@ -250,7 +250,6 @@ export function RawMaterialCompositionChart({
     })
   }, [data, excludedMaterials, selectedSupplier])
 
-  // Process data for Chart (Group by Date)
   const chartData = useMemo(() => {
     const dailyMap = new Map<string, any>()
 
@@ -270,7 +269,6 @@ export function RawMaterialCompositionChart({
       }
 
       const entry = dailyMap.get(dateKey)
-      // Ensure category key exists initialized to 0 if new
       if (entry[item.type] === undefined) {
         entry[item.type] = 0
       }
@@ -278,7 +276,6 @@ export function RawMaterialCompositionChart({
       let quantity = item.quantity
       const unit = item.unit?.toLowerCase() || ''
 
-      // Conversion logic (Bag -> kg)
       if (unit.includes('bag')) {
         quantity = quantity * 1400
       } else if (unit.includes('ton')) {
@@ -294,7 +291,6 @@ export function RawMaterialCompositionChart({
     )
   }, [filteredData])
 
-  // Determine which categories have data > 0 to filter the legend/bars
   const activeCategories = useMemo(() => {
     const active = new Set<string>()
     chartData.forEach((entry) => {
@@ -311,11 +307,9 @@ export function RawMaterialCompositionChart({
         }
       })
     })
-    // Sort to maintain consistent order (e.g. alphabetical or specific)
     return Array.from(active).sort()
   }, [chartData])
 
-  // Build ChartConfig dynamically
   const chartConfig = useMemo(() => {
     const config: ChartConfig = {}
     materialOptions.forEach((cat) => {
@@ -426,7 +420,6 @@ export function RawMaterialCompositionChart({
           </Bar>
         ))}
 
-        {/* Total Label Line (Visible only in Stacked mode) */}
         {chartType === 'stacked' && (
           <Line
             type="monotone"
@@ -464,7 +457,6 @@ export function RawMaterialCompositionChart({
           <CardDescription>Volume diário por tipo (kg)</CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto items-center">
-          {/* New Date Range Picker Filter */}
           <div className="w-full sm:w-auto">
             <DatePickerWithRange
               date={dateRange}
@@ -473,7 +465,6 @@ export function RawMaterialCompositionChart({
             />
           </div>
 
-          {/* Multi-select Material Filter */}
           <Popover
             open={openMaterialFilter}
             onOpenChange={setOpenMaterialFilter}
@@ -567,7 +558,6 @@ export function RawMaterialCompositionChart({
             </SelectContent>
           </Select>
 
-          {/* Toggle Stacked/Grouped View */}
           <Button
             variant="ghost"
             size="icon"

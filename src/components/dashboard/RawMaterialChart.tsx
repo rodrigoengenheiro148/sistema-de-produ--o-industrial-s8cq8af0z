@@ -50,7 +50,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { RAW_MATERIAL_TYPES } from '@/lib/constants'
+import { RAW_MATERIAL_TYPES, MAR_RECICLAGEM_TYPES } from '@/lib/constants'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -62,7 +62,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 interface RawMaterialChartProps {
-  data: any[] // We accept data prop for compatibility but might override it with useData for local filtering
+  data: any[]
   className?: string
   isMobile?: boolean
 }
@@ -71,9 +71,8 @@ export function RawMaterialChart({
   className,
   isMobile = false,
 }: RawMaterialChartProps) {
-  const { rawMaterials } = useData()
+  const { rawMaterials, factories, currentFactoryId } = useData()
 
-  // State for Filters
   const [filterMode, setFilterMode] = useState<'daily' | 'supplier'>('daily')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -82,22 +81,20 @@ export function RawMaterialChart({
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [selectedTypes, setSelectedTypes] = useState<string[]>([])
 
-  // Controls state
   const [openSupplier, setOpenSupplier] = useState(false)
 
-  // Available Data Source
-  // If we have a specific local date filter, we MUST use the full rawMaterials dataset
-  // otherwise we can respect the filtered data passed via props (if consistent) or just use rawMaterials filtered by global range.
-  // To avoid confusion, let's derive our working dataset.
-
-  // 1. Determine base dataset and time range
-  // If selectedDate is set -> Filter for that day
-  // If no selectedDate, use selectedMonth -> Filter for that month
+  const materialTypes = useMemo(() => {
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const isMarReciclagem = currentFactory?.name
+      ?.trim()
+      .toLowerCase()
+      .includes('reciclagem')
+    return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
+  }, [factories, currentFactoryId])
 
   const workingData = useMemo(() => {
     let filtered = rawMaterials
 
-    // Date Filtering
     if (selectedDate) {
       filtered = filtered.filter((item) => isSameDay(item.date, selectedDate))
     } else if (selectedMonth) {
@@ -108,14 +105,12 @@ export function RawMaterialChart({
       )
     }
 
-    // Supplier Filtering
     if (selectedSuppliers.length > 0) {
       filtered = filtered.filter((item) =>
         selectedSuppliers.includes(item.supplier),
       )
     }
 
-    // Type Filtering
     if (selectedTypes.length > 0) {
       filtered = filtered.filter((item) => selectedTypes.includes(item.type))
     }
@@ -129,7 +124,6 @@ export function RawMaterialChart({
     selectedTypes,
   ])
 
-  // Get unique lists for controls
   const allSuppliers = useMemo(() => {
     return Array.from(new Set(rawMaterials.map((item) => item.supplier))).sort()
   }, [rawMaterials])
@@ -138,11 +132,9 @@ export function RawMaterialChart({
     return Array.from(new Set(rawMaterials.map((item) => item.type))).sort()
   }, [rawMaterials])
 
-  // Process data for Chart
   const { chartData, chartConfig } = useMemo(() => {
     const config: ChartConfig = {}
 
-    // Assign colors to Types
     allTypes.forEach((type, index) => {
       config[type] = {
         label: type,
@@ -151,7 +143,6 @@ export function RawMaterialChart({
     })
 
     if (filterMode === 'daily') {
-      // Group by Date
       const dateMap = new Map<string, any>()
 
       workingData.forEach((item) => {
@@ -169,8 +160,6 @@ export function RawMaterialChart({
         entry.total += item.quantity
       })
 
-      // Fill missing days if showing a month view?
-      // For now, show days with data.
       return {
         chartData: Array.from(dateMap.values()).sort((a, b) =>
           a.dateKey.localeCompare(b.dateKey),
@@ -178,7 +167,6 @@ export function RawMaterialChart({
         chartConfig: config,
       }
     } else {
-      // Supplier View (Aggregate)
       const supplierMap = new Map<string, any>()
 
       workingData.forEach((item) => {
@@ -203,10 +191,8 @@ export function RawMaterialChart({
     }
   }, [workingData, filterMode, allTypes])
 
-  // Handling Date Selection
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date)
-    // If selecting a date, we might want to ensure the month selector reflects it, but keeping them independent is easier.
   }
 
   const toggleSupplier = (supplier: string) => {
@@ -223,7 +209,6 @@ export function RawMaterialChart({
     )
   }
 
-  // Generate Month Options (Last 12 months)
   const monthOptions = useMemo(() => {
     const options = []
     const today = new Date()
@@ -259,7 +244,6 @@ export function RawMaterialChart({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* View Toggle */}
             <div className="flex items-center bg-secondary/50 rounded-md p-1">
               <Button
                 variant={filterMode === 'daily' ? 'default' : 'ghost'}
@@ -300,9 +284,7 @@ export function RawMaterialChart({
           </div>
         </div>
 
-        {/* Filters Row */}
         <div className="flex flex-wrap gap-2 items-center pt-1">
-          {/* Date Filters */}
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -346,7 +328,6 @@ export function RawMaterialChart({
             </SelectContent>
           </Select>
 
-          {/* Type Multi-Select */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -369,7 +350,7 @@ export function RawMaterialChart({
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Filtrar por Tipo</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {RAW_MATERIAL_TYPES.map((type) => (
+              {materialTypes.map((type) => (
                 <DropdownMenuCheckboxItem
                   key={type}
                   checked={selectedTypes.includes(type)}
@@ -392,7 +373,6 @@ export function RawMaterialChart({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Supplier Multi-Select */}
           <Popover open={openSupplier} onOpenChange={setOpenSupplier}>
             <PopoverTrigger asChild>
               <Button

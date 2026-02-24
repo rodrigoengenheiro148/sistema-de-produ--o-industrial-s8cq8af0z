@@ -71424,7 +71424,16 @@ const RAW_MATERIAL_TYPES = [
 	"COURO BOVINO",
 	"Óleo Saturado"
 ];
-const MAR_RECICLAGEM_TYPES = ["Peixe", "RESIDUOS INDUSTRIAIS"];
+const MAR_RECICLAGEM_TYPES = [
+	"Resíduos Industriais",
+	"Ossos",
+	"Barrigada",
+	"Despojo",
+	"Misto",
+	"Couros Bovinos",
+	"Sangue",
+	"Oleo Saturado"
+];
 const MEASUREMENT_UNITS = [
 	{
 		value: "kg",
@@ -71450,6 +71459,7 @@ const MEASUREMENT_UNITS = [
 var TYPE_COLORS = {
 	Barrigada: "#14532d",
 	"COURO BOVINO": "#15803d",
+	"Couros Bovinos": "#15803d",
 	Despojo: "#22c55e",
 	MUXIBA: "#eab308",
 	Misto: "#f97316",
@@ -71457,13 +71467,15 @@ var TYPE_COLORS = {
 	"VISCERAS DE PEIXE": "#3b82f6",
 	Sangue: "#dc2626",
 	"Óleo Saturado": "#8b5cf6",
+	"Oleo Saturado": "#8b5cf6",
 	Peixe: "#0ea5e9",
 	Bovino: "#7f1d1d",
 	Aves: "#fbbf24",
 	Pena: "#71717a",
 	Vísceras: "#f43f5e",
 	Visceras: "#f43f5e",
-	"RESIDUOS INDUSTRIAIS": "#84cc16"
+	"RESIDUOS INDUSTRIAIS": "#84cc16",
+	"Resíduos Industriais": "#84cc16"
 };
 var FALLBACK_COLORS = [
 	"#2563eb",
@@ -71474,7 +71486,7 @@ var FALLBACK_COLORS = [
 	"#0891b2"
 ];
 function RawMaterialCompositionChart({ data: initialData, isMobile = false, className }) {
-	const { currentFactoryId } = useData();
+	const { currentFactoryId, factories } = useData();
 	const [excludedMaterials, setExcludedMaterials] = (0, import_react.useState)([]);
 	const [selectedSupplier, setSelectedSupplier] = (0, import_react.useState)("all");
 	const [openMaterialFilter, setOpenMaterialFilter] = (0, import_react.useState)(false);
@@ -71533,11 +71545,13 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 		if (dateRange?.from) fetchData();
 		else setFetchedData(null);
 	}, [dateRange, currentFactoryId]);
+	const baseTypes = (0, import_react.useMemo)(() => {
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase().includes("reciclagem") ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+	}, [factories, currentFactoryId]);
 	const { materialOptions, supplierOptions, categoryColors } = (0, import_react.useMemo)(() => {
 		const suppliers = /* @__PURE__ */ new Set();
 		const materials = /* @__PURE__ */ new Set();
-		RAW_MATERIAL_TYPES.forEach((t$1) => materials.add(t$1));
-		MAR_RECICLAGEM_TYPES.forEach((t$1) => materials.add(t$1));
+		baseTypes.forEach((t$1) => materials.add(t$1));
 		if (data) data.forEach((item) => {
 			if (item.type) materials.add(item.type);
 			if (item.supplier) suppliers.add(item.supplier);
@@ -71552,7 +71566,7 @@ function RawMaterialCompositionChart({ data: initialData, isMobile = false, clas
 			supplierOptions: Array.from(suppliers).sort(),
 			categoryColors: computedColors
 		};
-	}, [data]);
+	}, [data, baseTypes]);
 	const selectedMaterials = (0, import_react.useMemo)(() => materialOptions.filter((m$1) => !excludedMaterials.includes(m$1)), [materialOptions, excludedMaterials]);
 	const filteredData = (0, import_react.useMemo)(() => {
 		if (!data) return [];
@@ -93543,4 +93557,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BRxADoky.js.map
+//# sourceMappingURL=index-DXnSne2e.js.map
