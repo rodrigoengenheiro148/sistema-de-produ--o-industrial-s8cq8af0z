@@ -188,6 +188,12 @@ export default function Dashboard() {
     )
 
     const totalProduced = filteredProduction.reduce((acc, curr) => {
+      if (isReciclagem) {
+        return (
+          acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced
+        )
+      }
+
       let produced =
         curr.seboProduced +
         curr.fcoProduced +
@@ -196,13 +202,11 @@ export default function Dashboard() {
         (curr.featherMealProduced || 0) +
         (curr.fishMealProduced || 0)
 
-      if (!isReciclagem) {
-        produced +=
-          (curr.viscerasOilProduced || 0) +
-          (curr.bloodMealBags && curr.bloodMealBags > 0
-            ? curr.bloodMealBags * 1400
-            : curr.bloodMealProduced || 0)
-      }
+      produced +=
+        (curr.viscerasOilProduced || 0) +
+        (curr.bloodMealBags && curr.bloodMealBags > 0
+          ? curr.bloodMealBags * 1400
+          : curr.bloodMealProduced || 0)
 
       return acc + produced
     }, 0)

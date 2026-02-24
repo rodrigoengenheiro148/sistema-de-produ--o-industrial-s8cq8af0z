@@ -72773,8 +72773,9 @@ function Dashboard() {
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
 		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const totalProduced = filteredProduction.reduce((acc, curr) => {
+			if (isReciclagem) return acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced;
 			let produced = curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.fishMealProduced || 0);
-			if (!isReciclagem) produced += (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0);
+			produced += (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0);
 			return acc + produced;
 		}, 0);
 		return {
@@ -93557,4 +93558,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DxJ0-c8_.js.map
+//# sourceMappingURL=index-CKhI6EEA.js.map
