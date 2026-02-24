@@ -71424,13 +71424,7 @@ const RAW_MATERIAL_TYPES = [
 	"COURO BOVINO",
 	"Óleo Saturado"
 ];
-const MAR_RECICLAGEM_TYPES = [
-	"Peixe",
-	"Bovino",
-	"Aves",
-	"Pena",
-	"RESIDUOS INDUSTRIAIS"
-];
+const MAR_RECICLAGEM_TYPES = ["Peixe", "RESIDUOS INDUSTRIAIS"];
 const MEASUREMENT_UNITS = [
 	{
 		value: "kg",
@@ -93549,4 +93543,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BAWzWx5O.js.map
+//# sourceMappingURL=index-BRxADoky.js.map
