@@ -32,7 +32,7 @@ export function RawMaterialImportDialog() {
 
   const isMarReciclagem = useMemo(() => {
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
-    return currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    return currentFactory?.name?.trim().toLowerCase().includes('reciclagem')
   }, [factories, currentFactoryId])
 
   const validTypes = useMemo(() => {

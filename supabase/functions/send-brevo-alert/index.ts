@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
           },
         },
       )
-      // Only verify user if user_id was not explicitly passed in a trusted context, 
+      // Only verify user if user_id was not explicitly passed in a trusted context,
       // but client-side calls typically pass user_id in body for logic, verified by JWT context if needed.
       // For simplicity in this hybrid function, we trust the caller has permissions if JWT is valid.
       if (!userId) {

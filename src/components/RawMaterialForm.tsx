@@ -53,7 +53,7 @@ export function RawMaterialForm({
 
   const isMarReciclagem = useMemo(() => {
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
-    return currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    return currentFactory?.name?.trim().toLowerCase().includes('reciclagem')
   }, [factories, currentFactoryId])
 
   const materialTypes = useMemo(() => {
@@ -285,7 +285,10 @@ export function RawMaterialForm({
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button
+              type="submit"
+              className="bg-green-700 hover:bg-green-800 text-white"
+            >
               {initialData ? 'Salvar Alterações' : 'Salvar Registro'}
             </Button>
           </DialogFooter>

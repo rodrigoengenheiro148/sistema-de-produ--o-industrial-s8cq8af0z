@@ -95,6 +95,7 @@ const TYPE_COLORS: Record<string, string> = {
   Pena: '#71717a', // zinc-500
   Vísceras: '#f43f5e', // rose-500
   Visceras: '#f43f5e', // rose-500
+  'RESIDUOS INDUSTRIAIS': '#84cc16', // lime-500
 }
 
 const FALLBACK_COLORS = [

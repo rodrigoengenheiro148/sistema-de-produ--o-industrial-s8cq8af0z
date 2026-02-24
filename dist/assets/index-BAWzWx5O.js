@@ -71428,7 +71428,8 @@ const MAR_RECICLAGEM_TYPES = [
 	"Peixe",
 	"Bovino",
 	"Aves",
-	"Pena"
+	"Pena",
+	"RESIDUOS INDUSTRIAIS"
 ];
 const MEASUREMENT_UNITS = [
 	{
@@ -71467,7 +71468,8 @@ var TYPE_COLORS = {
 	Aves: "#fbbf24",
 	Pena: "#71717a",
 	Vísceras: "#f43f5e",
-	Visceras: "#f43f5e"
+	Visceras: "#f43f5e",
+	"RESIDUOS INDUSTRIAIS": "#84cc16"
 };
 var FALLBACK_COLORS = [
 	"#2563eb",
@@ -78757,7 +78759,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 	const [showPcpGate, setShowPcpGate] = (0, import_react.useState)(false);
 	const [pendingSubmit, setPendingSubmit] = (0, import_react.useState)(null);
 	const isMarReciclagem = (0, import_react.useMemo)(() => {
-		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem";
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase().includes("reciclagem");
 	}, [factories, currentFactoryId]);
 	const materialTypes = (0, import_react.useMemo)(() => {
 		return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
@@ -78935,6 +78937,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 					children: "Cancelar"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					type: "submit",
+					className: "bg-green-700 hover:bg-green-800 text-white",
 					children: initialData ? "Salvar Alterações" : "Salvar Registro"
 				})] })
 			]
@@ -79236,7 +79239,7 @@ function RawMaterialImportDialog() {
 	const { toast: toast$2 } = useToast();
 	const { bulkAddRawMaterials, factories, currentFactoryId } = useData();
 	const isMarReciclagem = (0, import_react.useMemo)(() => {
-		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem";
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase().includes("reciclagem");
 	}, [factories, currentFactoryId]);
 	const validTypes = (0, import_react.useMemo)(() => {
 		return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
@@ -79476,7 +79479,7 @@ function RawMaterial() {
 	const [isPcpGateOpen, setIsPcpGateOpen] = (0, import_react.useState)(false);
 	const [pcpPendingAction, setPcpPendingAction] = (0, import_react.useState)(null);
 	const materialTypes = (0, import_react.useMemo)(() => {
-		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase() === "mar reciclagem" ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
+		return factories.find((f) => f.id === currentFactoryId)?.name?.trim().toLowerCase().includes("reciclagem") ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES;
 	}, [factories, currentFactoryId]);
 	const handleProtectedAction = (createdAt, action) => {
 		if (shouldRequireAuth(createdAt)) {
@@ -93546,4 +93549,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-C_yJNQiL.js.map
+//# sourceMappingURL=index-BAWzWx5O.js.map

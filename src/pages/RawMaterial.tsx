@@ -109,8 +109,10 @@ export default function RawMaterial() {
 
   const materialTypes = useMemo(() => {
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
-    const isMarReciclagem =
-      currentFactory?.name?.trim().toLowerCase() === 'mar reciclagem'
+    const isMarReciclagem = currentFactory?.name
+      ?.trim()
+      .toLowerCase()
+      .includes('reciclagem')
     return isMarReciclagem ? MAR_RECICLAGEM_TYPES : RAW_MATERIAL_TYPES
   }, [factories, currentFactoryId])
 
