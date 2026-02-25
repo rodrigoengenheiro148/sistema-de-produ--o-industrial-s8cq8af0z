@@ -38,6 +38,7 @@ import {
   Scale,
   Percent,
   X,
+  Download,
 } from 'lucide-react'
 import {
   format,
@@ -75,6 +76,7 @@ import { DatePickerWithRange } from '@/components/DateRangePicker'
 import { cn } from '@/lib/utils'
 import { usePcp } from '@/context/PcpContext'
 import { PcpGate } from '@/components/PcpGate'
+import { exportDataToExcel } from '@/services/excel-export'
 
 export default function RawMaterial() {
   const {
@@ -207,6 +209,27 @@ export default function RawMaterial() {
     })
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
+  const handleExportExcel = () => {
+    const exportData = filteredMaterials.map((item) => ({
+      Data: format(item.date, 'dd/MM/yyyy'),
+      Fornecedor: item.supplier,
+      'Matéria-Prima': item.type,
+      Quantidade: item.quantity,
+      Unidade: item.unit,
+      Observações: item.notes || '',
+    }))
+
+    const dateStr = format(new Date(), 'yyyy-MM-dd')
+    const filename = `entradas-mp-reciclagem-${dateStr}.xlsx`
+
+    exportDataToExcel(exportData, filename, 'Entradas MP')
+
+    toast({
+      title: 'Exportação Concluída',
+      description: 'O arquivo Excel foi gerado com sucesso.',
+    })
+  }
+
   // --- Metrics Calculation ---
   const totalInputKg = filteredMaterials.reduce((acc, item) => {
     const unit = item.unit?.toLowerCase() || ''
@@ -255,7 +278,16 @@ export default function RawMaterial() {
         <h2 className="text-2xl font-bold tracking-tight">
           Entrada de Matéria-Prima
         </h2>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="outline"
+            className="gap-2 flex-1 sm:flex-none"
+            onClick={handleExportExcel}
+            disabled={filteredMaterials.length === 0}
+          >
+            <Download className="h-4 w-4" />{' '}
+            {isMobile ? 'Exportar' : 'Exportar Excel'}
+          </Button>
           <RawMaterialImportDialog />
           <Button
             className="gap-2 flex-1 sm:flex-none"

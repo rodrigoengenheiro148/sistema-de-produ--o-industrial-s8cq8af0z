@@ -79502,6 +79502,105 @@ function RawMaterialImportDialog() {
 		})]
 	});
 }
+var TABLES$1 = [
+	{
+		tableName: "production",
+		sheetName: "Produção"
+	},
+	{
+		tableName: "shipping",
+		sheetName: "Expedição"
+	},
+	{
+		tableName: "quality_records",
+		sheetName: "Qualidade"
+	},
+	{
+		tableName: "acidity_records",
+		sheetName: "Acidez"
+	},
+	{
+		tableName: "raw_materials",
+		sheetName: "Matéria-Prima"
+	},
+	{
+		tableName: "factories",
+		sheetName: "Fábricas"
+	}
+];
+var escapeXml = (str) => {
+	if (str === null || str === void 0) return "";
+	return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+};
+var formatValue$1 = (value) => {
+	if (value === null || value === void 0) return "";
+	if (typeof value === "boolean") return value ? "Sim" : "Não";
+	if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+		const date$4 = new Date(value);
+		if (!isNaN(date$4.getTime())) return format(date$4, "dd/MM/yyyy HH:mm");
+	}
+	return String(value);
+};
+var generateWorksheet = (sheetName, data) => {
+	if (!data || data.length === 0) return ` <Worksheet ss:Name="${sheetName}"><Table><Row><Cell><Data ss:Type="String">Sem dados</Data></Cell></Row></Table></Worksheet>`;
+	const headers = Object.keys(data[0]);
+	return `
+ <Worksheet ss:Name="${sheetName}">
+  <Table>
+   ${`<Row>${headers.map((h) => `<Cell><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join("")}</Row>`}
+   ${data.map((row) => {
+		return `<Row>${headers.map((header) => {
+			const val = row[header];
+			return `<Cell><Data ss:Type="${typeof val === "number" ? "Number" : "String"}">${typeof val === "number" ? val : escapeXml(formatValue$1(val))}</Data></Cell>`;
+		}).join("")}</Row>`;
+	}).join("")}
+  </Table>
+ </Worksheet>`;
+};
+const exportDataToExcel = (data, filename, sheetName) => {
+	const xmlContent = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+${generateWorksheet(sheetName, data)}
+</Workbook>`;
+	const blob = new Blob([xmlContent], { type: "application/vnd.ms-excel" });
+	const url = URL.createObjectURL(blob);
+	const a$2 = document.createElement("a");
+	a$2.href = url;
+	a$2.download = filename;
+	document.body.appendChild(a$2);
+	a$2.click();
+	document.body.removeChild(a$2);
+	URL.revokeObjectURL(url);
+};
+const generateAndDownloadExcel = async () => {
+	const xmlContent = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+${(await Promise.all(TABLES$1.map(async ({ tableName, sheetName }) => {
+		const { data, error } = await supabase.from(tableName).select("*");
+		if (error) throw new Error(`Erro ao buscar dados de ${sheetName}`);
+		return generateWorksheet(sheetName, data || []);
+	}))).join("")}
+</Workbook>`;
+	const blob = new Blob([xmlContent], { type: "application/vnd.ms-excel" });
+	const url = URL.createObjectURL(blob);
+	const a$2 = document.createElement("a");
+	a$2.href = url;
+	a$2.download = `dados_sistema_industrial_${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xls`;
+	document.body.appendChild(a$2);
+	a$2.click();
+	document.body.removeChild(a$2);
+	URL.revokeObjectURL(url);
+};
 function RawMaterial() {
 	const { rawMaterials, deleteRawMaterial, dateRange, setDateRange, production, factories, currentFactoryId } = useData();
 	const { toast: toast$2 } = useToast();
@@ -79576,6 +79675,20 @@ function RawMaterial() {
 		if (typeFilter !== "all" && item.type !== typeFilter) return false;
 		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.type.toLowerCase().includes(searchTerm.toLowerCase());
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
+	const handleExportExcel = () => {
+		exportDataToExcel(filteredMaterials.map((item) => ({
+			Data: format(item.date, "dd/MM/yyyy"),
+			Fornecedor: item.supplier,
+			"Matéria-Prima": item.type,
+			Quantidade: item.quantity,
+			Unidade: item.unit,
+			Observações: item.notes || ""
+		})), `entradas-mp-reciclagem-${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xlsx`, "Entradas MP");
+		toast$2({
+			title: "Exportação Concluída",
+			description: "O arquivo Excel foi gerado com sucesso."
+		});
+	};
 	const totalInputKg = filteredMaterials.reduce((acc, item) => {
 		const unit$1 = item.unit?.toLowerCase() || "";
 		if (unit$1 === "bag") return acc + item.quantity * 1400;
@@ -79608,8 +79721,19 @@ function RawMaterial() {
 					className: "text-2xl font-bold tracking-tight",
 					children: "Entrada de Matéria-Prima"
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 w-full sm:w-auto",
+					className: "flex flex-wrap items-center gap-2 w-full sm:w-auto",
 					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+							variant: "outline",
+							className: "gap-2 flex-1 sm:flex-none",
+							onClick: handleExportExcel,
+							disabled: filteredMaterials.length === 0,
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Download, { className: "h-4 w-4" }),
+								" ",
+								isMobile ? "Exportar" : "Exportar Excel"
+							]
+						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RawMaterialImportDialog, {}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 							className: "gap-2 flex-1 sm:flex-none",
@@ -84426,7 +84550,7 @@ var Switch = import_react.forwardRef(({ className, ...props }, ref) => /* @__PUR
 	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Thumb, { className: cn("pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0") })
 }));
 Switch.displayName = Root.displayName;
-var formatValue$1 = (value) => {
+var formatValue = (value) => {
 	if (value === null || value === void 0) return "";
 	if (typeof value === "boolean") return value ? "Sim" : "Não";
 	if (value instanceof Date) return format(value, "dd/MM/yyyy HH:mm");
@@ -84463,7 +84587,7 @@ var generateTableHtml = (title, data) => {
           <tbody>
             ${data.map((row) => {
 		return `<tr>${headers.map((header) => {
-			return `<td>${formatValue$1(row[header])}</td>`;
+			return `<td>${formatValue(row[header])}</td>`;
 		}).join("")}</tr>`;
 	}).join("")}
           </tbody>
@@ -84805,85 +84929,6 @@ function PowerBIExport() {
 		]
 	});
 }
-var TABLES$1 = [
-	{
-		tableName: "production",
-		sheetName: "Produção"
-	},
-	{
-		tableName: "shipping",
-		sheetName: "Expedição"
-	},
-	{
-		tableName: "quality_records",
-		sheetName: "Qualidade"
-	},
-	{
-		tableName: "acidity_records",
-		sheetName: "Acidez"
-	},
-	{
-		tableName: "raw_materials",
-		sheetName: "Matéria-Prima"
-	},
-	{
-		tableName: "factories",
-		sheetName: "Fábricas"
-	}
-];
-var escapeXml = (str) => {
-	if (str === null || str === void 0) return "";
-	return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-};
-var formatValue = (value) => {
-	if (value === null || value === void 0) return "";
-	if (typeof value === "boolean") return value ? "Sim" : "Não";
-	if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
-		const date$4 = new Date(value);
-		if (!isNaN(date$4.getTime())) return format(date$4, "dd/MM/yyyy HH:mm");
-	}
-	return String(value);
-};
-var generateWorksheet = (sheetName, data) => {
-	if (!data || data.length === 0) return ` <Worksheet ss:Name="${sheetName}"><Table><Row><Cell><Data ss:Type="String">Sem dados</Data></Cell></Row></Table></Worksheet>`;
-	const headers = Object.keys(data[0]);
-	return `
- <Worksheet ss:Name="${sheetName}">
-  <Table>
-   ${`<Row>${headers.map((h) => `<Cell><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`).join("")}</Row>`}
-   ${data.map((row) => {
-		return `<Row>${headers.map((header) => {
-			const val = row[header];
-			return `<Cell><Data ss:Type="${typeof val === "number" ? "Number" : "String"}">${typeof val === "number" ? val : escapeXml(formatValue(val))}</Data></Cell>`;
-		}).join("")}</Row>`;
-	}).join("")}
-  </Table>
- </Worksheet>`;
-};
-const generateAndDownloadExcel = async () => {
-	const xmlContent = `<?xml version="1.0"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:o="urn:schemas-microsoft-com:office:office"
- xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:html="http://www.w3.org/TR/REC-html40">
-${(await Promise.all(TABLES$1.map(async ({ tableName, sheetName }) => {
-		const { data, error } = await supabase.from(tableName).select("*");
-		if (error) throw new Error(`Erro ao buscar dados de ${sheetName}`);
-		return generateWorksheet(sheetName, data || []);
-	}))).join("")}
-</Workbook>`;
-	const blob = new Blob([xmlContent], { type: "application/vnd.ms-excel" });
-	const url = URL.createObjectURL(blob);
-	const a$2 = document.createElement("a");
-	a$2.href = url;
-	a$2.download = `dados_sistema_industrial_${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xls`;
-	document.body.appendChild(a$2);
-	a$2.click();
-	document.body.removeChild(a$2);
-	URL.revokeObjectURL(url);
-};
 function ExcelExport() {
 	const [loading, setLoading] = (0, import_react.useState)(false);
 	const { toast: toast$2 } = useToast();
@@ -93639,4 +93684,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-AKqEf4qT.js.map
+//# sourceMappingURL=index-BgzA7qU0.js.map

@@ -70,6 +70,32 @@ const generateWorksheet = (sheetName: string, data: any[]) => {
  </Worksheet>`
 }
 
+export const exportDataToExcel = (
+  data: any[],
+  filename: string,
+  sheetName: string,
+) => {
+  const xmlContent = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+${generateWorksheet(sheetName, data)}
+</Workbook>`
+
+  const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export const generateAndDownloadExcel = async () => {
   const workbookBody = (
     await Promise.all(
