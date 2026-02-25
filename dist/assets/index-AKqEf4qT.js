@@ -72780,9 +72780,27 @@ function Dashboard() {
 	const avgFarinhetaAcidity = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.acidity, 0) / farinhetaQuality.length : 0;
 	const avgFarinhetaProtein = farinhetaQuality.length > 0 ? farinhetaQuality.reduce((acc, curr) => acc + curr.protein, 0) / farinhetaQuality.length : 0;
 	const { currentYield, yieldTarget } = (0, import_react.useMemo)(() => {
+		if (isReciclagem) {
+			const industrialProduction = filteredProduction.filter((p$1) => !isBloodRecord(p$1));
+			const totalMp$1 = industrialProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
+			let seboYield = 0;
+			let fcoYield = 0;
+			let farinhetaYield = 0;
+			if (totalMp$1 > 0) {
+				const totalSebo = industrialProduction.reduce((acc, curr) => acc + curr.seboProduced, 0);
+				const totalFco = industrialProduction.reduce((acc, curr) => acc + curr.fcoProduced, 0);
+				const totalFarinheta = industrialProduction.reduce((acc, curr) => acc + curr.farinhetaProduced, 0);
+				seboYield = totalSebo / totalMp$1 * 100;
+				fcoYield = totalFco / totalMp$1 * 100;
+				farinhetaYield = totalFarinheta / totalMp$1 * 100;
+			}
+			return {
+				currentYield: seboYield + fcoYield + farinhetaYield,
+				yieldTarget: notificationSettings?.yieldThreshold || 58
+			};
+		}
 		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const totalProduced = filteredProduction.reduce((acc, curr) => {
-			if (isReciclagem) return acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced;
 			if (isMarReciclagem) return acc + curr.seboProduced + curr.fcoProduced + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0);
 			let produced = curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.fishMealProduced || 0);
 			produced += (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0);
@@ -93621,4 +93639,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BR_EmRR5.js.map
+//# sourceMappingURL=index-AKqEf4qT.js.map

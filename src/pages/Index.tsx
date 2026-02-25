@@ -14,7 +14,7 @@ import {
   AlertCircle,
   WifiOff,
 } from 'lucide-react'
-import { cn, formatSecondsAsTime } from '@/lib/utils'
+import { cn, formatSecondsAsTime, isBloodRecord } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { YieldHistoryChart } from '@/components/dashboard/YieldHistoryChart'
 import { YieldBarChart } from '@/components/dashboard/YieldBarChart'
@@ -180,18 +180,50 @@ export default function Dashboard() {
       : 0
 
   const { currentYield, yieldTarget } = useMemo(() => {
+    if (isReciclagem) {
+      const industrialProduction = filteredProduction.filter(
+        (p) => !isBloodRecord(p),
+      )
+      const totalMp = industrialProduction.reduce(
+        (acc, curr) => acc + curr.mpUsed,
+        0,
+      )
+
+      let seboYield = 0
+      let fcoYield = 0
+      let farinhetaYield = 0
+
+      if (totalMp > 0) {
+        const totalSebo = industrialProduction.reduce(
+          (acc, curr) => acc + curr.seboProduced,
+          0,
+        )
+        const totalFco = industrialProduction.reduce(
+          (acc, curr) => acc + curr.fcoProduced,
+          0,
+        )
+        const totalFarinheta = industrialProduction.reduce(
+          (acc, curr) => acc + curr.farinhetaProduced,
+          0,
+        )
+
+        seboYield = (totalSebo / totalMp) * 100
+        fcoYield = (totalFco / totalMp) * 100
+        farinhetaYield = (totalFarinheta / totalMp) * 100
+      }
+
+      return {
+        currentYield: seboYield + fcoYield + farinhetaYield,
+        yieldTarget: notificationSettings?.yieldThreshold || 58.0,
+      }
+    }
+
     const totalMp = filteredProduction.reduce(
       (acc, curr) => acc + curr.mpUsed,
       0,
     )
 
     const totalProduced = filteredProduction.reduce((acc, curr) => {
-      if (isReciclagem) {
-        return (
-          acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced
-        )
-      }
-
       if (isMarReciclagem) {
         return (
           acc +
