@@ -213,9 +213,11 @@ export default function RawMaterial() {
     const exportData = filteredMaterials.map((item) => ({
       Data: format(item.date, 'dd/MM/yyyy'),
       Fornecedor: item.supplier,
+      'Placa do Veículo': item.vehiclePlate || '-',
       'Matéria-Prima': item.type,
       Quantidade: item.quantity,
       Unidade: item.unit,
+      'Peso NFe': item.invoiceWeight || '-',
       Observações: item.notes || '',
     }))
 
@@ -452,11 +454,18 @@ export default function RawMaterial() {
                             <span className="font-semibold text-lg line-clamp-1">
                               {entry.supplier}
                             </span>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <CalendarIcon className="h-3 w-3" />
-                              {format(entry.date, 'dd/MM/yyyy')}
-                              {isLocked && (
-                                <Lock className="h-3 w-3 text-muted-foreground/50" />
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                              <div className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3" />
+                                {format(entry.date, 'dd/MM/yyyy')}
+                                {isLocked && (
+                                  <Lock className="h-3 w-3 text-muted-foreground/50" />
+                                )}
+                              </div>
+                              {entry.vehiclePlate && (
+                                <span className="px-1.5 py-0.5 bg-muted rounded text-xs font-medium">
+                                  {entry.vehiclePlate}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -499,12 +508,20 @@ export default function RawMaterial() {
                             <Package className="h-4 w-4 text-primary" />
                             <span className="font-medium">{entry.type}</span>
                           </div>
-                          <span className="font-mono font-bold text-lg">
-                            {entry.quantity.toLocaleString('pt-BR')}{' '}
-                            <span className="text-sm font-normal text-muted-foreground">
-                              {entry.unit}
-                            </span>
-                          </span>
+                          <div className="text-right">
+                            <div className="font-mono font-bold text-lg leading-none">
+                              {entry.quantity.toLocaleString('pt-BR')}{' '}
+                              <span className="text-sm font-normal text-muted-foreground">
+                                {entry.unit}
+                              </span>
+                            </div>
+                            {entry.invoiceWeight && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                NF:{' '}
+                                {entry.invoiceWeight.toLocaleString('pt-BR')} kg
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {entry.notes && (
@@ -524,8 +541,10 @@ export default function RawMaterial() {
                 <TableRow>
                   <TableHead>Data</TableHead>
                   <TableHead>Fornecedor</TableHead>
+                  <TableHead>Placa</TableHead>
                   <TableHead>Matéria-Prima</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
+                  <TableHead className="text-right">Peso NF</TableHead>
                   <TableHead>Observações</TableHead>
                   <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
@@ -534,7 +553,7 @@ export default function RawMaterial() {
                 {filteredMaterials.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={8}
                       className="text-center h-24 text-muted-foreground"
                     >
                       Nenhum registro encontrado no período.
@@ -557,6 +576,9 @@ export default function RawMaterial() {
                           </div>
                         </TableCell>
                         <TableCell>{entry.supplier}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {entry.vehiclePlate || '-'}
+                        </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
                             {entry.type}
@@ -565,6 +587,11 @@ export default function RawMaterial() {
                         <TableCell className="text-right font-mono">
                           {entry.quantity.toLocaleString('pt-BR')}{' '}
                           {entry.unit || 'kg'}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-muted-foreground">
+                          {entry.invoiceWeight
+                            ? entry.invoiceWeight.toLocaleString('pt-BR')
+                            : '-'}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">
                           {entry.notes || '-'}

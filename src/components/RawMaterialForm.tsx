@@ -71,6 +71,13 @@ export function RawMaterialForm({
         }),
       unit: z.string().min(1, 'Unidade é obrigatória'),
       notes: z.string().optional(),
+      vehiclePlate: z.string().optional(),
+      invoiceWeight: z
+        .string()
+        .optional()
+        .refine((val) => !val || (!isNaN(Number(val)) && Number(val) >= 0), {
+          message: 'Peso deve ser um número válido',
+        }),
     })
 
     if (isMarReciclagem) {
@@ -99,6 +106,10 @@ export function RawMaterialForm({
       quantity: initialData ? String(initialData.quantity) : '',
       unit: initialData?.unit || 'kg',
       notes: initialData?.notes || '',
+      vehiclePlate: initialData?.vehiclePlate || '',
+      invoiceWeight: initialData?.invoiceWeight
+        ? String(initialData.invoiceWeight)
+        : '',
     },
   })
 
@@ -111,6 +122,10 @@ export function RawMaterialForm({
         quantity: String(initialData.quantity),
         unit: initialData.unit || 'kg',
         notes: initialData.notes || '',
+        vehiclePlate: initialData.vehiclePlate || '',
+        invoiceWeight: initialData.invoiceWeight
+          ? String(initialData.invoiceWeight)
+          : '',
       })
     } else {
       form.reset({
@@ -120,6 +135,8 @@ export function RawMaterialForm({
         quantity: '',
         unit: 'kg',
         notes: '',
+        vehiclePlate: '',
+        invoiceWeight: '',
       })
     }
   }, [initialData, form])
@@ -140,6 +157,10 @@ export function RawMaterialForm({
         quantity: quantityValue,
         unit: values.unit,
         notes: values.notes,
+        vehiclePlate: values.vehiclePlate,
+        invoiceWeight: values.invoiceWeight
+          ? Number(values.invoiceWeight)
+          : undefined,
       }
 
       if (initialData) {
@@ -200,6 +221,19 @@ export function RawMaterialForm({
           />
           <FormField
             control={form.control}
+            name="vehiclePlate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Placa do Veículo (Opcional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: ABC-1234" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="type"
             render={({ field }) => (
               <FormItem>
@@ -234,7 +268,12 @@ export function RawMaterialForm({
                 <FormItem className="col-span-2">
                   <FormLabel>Quantidade</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -268,6 +307,24 @@ export function RawMaterialForm({
               )}
             />
           </div>
+          <FormField
+            control={form.control}
+            name="invoiceWeight"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Peso da Nota Fiscal (Opcional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="notes"

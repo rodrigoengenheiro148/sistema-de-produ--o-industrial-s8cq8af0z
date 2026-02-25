@@ -36312,7 +36312,9 @@ var mapData = (data) => {
 		packageCount: Number(item.package_count || 0),
 		volumeM3: Number(item.volume_m3 || 0),
 		quantity: Number(item.quantity || 0),
-		value: Number(item.value || 0)
+		value: Number(item.value || 0),
+		vehiclePlate: item.vehicle_plate,
+		invoiceWeight: item.invoice_weight !== null ? Number(item.invoice_weight) : void 0
 	}));
 };
 async function withRetry(fn, retries = 3, delay = 1e3) {
@@ -36629,6 +36631,8 @@ const DataProvider = ({ children }) => {
 			quantity: entry.quantity,
 			unit: entry.unit,
 			notes: entry.notes,
+			vehicle_plate: entry.vehiclePlate,
+			invoice_weight: entry.invoiceWeight,
 			user_id: user?.id,
 			factory_id: currentFactoryId
 		});
@@ -36643,6 +36647,8 @@ const DataProvider = ({ children }) => {
 			quantity: entry.quantity,
 			unit: entry.unit,
 			notes: entry.notes,
+			vehicle_plate: entry.vehiclePlate,
+			invoice_weight: entry.invoiceWeight,
 			user_id: user.id,
 			factory_id: currentFactoryId
 		}));
@@ -36657,7 +36663,9 @@ const DataProvider = ({ children }) => {
 			type: entry.type,
 			quantity: entry.quantity,
 			unit: entry.unit,
-			notes: entry.notes
+			notes: entry.notes,
+			vehicle_plate: entry.vehiclePlate,
+			invoice_weight: entry.invoiceWeight
 		}).eq("id", entry.id);
 		if (!error) fetchOperationalData();
 	};
@@ -78809,7 +78817,9 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 				type: string().min(1, "Tipo é obrigatório"),
 				quantity: string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Quantidade deve ser um número positivo" }),
 				unit: string().min(1, "Unidade é obrigatória"),
-				notes: string().optional()
+				notes: string().optional(),
+				vehiclePlate: string().optional(),
+				invoiceWeight: string().optional().refine((val) => !val || !isNaN(Number(val)) && Number(val) >= 0, { message: "Peso deve ser um número válido" })
 			});
 			if (isMarReciclagem) return baseSchema.extend({ supplier: string().optional() });
 			return baseSchema.extend({ supplier: string().min(2, "Fornecedor deve ter pelo menos 2 caracteres") });
@@ -78820,7 +78830,9 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 			type: initialData?.type || "",
 			quantity: initialData ? String(initialData.quantity) : "",
 			unit: initialData?.unit || "kg",
-			notes: initialData?.notes || ""
+			notes: initialData?.notes || "",
+			vehiclePlate: initialData?.vehiclePlate || "",
+			invoiceWeight: initialData?.invoiceWeight ? String(initialData.invoiceWeight) : ""
 		}
 	});
 	(0, import_react.useEffect)(() => {
@@ -78830,7 +78842,9 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 			type: initialData.type,
 			quantity: String(initialData.quantity),
 			unit: initialData.unit || "kg",
-			notes: initialData.notes || ""
+			notes: initialData.notes || "",
+			vehiclePlate: initialData.vehiclePlate || "",
+			invoiceWeight: initialData.invoiceWeight ? String(initialData.invoiceWeight) : ""
 		});
 		else form.reset({
 			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
@@ -78838,7 +78852,9 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 			type: "",
 			quantity: "",
 			unit: "kg",
-			notes: ""
+			notes: "",
+			vehiclePlate: "",
+			invoiceWeight: ""
 		});
 	}, [initialData, form]);
 	function onSubmit(values) {
@@ -78850,7 +78866,9 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 				type: values.type,
 				quantity: quantityValue,
 				unit: values.unit,
-				notes: values.notes
+				notes: values.notes,
+				vehiclePlate: values.vehiclePlate,
+				invoiceWeight: values.invoiceWeight ? Number(values.invoiceWeight) : void 0
 			};
 			if (initialData) {
 				updateRawMaterial({
@@ -78908,6 +78926,18 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 					control: form.control,
+					name: "vehiclePlate",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Placa do Veículo (Opcional)" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							placeholder: "Ex: ABC-1234",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
 					name: "type",
 					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Nome da Matéria-Prima" }),
@@ -78933,6 +78963,7 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Quantidade" }),
 								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									type: "number",
+									step: "0.01",
 									placeholder: "0.00",
 									...field
 								}) }),
@@ -78955,6 +78986,20 @@ function RawMaterialForm({ initialData, onSuccess, onCancel }) {
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
 						] })
 					})]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+					control: form.control,
+					name: "invoiceWeight",
+					render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Peso da Nota Fiscal (Opcional)" }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							type: "number",
+							step: "0.01",
+							placeholder: "0.00",
+							...field
+						}) }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+					] })
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 					control: form.control,
@@ -79781,9 +79826,11 @@ function RawMaterial() {
 		exportDataToExcel(filteredMaterials.map((item) => ({
 			Data: format(item.date, "dd/MM/yyyy"),
 			Fornecedor: item.supplier,
+			"Placa do Veículo": item.vehiclePlate || "-",
 			"Matéria-Prima": item.type,
 			Quantidade: item.quantity,
 			Unidade: item.unit,
+			"Peso NFe": item.invoiceWeight || "-",
 			Observações: item.notes || ""
 		})), `entradas-mp-${factories.find((f) => f.id === currentFactoryId)?.name?.toLowerCase().replace(/\s+/g, "-") || "geral"}-${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xlsx`, "Entradas MP");
 		toast$2({
@@ -79985,12 +80032,18 @@ function RawMaterial() {
 												className: "font-semibold text-lg line-clamp-1",
 												children: entry.supplier
 											}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "flex items-center gap-2 text-sm text-muted-foreground",
-												children: [
-													/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
-													format(entry.date, "dd/MM/yyyy"),
-													isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
-												]
+												className: "flex items-center gap-2 text-sm text-muted-foreground flex-wrap",
+												children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "flex items-center gap-1",
+													children: [
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Calendar, { className: "h-3 w-3" }),
+														format(entry.date, "dd/MM/yyyy"),
+														isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50" })
+													]
+												}), entry.vehiclePlate && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "px-1.5 py-0.5 bg-muted rounded text-xs font-medium",
+													children: entry.vehiclePlate
+												})]
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DropdownMenu, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DropdownMenuTrigger, {
 											asChild: true,
@@ -80020,16 +80073,27 @@ function RawMaterial() {
 												className: "font-medium",
 												children: entry.type
 											})]
-										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-											className: "font-mono font-bold text-lg",
-											children: [
-												entry.quantity.toLocaleString("pt-BR"),
-												" ",
-												/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-													className: "text-sm font-normal text-muted-foreground",
-													children: entry.unit
-												})
-											]
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+											className: "text-right",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "font-mono font-bold text-lg leading-none",
+												children: [
+													entry.quantity.toLocaleString("pt-BR"),
+													" ",
+													/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+														className: "text-sm font-normal text-muted-foreground",
+														children: entry.unit
+													})
+												]
+											}), entry.invoiceWeight && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+												className: "text-xs text-muted-foreground mt-1",
+												children: [
+													"NF:",
+													" ",
+													entry.invoiceWeight.toLocaleString("pt-BR"),
+													" kg"
+												]
+											})]
 										})]
 									}),
 									entry.notes && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
@@ -80047,10 +80111,15 @@ function RawMaterial() {
 				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Data" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Fornecedor" }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Placa" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Matéria-Prima" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "text-right",
 						children: "Quantidade"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Peso NF"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Observações" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
@@ -80058,7 +80127,7 @@ function RawMaterial() {
 						children: "Ações"
 					})
 				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 6,
+					colSpan: 8,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado no período."
 				}) }) : filteredMaterials.map((entry) => {
@@ -80074,6 +80143,10 @@ function RawMaterial() {
 								})
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: entry.supplier }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-muted-foreground",
+								children: entry.vehiclePlate || "-"
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 								className: "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground",
 								children: entry.type
@@ -80085,6 +80158,10 @@ function RawMaterial() {
 									" ",
 									entry.unit || "kg"
 								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-mono text-muted-foreground",
+								children: entry.invoiceWeight ? entry.invoiceWeight.toLocaleString("pt-BR") : "-"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "max-w-[200px] truncate text-muted-foreground",
@@ -93786,4 +93863,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-Csu3KKZg.js.map
+//# sourceMappingURL=index-uwmWMHKo.js.map

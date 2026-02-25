@@ -114,6 +114,9 @@ const mapData = (data: any[]) => {
     volumeM3: Number(item.volume_m3 || 0),
     quantity: Number(item.quantity || 0),
     value: Number(item.value || 0),
+    vehiclePlate: item.vehicle_plate,
+    invoiceWeight:
+      item.invoice_weight !== null ? Number(item.invoice_weight) : undefined,
   }))
 }
 
@@ -558,6 +561,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       quantity: entry.quantity,
       unit: entry.unit,
       notes: entry.notes,
+      vehicle_plate: entry.vehiclePlate,
+      invoice_weight: entry.invoiceWeight,
       user_id: user?.id,
       factory_id: currentFactoryId,
     })
@@ -575,6 +580,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       quantity: entry.quantity,
       unit: entry.unit,
       notes: entry.notes,
+      vehicle_plate: entry.vehiclePlate,
+      invoice_weight: entry.invoiceWeight,
       user_id: user.id,
       factory_id: currentFactoryId,
     }))
@@ -593,6 +600,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         quantity: entry.quantity,
         unit: entry.unit,
         notes: entry.notes,
+        vehicle_plate: entry.vehiclePlate,
+        invoice_weight: entry.invoiceWeight,
       })
       .eq('id', entry.id)
     if (!error) fetchOperationalData()

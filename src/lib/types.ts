@@ -8,6 +8,8 @@ export interface RawMaterialEntry {
   notes?: string
   factoryId?: string
   createdAt?: Date
+  vehiclePlate?: string
+  invoiceWeight?: number
 }
 
 export interface ProductionEntry {
