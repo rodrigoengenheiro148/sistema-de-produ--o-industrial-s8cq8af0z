@@ -72715,7 +72715,7 @@ function Dashboard() {
 	const currentFactory = factories.find((f) => f.id === currentFactoryId);
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const isFarinorte = currentFactory?.name === "Farinorte";
-	const isReciclagem = currentFactory?.name?.toUpperCase() === "RECICLAGEM" || currentFactory?.name?.toUpperCase().includes("RECICLAGEM") || isMarReciclagem;
+	const isReciclagem = currentFactory?.name?.toUpperCase().trim() === "RECICLAGEM";
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -72783,6 +72783,7 @@ function Dashboard() {
 		const totalMp = filteredProduction.reduce((acc, curr) => acc + curr.mpUsed, 0);
 		const totalProduced = filteredProduction.reduce((acc, curr) => {
 			if (isReciclagem) return acc + curr.seboProduced + curr.fcoProduced + curr.farinhetaProduced;
+			if (isMarReciclagem) return acc + curr.seboProduced + curr.fcoProduced + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.viscerasOilProduced || 0);
 			let produced = curr.seboProduced + curr.fcoProduced + (isFarinorte ? 0 : curr.farinhetaProduced) + (curr.viscerasMealProduced || 0) + (curr.featherMealProduced || 0) + (curr.fishMealProduced || 0);
 			produced += (curr.viscerasOilProduced || 0) + (curr.bloodMealBags && curr.bloodMealBags > 0 ? curr.bloodMealBags * 1400 : curr.bloodMealProduced || 0);
 			return acc + produced;
@@ -72795,7 +72796,8 @@ function Dashboard() {
 		filteredProduction,
 		notificationSettings,
 		isFarinorte,
-		isReciclagem
+		isReciclagem,
+		isMarReciclagem
 	]);
 	const [dateInput, setDateInput] = (0, import_react.useState)("");
 	const [inputError, setInputError] = (0, import_react.useState)(false);
@@ -93619,4 +93621,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DD6UGq2P.js.map
+//# sourceMappingURL=index-BR_EmRR5.js.map

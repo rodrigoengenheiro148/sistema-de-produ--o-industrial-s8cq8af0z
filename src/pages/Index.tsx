@@ -65,9 +65,7 @@ export default function Dashboard() {
   const isFarinorte = currentFactory?.name === 'Farinorte'
 
   const isReciclagem =
-    currentFactory?.name?.toUpperCase() === 'RECICLAGEM' ||
-    currentFactory?.name?.toUpperCase().includes('RECICLAGEM') ||
-    isMarReciclagem
+    currentFactory?.name?.toUpperCase().trim() === 'RECICLAGEM'
 
   const [today, setToday] = useState(new Date())
   useEffect(() => {
@@ -194,6 +192,17 @@ export default function Dashboard() {
         )
       }
 
+      if (isMarReciclagem) {
+        return (
+          acc +
+          curr.seboProduced +
+          curr.fcoProduced +
+          (curr.viscerasMealProduced || 0) +
+          (curr.featherMealProduced || 0) +
+          (curr.viscerasOilProduced || 0)
+        )
+      }
+
       let produced =
         curr.seboProduced +
         curr.fcoProduced +
@@ -215,7 +224,13 @@ export default function Dashboard() {
     const target = notificationSettings?.yieldThreshold || 58.0
 
     return { currentYield: yieldVal, yieldTarget: target }
-  }, [filteredProduction, notificationSettings, isFarinorte, isReciclagem])
+  }, [
+    filteredProduction,
+    notificationSettings,
+    isFarinorte,
+    isReciclagem,
+    isMarReciclagem,
+  ])
 
   const [dateInput, setDateInput] = useState('')
   const [inputError, setInputError] = useState(false)
