@@ -210,16 +210,27 @@ export default function RawMaterial() {
     .sort((a, b) => b.date.getTime() - a.date.getTime())
 
   const handleExportExcel = () => {
-    const exportData = filteredMaterials.map((item) => ({
-      Data: format(item.date, 'dd/MM/yyyy'),
-      Fornecedor: item.supplier,
-      'Placa do Veículo': item.vehiclePlate || '-',
-      'Matéria-Prima': item.type,
-      Quantidade: item.quantity,
-      Unidade: item.unit,
-      'Peso NFe': item.invoiceWeight || '-',
-      Observações: item.notes || '',
-    }))
+    const exportData = filteredMaterials.map((item) => {
+      const difference =
+        item.invoiceWeight !== undefined && item.invoiceWeight !== null
+          ? item.quantity - item.invoiceWeight
+          : null
+
+      return {
+        Data: format(item.date, 'dd/MM/yyyy'),
+        Fornecedor: item.supplier,
+        'Placa do Veículo': item.vehiclePlate || '-',
+        'Matéria-Prima': item.type,
+        Quantidade: item.quantity,
+        Unidade: item.unit,
+        'Peso NFe':
+          item.invoiceWeight !== undefined && item.invoiceWeight !== null
+            ? item.invoiceWeight
+            : '-',
+        Diferença: difference !== null ? difference : '-',
+        Observações: item.notes || '',
+      }
+    })
 
     const currentFactory = factories.find((f) => f.id === currentFactoryId)
     const factoryName =
@@ -446,6 +457,11 @@ export default function RawMaterial() {
               ) : (
                 filteredMaterials.map((entry) => {
                   const isLocked = shouldRequireAuth(entry.createdAt)
+                  const difference =
+                    entry.invoiceWeight !== undefined &&
+                    entry.invoiceWeight !== null
+                      ? entry.quantity - entry.invoiceWeight
+                      : null
                   return (
                     <Card key={entry.id} className="shadow-sm border">
                       <CardContent className="p-4">
@@ -515,10 +531,28 @@ export default function RawMaterial() {
                                 {entry.unit}
                               </span>
                             </div>
-                            {entry.invoiceWeight && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                NF:{' '}
-                                {entry.invoiceWeight.toLocaleString('pt-BR')} kg
+                            {entry.invoiceWeight !== undefined &&
+                              entry.invoiceWeight !== null && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  NF:{' '}
+                                  {entry.invoiceWeight.toLocaleString('pt-BR')}{' '}
+                                  kg
+                                </div>
+                              )}
+                            {difference !== null && (
+                              <div
+                                className={cn(
+                                  'text-xs font-medium mt-0.5',
+                                  difference > 0
+                                    ? 'text-green-600'
+                                    : difference < 0
+                                      ? 'text-red-600'
+                                      : 'text-muted-foreground',
+                                )}
+                              >
+                                Dif: {difference > 0 ? '+' : ''}
+                                {difference.toLocaleString('pt-BR')}{' '}
+                                {entry.unit || 'kg'}
                               </div>
                             )}
                           </div>
@@ -545,6 +579,7 @@ export default function RawMaterial() {
                   <TableHead>Matéria-Prima</TableHead>
                   <TableHead className="text-right">Quantidade</TableHead>
                   <TableHead className="text-right">Peso NF</TableHead>
+                  <TableHead className="text-right">Diferença</TableHead>
                   <TableHead>Observações</TableHead>
                   <TableHead className="w-[80px]">Ações</TableHead>
                 </TableRow>
@@ -553,7 +588,7 @@ export default function RawMaterial() {
                 {filteredMaterials.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center h-24 text-muted-foreground"
                     >
                       Nenhum registro encontrado no período.
@@ -562,6 +597,12 @@ export default function RawMaterial() {
                 ) : (
                   filteredMaterials.map((entry) => {
                     const isLocked = shouldRequireAuth(entry.createdAt)
+                    const difference =
+                      entry.invoiceWeight !== undefined &&
+                      entry.invoiceWeight !== null
+                        ? entry.quantity - entry.invoiceWeight
+                        : null
+
                     return (
                       <TableRow
                         key={entry.id}
@@ -589,8 +630,25 @@ export default function RawMaterial() {
                           {entry.unit || 'kg'}
                         </TableCell>
                         <TableCell className="text-right font-mono text-muted-foreground">
-                          {entry.invoiceWeight
+                          {entry.invoiceWeight !== undefined &&
+                          entry.invoiceWeight !== null
                             ? entry.invoiceWeight.toLocaleString('pt-BR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            'text-right font-mono',
+                            difference !== null
+                              ? difference > 0
+                                ? 'text-green-600'
+                                : difference < 0
+                                  ? 'text-red-600'
+                                  : 'text-muted-foreground'
+                              : 'text-muted-foreground',
+                          )}
+                        >
+                          {difference !== null
+                            ? `${difference > 0 ? '+' : ''}${difference.toLocaleString('pt-BR')} ${entry.unit || 'kg'}`
                             : '-'}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">

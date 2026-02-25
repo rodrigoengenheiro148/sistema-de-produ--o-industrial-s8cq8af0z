@@ -79823,16 +79823,20 @@ function RawMaterial() {
 		return item.supplier.toLowerCase().includes(searchTerm.toLowerCase()) || item.type.toLowerCase().includes(searchTerm.toLowerCase());
 	}).sort((a$2, b$1) => b$1.date.getTime() - a$2.date.getTime());
 	const handleExportExcel = () => {
-		exportDataToExcel(filteredMaterials.map((item) => ({
-			Data: format(item.date, "dd/MM/yyyy"),
-			Fornecedor: item.supplier,
-			"Placa do Veículo": item.vehiclePlate || "-",
-			"Matéria-Prima": item.type,
-			Quantidade: item.quantity,
-			Unidade: item.unit,
-			"Peso NFe": item.invoiceWeight || "-",
-			Observações: item.notes || ""
-		})), `entradas-mp-${factories.find((f) => f.id === currentFactoryId)?.name?.toLowerCase().replace(/\s+/g, "-") || "geral"}-${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xlsx`, "Entradas MP");
+		exportDataToExcel(filteredMaterials.map((item) => {
+			const difference = item.invoiceWeight !== void 0 && item.invoiceWeight !== null ? item.quantity - item.invoiceWeight : null;
+			return {
+				Data: format(item.date, "dd/MM/yyyy"),
+				Fornecedor: item.supplier,
+				"Placa do Veículo": item.vehiclePlate || "-",
+				"Matéria-Prima": item.type,
+				Quantidade: item.quantity,
+				Unidade: item.unit,
+				"Peso NFe": item.invoiceWeight !== void 0 && item.invoiceWeight !== null ? item.invoiceWeight : "-",
+				Diferença: difference !== null ? difference : "-",
+				Observações: item.notes || ""
+			};
+		}), `entradas-mp-${factories.find((f) => f.id === currentFactoryId)?.name?.toLowerCase().replace(/\s+/g, "-") || "geral"}-${format(/* @__PURE__ */ new Date(), "yyyy-MM-dd")}.xlsx`, "Entradas MP");
 		toast$2({
 			title: "Exportação Concluída",
 			description: "O arquivo Excel foi gerado com sucesso."
@@ -80019,6 +80023,7 @@ function RawMaterial() {
 						children: "Nenhum registro encontrado."
 					}) : filteredMaterials.map((entry) => {
 						const isLocked = shouldRequireAuth(entry.createdAt);
+						const difference = entry.invoiceWeight !== void 0 && entry.invoiceWeight !== null ? entry.quantity - entry.invoiceWeight : null;
 						return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Card, {
 							className: "shadow-sm border",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardContent, {
@@ -80075,25 +80080,39 @@ function RawMaterial() {
 											})]
 										}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 											className: "text-right",
-											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "font-mono font-bold text-lg leading-none",
-												children: [
-													entry.quantity.toLocaleString("pt-BR"),
-													" ",
-													/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-														className: "text-sm font-normal text-muted-foreground",
-														children: entry.unit
-													})
-												]
-											}), entry.invoiceWeight && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-												className: "text-xs text-muted-foreground mt-1",
-												children: [
-													"NF:",
-													" ",
-													entry.invoiceWeight.toLocaleString("pt-BR"),
-													" kg"
-												]
-											})]
+											children: [
+												/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "font-mono font-bold text-lg leading-none",
+													children: [
+														entry.quantity.toLocaleString("pt-BR"),
+														" ",
+														/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+															className: "text-sm font-normal text-muted-foreground",
+															children: entry.unit
+														})
+													]
+												}),
+												entry.invoiceWeight !== void 0 && entry.invoiceWeight !== null && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: "text-xs text-muted-foreground mt-1",
+													children: [
+														"NF:",
+														" ",
+														entry.invoiceWeight.toLocaleString("pt-BR"),
+														" ",
+														"kg"
+													]
+												}),
+												difference !== null && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+													className: cn("text-xs font-medium mt-0.5", difference > 0 ? "text-green-600" : difference < 0 ? "text-red-600" : "text-muted-foreground"),
+													children: [
+														"Dif: ",
+														difference > 0 ? "+" : "",
+														difference.toLocaleString("pt-BR"),
+														" ",
+														entry.unit || "kg"
+													]
+												})
+											]
 										})]
 									}),
 									entry.notes && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
@@ -80121,17 +80140,22 @@ function RawMaterial() {
 						className: "text-right",
 						children: "Peso NF"
 					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+						className: "text-right",
+						children: "Diferença"
+					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { children: "Observações" }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
 						className: "w-[80px]",
 						children: "Ações"
 					})
 				] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: filteredMaterials.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
-					colSpan: 8,
+					colSpan: 9,
 					className: "text-center h-24 text-muted-foreground",
 					children: "Nenhum registro encontrado no período."
 				}) }) : filteredMaterials.map((entry) => {
 					const isLocked = shouldRequireAuth(entry.createdAt);
+					const difference = entry.invoiceWeight !== void 0 && entry.invoiceWeight !== null ? entry.quantity - entry.invoiceWeight : null;
 					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 						className: "hover:bg-slate-50 dark:hover:bg-slate-900/50",
 						children: [
@@ -80161,7 +80185,11 @@ function RawMaterial() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "text-right font-mono text-muted-foreground",
-								children: entry.invoiceWeight ? entry.invoiceWeight.toLocaleString("pt-BR") : "-"
+								children: entry.invoiceWeight !== void 0 && entry.invoiceWeight !== null ? entry.invoiceWeight.toLocaleString("pt-BR") : "-"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: cn("text-right font-mono", difference !== null ? difference > 0 ? "text-green-600" : difference < 0 ? "text-red-600" : "text-muted-foreground" : "text-muted-foreground"),
+								children: difference !== null ? `${difference > 0 ? "+" : ""}${difference.toLocaleString("pt-BR")} ${entry.unit || "kg"}` : "-"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 								className: "max-w-[200px] truncate text-muted-foreground",
@@ -93863,4 +93891,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-uwmWMHKo.js.map
+//# sourceMappingURL=index-BPJaziHa.js.map
