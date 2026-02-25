@@ -219,8 +219,11 @@ export default function RawMaterial() {
       Observações: item.notes || '',
     }))
 
+    const currentFactory = factories.find((f) => f.id === currentFactoryId)
+    const factoryName =
+      currentFactory?.name?.toLowerCase().replace(/\s+/g, '-') || 'geral'
     const dateStr = format(new Date(), 'yyyy-MM-dd')
-    const filename = `entradas-mp-reciclagem-${dateStr}.xlsx`
+    const filename = `entradas-mp-${factoryName}-${dateStr}.xlsx`
 
     exportDataToExcel(exportData, filename, 'Entradas MP')
 
