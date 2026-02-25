@@ -72691,6 +72691,287 @@ function DigesterBatchesChart({ data, className }) {
 		}) })]
 	});
 }
+var Table = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+	className: "relative w-full overflow-auto",
+	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("table", {
+		ref,
+		className: cn("w-full caption-bottom text-sm", className),
+		...props
+	})
+}));
+Table.displayName = "Table";
+var TableHeader = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", {
+	ref,
+	className: cn("[&_tr]:border-b", className),
+	...props
+}));
+TableHeader.displayName = "TableHeader";
+var TableBody = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", {
+	ref,
+	className: cn("[&_tr:last-child]:border-0", className),
+	...props
+}));
+TableBody.displayName = "TableBody";
+var TableFooter = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tfoot", {
+	ref,
+	className: cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className),
+	...props
+}));
+TableFooter.displayName = "TableFooter";
+var TableRow = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tr", {
+	ref,
+	className: cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", className),
+	...props
+}));
+TableRow.displayName = "TableRow";
+var TableHead = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", {
+	ref,
+	className: cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className),
+	...props
+}));
+TableHead.displayName = "TableHead";
+var TableCell = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
+	ref,
+	className: cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className),
+	...props
+}));
+TableCell.displayName = "TableCell";
+var TableCaption = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("caption", {
+	ref,
+	className: cn("mt-4 text-sm text-muted-foreground", className),
+	...props
+}));
+TableCaption.displayName = "TableCaption";
+var COLORS = [
+	"#16a34a",
+	"#2563eb",
+	"#d97706",
+	"#06b6d4",
+	"#dc2626"
+];
+function ReciclagemStockControl({ production, shipping }) {
+	const { tableData, filialStock, grandTotalKg, grandTotalQtd } = (0, import_react.useMemo)(() => {
+		let prodFco = 0, shipFco = 0;
+		let prodEspecial = 0, shipEspecial = 0;
+		let prodVisc = 0, shipVisc = 0;
+		let prodPeixe = 0, shipPeixe = 0;
+		let prodSangue = 0, shipSangue = 0;
+		let sangueBags = 0;
+		production.forEach((p$1) => {
+			prodFco += p$1.fcoProduced || 0;
+			prodEspecial += p$1.farinhetaProduced || 0;
+			prodVisc += p$1.viscerasMealProduced || 0;
+			prodPeixe += p$1.fishMealProduced || 0;
+			prodSangue += p$1.bloodMealProduced || 0;
+			sangueBags += p$1.bloodMealBags || 0;
+		});
+		shipping.forEach((s$3) => {
+			if (s$3.product === "FCO") shipFco += s$3.quantity;
+			if (s$3.product === "Farinha Especial" || s$3.product === "Farinheta") shipEspecial += s$3.quantity;
+			if (s$3.product === "Farinha de Vísceras") shipVisc += s$3.quantity;
+			if (s$3.product === "Farinha de Peixe") shipPeixe += s$3.quantity;
+			if (s$3.product === "Farinha de Sangue") shipSangue += s$3.quantity;
+		});
+		const stockFco = Math.max(0, prodFco - shipFco);
+		const stockEspecial = Math.max(0, prodEspecial - shipEspecial);
+		const stockVisc = Math.max(0, prodVisc - shipVisc);
+		const stockPeixe = Math.max(0, prodPeixe - shipPeixe);
+		const stockSangue = Math.max(0, prodSangue - shipSangue);
+		const qtdFco = Math.floor(stockFco / 1550);
+		const qtdEspecial = Math.floor(stockEspecial / 1300);
+		const qtdVisc = Math.floor(stockVisc / 1400);
+		const qtdPeixe = Math.floor(stockPeixe / 1400);
+		const shippedSangueBags = Math.floor(shipSangue / 1400);
+		const qtdSangue = Math.max(0, sangueBags - shippedSangueBags) || Math.floor(stockSangue / 1400);
+		const data = [
+			{
+				code: "PP000001",
+				name: "FARINHA DE CARNE E OSSO",
+				kg: stockFco,
+				qtd: qtdFco
+			},
+			{
+				code: "PP000006",
+				name: "FARINHA DE CARNE E OSSO ESPECIAL",
+				kg: stockEspecial,
+				qtd: qtdEspecial
+			},
+			{
+				code: "PP000011",
+				name: "FARINHA VISCERAS DE AVES",
+				kg: stockVisc,
+				qtd: qtdVisc
+			},
+			{
+				code: "PP000012",
+				name: "FARINHA DE PEIXE",
+				kg: stockPeixe,
+				qtd: qtdPeixe
+			},
+			{
+				code: "PP000002",
+				name: "FARINHA DE SANGUE",
+				kg: stockSangue,
+				qtd: qtdSangue
+			}
+		];
+		const filialStockKg = 31100;
+		return {
+			tableData: data,
+			filialStock: filialStockKg,
+			grandTotalKg: data.reduce((acc, curr) => acc + curr.kg, 0) + filialStockKg,
+			grandTotalQtd: data.reduce((acc, curr) => acc + curr.qtd, 0) + 0
+		};
+	}, [production, shipping]);
+	const chartConfig$1 = { kg: {
+		label: "Estoque (KG)",
+		color: "hsl(var(--primary))"
+	} };
+	const formatWithThreeDecimals = (val) => {
+		return val.toLocaleString("pt-BR", {
+			minimumFractionDigits: 3,
+			maximumFractionDigits: 3
+		});
+	};
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-6 animate-in fade-in zoom-in-95",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Balanço de Estoque - Reciclagem" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "rounded-md border border-[#78b849]/30 overflow-hidden",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, {
+					className: "bg-[#78b849] hover:bg-[#78b849]",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "hover:bg-[#78b849] border-b-0",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-white font-bold text-center border-r border-white/30 uppercase",
+								children: "PRODUTO"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-white font-bold text-center border-r border-white/30 uppercase",
+								children: "DESCRIÇÃO"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-white font-bold text-center border-r border-white/30 uppercase",
+								children: "KG"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
+								className: "text-white font-bold text-center uppercase",
+								children: "QTD"
+							})
+						]
+					})
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableBody, { children: [tableData.map((row, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+					className: idx % 2 === 0 ? "bg-[#e2efd9] hover:bg-[#d5e8c9]" : "bg-white hover:bg-slate-50",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
+							children: row.code
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
+							children: row.name
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold border-r border-[#78b849]/20 text-[#000]",
+							children: formatWithThreeDecimals(row.kg)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold text-[#000]",
+							children: row.qtd
+						})
+					]
+				}, row.code)), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+					className: "bg-[#e2efd9] hover:bg-[#d5e8c9]",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							colSpan: 2,
+							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
+							children: "ESTOQUE QUE ESTA NA FILIAL:"
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold border-r border-[#78b849]/20 text-[#000]",
+							children: formatWithThreeDecimals(filialStock)
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { className: "text-right font-bold text-[#000]" })
+					]
+				})] }),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableFooter, {
+					className: "bg-[#5f9c34] hover:bg-[#5f9c34]",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+						className: "hover:bg-[#5f9c34] border-t-0",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								colSpan: 2,
+								className: "border-r border-white/30"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold text-white border-r border-white/30",
+								children: formatWithThreeDecimals(grandTotalKg)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "text-right font-bold text-white text-lg",
+								children: grandTotalQtd
+							})
+						]
+					})
+				})
+			] })
+		}) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Visualização de Estoque" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+			config: chartConfig$1,
+			className: "h-[400px] w-full",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+				data: tableData,
+				margin: {
+					top: 30,
+					right: 30,
+					left: 20,
+					bottom: 80
+				},
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+						strokeDasharray: "3 3",
+						vertical: false
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+						dataKey: "name",
+						tickLine: false,
+						axisLine: false,
+						tick: { fontSize: 11 },
+						angle: -45,
+						textAnchor: "end",
+						interval: 0
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+						tickFormatter: (value) => `${(value / 1e3).toFixed(0)}k`,
+						axisLine: false,
+						tickLine: false
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltip, {
+						cursor: { fill: "hsl(var(--muted)/0.3)" },
+						content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartTooltipContent, {})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Bar, {
+						dataKey: "kg",
+						radius: [
+							4,
+							4,
+							0,
+							0
+						],
+						children: [tableData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: COLORS[index$1 % COLORS.length] }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+							dataKey: "kg",
+							position: "top",
+							formatter: (value) => formatWithThreeDecimals(value),
+							className: "fill-foreground font-bold text-xs"
+						})]
+					})
+				]
+			})
+		}) })] })]
+	});
+}
 var alertVariants = cva("relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground", {
 	variants: { variant: {
 		default: "bg-background text-foreground",
@@ -72724,6 +73005,7 @@ function Dashboard() {
 	const isMarReciclagem = currentFactory?.name === "Mar Reciclagem" || currentFactory?.name === "Mar";
 	const isFarinorte = currentFactory?.name === "Farinorte";
 	const isReciclagem = currentFactory?.name?.toUpperCase().trim() === "RECICLAGEM";
+	const isReciclagemUnit = isReciclagem || isMarReciclagem;
 	const [today, setToday] = (0, import_react.useState)(/* @__PURE__ */ new Date());
 	(0, import_react.useEffect)(() => {
 		const timer = setInterval(() => {
@@ -72939,6 +73221,11 @@ function Dashboard() {
 									value: "quality",
 									className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
 									children: "Qualidade"
+								}),
+								isReciclagemUnit && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsTrigger, {
+									value: "stock-control",
+									className: "flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm",
+									children: "Controle de Estoque"
 								})
 							]
 						})
@@ -73094,63 +73381,20 @@ function Dashboard() {
 								})]
 							})]
 						})
+					}),
+					isReciclagemUnit && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "stock-control",
+						className: "space-y-4",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReciclagemStockControl, {
+							production,
+							shipping
+						})
 					})
 				]
 			})
 		]
 	});
 }
-var Table = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-	className: "relative w-full overflow-auto",
-	children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("table", {
-		ref,
-		className: cn("w-full caption-bottom text-sm", className),
-		...props
-	})
-}));
-Table.displayName = "Table";
-var TableHeader = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", {
-	ref,
-	className: cn("[&_tr]:border-b", className),
-	...props
-}));
-TableHeader.displayName = "TableHeader";
-var TableBody = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", {
-	ref,
-	className: cn("[&_tr:last-child]:border-0", className),
-	...props
-}));
-TableBody.displayName = "TableBody";
-var TableFooter = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tfoot", {
-	ref,
-	className: cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className),
-	...props
-}));
-TableFooter.displayName = "TableFooter";
-var TableRow = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tr", {
-	ref,
-	className: cn("border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted", className),
-	...props
-}));
-TableRow.displayName = "TableRow";
-var TableHead = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", {
-	ref,
-	className: cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className),
-	...props
-}));
-TableHead.displayName = "TableHead";
-var TableCell = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
-	ref,
-	className: cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className),
-	...props
-}));
-TableCell.displayName = "TableCell";
-var TableCaption = import_react.forwardRef(({ className, ...props }, ref) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("caption", {
-	ref,
-	className: cn("mt-4 text-sm text-muted-foreground", className),
-	...props
-}));
-TableCaption.displayName = "TableCaption";
 var isCheckBoxInput = (element) => element.type === "checkbox";
 var isDateObject = (value) => value instanceof Date;
 var isNullOrUndefined = (value) => value == null;
@@ -93891,4 +94135,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-BPJaziHa.js.map
+//# sourceMappingURL=index-DQTHk_uj.js.map

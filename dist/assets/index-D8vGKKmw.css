@@ -1653,6 +1653,9 @@ section[aria-label='Notifications alt+T'] {
 .border-b{
   border-bottom-width: 1px;
 }
+.border-b-0{
+  border-bottom-width: 0px;
+}
 .border-l{
   border-left-width: 1px;
 }
@@ -1671,6 +1674,9 @@ section[aria-label='Notifications alt+T'] {
 .border-t{
   border-top-width: 1px;
 }
+.border-t-0{
+  border-top-width: 0px;
+}
 .border-t-2{
   border-top-width: 2px;
 }
@@ -1685,6 +1691,12 @@ section[aria-label='Notifications alt+T'] {
 }
 .border-none{
   border-style: none;
+}
+.border-\[\#78b849\]\/20{
+  border-color: rgb(120 184 73 / 0.2);
+}
+.border-\[\#78b849\]\/30{
+  border-color: rgb(120 184 73 / 0.3);
 }
 .border-\[\#d1fadf\]{
   --tw-border-opacity: 1;
@@ -1807,6 +1819,9 @@ section[aria-label='Notifications alt+T'] {
 .border-transparent{
   border-color: transparent;
 }
+.border-white\/30{
+  border-color: rgb(255 255 255 / 0.3);
+}
 .border-yellow-100{
   --tw-border-opacity: 1;
   border-color: rgb(254 249 195 / var(--tw-border-opacity, 1));
@@ -1893,8 +1908,20 @@ section[aria-label='Notifications alt+T'] {
   --tw-bg-opacity: 1;
   background-color: rgb(75 85 99 / var(--tw-bg-opacity, 1));
 }
+.bg-\[\#5f9c34\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(95 156 52 / var(--tw-bg-opacity, 1));
+}
+.bg-\[\#78b849\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(120 184 73 / var(--tw-bg-opacity, 1));
+}
 .bg-\[\#9ca3af\]\/40{
   background-color: rgb(156 163 175 / 0.4);
+}
+.bg-\[\#e2efd9\]{
+  --tw-bg-opacity: 1;
+  background-color: rgb(226 239 217 / var(--tw-bg-opacity, 1));
 }
 .bg-\[\#eefcf2\]{
   --tw-bg-opacity: 1;
@@ -2458,6 +2485,10 @@ section[aria-label='Notifications alt+T'] {
 }
 .tracking-widest{
   letter-spacing: 0.1em;
+}
+.text-\[\#000\]{
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity, 1));
 }
 .text-\[\#111827\]{
   --tw-text-opacity: 1;
@@ -3187,6 +3218,18 @@ img[src*='skip.svg'] {
 }
 .hover\:border-t-primary\/50:hover{
   border-top-color: hsl(var(--primary) / 0.5);
+}
+.hover\:bg-\[\#5f9c34\]:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(95 156 52 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-\[\#78b849\]:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(120 184 73 / var(--tw-bg-opacity, 1));
+}
+.hover\:bg-\[\#d5e8c9\]:hover{
+  --tw-bg-opacity: 1;
+  background-color: rgb(213 232 201 / var(--tw-bg-opacity, 1));
 }
 .hover\:bg-accent:hover{
   background-color: hsl(var(--accent));

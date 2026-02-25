@@ -32,6 +32,7 @@ import { ReturnsImpactChart } from '@/components/dashboard/ReturnsImpactChart'
 import { MarReciclagemInventoryChart } from '@/components/dashboard/MarReciclagemInventoryChart'
 import { ProductionAnalysisChart } from '@/components/dashboard/ProductionAnalysisChart'
 import { DigesterBatchesChart } from '@/components/dashboard/DigesterBatchesChart'
+import { ReciclagemStockControl } from '@/components/dashboard/ReciclagemStockControl'
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -66,6 +67,8 @@ export default function Dashboard() {
 
   const isReciclagem =
     currentFactory?.name?.toUpperCase().trim() === 'RECICLAGEM'
+
+  const isReciclagemUnit = isReciclagem || isMarReciclagem
 
   const [today, setToday] = useState(new Date())
   useEffect(() => {
@@ -417,11 +420,18 @@ export default function Dashboard() {
             >
               Qualidade
             </TabsTrigger>
+            {isReciclagemUnit && (
+              <TabsTrigger
+                value="stock-control"
+                className="flex-1 sm:flex-none data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              >
+                Controle de Estoque
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
         <TabsContent value="overview" className="space-y-6">
-          {/* 1. Top KPI Cards */}
           <OverviewCards
             rawMaterials={filteredRawMaterials}
             production={filteredProduction}
@@ -443,7 +453,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* 2. Middle Row: Gauge Chart & Production Analysis */}
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
             <div className="lg:col-span-1">
               <YieldGaugeChart
@@ -461,12 +470,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* 3. Planning Section */}
           {!isMarReciclagem && !isFarinorte && (
             <LoadForecast referenceDate={effectiveForecastDate} />
           )}
 
-          {/* Rest of the charts */}
           <div className="space-y-4">
             {isMarReciclagem && (
               <MarReciclagemInventoryChart
@@ -571,6 +578,15 @@ export default function Dashboard() {
             </Card>
           </div>
         </TabsContent>
+
+        {isReciclagemUnit && (
+          <TabsContent value="stock-control" className="space-y-4">
+            <ReciclagemStockControl
+              production={production}
+              shipping={shipping}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
