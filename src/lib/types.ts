@@ -123,6 +123,18 @@ export interface SeboInventoryRecord {
   createdAt?: Date
 }
 
+export interface StockBalanceRecord {
+  id: string
+  factoryId: string
+  productCode: string
+  description: string
+  weightKg: number
+  quantityUnits: number
+  isFilialRow: boolean
+  userId?: string
+  updatedAt?: Date
+}
+
 export interface CookingTimeRecord {
   id: string
   factoryId: string
@@ -302,6 +314,7 @@ export interface DataContextType {
   dailyForecasts: DailyProductionForecast[]
   returns: ReturnEntry[]
   latestInventory: SeboInventoryRecord[]
+  stockBalanceRecords: StockBalanceRecord[]
 
   addRawMaterial: (entry: Omit<RawMaterialEntry, 'id'>) => void
   bulkAddRawMaterials: (
@@ -355,6 +368,8 @@ export interface DataContextType {
   addReturn: (entry: Omit<ReturnEntry, 'id'>) => void
   updateReturn: (entry: ReturnEntry) => void
   deleteReturn: (id: string) => void
+
+  updateStockBalanceRecords: (records: StockBalanceRecord[]) => Promise<void>
 
   userAccessList: UserAccessEntry[]
   addUserAccess: (entry: Omit<UserAccessEntry, 'id'>) => void

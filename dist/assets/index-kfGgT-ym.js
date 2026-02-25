@@ -19858,6 +19858,10 @@ var PanelLeft = createLucideIcon("panel-left", [["rect", {
 	d: "M9 3v18",
 	key: "fh3hqa"
 }]]);
+var Pen = createLucideIcon("pen", [["path", {
+	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
+	key: "1a8usu"
+}]]);
 var Pencil = createLucideIcon("pencil", [["path", {
 	d: "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z",
 	key: "1a8usu"
@@ -36354,6 +36358,7 @@ const DataProvider = ({ children }) => {
 	const [dailyForecasts, setDailyForecasts] = (0, import_react.useState)([]);
 	const [returns, setReturns] = (0, import_react.useState)([]);
 	const [latestInventory, setLatestInventory] = (0, import_react.useState)([]);
+	const [stockBalanceRecords, setStockBalanceRecords] = (0, import_react.useState)([]);
 	const [userAccessList, setUserAccessList] = (0, import_react.useState)([]);
 	const [factories, setFactories] = (0, import_react.useState)([]);
 	const [systemSettings, setSystemSettings] = (0, import_react.useState)(DEFAULT_SETTINGS);
@@ -36454,6 +36459,7 @@ const DataProvider = ({ children }) => {
 			setDailyForecasts([]);
 			setReturns([]);
 			setLatestInventory([]);
+			setStockBalanceRecords([]);
 			return;
 		}
 		try {
@@ -36466,7 +36472,7 @@ const DataProvider = ({ children }) => {
 					if (toDateStr) q = q.lte("date", toDateStr);
 					return q.order("date", { ascending: false });
 				};
-				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, { data: boiler }, { data: digester }, inventoryData] = await Promise.all([
+				const [{ data: raw }, { data: prod }, { data: ship }, { data: acid }, { data: qual }, { data: cooking }, { data: downtime }, { data: steam }, { data: forecasts }, { data: rets }, { data: boiler }, { data: digester }, inventoryData, { data: stockBalance }] = await Promise.all([
 					applyFilters(supabase.from("raw_materials").select("*")),
 					applyFilters(supabase.from("production").select("*")),
 					applyFilters(supabase.from("shipping").select("*")),
@@ -36479,7 +36485,8 @@ const DataProvider = ({ children }) => {
 					applyFilters(supabase.from("returns").select("*")),
 					applyFilters(supabase.from("boiler_control_records").select("*")),
 					applyFilters(supabase.from("digester_records").select("*")),
-					fetchLatestManualEntries(currentFactoryId, 50)
+					fetchLatestManualEntries(currentFactoryId, 50),
+					supabase.from("stock_balance_records").select("*").eq("factory_id", currentFactoryId).order("is_filial_row", { ascending: true })
 				]);
 				if (raw) setRawMaterials(mapData(raw));
 				if (prod) setProduction(mapData(prod));
@@ -36536,6 +36543,18 @@ const DataProvider = ({ children }) => {
 					createdAt: r$2.created_at ? new Date(r$2.created_at) : void 0
 				})));
 				if (inventoryData) setLatestInventory(inventoryData);
+				if (stockBalance) setStockBalanceRecords(stockBalance.map((s$3) => ({
+					id: s$3.id,
+					factoryId: s$3.factory_id,
+					productCode: s$3.product_code,
+					description: s$3.description,
+					weightKg: Number(s$3.weight_kg || 0),
+					quantityUnits: Number(s$3.quantity_units || 0),
+					isFilialRow: s$3.is_filial_row,
+					userId: s$3.user_id,
+					updatedAt: s$3.updated_at ? new Date(s$3.updated_at) : void 0
+				})));
+				else setStockBalanceRecords([]);
 				setLastProtheusSync(/* @__PURE__ */ new Date());
 				setConnectionStatus("online");
 			});
@@ -36590,7 +36609,8 @@ const DataProvider = ({ children }) => {
 			"digester_records",
 			"daily_production_forecasts",
 			"returns",
-			"sebo_inventory_records"
+			"sebo_inventory_records",
+			"stock_balance_records"
 		].forEach((table) => {
 			channel.on("postgres_changes", {
 				event: "*",
@@ -37020,6 +37040,25 @@ const DataProvider = ({ children }) => {
 		const { error } = await supabase.from("returns").delete().eq("id", id);
 		if (!error) fetchOperationalData();
 	};
+	const updateStockBalanceRecords = async (records) => {
+		if (!user?.id || !currentFactoryId) return;
+		const payload = records.map((r$2) => {
+			return {
+				...String(r$2.id).startsWith("new-") ? {} : { id: r$2.id },
+				factory_id: r$2.factoryId || currentFactoryId,
+				product_code: r$2.productCode,
+				description: r$2.description,
+				weight_kg: Number(r$2.weightKg) || 0,
+				quantity_units: Number(r$2.quantityUnits) || 0,
+				is_filial_row: r$2.isFilialRow,
+				user_id: user.id,
+				updated_at: (/* @__PURE__ */ new Date()).toISOString()
+			};
+		});
+		const { error } = await supabase.from("stock_balance_records").upsert(payload);
+		if (error) throw error;
+		await fetchOperationalData();
+	};
 	const addFactory = async (entry) => {
 		const { error } = await supabase.from("factories").insert({
 			name: entry.name,
@@ -37159,7 +37198,8 @@ const DataProvider = ({ children }) => {
 			supabase.from("boiler_control_records").delete().eq("user_id", user.id),
 			supabase.from("digester_records").delete().eq("user_id", user.id),
 			supabase.from("daily_production_forecasts").delete().eq("user_id", user.id),
-			supabase.from("returns").delete().eq("user_id", user.id)
+			supabase.from("returns").delete().eq("user_id", user.id),
+			supabase.from("stock_balance_records").delete().eq("user_id", user.id)
 		]);
 		fetchOperationalData();
 	};
@@ -37213,6 +37253,8 @@ const DataProvider = ({ children }) => {
 			updateReturn,
 			deleteReturn,
 			latestInventory,
+			stockBalanceRecords,
+			updateStockBalanceRecords,
 			userAccessList,
 			addUserAccess: () => {},
 			updateUserAccess: () => {},
@@ -72749,93 +72791,144 @@ var COLORS = [
 	"#06b6d4",
 	"#dc2626"
 ];
-function ReciclagemStockControl({ production, shipping }) {
-	const { tableData, filialStock, grandTotalKg, grandTotalQtd } = (0, import_react.useMemo)(() => {
-		let prodFco = 0, shipFco = 0;
-		let prodEspecial = 0, shipEspecial = 0;
-		let prodVisc = 0, shipVisc = 0;
-		let prodPeixe = 0, shipPeixe = 0;
-		let prodSangue = 0, shipSangue = 0;
-		let sangueBags = 0;
-		production.forEach((p$1) => {
-			prodFco += p$1.fcoProduced || 0;
-			prodEspecial += p$1.farinhetaProduced || 0;
-			prodVisc += p$1.viscerasMealProduced || 0;
-			prodPeixe += p$1.fishMealProduced || 0;
-			prodSangue += p$1.bloodMealProduced || 0;
-			sangueBags += p$1.bloodMealBags || 0;
-		});
-		shipping.forEach((s$3) => {
-			if (s$3.product === "FCO") shipFco += s$3.quantity;
-			if (s$3.product === "Farinha Especial" || s$3.product === "Farinheta") shipEspecial += s$3.quantity;
-			if (s$3.product === "Farinha de Vísceras") shipVisc += s$3.quantity;
-			if (s$3.product === "Farinha de Peixe") shipPeixe += s$3.quantity;
-			if (s$3.product === "Farinha de Sangue") shipSangue += s$3.quantity;
-		});
-		const stockFco = Math.max(0, prodFco - shipFco);
-		const stockEspecial = Math.max(0, prodEspecial - shipEspecial);
-		const stockVisc = Math.max(0, prodVisc - shipVisc);
-		const stockPeixe = Math.max(0, prodPeixe - shipPeixe);
-		const stockSangue = Math.max(0, prodSangue - shipSangue);
-		const qtdFco = Math.floor(stockFco / 1550);
-		const qtdEspecial = Math.floor(stockEspecial / 1300);
-		const qtdVisc = Math.floor(stockVisc / 1400);
-		const qtdPeixe = Math.floor(stockPeixe / 1400);
-		const shippedSangueBags = Math.floor(shipSangue / 1400);
-		const qtdSangue = Math.max(0, sangueBags - shippedSangueBags) || Math.floor(stockSangue / 1400);
-		const data = [
+function ReciclagemStockControl(_props) {
+	const { stockBalanceRecords, updateStockBalanceRecords } = useData();
+	const { toast: toast$2 } = useToast();
+	const [isEditing, setIsEditing] = (0, import_react.useState)(false);
+	const [localRecords, setLocalRecords] = (0, import_react.useState)([]);
+	(0, import_react.useEffect)(() => {
+		if (!isEditing) if (stockBalanceRecords && stockBalanceRecords.length > 0) setLocalRecords([...stockBalanceRecords].sort((a$2, b$1) => {
+			if (a$2.isFilialRow && !b$1.isFilialRow) return 1;
+			if (!a$2.isFilialRow && b$1.isFilialRow) return -1;
+			return (a$2.productCode || "").localeCompare(b$1.productCode || "");
+		}));
+		else setLocalRecords([
 			{
-				code: "PP000001",
-				name: "FARINHA DE CARNE E OSSO",
-				kg: stockFco,
-				qtd: qtdFco
+				id: "new-1",
+				factoryId: "",
+				productCode: "PP000001",
+				description: "FARINHA DE CARNE E OSSO",
+				weightKg: 0,
+				quantityUnits: 0,
+				isFilialRow: false
 			},
 			{
-				code: "PP000006",
-				name: "FARINHA DE CARNE E OSSO ESPECIAL",
-				kg: stockEspecial,
-				qtd: qtdEspecial
+				id: "new-2",
+				factoryId: "",
+				productCode: "PP000006",
+				description: "FARINHA DE CARNE E OSSO ESPECIAL",
+				weightKg: 32580,
+				quantityUnits: 25,
+				isFilialRow: false
 			},
 			{
-				code: "PP000011",
-				name: "FARINHA VISCERAS DE AVES",
-				kg: stockVisc,
-				qtd: qtdVisc
+				id: "new-3",
+				factoryId: "",
+				productCode: "PP000011",
+				description: "FARINHA VISCERAS DE AVES",
+				weightKg: 0,
+				quantityUnits: 0,
+				isFilialRow: false
 			},
 			{
-				code: "PP000012",
-				name: "FARINHA DE PEIXE",
-				kg: stockPeixe,
-				qtd: qtdPeixe
+				id: "new-4",
+				factoryId: "",
+				productCode: "PP000012",
+				description: "FARINHA DE PEIXE",
+				weightKg: 0,
+				quantityUnits: 0,
+				isFilialRow: false
 			},
 			{
-				code: "PP000002",
-				name: "FARINHA DE SANGUE",
-				kg: stockSangue,
-				qtd: qtdSangue
+				id: "new-5",
+				factoryId: "",
+				productCode: "PP000002",
+				description: "FARINHA DE SANGUE",
+				weightKg: 0,
+				quantityUnits: 0,
+				isFilialRow: false
+			},
+			{
+				id: "new-6",
+				factoryId: "",
+				productCode: "",
+				description: "ESTOQUE QUE ESTA NA FILIAL:",
+				weightKg: 31100,
+				quantityUnits: 0,
+				isFilialRow: true
 			}
-		];
-		const filialStockKg = 31100;
-		return {
-			tableData: data,
-			filialStock: filialStockKg,
-			grandTotalKg: data.reduce((acc, curr) => acc + curr.kg, 0) + filialStockKg,
-			grandTotalQtd: data.reduce((acc, curr) => acc + curr.qtd, 0) + 0
-		};
-	}, [production, shipping]);
+		]);
+	}, [stockBalanceRecords, isEditing]);
+	const handleSave = async () => {
+		try {
+			await updateStockBalanceRecords(localRecords);
+			setIsEditing(false);
+			toast$2({
+				title: "Sucesso",
+				description: "Estoque atualizado com sucesso."
+			});
+		} catch (err) {
+			toast$2({
+				title: "Erro",
+				description: "Erro ao atualizar estoque.",
+				variant: "destructive"
+			});
+		}
+	};
+	const handleCancel = () => {
+		setIsEditing(false);
+		if (stockBalanceRecords && stockBalanceRecords.length > 0) setLocalRecords([...stockBalanceRecords].sort((a$2, b$1) => {
+			if (a$2.isFilialRow && !b$1.isFilialRow) return 1;
+			if (!a$2.isFilialRow && b$1.isFilialRow) return -1;
+			return (a$2.productCode || "").localeCompare(b$1.productCode || "");
+		}));
+	};
+	const handleChange = (id, field, value) => {
+		setLocalRecords((prev) => prev.map((r$2) => r$2.id === id ? {
+			...r$2,
+			[field]: value
+		} : r$2));
+	};
+	const regularRows = localRecords.filter((r$2) => !r$2.isFilialRow);
+	const filialRow = localRecords.find((r$2) => r$2.isFilialRow);
+	const grandTotalKg = localRecords.reduce((acc, r$2) => acc + (Number(r$2.weightKg) || 0), 0);
+	const grandTotalQtd = localRecords.reduce((acc, r$2) => acc + (Number(r$2.quantityUnits) || 0), 0);
+	const chartData = regularRows.filter((r$2) => (Number(r$2.weightKg) || 0) > 0).map((r$2) => ({
+		name: r$2.description,
+		kg: Number(r$2.weightKg) || 0
+	}));
 	const chartConfig$1 = { kg: {
 		label: "Estoque (KG)",
 		color: "hsl(var(--primary))"
 	} };
 	const formatWithThreeDecimals = (val) => {
-		return val.toLocaleString("pt-BR", {
+		return (Number(val) || 0).toLocaleString("pt-BR", {
 			minimumFractionDigits: 3,
 			maximumFractionDigits: 3
 		});
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-6 animate-in fade-in zoom-in-95",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Balanço de Estoque - Reciclagem" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, {
+			className: "flex flex-row items-center justify-between pb-4",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Balanço de Estoque - Reciclagem" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "flex gap-2",
+				children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					variant: "outline",
+					size: "sm",
+					onClick: handleCancel,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "h-4 w-4 mr-2" }), " Cancelar"]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					size: "sm",
+					onClick: handleSave,
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Save, { className: "h-4 w-4 mr-2" }), " Salvar"]
+				})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+					size: "sm",
+					onClick: () => setIsEditing(true),
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pen, { className: "h-4 w-4 mr-2" }), " Editar"]
+				})
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 			className: "rounded-md border border-[#78b849]/30 overflow-hidden",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Table, { children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHeader, {
@@ -72852,49 +72945,80 @@ function ReciclagemStockControl({ production, shipping }) {
 								children: "DESCRIÇÃO"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-								className: "text-white font-bold text-center border-r border-white/30 uppercase",
+								className: "text-white font-bold text-center border-r border-white/30 uppercase w-[150px]",
 								children: "KG"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, {
-								className: "text-white font-bold text-center uppercase",
+								className: "text-white font-bold text-center uppercase w-[100px]",
 								children: "QTD"
 							})
 						]
 					})
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableBody, { children: [tableData.map((row, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableBody, { children: [regularRows.map((row, idx) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 					className: idx % 2 === 0 ? "bg-[#e2efd9] hover:bg-[#d5e8c9]" : "bg-white hover:bg-slate-50",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
-							children: row.code
+							children: row.productCode
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
-							children: row.name
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8",
+								value: row.description,
+								onChange: (e) => handleChange(row.id, "description", e.target.value)
+							}) : row.description
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold border-r border-[#78b849]/20 text-[#000]",
-							children: formatWithThreeDecimals(row.kg)
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8 text-right",
+								type: "number",
+								value: row.weightKg,
+								onChange: (e) => handleChange(row.id, "weightKg", e.target.value)
+							}) : formatWithThreeDecimals(row.weightKg)
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold text-[#000]",
-							children: row.qtd
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8 text-right",
+								type: "number",
+								value: row.quantityUnits,
+								onChange: (e) => handleChange(row.id, "quantityUnits", e.target.value)
+							}) : row.quantityUnits
 						})
 					]
-				}, row.code)), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
+				}, row.id)), filialRow && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, {
 					className: "bg-[#e2efd9] hover:bg-[#d5e8c9]",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							colSpan: 2,
 							className: "font-bold border-r border-[#78b849]/20 text-[#000]",
-							children: "ESTOQUE QUE ESTA NA FILIAL:"
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8 w-full max-w-[400px]",
+								value: filialRow.description,
+								onChange: (e) => handleChange(filialRow.id, "description", e.target.value)
+							}) : filialRow.description
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 							className: "text-right font-bold border-r border-[#78b849]/20 text-[#000]",
-							children: formatWithThreeDecimals(filialStock)
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8 text-right",
+								type: "number",
+								value: filialRow.weightKg,
+								onChange: (e) => handleChange(filialRow.id, "weightKg", e.target.value)
+							}) : formatWithThreeDecimals(filialRow.weightKg)
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { className: "text-right font-bold text-[#000]" })
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+							className: "text-right font-bold text-[#000]",
+							children: isEditing ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+								className: "h-8 text-right",
+								type: "number",
+								value: filialRow.quantityUnits,
+								onChange: (e) => handleChange(filialRow.id, "quantityUnits", e.target.value)
+							}) : filialRow.quantityUnits || 0
+						})
 					]
 				})] }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableFooter, {
@@ -72918,11 +73042,11 @@ function ReciclagemStockControl({ production, shipping }) {
 					})
 				})
 			] })
-		}) })] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Visualização de Estoque" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
+		}) })] }), chartData.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardTitle, { children: "Visualização de Estoque" }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChartContainer, {
 			config: chartConfig$1,
 			className: "h-[400px] w-full",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
-				data: tableData,
+				data: chartData,
 				margin: {
 					top: 30,
 					right: 30,
@@ -72960,7 +73084,7 @@ function ReciclagemStockControl({ production, shipping }) {
 							0,
 							0
 						],
-						children: [tableData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: COLORS[index$1 % COLORS.length] }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
+						children: [chartData.map((entry, index$1) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: COLORS[index$1 % COLORS.length] }, `cell-${index$1}`)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LabelList, {
 							dataKey: "kg",
 							position: "top",
 							formatter: (value) => formatWithThreeDecimals(value),
@@ -94135,4 +94259,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-DQTHk_uj.js.map
+//# sourceMappingURL=index-kfGgT-ym.js.map

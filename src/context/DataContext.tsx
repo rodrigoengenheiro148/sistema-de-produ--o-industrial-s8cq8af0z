@@ -29,6 +29,7 @@ import {
   SeboInventoryRecord,
   BoilerControlRecord,
   DigesterRecord,
+  StockBalanceRecord,
 } from '@/lib/types'
 import { startOfMonth, endOfMonth, startOfDay, subDays, format } from 'date-fns'
 import { supabase } from '@/lib/supabase/client'
@@ -182,6 +183,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [latestInventory, setLatestInventory] = useState<SeboInventoryRecord[]>(
     [],
   )
+  const [stockBalanceRecords, setStockBalanceRecords] = useState<
+    StockBalanceRecord[]
+  >([])
 
   const [userAccessList, setUserAccessList] = useState<UserAccessEntry[]>([])
   const [factories, setFactories] = useState<Factory[]>([])
@@ -320,6 +324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       setDailyForecasts([])
       setReturns([])
       setLatestInventory([])
+      setStockBalanceRecords([])
       return
     }
 
@@ -353,6 +358,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           { data: boiler },
           { data: digester },
           inventoryData,
+          { data: stockBalance },
         ] = await Promise.all([
           applyFilters(supabase.from('raw_materials').select('*')),
           applyFilters(supabase.from('production').select('*')),
@@ -367,6 +373,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
           applyFilters(supabase.from('boiler_control_records').select('*')),
           applyFilters(supabase.from('digester_records').select('*')),
           fetchLatestManualEntries(currentFactoryId, 50),
+          supabase
+            .from('stock_balance_records')
+            .select('*')
+            .eq('factory_id', currentFactoryId)
+            .order('is_filial_row', { ascending: true }),
         ])
 
         if (raw) setRawMaterials(mapData(raw))
@@ -442,6 +453,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         if (inventoryData) {
           setLatestInventory(inventoryData)
         }
+        if (stockBalance) {
+          setStockBalanceRecords(
+            stockBalance.map((s: any) => ({
+              id: s.id,
+              factoryId: s.factory_id,
+              productCode: s.product_code,
+              description: s.description,
+              weightKg: Number(s.weight_kg || 0),
+              quantityUnits: Number(s.quantity_units || 0),
+              isFilialRow: s.is_filial_row,
+              userId: s.user_id,
+              updatedAt: s.updated_at ? new Date(s.updated_at) : undefined,
+            })),
+          )
+        } else {
+          setStockBalanceRecords([])
+        }
 
         setLastProtheusSync(new Date())
         setConnectionStatus('online')
@@ -512,6 +540,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       'daily_production_forecasts',
       'returns',
       'sebo_inventory_records',
+      'stock_balance_records',
     ]
 
     tables.forEach((table) => {
@@ -1071,6 +1100,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!error) fetchOperationalData()
   }
 
+  const updateStockBalanceRecords = async (records: StockBalanceRecord[]) => {
+    if (!user?.id || !currentFactoryId) return
+
+    const payload = records.map((r) => {
+      const isNew = String(r.id).startsWith('new-')
+      return {
+        ...(isNew ? {} : { id: r.id }),
+        factory_id: r.factoryId || currentFactoryId,
+        product_code: r.productCode,
+        description: r.description,
+        weight_kg: Number(r.weightKg) || 0,
+        quantity_units: Number(r.quantityUnits) || 0,
+        is_filial_row: r.isFilialRow,
+        user_id: user.id,
+        updated_at: new Date().toISOString(),
+      }
+    })
+
+    const { error } = await supabase
+      .from('stock_balance_records')
+      .upsert(payload)
+    if (error) throw error
+    await fetchOperationalData()
+  }
+
   const addFactory = async (entry: Omit<Factory, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('factories').insert({
       name: entry.name,
@@ -1249,6 +1303,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         .delete()
         .eq('user_id', user.id),
       supabase.from('returns').delete().eq('user_id', user.id),
+      supabase.from('stock_balance_records').delete().eq('user_id', user.id),
     ])
     fetchOperationalData()
   }
@@ -1304,6 +1359,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
         updateReturn,
         deleteReturn,
         latestInventory,
+        stockBalanceRecords,
+        updateStockBalanceRecords,
         userAccessList,
         addUserAccess: () => {},
         updateUserAccess: () => {},
