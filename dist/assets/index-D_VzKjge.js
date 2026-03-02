@@ -89599,15 +89599,12 @@ function ProcessExportMenu() {
 	})] });
 }
 var formSchema$3 = object({
-	date: string().min(1, "Data é obrigatória"),
-	startTime: string().min(1, "Hora de início é obrigatória"),
-	endTime: string().min(1, "Hora de fim é obrigatória")
+	startTime: string().min(1, "Início é obrigatório"),
+	endTime: string().min(1, "Fim é obrigatório")
 }).refine((data) => {
 	if (data.startTime && data.endTime) {
-		const [startH, startM] = data.startTime.split(":").map(Number);
-		const [endH, endM] = data.endTime.split(":").map(Number);
-		const startMins = startH * 60 + startM;
-		return endH * 60 + endM > startMins;
+		const start = new Date(data.startTime).getTime();
+		return new Date(data.endTime).getTime() > start;
 	}
 	return true;
 }, {
@@ -89633,21 +89630,18 @@ function CookingTimeForm() {
 	const form = useForm({
 		resolver: a(formSchema$3),
 		defaultValues: {
-			date: format(/* @__PURE__ */ new Date(), "yyyy-MM-dd"),
 			startTime: "",
 			endTime: ""
 		}
 	});
 	function onSubmit(values) {
-		const dateObj = /* @__PURE__ */ new Date(`${values.date}T12:00:00`);
-		const [startH, startM] = values.startTime.split(":").map(Number);
-		const [endH, endM] = values.endTime.split(":").map(Number);
-		const startMins = startH * 60 + startM;
-		const totalHours = (endH * 60 + endM - startMins) / 60;
+		const start = new Date(values.startTime);
+		const end = new Date(values.endTime);
+		const totalHours = (end.getTime() - start.getTime()) / (1e3 * 60 * 60);
 		addCookingTimeRecord({
-			date: dateObj,
-			startTime: values.startTime,
-			endTime: values.endTime,
+			date: new Date(start.getFullYear(), start.getMonth(), start.getDate(), 12, 0, 0),
+			startTime: start.toISOString(),
+			endTime: end.toISOString(),
 			totalHours,
 			userId: "",
 			factoryId: ""
@@ -89657,19 +89651,40 @@ function CookingTimeForm() {
 			description: "Tempo de processo registrado com sucesso."
 		});
 		form.reset({
-			date: values.date,
 			startTime: "",
 			endTime: ""
 		});
 	}
-	const todayStr = form.watch("date");
+	const selectedStartTime = form.watch("startTime");
+	const referenceDateStr = selectedStartTime ? selectedStartTime.slice(0, 10) : format(/* @__PURE__ */ new Date(), "yyyy-MM-dd");
 	const displayedRecords = cookingTimeRecords.filter((r$2) => {
 		try {
-			return format(r$2.date, "yyyy-MM-dd") === todayStr;
+			const rStart = r$2.startTime ? new Date(r$2.startTime) : null;
+			if (!rStart || isNaN(rStart.getTime())) return false;
+			return format(rStart, "yyyy-MM-dd") === referenceDateStr;
 		} catch {
 			return false;
 		}
+	}).sort((a$2, b$1) => {
+		const timeA = a$2.startTime ? new Date(a$2.startTime).getTime() : 0;
+		return (b$1.startTime ? new Date(b$1.startTime).getTime() : 0) - timeA;
 	});
+	const formatDurationStr = (hours) => {
+		if (!hours && hours !== 0) return "-";
+		const h = Math.floor(hours);
+		const m$1 = Math.round((hours - h) * 60);
+		return `${h.toString().padStart(2, "0")}:${m$1.toString().padStart(2, "0")}`;
+	};
+	const formatDateStr = (dateValue) => {
+		if (!dateValue) return "-";
+		try {
+			const d = new Date(dateValue);
+			if (isNaN(d.getTime())) return String(dateValue);
+			return format(d, "dd/MM/yyyy HH:mm");
+		} catch {
+			return String(dateValue);
+		}
+	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Card, {
 		className: "shadow-sm border h-full",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(CardTitle, {
@@ -89683,57 +89698,42 @@ function CookingTimeForm() {
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 						onSubmit: form.handleSubmit(onSubmit),
 						className: "flex flex-col gap-4",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-col sm:flex-row gap-4",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
 								control: form.control,
-								name: "date",
-								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, { children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Dia" }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-										type: "date",
-										...field
-									}) }),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-								] })
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex gap-4",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "startTime",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
-										className: "flex-1",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Início" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-												type: "time",
-												...field
-											}) }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-										]
-									})
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
-									control: form.control,
-									name: "endTime",
-									render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
-										className: "flex-1",
-										children: [
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fim" }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-												type: "time",
-												...field
-											}) }),
-											/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
-										]
-									})
-								})]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								type: "submit",
-								className: "w-full",
-								children: "Registrar Tempo"
-							})
-						]
+								name: "startTime",
+								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+									className: "flex-1",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Início" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "datetime-local",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									]
+								})
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormField, {
+								control: form.control,
+								name: "endTime",
+								render: ({ field }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormItem, {
+									className: "flex-1",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormLabel, { children: "Fim" }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormControl, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "datetime-local",
+											...field
+										}) }),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormMessage, {})
+									]
+								})
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							type: "submit",
+							className: "w-full",
+							children: "Registrar Tempo"
+						})]
 					})
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -89745,20 +89745,26 @@ function CookingTimeForm() {
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableHead, { className: "w-[50px]" })
 					] }) }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableBody, { children: displayedRecords.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableRow, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
 						colSpan: 4,
-						className: "text-center text-muted-foreground",
-						children: "Nenhum registro para este dia."
+						className: "text-center text-muted-foreground h-24",
+						children: "Nenhum registro para a data selecionada."
 					}) }) : displayedRecords.map((record) => {
 						const isLocked = shouldRequireAuth(record.createdAt);
 						return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TableRow, { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.startTime || "-" }),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: record.endTime || "-" }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "whitespace-nowrap",
+								children: formatDateStr(record.startTime)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, {
+								className: "whitespace-nowrap",
+								children: formatDateStr(record.endTime)
+							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TableCell, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 								className: "flex items-center gap-2",
 								children: [
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Check, { className: "h-4 w-4 text-green-500" }),
 									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-										className: "font-medium",
-										children: record.totalHours ? `${record.totalHours.toFixed(2)}h` : "-"
+										className: "font-medium whitespace-nowrap",
+										children: formatDurationStr(record.totalHours)
 									}),
 									isLocked && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Lock, { className: "h-3 w-3 text-muted-foreground/50 ml-1" })
 								]
@@ -94259,4 +94265,4 @@ var App = () => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { chil
 var App_default = App;
 (0, import_client.createRoot)(document.getElementById("root")).render(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(App_default, {}));
 
-//# sourceMappingURL=index-kfGgT-ym.js.map
+//# sourceMappingURL=index-D_VzKjge.js.map
