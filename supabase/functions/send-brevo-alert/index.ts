@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
           },
         },
       )
-      // Only verify user if user_id was not explicitly passed in a trusted context,
+      // Only verify user if user_id was not explicitly passed in a trusted context, 
       // but client-side calls typically pass user_id in body for logic, verified by JWT context if needed.
       // For simplicity in this hybrid function, we trust the caller has permissions if JWT is valid.
       if (!userId) {
@@ -89,11 +89,9 @@ Deno.serve(async (req) => {
     // --- HANDLE RETURN ALERT ---
     if (type === 'return_alert' && returnData) {
       const date = new Date(returnData.date).toLocaleDateString('pt-BR')
-      const fretes =
-        (Number(returnData.outboundFreight) || 0) +
-        (Number(returnData.returnFreight) || 0)
+      const fretes = (Number(returnData.outboundFreight) || 0) + (Number(returnData.returnFreight) || 0)
       const prejuizo = Number(returnData.value) + fretes
-
+      
       alertSubject = `Nova Devolução Registrada - ${date}`
       alertText = `NOVA DEVOLUÇÃO - ${date}\nFornecedor: ${returnData.supplier}\nQuantidade: ${returnData.quantity} kg\nValor Produto: R$ ${returnData.value}\nFretes: R$ ${fretes}\nPrejuízo: R$ ${prejuizo}\nMotivo: ${returnData.description}`
       alertHtml = `
