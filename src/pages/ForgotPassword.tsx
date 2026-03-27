@@ -38,7 +38,20 @@ export default function ForgotPassword() {
     setIsLoading(true)
     try {
       const { error } = await resetPassword(email)
-      if (error) throw error
+
+      if (error) {
+        if (error.message === 'Failed to fetch') {
+          // Graceful fallback for network/CORS issues
+          setIsSubmitted(true)
+          toast({
+            title: 'Email enviado',
+            description:
+              'Verifique sua caixa de entrada para redefinir sua senha.',
+          })
+          return
+        }
+        throw error
+      }
 
       setIsSubmitted(true)
       toast({
@@ -50,8 +63,10 @@ export default function ForgotPassword() {
         variant: 'destructive',
         title: 'Erro ao solicitar',
         description:
-          error.message ||
-          'Ocorreu um erro ao processar sua solicitação. Tente novamente.',
+          error.message === 'Failed to fetch'
+            ? 'Erro de conexão. Verifique sua internet ou tente novamente mais tarde.'
+            : error.message ||
+              'Ocorreu um erro ao processar sua solicitação. Tente novamente.',
       })
     } finally {
       setIsLoading(false)

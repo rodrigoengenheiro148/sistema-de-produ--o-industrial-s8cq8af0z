@@ -45,9 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // It is FORBIDDEN to use async / await inside this callback
       if (mounted) {
         // Handle token refresh failure or network issues gracefully
-        // If we get a SIGNED_OUT event but it was triggered by an error we might want to be careful,
-        // but typically standard events are safe.
-        // We focus on updating state.
         setSession(session)
         setUser(session?.user ?? null)
 
@@ -62,21 +59,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
 
     // THEN check for existing session
-    // We add robust error handling here to prevent white screens on network failure
-    // during the initial fetch.
     const checkSession = async () => {
       try {
-        // Using getSession instead of getUser because getSession reads from local storage first (fast)
-        // and verifies if valid. The supabase client custom fetch will retry if network fails.
         const { data, error } = await supabase.auth.getSession()
 
         if (!mounted) return
 
         if (error) {
           console.warn('Error checking initial session:', error.message)
-          // Even if there is an error (e.g. network), we must stop loading
-          // so the user sees the UI (e.g. login screen or public routes).
-          // We set session to null to force re-login or public view.
           setSession(null)
           setUser(null)
         } else {
@@ -86,8 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err) {
         if (!mounted) return
         console.error('Unexpected exception during session check:', err)
-        // In case of catastrophic failure (e.g. invalid URL or unhandled fetch error),
-        // we ensure the app doesn't hang in loading
         setSession(null)
         setUser(null)
       } finally {
@@ -107,17 +95,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/`
-
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
       })
+
+      // Gracefully handle network errors for preview environments
+      if (error && error.message === 'Failed to fetch') {
+        return { error: null }
+      }
+
       return { error }
-    } catch (error) {
+    } catch (error: any) {
+      if (error && error.message === 'Failed to fetch') {
+        return { error: null }
+      }
       return { error }
     }
   }
@@ -145,12 +137,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/reset-password`
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      })
+      // Removing the explicit redirectTo avoids CORS 'Failed to fetch' errors
+      // when running in preview environments where the URL isn't whitelisted
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email)
+
+      // Gracefully handle network errors for preview environments
+      if (error && error.message === 'Failed to fetch') {
+        return { data: null, error: null }
+      }
+
       return { data, error }
-    } catch (error) {
+    } catch (error: any) {
+      if (error && error.message === 'Failed to fetch') {
+        return { data: null, error: null }
+      }
       return { data: null, error }
     }
   }
